@@ -2,7 +2,7 @@ from scheduler.duty_initializer import DutyInitializer
 
 
 # from util.date_time_util import DateTimeUtil
-
+from collections import defaultdict
 
 def create_schedule():
     pass
@@ -32,9 +32,20 @@ if __name__ == '__main__':
     #         add_duty(dict_duty_schedule=dict_duty_schedule, emp_number=emp_number, current_date=current_date)
     duty_types = ['Night', 'Morning', "Evening"]
     employee_numbers = ["r1", "r2", "r3", "r4"]
-    public_holidays = ["20230101"]
-    weekend_holidays = {"r1": ["sunday"]}
+    public_holidays = {"20240101": "holiday_new_year"}
+    weekly_holidays = defaultdict(lambda: -1)
+    weekly_holidays.update({"r1": ["sunday"], "r2": ["saturday", "sunday"]})
 
 
-    duty_initializer.assign_default_duty('20240101','20240131', duty_types, employee_numbers)
+
+    # 1. assign default duty to all the employees
+    dict_duty_schedule = duty_initializer.assign_default_duty('20240101', '20240131', duty_types, employee_numbers)
+
+    # 2. assign public holidays
+    dict_duty_schedule_public_holidays = duty_initializer.assign_normal_holidays(dict_duty_schedule=dict_duty_schedule,
+                                                                                 dict_holidays=public_holidays)
+
+    # 3.
+
+
     print('PyCharm')

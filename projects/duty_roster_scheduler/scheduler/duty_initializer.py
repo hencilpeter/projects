@@ -10,8 +10,6 @@ class DutyInitializer:
     def get_previous_day_shift(current_duty_schedule):
         last_item = current_duty_schedule[next(reversed(current_duty_schedule))]
         return last_item
-        #length_duty_schedule = len(current_duty_schedule)
-        #return current_duty_schedule[length_duty_schedule - 1][1]
 
     @staticmethod
     def get_shift_type(dict_duty_schedule, emp_number, schedule_type, current_date, dict_schedule_history):
@@ -42,10 +40,8 @@ class DutyInitializer:
 
         if -1 == dict_duty_schedule[emp_number]:
             dict_duty_schedule[emp_number] = OrderedDict()
-        #     dict_duty_schedule[emp_number] = {[current_date, shift_type]}
-        # else:
-        #     dict_duty_schedule[emp_number].append([current_date, shift_type])
-        dict_duty_schedule[emp_number][current_date] = shift_type
+        current_date_in_yyyymmdd_form = current_date.strftime("%Y%m%d")
+        dict_duty_schedule[emp_number][current_date_in_yyyymmdd_form] = shift_type
 
 
 
@@ -68,15 +64,29 @@ class DutyInitializer:
                                          current_date=current_date)
 
         return dict_duty_schedule
-        #print(dict_duty_schedule)
 
     @staticmethod
-    def assign_public_holidays(dict_duty_schedule, public_holidays):
-        pass
+    def assign_normal_holidays(dict_duty_schedule, dict_holidays):
+        for employee_number in dict_duty_schedule:
+            employee_schedule = dict_duty_schedule[employee_number]
+            for holiday_date, holiday_name in dict_holidays.items():
+                employee_schedule[holiday_date] = holiday_name
+
+        return dict_duty_schedule
 
     @staticmethod
-    def assign_weekend_holidays(dict_duty_schedule, weekend_holidays):
-        pass
+    def assign_weekly_holidays(dict_duty_schedule, weekly_holidays):
+        for employee_number in dict_duty_schedule:
+            employee_schedule = dict_duty_schedule[employee_number]
+            if -1 == weekly_holidays[employee_number]:
+                continue
+
+            weekly_holiday_list = weekly_holidays[employee_schedule]
+
+
+            # get all the weekdays for the given day (e.g. Wednesday ) and assign leave
+
+
 
     @staticmethod
     def assign_rotation_holidays(dict_duty_schedule, rotation_holidays):
