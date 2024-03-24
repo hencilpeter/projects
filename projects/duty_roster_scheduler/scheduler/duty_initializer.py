@@ -4,6 +4,10 @@ from datetime import datetime as dt
 import datetime
 from collections import defaultdict
 from collections import OrderedDict
+from collections import deque
+import random
+import time
+
 
 class DutyInitializer:
     @staticmethod
@@ -43,8 +47,6 @@ class DutyInitializer:
         current_date_in_yyyymmdd_form = current_date.strftime("%Y%m%d")
         dict_duty_schedule[emp_number][current_date_in_yyyymmdd_form] = shift_type
 
-
-
     @staticmethod
     def assign_default_duty(_from_date, _to_date, _duty_types, emp_numbers):
         # duty assignments
@@ -83,10 +85,7 @@ class DutyInitializer:
 
             weekly_holiday_list = weekly_holidays[employee_schedule]
 
-
             # get all the weekdays for the given day (e.g. Wednesday ) and assign leave
-
-
 
     @staticmethod
     def assign_rotation_holidays(dict_duty_schedule, rotation_holidays):
@@ -96,8 +95,142 @@ class DutyInitializer:
     def assign_leaves(dict_duty_schedule, employee_planned_leaves):
         pass
 
+    # hencil changes - 20240324
     @staticmethod
-    def adjust_duties(dict_duty_schedule, employee_planned_leaves):
+    def assign_duty_round_robin(_list_emp_ids, _from_date, _to_date, _list_company_holidays,
+                                _minimum_daily_required_resource_count):
+        days_between = DateTimeUtil.days_between(_from_date, _to_date)
+        dict_duty_schedule = defaultdict(lambda: -1)
+        dict_emp_leaves = defaultdict(lambda: -1)
+
+        count_daily_leave_emp = len(_list_emp_ids) - _minimum_daily_required_resource_count
+        # shuffle the employee ids
+        random.shuffle(_list_emp_ids)
+        dqueue_emp_ids = deque(_list_emp_ids)
+
+        # holidays list
+        list_company_holidays = [str(dt.strptime(holiday, "%Y%m%d")) for holiday in _list_company_holidays]
+
+        for day_count in range(0, days_between):
+            current_date = dt.strptime(_from_date, "%Y%m%d") + datetime.timedelta(days=day_count)
+            # dict_duty_schedule[current_date] = defaultdict(lambda: -1)
+            str_current_date = str(current_date)
+            if str_current_date in list_company_holidays:
+                # skip duty assignment for public holidays
+                continue
+
+            if count_daily_leave_emp > 0:
+                dict_duty_schedule[str_current_date] = list(dqueue_emp_ids)[0:_minimum_daily_required_resource_count]
+                dict_emp_leaves[str_current_date] = list(dqueue_emp_ids)[_minimum_daily_required_resource_count:]
+                dqueue_emp_ids.rotate(count_daily_leave_emp)
+            else:
+                dict_duty_schedule[str_current_date] = list(dqueue_emp_ids)
+
+        return dict_duty_schedule, dict_emp_leaves
+
+    @staticmethod
+    def adjust_duties(dict_employee_details, minimum_daily_required_resource_count):
         pass
 
+    @staticmethod
+    def get_leave_dates_dict_by_employee_id(_list_emp_ids, _dict_emp_leaves):
+        dict_emp_leaves_dates_by_id = defaultdict(lambda: -1)
 
+        for business_date in _dict_emp_leaves.keys():
+            for emp_id in _dict_emp_leaves[business_date]:
+                if dict_emp_leaves_dates_by_id[emp_id] == -1:
+                    dict_emp_leaves_dates_by_id[emp_id] = list()
+
+                dict_emp_leaves_dates_by_id[emp_id].append(business_date)
+
+        return dict_emp_leaves_dates_by_id
+
+    @staticmethod
+    def swap_duties(_dict_duty_schedule, _dict_emp_leaves, _swap_emp_id1, _duty_date_emp_id1, _swap_emp_id2,
+                    _duty_date_emp_id2):
+
+        formatted_duty_date_emp_id1 = str(dt.strptime(_duty_date_emp_id1, "%Y%m%d"))
+        formatted_duty_date_emp_id2 = str(dt.strptime(_duty_date_emp_id2, "%Y%m%d"))
+
+        # validation
+        if _swap_emp_id1 not in _dict_duty_schedule[formatted_duty_date_emp_id1]:
+            print("invalid swap duty. employee {} does not have duty on {}.".format(_swap_emp_id1, _duty_date_emp_id1))
+            return
+
+        if _swap_emp_id2 not in _dict_duty_schedule[formatted_duty_date_emp_id2]:
+            print("invalid swap duty. employee {} does not have duty on {}.".format(_swap_emp_id2, _duty_date_emp_id2))
+            return
+
+        if _swap_emp_id1 in _dict_duty_schedule[formatted_duty_date_emp_id1] and _swap_emp_id2 in _dict_duty_schedule[
+            formatted_duty_date_emp_id1]:
+            print("invalid swap duty. employee {}  and employee has duty on the same date : {}.".format(_swap_emp_id1,
+                                                                                                        _swap_emp_id2,
+                                                                                                        _duty_date_emp_id1))
+            return
+
+        if _swap_emp_id1 in _dict_duty_schedule[formatted_duty_date_emp_id2] and _swap_emp_id2 in _dict_duty_schedule[
+            formatted_duty_date_emp_id2]:
+            print("invalid swap duty. employee {}  and employee has duty on the same date : {}.".format(_swap_emp_id1,
+                                                                                                        _swap_emp_id2,
+                                                                                                        formatted_duty_date_emp_id2))
+            return
+
+        # swap duties
+        DutyInitializer.swap_dict_key_values(_dict=_dict_duty_schedule, _key1=formatted_duty_date_emp_id1,
+                                             _value1=_swap_emp_id1,
+                                             _key2=formatted_duty_date_emp_id2, _value2=_swap_emp_id2)
+
+        # swap leaves
+        DutyInitializer.swap_dict_key_values(_dict=_dict_emp_leaves, _key1=formatted_duty_date_emp_id1,
+                                             _value1=_swap_emp_id2,
+                                             _key2=formatted_duty_date_emp_id2, _value2=_swap_emp_id1)
+
+    @staticmethod
+    def swap_dict_key_values(_dict, _key1, _value1, _key2, _value2):
+        # re-assign the value of key 1
+        updated_duty_list = _dict[_key1]
+        updated_duty_list.remove(_value1)
+        updated_duty_list.append(_value2)
+        _dict[_key1] = updated_duty_list
+
+        # re-assign the value of key 2
+        updated_duty_list = _dict[_key2]
+        updated_duty_list.remove(_value2)
+        updated_duty_list.append(_value1)
+        _dict[_key2] = updated_duty_list
+
+    @staticmethod
+    def assign_duty(_dict_duty_schedule, _dict_emp_leaves, _duty_date, _emp_id):
+        formatted_duty_date = str(dt.strptime(_duty_date, "%Y%m%d"))
+
+        # assign the duty to the emp id for the given date
+        DutyInitializer.assign_dict_list_value(_dict=_dict_duty_schedule, _key=formatted_duty_date, _value=_emp_id)
+        # remove the leave for the employee from the given date
+        DutyInitializer.remove_dict_list_value(_dict=_dict_emp_leaves, _key=formatted_duty_date, _value=_emp_id)
+
+    @staticmethod
+    def assign_leave(_dict_duty_schedule, _dict_emp_leaves, _leave_date, _emp_id):
+        formatted_leave_date = str(dt.strptime(_leave_date, "%Y%m%d"))
+
+        # add leave to the emp id for the given date
+        DutyInitializer.assign_dict_list_value(_dict=_dict_emp_leaves, _key=formatted_leave_date, _value=_emp_id)
+
+        # remove duty of emp id for the given date if any
+        DutyInitializer.assign_dict_list_value(_dict=_dict_duty_schedule, _key=formatted_leave_date, _value=_emp_id)
+
+    @staticmethod
+    def assign_dict_list_value(_dict, _key, _value):
+        if _dict[_key] == -1:
+            _dict[_key] = list()
+
+        if _value not in _dict[_key]:
+            _dict[_key].append(_value)
+
+    @staticmethod
+    def remove_dict_list_value(_dict, _key, _value):
+        if _dict[_key] == -1:
+            # print("dictionary does not have the key : {}".format(_key))
+            return
+
+        if _value in _dict[_key]:
+            _dict[_key].remove(_value)

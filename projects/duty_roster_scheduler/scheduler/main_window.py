@@ -150,10 +150,6 @@ class MainWindow:
     def handle_Save_button(self, event):
         print("save Button Pressed....")
         print(self.text_employee_number.GetValue())
-        #insert_statement = """
-        # insert into employee(employee_number, first_name, last_name, father_name, sex, date_of_birth, education, employment_start_date, employment_end_date)
-        # values('101', 'Hencil', 'Peter', 'Joseph', 'M', '2020-12-12', 'PhD', '2020-12-12', '2020-12-12')
-        # """.format(self.text_employee_number.GetValue())
 
         insert_statement = """
         insert into
