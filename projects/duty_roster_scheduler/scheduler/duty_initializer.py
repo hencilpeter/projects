@@ -216,7 +216,7 @@ class DutyInitializer:
         DutyInitializer.assign_dict_list_value(_dict=_dict_emp_leaves, _key=formatted_leave_date, _value=_emp_id)
 
         # remove duty of emp id for the given date if any
-        DutyInitializer.assign_dict_list_value(_dict=_dict_duty_schedule, _key=formatted_leave_date, _value=_emp_id)
+        DutyInitializer.remove_dict_list_value(_dict=_dict_duty_schedule, _key=formatted_leave_date, _value=_emp_id)
 
     @staticmethod
     def assign_dict_list_value(_dict, _key, _value):
