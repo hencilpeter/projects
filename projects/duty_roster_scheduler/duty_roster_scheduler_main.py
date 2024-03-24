@@ -85,4 +85,23 @@ if __name__ == '__main__':
     DutyInitializer.assign_leave(_dict_duty_schedule=test_dict_duty_schedule, _dict_emp_leaves=test_dict_emp_leaves,
                                  _leave_date='20240405', _emp_id='r1')
 
+    # save html logic -
+    from html import html_duty_viewer
+
+    html_duty_viewer = html_duty_viewer.HtmlDutyViewer(
+        _header_name="Duty Schedule  ( {} - {}) ".format('20240401', '20240430'), _footer="End of the Document")
+
+    html_duty_viewer.add_table_row_header_with_two_column(_col1_header="Date", _col2_header = "Employee Name(s)")
+
+    for business_date in test_dict_duty_schedule.keys():
+        list_emp_ids = test_dict_duty_schedule[business_date]
+        list_emp_ids.sort()
+        formatted_emp_ids = ""
+        for count in range(1, len(list_emp_ids)+1):
+            formatted_emp_ids = formatted_emp_ids + "| {}. {} ".format(count, list_emp_ids[count-1])
+        html_duty_viewer.add_table_row_values_with_two_column(_col1_value=business_date, _col2_value=formatted_emp_ids)
+
+    html_duty_viewer.save_html_file("C:\\Users\\User\\Documents\\GitHub\\projects\\duty_roster_scheduler\\csv\\duty_schedult.html")
+    # test_dict_duty_schedule
+
     print('PyCharm')
