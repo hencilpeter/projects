@@ -1,8 +1,9 @@
-from scheduler.duty_initializer import DutyInitializer
-from util.dict_util import DictUtil
+from old_code.scheduler.duty_initializer import DutyInitializer
+from old_code.util import DictUtil
 
-# from util.date_time_util import DateTimeUtil
+from old_code.util.date_time_util import DateTimeUtil
 from collections import defaultdict
+
 
 def create_schedule():
     pass
@@ -69,11 +70,11 @@ if __name__ == '__main__':
 
     # load test dictionaries
     test_dict_duty_schedule = DictUtil.read_dict_from_csv(
-        _csv_file_name="C:\\Users\\User\\Documents\\GitHub\\projects\\duty_roster_scheduler\\csv\\emp_duty_schedule.csv")
+        _csv_file_name="csv/emp_duty_schedule.csv")
     test_dict_emp_leaves = DictUtil.read_dict_from_csv(
-        _csv_file_name="C:\\Users\\User\\Documents\\GitHub\\projects\\duty_roster_scheduler\\csv\\emp_leaves.csv")
+        _csv_file_name="csv/emp_leaves.csv")
     test_dict_emp_leaves_dates_by_id = DictUtil.read_dict_from_csv(
-        _csv_file_name="C:\\Users\\User\\Documents\\GitHub\\projects\\duty_roster_scheduler\\csv\\emp_leaves_dates_by_ids.csv")
+        _csv_file_name="csv/emp_leaves_dates_by_ids.csv")
     # test swap duties
     DutyInitializer.swap_duties(_dict_duty_schedule=test_dict_duty_schedule, _dict_emp_leaves=test_dict_emp_leaves,
                                 _swap_emp_id1='r4', _duty_date_emp_id1='20240401', _swap_emp_id2='r3', _duty_date_emp_id2='20240403')
@@ -86,7 +87,7 @@ if __name__ == '__main__':
                                  _leave_date='20240405', _emp_id='r1')
 
     # save html logic -
-    from html import html_duty_viewer
+    from old_code.html import html_duty_viewer
 
     html_duty_viewer = html_duty_viewer.HtmlDutyViewer(
         _header_name="Duty Schedule  ( {} - {}) ".format('20240401', '20240430'), _footer="End of the Document")
@@ -98,8 +99,10 @@ if __name__ == '__main__':
         list_emp_ids.sort()
         formatted_emp_ids = ""
         for count in range(1, len(list_emp_ids)+1):
-            formatted_emp_ids = formatted_emp_ids + "| {}. {} ".format(count, list_emp_ids[count-1])
-        html_duty_viewer.add_table_row_values_with_two_column(_col1_value=business_date, _col2_value=formatted_emp_ids)
+            formatted_emp_ids = formatted_emp_ids + "| {}. {} ".format(count, list_emp_ids[count-1] )
+            formatted_business_date = business_date[:10]
+            formatted_business_date = formatted_business_date + " (" + DateTimeUtil.get_day_from_date(str(formatted_business_date).replace('-','')) + ")"
+        html_duty_viewer.add_table_row_values_with_two_column(_col1_value=formatted_business_date, _col2_value=formatted_emp_ids)
 
     html_duty_viewer.save_html_file("C:\\Users\\User\\Documents\\GitHub\\projects\\duty_roster_scheduler\\csv\\duty_schedult.html")
     # test_dict_duty_schedule

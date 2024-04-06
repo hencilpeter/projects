@@ -1,9 +1,8 @@
 # https://www.geeksforgeeks.org/python-wxpython-module-introduction/
 import wx
-import datetime
 import wx.adv
 import wx.grid as gridlib
-from data import table_data_reader
+from old_code.data import table_data_reader
 class MainWindow:
     def __init__(self):
         # data reader

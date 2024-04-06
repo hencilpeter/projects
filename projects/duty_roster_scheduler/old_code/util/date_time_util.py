@@ -12,3 +12,7 @@ class DateTimeUtil:
     @staticmethod
     def is_monday(_current_date):
         return _current_date.isoweekday() == 1
+
+    @staticmethod
+    def get_day_from_date(_date):
+        return dt.strptime(_date, "%Y%m%d").strftime('%A') #.weekday()

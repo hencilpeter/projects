@@ -21,11 +21,8 @@ class HtmlFileParent:
                 """.format(_header_name)
 
     def get_default_footer(self, _footer):
-        return """"
-                <div class="footer">
-                     <p>{}</p>
-                    </div>
-                """.format(_footer)
+        return " </body> <p> {}</p> </html>".format(_footer)
+
     def get_header(self):
         return self.file_header
 

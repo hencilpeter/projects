@@ -1,0 +1,18 @@
+{
+  "company_name": "MARANIA FILAMENTS",
+  "payslip_title": "( for the month of {} )",
+  "company_address": [
+    "Kallukootam, Elavuvilai Post",
+    "Kanyakumari District, Tamil Nadu",
+    "India - 629171."
+  ],
+  "phone_number": "Mobile : +91 8903705434",
+  "company_email_id":"Email : admin@maraniagroup.com",
+  "company_website":"www.maraniagroup.com",
+  "employee_detail": {
+    "emp_id": "Emp Id: {}",
+    "emp_name": "Emp Name: {}",
+    "date_of_joining": "Date of Joining: {}",
+    "department": "Department: {}"
+  }
+}

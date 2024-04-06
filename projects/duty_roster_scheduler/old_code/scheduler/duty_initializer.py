@@ -1,4 +1,4 @@
-from util.date_time_util import DateTimeUtil
+from old_code.util.date_time_util import DateTimeUtil
 
 from datetime import datetime as dt
 import datetime
@@ -6,7 +6,6 @@ from collections import defaultdict
 from collections import OrderedDict
 from collections import deque
 import random
-import time
 
 
 class DutyInitializer:

@@ -1,4 +1,4 @@
-from html.html_file_parent import HtmlFileParent
+from old_code.html.html_file_parent import HtmlFileParent
 
 
 class HtmlDutyViewer(HtmlFileParent):
@@ -19,8 +19,8 @@ class HtmlDutyViewer(HtmlFileParent):
         super().append_html_body(
             """
            <tr>
-            <td>{}</td>
-            <td>{}</td>
+            <td style="min-width:100px">{}</td>
+            <td style="max-width:800px">{}</td>
           </tr>
             """.format(_col1_value, _col2_value)
         )
