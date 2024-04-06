@@ -198,7 +198,7 @@ class WindowEmployee(wx.Dialog):
 
     def handler_cancel(self, event):
         self.Close()
-        
+
 
     # end of class AddUpdateEmployee
 

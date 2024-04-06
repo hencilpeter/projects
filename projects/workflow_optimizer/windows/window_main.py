@@ -1,6 +1,8 @@
 import wx
 from windows.window_search_employee import WindowSearchEmployee
 from windows.window_employee import WindowEmployee
+from windows.window_duty_catalog import DutyCatalog
+from windows.window_duty_allocation import DutyAllocation
 class WindowMain(wx.Frame):
     def __init__(self, *args, **kwds):
         kwds["style"] = kwds.get("style", 0) | wx.DEFAULT_FRAME_STYLE
@@ -48,13 +50,17 @@ class WindowMain(wx.Frame):
 
 
 
-    def handler_duty_catalog(self, event):  # wxGlade: MyFrame.<event_handler>
-        print("Event handler 'handler_duty_catalog' not implemented!")
-        event.Skip()
+    def handler_duty_catalog(self, event):  # wxGlade: MyFrame.<event_handler>\
+        dlg_duty_manager = DutyCatalog(None, wx.ID_ANY, "")
+        #         self.SetTopWindow(self.dialog)
+        dlg_duty_manager.ShowModal()
+        dlg_duty_manager.Destroy()
 
     def handler_duty_allocation(self, event):  # wxGlade: MyFrame.<event_handler>
-        print("Event handler 'handler_duty_allocation' not implemented!")
-        event.Skip()
+        dialog_duty_allocation = DutyAllocation(None, wx.ID_ANY, "")
+        #         self.SetTopWindow(self.dialog)
+        dialog_duty_allocation.ShowModal()
+        dialog_duty_allocation.Destroy()
 
     def handler_backup_restore(self, event):
         print("Event handler 'handler_backup_restore' not implemented!")
