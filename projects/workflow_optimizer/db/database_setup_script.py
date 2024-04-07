@@ -83,3 +83,8 @@ conn.execute('''CREATE TABLE employee
 		 employment_start_date DATE,
 		 employment_end_date DATE );
 		 ''')
+
+
+conn.commit()
+
+conn.close()

@@ -215,8 +215,6 @@ class WindowEmployee(wx.Dialog):
         WindowEmployeeHandlers.handle_enable_disable_employee_number(self, should_enable=True)
 
     def handler_save(self, event):
-        self.txt_emp_number.GetValue()
-
         WindowEmployeeHandlers.handle_save_employee_details(self)
 
     def handler_cancel(self, event):

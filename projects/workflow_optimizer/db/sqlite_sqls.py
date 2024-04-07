@@ -4,7 +4,7 @@ from collections import defaultdict
 
 class SqliteSqls:
     def __init__(self, db_file_name):
-        self.conn = sqlite3.connect('../scheduler/marania_data.db')
+        self.conn = sqlite3.connect(db_file_name)
 
     def __del__(self):
         self.conn.close()
@@ -34,6 +34,3 @@ class SqliteSqls:
     def write_data(self, insert_statement):
         self.execute_and_commit_sql(insert_statement)
 
-    # @staticmethod
-    # def read_table_records(query):
-    #     pass

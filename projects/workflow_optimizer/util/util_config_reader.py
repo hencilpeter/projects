@@ -15,4 +15,4 @@ class UtilConfigReader:
 
     @staticmethod
     def get_application_config(configuration_name):
-        return UtilConfigReader.json_config[configuration_name]
+        return UtilConfigReader.dict_app_config[configuration_name]
