@@ -15,13 +15,13 @@ class DutyAllocation(wx.Dialog):
         # begin wxGlade: DutyAllocation.__init__
         kwds["style"] = kwds.get("style", 0) | wx.DEFAULT_DIALOG_STYLE
         wx.Dialog.__init__(self, *args, **kwds)
-        self.SetSize((1305, 884))
+        self.SetSize((1305, 897))
         self.SetTitle("dialog")
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
         sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND | wx.SHAPED, 0)
 
         sizer_4 = wx.BoxSizer(wx.VERTICAL)
         sizer_3.Add(sizer_4, 1, wx.EXPAND, 0)
@@ -32,13 +32,13 @@ class DutyAllocation(wx.Dialog):
         sizer_4.Add(label_1, 0, 0, 0)
 
         sizer_5 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_4.Add(sizer_5, 1, wx.EXPAND, 0)
+        sizer_4.Add(sizer_5, 0, wx.SHAPED, 0)
 
         label_2 = wx.StaticText(self, wx.ID_ANY, "Department(Filter)")
         sizer_5.Add(label_2, 0, wx.ALIGN_CENTER_VERTICAL, 0)
 
-        self.check_list_box_department = wx.CheckListBox(self, wx.ID_ANY, choices=["choice 1"])
-        self.check_list_box_department.SetMinSize((151, 55))
+        self.check_list_box_department = wx.CheckListBox(self, wx.ID_ANY, choices=["Admin", "Bobin Winding", "Machine Operation", "Mending", "Other"])
+        self.check_list_box_department.SetMinSize((151, 90))
         sizer_5.Add(self.check_list_box_department, 0, wx.ALIGN_CENTER_VERTICAL, 0)
 
         sizer_6 = wx.BoxSizer(wx.VERTICAL)
@@ -68,40 +68,41 @@ class DutyAllocation(wx.Dialog):
         self.datepicker_ctrl_end_date.SetMinSize((120, 25))
         grid_sizer_1.Add(self.datepicker_ctrl_end_date, 0, 0, 0)
 
-        sizer_12 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_7.Add(sizer_12, 1, wx.BOTTOM, 0)
+        sizer_12 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, ""), wx.HORIZONTAL)
+        sizer_7.Add(sizer_12, 1, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM | wx.SHAPED, 0)
 
         self.search_control_department = wx.SearchCtrl(self, wx.ID_ANY, "")
+        self.search_control_department.SetMinSize((130, 23))
         self.search_control_department.ShowCancelButton(True)
         sizer_12.Add(self.search_control_department, 0, 0, 0)
 
         self.search_control_identity = wx.SearchCtrl(self, wx.ID_ANY, "")
+        self.search_control_identity.SetMinSize((130, 23))
         self.search_control_identity.ShowCancelButton(True)
         sizer_12.Add(self.search_control_identity, 0, 0, 0)
 
         self.search_control_name = wx.SearchCtrl(self, wx.ID_ANY, "")
+        self.search_control_name.SetMinSize((130, 23))
         self.search_control_name.ShowCancelButton(True)
         sizer_12.Add(self.search_control_name, 0, 0, 0)
 
-        self.search_control_duty_code = wx.SearchCtrl(self, wx.ID_ANY, "")
-        self.search_control_duty_code.ShowCancelButton(True)
-        sizer_12.Add(self.search_control_duty_code, 0, 0, 0)
-
         self.search_control_duty_name = wx.SearchCtrl(self, wx.ID_ANY, "")
+        self.search_control_duty_name.SetMinSize((130, 23))
         self.search_control_duty_name.ShowCancelButton(True)
         sizer_12.Add(self.search_control_duty_name, 0, 0, 0)
 
         self.search_control_duty_date = wx.SearchCtrl(self, wx.ID_ANY, "")
+        self.search_control_duty_date.SetMinSize((130, 23))
         self.search_control_duty_date.ShowCancelButton(True)
         sizer_12.Add(self.search_control_duty_date, 0, 0, 0)
-
-        sizer_12.Add((0, 0), 0, 0, 0)
 
         sizer_8 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_1.Add(sizer_8, 1, wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 0)
 
         self.grid_employee_detail = wx.grid.Grid(self, wx.ID_ANY, size=(1, 1))
         self.grid_employee_detail.CreateGrid(10, 4)
+        self.grid_employee_detail.SetRowLabelSize(30)
+        self.grid_employee_detail.SetColLabelSize(30)
         self.grid_employee_detail.SetSelectionMode(wx.grid.Grid.SelectRows)
         self.grid_employee_detail.SetColLabelValue(0, "Department")
         self.grid_employee_detail.SetColSize(0, 100)
@@ -111,23 +112,25 @@ class DutyAllocation(wx.Dialog):
         self.grid_employee_detail.SetColSize(2, 100)
         self.grid_employee_detail.SetColLabelValue(3, "Last Name")
         self.grid_employee_detail.SetColSize(3, 100)
+        self.grid_employee_detail.SetMinSize((634, 575))
         sizer_8.Add(self.grid_employee_detail, 1, wx.EXPAND, 0)
 
         self.grid_duty_detail = wx.grid.Grid(self, wx.ID_ANY, size=(1, 1))
-        self.grid_duty_detail.CreateGrid(10, 6)
+        self.grid_duty_detail.CreateGrid(10, 5)
+        self.grid_duty_detail.SetRowLabelSize(30)
+        self.grid_duty_detail.SetColLabelSize(30)
         self.grid_duty_detail.SetSelectionMode(wx.grid.Grid.SelectRows)
         self.grid_duty_detail.SetColLabelValue(0, "Department")
         self.grid_duty_detail.SetColSize(0, 120)
         self.grid_duty_detail.SetColLabelValue(1, "Identity")
         self.grid_duty_detail.SetColSize(1, 100)
         self.grid_duty_detail.SetColLabelValue(2, "Name")
-        self.grid_duty_detail.SetColSize(2, 100)
-        self.grid_duty_detail.SetColLabelValue(3, "Duty Code")
-        self.grid_duty_detail.SetColSize(3, 100)
-        self.grid_duty_detail.SetColLabelValue(4, "Duty Name")
-        self.grid_duty_detail.SetColSize(4, 100)
-        self.grid_duty_detail.SetColLabelValue(5, "Duty Date")
-        self.grid_duty_detail.SetColSize(5, 100)
+        self.grid_duty_detail.SetColSize(2, 180)
+        self.grid_duty_detail.SetColLabelValue(3, "Duty Name")
+        self.grid_duty_detail.SetColSize(3, 110)
+        self.grid_duty_detail.SetColLabelValue(4, "Duty Date")
+        self.grid_duty_detail.SetColSize(4, 110)
+        self.grid_duty_detail.SetMinSize((650, 575))
         sizer_8.Add(self.grid_duty_detail, 1, wx.EXPAND, 0)
 
         sizer_9 = wx.BoxSizer(wx.HORIZONTAL)
