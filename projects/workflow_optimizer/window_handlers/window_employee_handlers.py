@@ -1,6 +1,7 @@
-
 import datetime
 from util.util_default_value import UtilDefaultValue
+from data_models.employee_model import EmployeeModel
+
 class WindowEmployeeHandlers:
     # def __init__(self, _window_employee):
     #     self.window_employee = _window_employee
@@ -22,15 +23,23 @@ class WindowEmployeeHandlers:
         _window_employee.cmb_primary_duty.Select(-1)
         _window_employee.cmb_salary_type.Select(-1)
         _window_employee.txt_salary.Clear()
-        #_window_employee.bitmap_employee_image.Clear()
+        # _window_employee.bitmap_employee_image.Clear()
         _window_employee.grid_address.ClearGrid()
         _window_employee.grid_contact.ClearGrid()
         _window_employee.grid_identity.ClearGrid()
 
+    @staticmethod
+    def handle_enable_disable_employee_number(_window_employee, should_enable=True):
+        _window_employee.txt_emp_number.Enable(enable=should_enable)
 
-
-    def handle_enable_disable_employee_number(self):
-        pass
+    @staticmethod
+    def handle_save_employee_details(_window_employee):
+        # get employee table detail
+        model = EmployeeModel(_window_employee=_window_employee)
+        model.get_insert_sql()
+        # new employee  - new
+        # existing employee - update
+        WindowEmployeeHandlers.handle_enable_disable_employee_number(_window_employee, should_enable=False)
 
     # def handle_clear_all_controls(self):
     #     pass

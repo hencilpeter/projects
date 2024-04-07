@@ -202,14 +202,22 @@ class WindowEmployee(wx.Dialog):
 
         self.Layout()
 
-        self.Bind(wx.EVT_BUTTON, self.handler_cancel, self.btn_cancel)
         self.Bind(wx.EVT_BUTTON, self.handler_new, self.btn_new)
+        self.Bind(wx.EVT_BUTTON, self.handler_save, self.btn_save)
+        self.Bind(wx.EVT_BUTTON, self.handler_cancel, self.btn_cancel)
+
 
         # initialize handlers
         WindowEmployeeHandlers.handle_clear_all_controls(self)
 
     def handler_new(self, event):
         WindowEmployeeHandlers.handle_clear_all_controls(self)
+        WindowEmployeeHandlers.handle_enable_disable_employee_number(self, should_enable=True)
+
+    def handler_save(self, event):
+        self.txt_emp_number.GetValue()
+
+        WindowEmployeeHandlers.handle_save_employee_details(self)
 
     def handler_cancel(self, event):
         self.Close()
