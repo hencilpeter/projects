@@ -4,6 +4,7 @@ import wx.adv
 import wx.grid
 
 from window_handlers.window_employee_handlers import WindowEmployeeHandlers
+from windows.window_search_employee import WindowSearchEmployee
 import datetime
 
 class WindowEmployee(wx.Dialog):
@@ -205,6 +206,7 @@ class WindowEmployee(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.handler_new, self.btn_new)
         self.Bind(wx.EVT_BUTTON, self.handler_save, self.btn_save)
         self.Bind(wx.EVT_BUTTON, self.handler_cancel, self.btn_cancel)
+        self.Bind(wx.EVT_BUTTON, self.handler_search, self.btn_search)
 
 
         # initialize handlers
@@ -219,6 +221,12 @@ class WindowEmployee(wx.Dialog):
 
     def handler_cancel(self, event):
         self.Close()
+
+    def handler_search(self, event):
+        search_employee = WindowSearchEmployee(None, wx.ID_ANY, "")
+        search_employee.ShowModal()
+        search_employee.Destroy()
+
 
 
 
