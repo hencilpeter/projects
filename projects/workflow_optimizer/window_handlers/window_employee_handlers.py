@@ -1,6 +1,6 @@
 
 import datetime
-
+from util.util_default_value import UtilDefaultValue
 class WindowEmployeeHandlers:
     # def __init__(self, _window_employee):
     #     self.window_employee = _window_employee
@@ -12,9 +12,11 @@ class WindowEmployeeHandlers:
         _window_employee.txt_father_name.Clear()
         _window_employee.rd_btn_male.SetValue(0)
         _window_employee.rd_btn_female.SetValue(0)
+        _window_employee.datepicker_date_of_birth.SetValue(UtilDefaultValue.get_default_date())
         _window_employee.cmb_qualification.Select(-1)
-        _window_employee.datepicker_employment_start_date.SetValue(datetime.datetime.today().date())
-        _window_employee.datepicker_employment_end_date.SetValue(datetime.datetime.today().date())
+        # datetime.datetime.today().date()
+        _window_employee.datepicker_employment_start_date.SetValue(UtilDefaultValue.get_default_date())
+        _window_employee.datepicker_employment_end_date.SetValue(UtilDefaultValue.get_default_date())
         _window_employee.cmd_department.Select(-1)
         _window_employee.cm_no_of_leaves.Select(-1)
         _window_employee.cmb_primary_duty.Select(-1)

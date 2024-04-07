@@ -210,8 +210,6 @@ class WindowEmployee(wx.Dialog):
 
     def handler_new(self, event):
         WindowEmployeeHandlers.handle_clear_all_controls(self)
-        #self.grid_address.ClearGrid()
-
 
     def handler_cancel(self, event):
         self.Close()
