@@ -3,24 +3,30 @@ from util.util_default_value import UtilDefaultValue
 from data_models.employee_model import EmployeeModel
 from db.sqlite_sqls import SqliteSqls
 from util.util_config_reader import UtilConfigReader
-from collections import  defaultdict
+from collections import defaultdict
+
 
 class WindowEmployeeHandlers:
     @staticmethod
-    def handle_clear_all_controls(_window_employee):
+    def handle_clear_all_controls(_window_employee, sqlite_connection):
         _window_employee.txt_emp_number.Clear()
         _window_employee.txt_first_name.Clear()
         _window_employee.txt_last_name.Clear()
         _window_employee.txt_father_name.Clear()
         _window_employee.rd_btn_male.SetValue(0)
         _window_employee.rd_btn_female.SetValue(0)
-        _window_employee.datepicker_date_of_birth.SetValue(UtilDefaultValue.get_default_date())
-        _window_employee.cmb_qualification.Select(-1)
-        # datetime.datetime.today().date()
-        _window_employee.datepicker_employment_start_date.SetValue(UtilDefaultValue.get_default_date())
-        _window_employee.datepicker_employment_end_date.SetValue(UtilDefaultValue.get_default_date())
+        _window_employee.datepicker_date_of_birth.SetValue(UtilDefaultValue.get_default_min_date_of_birth())
+        _window_employee.cmb_qualification.SetItems(
+            WindowEmployeeHandlers.get_qualification_list(sql_connection=sqlite_connection))
+        _window_employee.cmb_qualification.Select(0)
+        _window_employee.datepicker_employment_start_date.SetValue(UtilDefaultValue.get_current_date())
+        _window_employee.datepicker_employment_end_date.SetValue(UtilDefaultValue.get_default_emp_end_date())
         _window_employee.cmd_department.Select(-1)
-        _window_employee.cm_no_of_leaves.Select(-1)
+
+        _window_employee.cm_no_of_leaves.SetItems(
+            WindowEmployeeHandlers.get_leaves_list(sql_connection=sqlite_connection))
+        _window_employee.cm_no_of_leaves.Select(0)
+
         _window_employee.cmb_primary_duty.Select(-1)
         _window_employee.cmb_salary_type.Select(-1)
         _window_employee.txt_salary.Clear()
@@ -60,7 +66,7 @@ class WindowEmployeeHandlers:
     def load_employee_data(sql_connection, employee_number):
         sql = "select * from employee where employee_number = '{}'".format(employee_number)
         cursor = sql_connection.get_table_data(query=sql)
-        dict_employee = defaultdict(lambda :-1)
+        dict_employee = defaultdict(lambda: -1)
         if cursor.rowcount != 1:
             return dict_employee
         column_names = [description[0] for description in cursor.description]
@@ -71,3 +77,21 @@ class WindowEmployeeHandlers:
             break
 
         return dict_employee
+
+    @staticmethod
+    def get_qualification_list(sql_connection):
+        dict_qualification = sql_connection.get_mnemonic_table_data('qualification')
+        qualification_list = []
+        for key in dict_qualification.keys():
+            qualification_list.append(dict_qualification[key])
+
+        return qualification_list
+
+    @staticmethod
+    def get_leaves_list(sql_connection):
+        dict_leaves = sql_connection.get_mnemonic_table_data('number_of_leaves')
+        leave_list = []
+        for key in dict_leaves.keys():
+            leave_list.append(dict_leaves[key])
+
+        return leave_list

@@ -70,6 +70,44 @@ conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,descri
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
        VALUES (26, 'identity_proof', 'ration_card', 'Ration Card');");
 
+# qualification
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+       VALUES (27, 'qualification', 'no_formal_education', 'No Formal Education');");
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+       VALUES (28, 'qualification', 'primary', 'Primary School');");
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+       VALUES (29, 'qualification', 'high_school', 'High School');");
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+       VALUES (30, 'qualification', 'secondary_school', 'Secondary School');");
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+       VALUES (31, 'qualification', 'under_graduate', 'Under Graduate');");
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+       VALUES (32, 'qualification', 'post_graduate', 'Post Graduate');");
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+       VALUES (33, 'qualification', 'doctorate', 'Doctorate');");
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+       VALUES (34, 'qualification', 'other', 'other');");
+
+# number of leaves
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+       VALUES (35, 'number_of_leaves', 'zero', '0');");
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+       VALUES (36, 'number_of_leaves', 'one', '1');");
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+       VALUES (37, 'number_of_leaves', 'two', '2');");
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+       VALUES (38, 'number_of_leaves', 'three', '3');");
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+       VALUES (39, 'number_of_leaves', 'four', '4');");
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+       VALUES (40, 'number_of_leaves', 'five', '5');");
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+       VALUES (41, 'number_of_leaves', 'six', '6');");
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+       VALUES (42, 'number_of_leaves', 'seven', '7');");
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+       VALUES (43, 'number_of_leaves', 'eight', '8');");
+
 conn.execute("DROP TABLE IF EXISTS employee;")
 conn.execute('''CREATE TABLE employee
          (id INTEGER PRIMARY KEY AUTOINCREMENT,

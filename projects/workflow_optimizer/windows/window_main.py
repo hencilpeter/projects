@@ -4,7 +4,6 @@ from windows.window_employee import WindowEmployee
 from windows.window_duty_catalog import DutyCatalog
 from windows.window_duty_allocation import DutyAllocation
 
-
 class WindowMain(wx.Frame):
     def __init__(self, *args, **kwds):
         kwds["style"] = kwds.get("style", 0) | wx.DEFAULT_FRAME_STYLE
@@ -37,6 +36,7 @@ class WindowMain(wx.Frame):
         self.Layout()
 
         # end wxGlade
+
 
     def handler_add_update_employee(self, event):  # wxGlade: MyFrame.<event_handler>
         dlg_employee = WindowEmployee(None, wx.ID_ANY, "")

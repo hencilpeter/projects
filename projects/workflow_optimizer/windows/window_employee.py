@@ -6,6 +6,9 @@ import wx.grid
 from window_handlers.window_employee_handlers import WindowEmployeeHandlers
 from windows.window_search_employee import WindowSearchEmployee
 import datetime
+from util.util_config_reader import UtilConfigReader
+from db.sqlite_sqls import SqliteSqls
+
 
 class WindowEmployee(wx.Dialog):
     def __init__(self, *args, **kwds):
@@ -208,9 +211,14 @@ class WindowEmployee(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.handler_cancel, self.btn_cancel)
         self.Bind(wx.EVT_BUTTON, self.handler_search, self.btn_search)
 
+        # sqlite
+        self.sqlite_sqls = SqliteSqls(db_file_name=UtilConfigReader.get_application_config("app_database_file_name"))
 
         # initialize handlers
-        WindowEmployeeHandlers.handle_clear_all_controls(self)
+        WindowEmployeeHandlers.handle_clear_all_controls(self, sqlite_connection=self.sqlite_sqls)
+
+        # #test
+        # self.cm_no_of_leaves.SetItems(['One', 'Two'])
 
     def handler_new(self, event):
         WindowEmployeeHandlers.handle_clear_all_controls(self)
