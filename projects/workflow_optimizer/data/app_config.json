@@ -1,3 +1,7 @@
 {
-  "main_window_title": "MARANIA FILAMENTS Workflow Optimization..."
+  "main_window_title": "Marania Filaments Workflow Optimization..."
+  "database": {
+  "app_database_file_name": "./marania_db_data.db",
+  "database_name": "marania"
+  }
 }

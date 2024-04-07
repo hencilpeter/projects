@@ -3,6 +3,8 @@ from windows.window_search_employee import WindowSearchEmployee
 from windows.window_employee import WindowEmployee
 from windows.window_duty_catalog import DutyCatalog
 from windows.window_duty_allocation import DutyAllocation
+
+
 class WindowMain(wx.Frame):
     def __init__(self, *args, **kwds):
         kwds["style"] = kwds.get("style", 0) | wx.DEFAULT_FRAME_STYLE
@@ -42,23 +44,18 @@ class WindowMain(wx.Frame):
         dlg_employee.ShowModal()
         dlg_employee.Destroy()
 
-
     def handler_search_employee(self, event):
         search_employee = WindowSearchEmployee(None, wx.ID_ANY, "")
         search_employee.ShowModal()
         search_employee.Destroy()
 
-
-
     def handler_duty_catalog(self, event):  # wxGlade: MyFrame.<event_handler>\
         dlg_duty_manager = DutyCatalog(None, wx.ID_ANY, "")
-        #         self.SetTopWindow(self.dialog)
         dlg_duty_manager.ShowModal()
         dlg_duty_manager.Destroy()
 
     def handler_duty_allocation(self, event):  # wxGlade: MyFrame.<event_handler>
         dialog_duty_allocation = DutyAllocation(None, wx.ID_ANY, "")
-        #         self.SetTopWindow(self.dialog)
         dialog_duty_allocation.ShowModal()
         dialog_duty_allocation.Destroy()
 
@@ -71,7 +68,6 @@ class WindowMain(wx.Frame):
         self.Close()
 
 
-
 # end of class MyFrame
 
 class MenuBar(wx.App):
@@ -80,7 +76,6 @@ class MenuBar(wx.App):
         self.SetTopWindow(self.frame)
         self.frame.Show()
         return True
-
 
 # end of class MenuBar
 

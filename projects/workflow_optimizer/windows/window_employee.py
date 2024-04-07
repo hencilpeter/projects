@@ -20,7 +20,7 @@ class WindowEmployee(wx.Dialog):
         grid_sizer_2 = wx.GridSizer(7, 2, 0, 0)
         sizer_3.Add(grid_sizer_2, 1, wx.EXPAND, 0)
 
-        label_1 = wx.StaticText(self, wx.ID_ANY, "Employee Name:")
+        label_1 = wx.StaticText(self, wx.ID_ANY, "Employee Number:")
         label_1.SetMinSize((150, 16))
         grid_sizer_2.Add(label_1, 0, wx.ALIGN_CENTER_VERTICAL, 0)
 
@@ -126,7 +126,7 @@ class WindowEmployee(wx.Dialog):
         self.txt_salary = wx.TextCtrl(self, wx.ID_ANY, "")
         grid_sizer_1.Add(self.txt_salary, 0, wx.ALIGN_CENTER_VERTICAL, 0)
 
-        bitmap_employee_image = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap("C:/Users/User/Desktop/Preposition.jpg", wx.BITMAP_TYPE_ANY))
+        bitmap_employee_image = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap("C:\\Users\\User\\Documents\\GitHub\\projects\\workflow_optimizer\\data\\HencilPhoto.jpg", wx.BITMAP_TYPE_ANY))
         sizer_3.Add(bitmap_employee_image, 0, 0, 0)
 
         sizer_12 = wx.BoxSizer(wx.HORIZONTAL)
@@ -134,6 +134,8 @@ class WindowEmployee(wx.Dialog):
 
         self.grid_address = wx.grid.Grid(self, wx.ID_ANY, size=(1, 1))
         self.grid_address.CreateGrid(10, 2)
+        self.grid_address.SetRowLabelSize(30)
+        self.grid_address.SetColLabelSize(30)
         self.grid_address.SetGridLineColour(wx.Colour(85, 128, 240))
         self.grid_address.SetSelectionMode(wx.grid.Grid.SelectRows)
         self.grid_address.SetColLabelValue(0, "Address Type")
@@ -145,6 +147,8 @@ class WindowEmployee(wx.Dialog):
 
         self.grid_contact = wx.grid.Grid(self, wx.ID_ANY, size=(1, 1))
         self.grid_contact.CreateGrid(10, 2)
+        self.grid_contact.SetRowLabelSize(30)
+        self.grid_contact.SetColLabelSize(30)
         self.grid_contact.SetSelectionMode(wx.grid.Grid.SelectRows)
         self.grid_contact.SetColLabelValue(0, "Contact Type")
         self.grid_contact.SetColSize(0, 130)
@@ -155,6 +159,8 @@ class WindowEmployee(wx.Dialog):
 
         self.grid_identity = wx.grid.Grid(self, wx.ID_ANY, size=(1, 1))
         self.grid_identity.CreateGrid(10, 3)
+        self.grid_identity.SetRowLabelSize(30)
+        self.grid_identity.SetColLabelSize(30)
         self.grid_identity.SetSelectionMode(wx.grid.Grid.SelectRows)
         self.grid_identity.SetColLabelValue(0, "Identity Type")
         self.grid_identity.SetColSize(0, 80)
