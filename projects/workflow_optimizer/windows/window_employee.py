@@ -3,6 +3,8 @@ import wx
 import wx.adv
 import wx.grid
 
+from window_handlers.window_employee_handlers import WindowEmployeeHandlers
+import datetime
 
 class WindowEmployee(wx.Dialog):
     def __init__(self, *args, **kwds):
@@ -24,9 +26,9 @@ class WindowEmployee(wx.Dialog):
         label_1.SetMinSize((150, 16))
         grid_sizer_2.Add(label_1, 0, wx.ALIGN_CENTER_VERTICAL, 0)
 
-        self.txt_emp_name = wx.TextCtrl(self, wx.ID_ANY, "")
-        self.txt_emp_name.SetMinSize((170, 23))
-        grid_sizer_2.Add(self.txt_emp_name, 0, wx.ALIGN_CENTER_VERTICAL, 0)
+        self.txt_emp_number = wx.TextCtrl(self, wx.ID_ANY, "")
+        self.txt_emp_number.SetMinSize((170, 23))
+        grid_sizer_2.Add(self.txt_emp_number, 0, wx.ALIGN_CENTER_VERTICAL, 0)
 
         label_2 = wx.StaticText(self, wx.ID_ANY, "First Name:")
         label_2.SetMinSize((150, 16))
@@ -201,9 +203,20 @@ class WindowEmployee(wx.Dialog):
         self.Layout()
 
         self.Bind(wx.EVT_BUTTON, self.handler_cancel, self.btn_cancel)
+        self.Bind(wx.EVT_BUTTON, self.handler_new, self.btn_new)
+
+        # initialize handlers
+        WindowEmployeeHandlers.handle_clear_all_controls(self)
+
+    def handler_new(self, event):
+        WindowEmployeeHandlers.handle_clear_all_controls(self)
+        #self.grid_address.ClearGrid()
+
 
     def handler_cancel(self, event):
         self.Close()
+
+
 
 
     # end of class AddUpdateEmployee
