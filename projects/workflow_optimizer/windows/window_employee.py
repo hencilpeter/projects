@@ -144,9 +144,9 @@ class WindowEmployee(wx.Dialog):
 
         sizer_12 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_1.Add(sizer_12, 1, wx.EXPAND, 0)
-
+        self.grid_rows_count = UtilConfigReader.get_application_config("employee_sub_grid_rows_count")
         self.grid_address = wx.grid.Grid(self, wx.ID_ANY, size=(1, 1))
-        self.grid_address.CreateGrid(10, 2)
+        self.grid_address.CreateGrid(self.grid_rows_count, 2)
         self.grid_address.SetRowLabelSize(30)
         self.grid_address.SetColLabelSize(30)
         self.grid_address.SetGridLineColour(wx.Colour(85, 128, 240))
@@ -156,30 +156,28 @@ class WindowEmployee(wx.Dialog):
         self.grid_address.SetColLabelValue(1, "Detail")
         self.grid_address.SetColSize(1, 220)
         self.grid_address.SetMinSize((300, 250))
+        self.fill_grid_control_type_column(self.grid_address, self.grid_rows_count, _mnemonic_id_group="address_id")
         sizer_12.Add(self.grid_address, 0, wx.ALL | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
 
         self.grid_contact = wx.grid.Grid(self, wx.ID_ANY, size=(1, 1))
-        self.grid_contact.CreateGrid(10, 2)
+        self.grid_contact.CreateGrid(self.grid_rows_count, 2)
         self.grid_contact.SetRowLabelSize(30)
         self.grid_contact.SetColLabelSize(30)
+        self.grid_contact.SetGridLineColour(wx.Colour(85, 128, 240))
         self.grid_contact.SetSelectionMode(wx.grid.Grid.SelectRows)
         self.grid_contact.SetColLabelValue(0, "Contact Type")
         self.grid_contact.SetColSize(0, 130)
         self.grid_contact.SetColLabelValue(1, "Detail")
         self.grid_contact.SetColSize(1, 150)
         self.grid_contact.SetMinSize((300, 250))
-
-        contact_choices_list = self.sqlite_sqls.get_mnemonic_table_data_as_list(mnemonic_id_group="contact_id")
-        contact_choice_editor = wx.grid.GridCellChoiceEditor(contact_choices_list, True)
-        for row in range(0, 5):
-            self.grid_contact.SetCellEditor(row, 0, contact_choice_editor)
-
+        self.fill_grid_control_type_column(self.grid_contact, self.grid_rows_count, _mnemonic_id_group="contact_id")
         sizer_12.Add(self.grid_contact, 0, wx.ALL, 3)
 
         self.grid_identity = wx.grid.Grid(self, wx.ID_ANY, size=(1, 1))
-        self.grid_identity.CreateGrid(10, 3)
+        self.grid_identity.CreateGrid(self.grid_rows_count, 3)
         self.grid_identity.SetRowLabelSize(30)
         self.grid_identity.SetColLabelSize(30)
+        self.grid_identity.SetGridLineColour(wx.Colour(85, 128, 240))
         self.grid_identity.SetSelectionMode(wx.grid.Grid.SelectRows)
         self.grid_identity.SetColLabelValue(0, "Identity Type")
         self.grid_identity.SetColSize(0, 80)
@@ -188,6 +186,7 @@ class WindowEmployee(wx.Dialog):
         self.grid_identity.SetColLabelValue(2, "Path")
         self.grid_identity.SetColSize(2, 170)
         self.grid_identity.SetMinSize((400, 250))
+        self.fill_grid_control_type_column(self.grid_identity, self.grid_rows_count, _mnemonic_id_group="identity_proof")
         sizer_12.Add(self.grid_identity, 0, wx.ALL, 3)
 
         self.grid_sizer_3 = wx.GridSizer(1, 2, 1, 1)
@@ -232,6 +231,12 @@ class WindowEmployee(wx.Dialog):
         # #test
         # self.cm_no_of_leaves.SetItems(['One', 'Two'])
 
+    def fill_grid_control_type_column(self, _grid_control, total_rows,  _mnemonic_id_group):
+        choices_list = self.sqlite_sqls.get_mnemonic_table_data_as_list(mnemonic_id_group=_mnemonic_id_group)
+        contact_choice_editor = wx.grid.GridCellChoiceEditor(choices_list, True)
+        for row in range(0, total_rows):
+            _grid_control.SetCellEditor(row, 0, contact_choice_editor)
+
     def handler_new(self, event):
         WindowEmployeeHandlers.handle_clear_all_controls(self, _sqlite_connection=self.sqlite_sqls)
         next_number = WindowEmployeeHandlers.get_next_employee_number(_sql_connection=self.sqlite_sqls)
@@ -239,7 +244,9 @@ class WindowEmployee(wx.Dialog):
         self.txt_emp_number.SetValue(WindowEmployeeHandlers.get_next_employee_number(_sql_connection=self.sqlite_sqls))
 
     def handler_save(self, event):
-        WindowEmployeeHandlers.handle_save_employee_details(self)
+        for index in range(0, self.grid_rows_count):
+            print(self.grid_identity.GetCellValue(index,0))
+        #WindowEmployeeHandlers.handle_save_employee_details(self)
 
     def handler_cancel(self, event):
         self.Close()
