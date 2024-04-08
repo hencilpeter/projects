@@ -244,9 +244,9 @@ class WindowEmployee(wx.Dialog):
         self.txt_emp_number.SetValue(WindowEmployeeHandlers.get_next_employee_number(_sql_connection=self.sqlite_sqls))
 
     def handler_save(self, event):
-        for index in range(0, self.grid_rows_count):
-            print(self.grid_identity.GetCellValue(index,0))
-        #WindowEmployeeHandlers.handle_save_employee_details(self)
+        # for index in range(0, self.grid_rows_count):
+        #     self.dict_address[self.grid_identity.GetCellValue(index,0)] = self.grid_identity.GetCellValue(index,0)
+        WindowEmployeeHandlers.handle_save_employee_details(self)
 
     def handler_cancel(self, event):
         self.Close()

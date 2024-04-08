@@ -1,6 +1,7 @@
 import datetime
 from util.util_default_value import UtilDefaultValue
 from data_models.employee_model import EmployeeModel
+from data_models.address_model import AddressModel
 from db.sqlite_sqls import SqliteSqls
 from util.util_config_reader import UtilConfigReader
 from collections import defaultdict
@@ -38,17 +39,29 @@ class WindowEmployeeHandlers:
     @staticmethod
     def handle_save_employee_details(_window_employee):
         # get employee table detail
-        model = EmployeeModel(_window_employee=_window_employee)
+        model_employee = EmployeeModel(_window_employee=_window_employee)
 
         sqlite_sqls = SqliteSqls(db_file_name=UtilConfigReader.get_application_config("app_database_file_name"))
         employee_number = _window_employee.txt_emp_number.GetValue()
         is_existing_employee = WindowEmployeeHandlers.is_existing_employee(sql_connection=sqlite_sqls,
                                                                            employee_number=employee_number)
+        # employee
         if is_existing_employee:
-            sql = model.get_update_sql()
+            sql = model_employee.get_update_sql()
         else:
-            sql = model.get_insert_sql()
-        sqlite_sqls.execute_and_commit_sql(sql=sql)
+            sql = model_employee.get_insert_sql()
+
+        # address
+        dict_address_current = AddressModel(_window_employee=_window_employee)
+        print(dict_address_current)
+
+        # contact
+
+        # identity
+
+        # save
+        # sqlite_sqls.execute_and_commit_sql(sql=sql)
+
 
     @staticmethod
     def is_existing_employee(sql_connection, employee_number):
