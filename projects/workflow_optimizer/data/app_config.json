@@ -1,5 +1,6 @@
 {
   "main_window_title": "Marania Filaments Workflow Optimization...",
+  "employee_id_format_template":"{}{:04d}",
+  "employee_id_prefix": "MF",
   "app_database_file_name": "./data/marania_data.db"
-
 }

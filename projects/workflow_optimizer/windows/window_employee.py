@@ -18,6 +18,10 @@ class WindowEmployee(wx.Dialog):
         self.SetSize((1156, 650))
         self.SetTitle("Add_Update Employee")
 
+        # sqlite
+        self.sqlite_sqls = SqliteSqls(db_file_name=UtilConfigReader.get_application_config("app_database_file_name"))
+
+
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
         sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
@@ -32,6 +36,7 @@ class WindowEmployee(wx.Dialog):
 
         self.txt_emp_number = wx.TextCtrl(self, wx.ID_ANY, "")
         self.txt_emp_number.SetMinSize((170, 23))
+        self.txt_emp_number.Enable(enable=False)
         grid_sizer_2.Add(self.txt_emp_number, 0, wx.ALIGN_CENTER_VERTICAL, 0)
 
         label_2 = wx.StaticText(self, wx.ID_ANY, "First Name:")
@@ -132,7 +137,9 @@ class WindowEmployee(wx.Dialog):
         self.txt_salary = wx.TextCtrl(self, wx.ID_ANY, "")
         grid_sizer_1.Add(self.txt_salary, 0, wx.ALIGN_CENTER_VERTICAL, 0)
 
-        bitmap_employee_image = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap("C:\\Users\\User\\Documents\\GitHub\\projects\\workflow_optimizer\\data\\HencilPhoto.jpg", wx.BITMAP_TYPE_ANY))
+        bitmap_employee_image = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(
+            "C:\\Users\\User\\Documents\\GitHub\\projects\\workflow_optimizer\\data\\HencilPhoto.jpg",
+            wx.BITMAP_TYPE_ANY))
         sizer_3.Add(bitmap_employee_image, 0, 0, 0)
 
         sizer_12 = wx.BoxSizer(wx.HORIZONTAL)
@@ -161,6 +168,12 @@ class WindowEmployee(wx.Dialog):
         self.grid_contact.SetColLabelValue(1, "Detail")
         self.grid_contact.SetColSize(1, 150)
         self.grid_contact.SetMinSize((300, 250))
+
+        contact_choices_list = self.sqlite_sqls.get_mnemonic_table_data_as_list(mnemonic_id_group="contact_id")
+        contact_choice_editor = wx.grid.GridCellChoiceEditor(contact_choices_list, True)
+        for row in range(0, 5):
+            self.grid_contact.SetCellEditor(row, 0, contact_choice_editor)
+
         sizer_12.Add(self.grid_contact, 0, wx.ALL, 3)
 
         self.grid_identity = wx.grid.Grid(self, wx.ID_ANY, size=(1, 1))
@@ -211,18 +224,19 @@ class WindowEmployee(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.handler_cancel, self.btn_cancel)
         self.Bind(wx.EVT_BUTTON, self.handler_search, self.btn_search)
 
-        # sqlite
-        self.sqlite_sqls = SqliteSqls(db_file_name=UtilConfigReader.get_application_config("app_database_file_name"))
+
 
         # initialize handlers
-        WindowEmployeeHandlers.handle_clear_all_controls(self, sqlite_connection=self.sqlite_sqls)
+        WindowEmployeeHandlers.handle_clear_all_controls(self, _sqlite_connection=self.sqlite_sqls)
 
         # #test
         # self.cm_no_of_leaves.SetItems(['One', 'Two'])
 
     def handler_new(self, event):
-        WindowEmployeeHandlers.handle_clear_all_controls(self)
-        WindowEmployeeHandlers.handle_enable_disable_employee_number(self, should_enable=True)
+        WindowEmployeeHandlers.handle_clear_all_controls(self, _sqlite_connection=self.sqlite_sqls)
+        next_number = WindowEmployeeHandlers.get_next_employee_number(_sql_connection=self.sqlite_sqls)
+        print(next_number)
+        self.txt_emp_number.SetValue(WindowEmployeeHandlers.get_next_employee_number(_sql_connection=self.sqlite_sqls))
 
     def handler_save(self, event):
         WindowEmployeeHandlers.handle_save_employee_details(self)
@@ -235,12 +249,7 @@ class WindowEmployee(wx.Dialog):
         search_employee.ShowModal()
         search_employee.Destroy()
 
-
-
-
-
     # end of class AddUpdateEmployee
-
 
 # class MyApp(wx.App):
 #     def OnInit(self):

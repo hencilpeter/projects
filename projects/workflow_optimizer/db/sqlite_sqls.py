@@ -28,6 +28,13 @@ class SqliteSqls:
 
         return dict_mnemonic_data
 
+    def get_mnemonic_table_data_as_list(self, mnemonic_id_group):
+        mnemonic_table_data = self.get_mnemonic_table_data(mnemonic_id_group=mnemonic_id_group)
+        result_list = []
+        for key in mnemonic_table_data.keys():
+            result_list.append(mnemonic_table_data[key])
+        return result_list
+
     def get_query_result(self, query):
         pass
 
