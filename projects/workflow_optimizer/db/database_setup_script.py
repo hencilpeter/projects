@@ -122,6 +122,15 @@ conn.execute('''CREATE TABLE employee
 		 employment_end_date DATE );
 		 ''')
 
+conn.execute("DROP TABLE IF EXISTS address;")
+conn.execute('''CREATE TABLE address
+    (id INTEGER PRIMARY KEY AUTOINCREMENT,
+     employee_number TEXT    NOT NULL,
+     address_type  TEXT    NOT NULL,
+    address_value  TEXT    NOT NULL,
+    start_date DATE,
+    end_date DATE);
+''')
 
 conn.commit()
 

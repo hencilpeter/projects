@@ -2,6 +2,7 @@ import datetime
 from util.util_default_value import UtilDefaultValue
 from data_models.employee_model import EmployeeModel
 from data_models.address_model import AddressModel
+from data_models.common_model import CommonModel
 from db.sqlite_sqls import SqliteSqls
 from util.util_config_reader import UtilConfigReader
 from collections import defaultdict
@@ -37,37 +38,41 @@ class WindowEmployeeHandlers:
         _window_employee.grid_identity.ClearGrid()
 
     @staticmethod
-    def handle_save_employee_details(_window_employee):
+    def handle_save_employee_details(_window_employee, _sqlite_sql):
         # get employee table detail
         model_employee = EmployeeModel(_window_employee=_window_employee)
 
         sqlite_sqls = SqliteSqls(db_file_name=UtilConfigReader.get_application_config("app_database_file_name"))
         employee_number = _window_employee.txt_emp_number.GetValue()
-        is_existing_employee = WindowEmployeeHandlers.is_existing_employee(sql_connection=sqlite_sqls,
-                                                                           employee_number=employee_number)
         # employee
-        if is_existing_employee:
-            sql = model_employee.get_update_sql()
+        employees_count = _sqlite_sql.get_record_count(sql="select count(1) from employee where employee_number = '{}';"
+                                                       .format(employee_number))
+        if employees_count > 0:
+            employee_sql = model_employee.get_update_sql()
         else:
-            sql = model_employee.get_insert_sql()
+            employee_sql = model_employee.get_insert_sql()
 
         # address
-        dict_address_current = AddressModel(_window_employee=_window_employee)
-        print(dict_address_current)
+        address= AddressModel(_window_employee=_window_employee, _sql_connection=_sqlite_sql)
+        dict_current_address, dict_existing_address = address.get_current_and_existing_address(_employee_number=employee_number)
 
         # contact
 
         # identity
 
         # save
-        # sqlite_sqls.execute_and_commit_sql(sql=sql)
+        sqlite_sqls.execute_and_commit_sql(sql=employee_sql)
+        print("employee details saved.")
 
+        address_sql_list = CommonModel.get_scd2_sql(_dict_existing=dict_existing_address,
+                                                    _dict_current=dict_current_address,
+                                                    _employee_id=employee_number,
+                                                    _column_type="address_type", _column_value="address_value",
+                                                    _table_name="address")
+        address_sql = ";".join(address_sql_list)
 
-    @staticmethod
-    def is_existing_employee(sql_connection, employee_number):
-        sql = "select 1 from employee where employee_number = '{}'".format(employee_number)
-        cursor = sql_connection.get_table_data(query=sql)
-        return True if cursor.rowcount > -1 else False
+        print(address_sql)
+        sqlite_sqls.executescript_and_commit_sql(sql=address_sql)
 
     @staticmethod
     def load_employee_data(sql_connection, employee_number):

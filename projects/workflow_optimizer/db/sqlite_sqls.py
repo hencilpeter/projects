@@ -17,6 +17,14 @@ class SqliteSqls:
         self.conn.execute(sql)
         self.conn.commit()
 
+    def executescript_and_commit_sql(self, sql):
+        self.conn.executescript(sql)
+        self.conn.commit()
+
+    def get_record_count(self, sql):
+        cursor_result = self.conn.execute(sql)
+        return cursor_result.fetchone()[0]
+
     def get_mnemonic_table_data(self, mnemonic_id_group):
         query = "select mnemonic_id, description from mnemonic_data where mnemonic_id_group == '{}';".format(
             mnemonic_id_group)
