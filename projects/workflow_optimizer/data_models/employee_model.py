@@ -1,3 +1,4 @@
+from data_models.common_model import CommonModel
 class EmployeeModel:
     def __init__(self, _window_employee, _should_load_from_table=False):
         if _should_load_from_table:
@@ -40,3 +41,11 @@ class EmployeeModel:
                           self.education, self.employment_start_date, self.employment_end_date, self.employee_number, )
         print(update_statement)
         return update_statement
+
+    @staticmethod
+    def get_all_employee_details_as_list(_sql_connection):
+        sql = "select * from employee;"
+        employee_cursor = _sql_connection.get_table_data(query=sql)
+        employee_data_as_list = CommonModel.get_table_data_as_list(_data_cursor=employee_cursor)
+        return employee_data_as_list
+

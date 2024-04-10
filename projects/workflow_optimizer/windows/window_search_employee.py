@@ -1,11 +1,17 @@
+import json
+
 import wx
 import wx.grid
-
-
+from data_models.common_model import CommonModel
+from data_models.employee_model import EmployeeModel
 class WindowSearchEmployee(wx.Dialog):
     def __init__(self, *args, **kwds):
         # begin wxGlade: SearchEmployee.__init__
         kwds["style"] = kwds.get("style", 0) | wx.DEFAULT_DIALOG_STYLE
+        sqlite_sqls = kwds["_sqlite_sqls"]
+        self.employee_data_as_list = EmployeeModel.get_all_employee_details_as_list(_sql_connection=sqlite_sqls)
+
+        del kwds["_sqlite_sqls"]
         wx.Dialog.__init__(self, *args, **kwds)
         self.SetSize((660, 400))
         self.SetTitle("TODO:Search Employee Details")
@@ -34,13 +40,13 @@ class WindowSearchEmployee(wx.Dialog):
         sizer_4.Add(self.search_lastname, 0, 1, 0)
 
         self.grid_employees = wx.grid.Grid(self.panel_1, wx.ID_ANY, size=(1, 1))
-        self.grid_employees.CreateGrid(10, 4)
+        self.grid_employees.CreateGrid(len(self.employee_data_as_list), 4)
         self.grid_employees.SetColLabelSize(40)
         self.grid_employees.SetRowLabelSize(60)
         self.grid_employees.SetSelectionMode(wx.grid.Grid.SelectRows)
         self.grid_employees.SetColLabelValue(0, "Department")
         self.grid_employees.SetColSize(0, 160)
-        self.grid_employees.SetColLabelValue(1, "Identity")
+        self.grid_employees.SetColLabelValue(1, "Employee Number")
         self.grid_employees.SetColSize(1, 130)
         self.grid_employees.SetColLabelValue(2, "First Name")
         self.grid_employees.SetColSize(2, 130)
@@ -87,6 +93,7 @@ class WindowSearchEmployee(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.handler_Ok, self.btn_Ok)
         self.Bind(wx.EVT_BUTTON, self.handler_Cancel, self.btn_Cancel)
         # end wxGlade
+        self.load_data_in_employee_grid()
 
     def handler_department_cancel(self, event):  # wxGlade: SearchEmployee.<event_handler>
         print("Event handler 'handler_department_cancel' not implemented!")
@@ -153,8 +160,11 @@ class WindowSearchEmployee(wx.Dialog):
         event.Skip()
 
     def handler_grid_select(self, event):  # wxGlade: SearchEmployee.<event_handler>
-        print("Event handler 'handler_grid_select' not implemented!")
-        event.Skip()
+        selected_rows = self.grid_employees.GetSelectedRows()
+        # select the very first one
+        first_row_index = selected_rows[0]
+        print(self.employee_data_as_list[first_row_index])
+
 
     def handler_Ok(self, event):  # wxGlade: SearchEmployee.<event_handler>
         print("Event handler 'handler_Ok' not implemented!")
@@ -163,7 +173,21 @@ class WindowSearchEmployee(wx.Dialog):
     def handler_Cancel(self, event):  # wxGlade: SearchEmployee.<event_handler>
         self.Close()
 
+
     # end of class SearchEmployee
+
+    def load_data_in_employee_grid(self):
+        self.grid_employees.ClearGrid()
+        row_count = 0
+        for employee in self.employee_data_as_list:
+            employee_dict = json.loads(employee)
+            self.grid_employees.SetCellValue(row_count,0, employee_dict["department"])
+            self.grid_employees.SetCellValue(row_count, 1, employee_dict["employee_number"])
+            self.grid_employees.SetCellValue(row_count, 2, employee_dict["first_name"])
+            self.grid_employees.SetCellValue(row_count, 3, employee_dict["last_name"])
+            row_count += 1
+
+
 
 
 # class MenuBar(wx.App):

@@ -3,11 +3,16 @@ from windows.window_search_employee import WindowSearchEmployee
 from windows.window_employee import WindowEmployee
 from windows.window_duty_catalog import DutyCatalog
 from windows.window_duty_allocation import DutyAllocation
+from util.util_config_reader import UtilConfigReader
+from db.sqlite_sqls import SqliteSqls
 
 class WindowMain(wx.Frame):
     def __init__(self, *args, **kwds):
         kwds["style"] = kwds.get("style", 0) | wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
+        # sqlite
+        self.sqlite_sqls = SqliteSqls(db_file_name=UtilConfigReader.get_application_config("app_database_file_name"))
+
         self.SetSize((500, 400))
         self.SetTitle("TODO:Workflow Optimization...")
 
@@ -45,7 +50,7 @@ class WindowMain(wx.Frame):
         dlg_employee.Destroy()
 
     def handler_search_employee(self, event):
-        search_employee = WindowSearchEmployee(None, wx.ID_ANY, "")
+        search_employee = WindowSearchEmployee(None, wx.ID_ANY, "", _sqlite_sqls=self.sqlite_sqls)
         search_employee.ShowModal()
         search_employee.Destroy()
 

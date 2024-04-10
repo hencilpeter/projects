@@ -32,3 +32,17 @@ class CommonModel:
                         datetime.datetime.today().strftime('%Y-%m-%d')))
 
         return list_sql
+
+    @staticmethod
+    def get_table_data_as_list(_data_cursor):
+        column_names = [description[0] for description in _data_cursor.description]
+        result = []
+        for row in _data_cursor:
+            str_row = ""
+            list_current_row_columns = []
+            for col_name in column_names:
+                list_current_row_columns.append("\"" + str(col_name) + "\":\"" + str(row[column_names.index(col_name)])
+                                                + "\"")
+            str_row = "{" + ','.join(list_current_row_columns) + "}"
+            result.append(str_row)
+        return result
