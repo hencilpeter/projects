@@ -72,39 +72,39 @@ conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,descri
 
 # qualification
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
-       VALUES (27, 'qualification', 'no_formal_education', 'No Formal Education');");
+      VALUES (27, 'qualification', 'no_formal_education', 'No Formal Education');");
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
-       VALUES (28, 'qualification', 'primary', 'Primary School');");
+      VALUES (28, 'qualification', 'primary', 'Primary School');");
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
-       VALUES (29, 'qualification', 'high_school', 'High School');");
+      VALUES (29, 'qualification', 'high_school', 'High School');");
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
-       VALUES (30, 'qualification', 'secondary_school', 'Secondary School');");
+      VALUES (30, 'qualification', 'secondary_school', 'Secondary School');");
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
-       VALUES (31, 'qualification', 'under_graduate', 'Under Graduate');");
+      VALUES (31, 'qualification', 'under_graduate', 'Under Graduate');");
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
-       VALUES (32, 'qualification', 'post_graduate', 'Post Graduate');");
+      VALUES (32, 'qualification', 'post_graduate', 'Post Graduate');");
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
-       VALUES (33, 'qualification', 'doctorate', 'Doctorate');");
+      VALUES (33, 'qualification', 'doctorate', 'Doctorate');");
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
-       VALUES (34, 'qualification', 'other', 'other');");
+       VALUES (34, 'qualification', 'other', 'Other');");
 
 # number of leaves
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
-       VALUES (35, 'number_of_leaves', 'zero', '0');");
+      VALUES (35, 'number_of_leaves', 'zero', '0');");
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
-       VALUES (36, 'number_of_leaves', 'one', '1');");
+      VALUES (36, 'number_of_leaves', 'one', '1');");
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
-       VALUES (37, 'number_of_leaves', 'two', '2');");
+      VALUES (37, 'number_of_leaves', 'two', '2');");
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
-       VALUES (38, 'number_of_leaves', 'three', '3');");
+      VALUES (38, 'number_of_leaves', 'three', '3');");
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
-       VALUES (39, 'number_of_leaves', 'four', '4');");
+      VALUES (39, 'number_of_leaves', 'four', '4');");
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
-       VALUES (40, 'number_of_leaves', 'five', '5');");
+      VALUES (40, 'number_of_leaves', 'five', '5');");
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
-       VALUES (41, 'number_of_leaves', 'six', '6');");
+      VALUES (41, 'number_of_leaves', 'six', '6');");
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
-       VALUES (42, 'number_of_leaves', 'seven', '7');");
+      VALUES (42, 'number_of_leaves', 'seven', '7');");
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
        VALUES (43, 'number_of_leaves', 'eight', '8');");
 
@@ -119,7 +119,13 @@ conn.execute('''CREATE TABLE employee
 		 date_of_birth DATE,
 		 education   TEXT    NOT NULL,
 		 employment_start_date DATE,
-		 employment_end_date DATE );
+		 employment_end_date DATE,
+		 department   TEXT    NOT NULL,
+         leaves_per_month INT, 
+         primary_duty_code   TEXT    NOT NULL,
+         salary_type_code  TEXT    NOT NULL,
+         salary  DOUBLE 
+		  );
 		 ''')
 
 conn.execute("DROP TABLE IF EXISTS address;")
@@ -130,6 +136,50 @@ conn.execute('''CREATE TABLE address
     address_value  TEXT    NOT NULL,
     start_date DATE,
     end_date DATE);
+''')
+
+conn.execute("DROP TABLE IF EXISTS address;")
+conn.execute('''CREATE TABLE address
+    (id INTEGER PRIMARY KEY AUTOINCREMENT,
+     employee_number TEXT    NOT NULL,
+     address_type  TEXT    NOT NULL,
+    address_value  TEXT    NOT NULL,
+    start_date DATE,
+    end_date DATE);
+''')
+
+conn.execute("DROP TABLE IF EXISTS contact;")
+conn.execute('''CREATE TABLE contact
+    (id INTEGER PRIMARY KEY AUTOINCREMENT,
+     employee_number TEXT    NOT NULL,
+     contact_type  TEXT    NOT NULL,
+    contact_value  TEXT    NOT NULL,
+    start_date DATE,
+    end_date DATE,
+    note  TEXT    NOT NULL);
+''')
+
+conn.execute("DROP TABLE IF EXISTS identity;")
+conn.execute('''CREATE TABLE identity
+    (id INTEGER PRIMARY KEY AUTOINCREMENT,
+     employee_number TEXT    NOT NULL,
+     identity_type  TEXT    NOT NULL,
+     identity_value TEXT    NOT NULL,
+     start_date DATE,
+     end_date DATE
+     );
+''')
+
+conn.execute("DROP TABLE IF EXISTS duty_catalog;")
+conn.execute('''CREATE TABLE duty_catalog
+    (id INTEGER PRIMARY KEY AUTOINCREMENT,
+     duty_code TEXT    NOT NULL,
+     duty_name  TEXT    NOT NULL,
+     duty_description TEXT    NOT NULL,
+     salary_type TEXT    NOT NULL,
+     default_salary DOUBLE,
+     default_department TEXT    NOT NULL
+     );
 ''')
 
 conn.commit()
