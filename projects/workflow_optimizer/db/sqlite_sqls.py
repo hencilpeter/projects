@@ -25,6 +25,17 @@ class SqliteSqls:
         cursor_result = self.conn.execute(sql)
         return cursor_result.fetchone()[0]
 
+    def get_single_column_list(self, table_name, column_name):
+        sql = "select {} from {}".format(column_name, table_name)
+        cursor_result = self.conn.execute(sql)
+        column_names = [description[0] for description in cursor_result.description]
+        result = []
+        for row in cursor_result:
+            for col_name in column_names:
+                result.append(row[column_names.index(col_name)])
+
+        return result
+
     def get_mnemonic_table_data(self, mnemonic_id_group):
         query = "select mnemonic_id, description from mnemonic_data where mnemonic_id_group == '{}';".format(
             mnemonic_id_group)

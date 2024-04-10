@@ -3,7 +3,7 @@ import sqlite3
 conn = sqlite3.connect('../data/marania_data.db')
 print("Opened database successfully")
 
-cursor = conn.execute("select * from address;")
+cursor = conn.execute("select * from duty_catalog;")
 
 column_names = [description[0] for description in cursor.description]
 for row in cursor:

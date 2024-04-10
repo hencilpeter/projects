@@ -21,7 +21,6 @@ class WindowEmployee(wx.Dialog):
         # sqlite
         self.sqlite_sqls = SqliteSqls(db_file_name=UtilConfigReader.get_application_config("app_database_file_name"))
 
-
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
         sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
@@ -186,7 +185,8 @@ class WindowEmployee(wx.Dialog):
         self.grid_identity.SetColLabelValue(2, "Path")
         self.grid_identity.SetColSize(2, 170)
         self.grid_identity.SetMinSize((400, 250))
-        self.fill_grid_control_type_column(self.grid_identity, self.grid_rows_count, _mnemonic_id_group="identity_proof")
+        self.fill_grid_control_type_column(self.grid_identity, self.grid_rows_count,
+                                           _mnemonic_id_group="identity_proof")
         sizer_12.Add(self.grid_identity, 0, wx.ALL, 3)
 
         self.grid_sizer_3 = wx.GridSizer(1, 2, 1, 1)
@@ -223,15 +223,13 @@ class WindowEmployee(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.handler_cancel, self.btn_cancel)
         self.Bind(wx.EVT_BUTTON, self.handler_search, self.btn_search)
 
-
-
         # initialize handlers
         WindowEmployeeHandlers.handle_clear_all_controls(self, _sqlite_connection=self.sqlite_sqls)
 
         # #test
         # self.cm_no_of_leaves.SetItems(['One', 'Two'])
 
-    def fill_grid_control_type_column(self, _grid_control, total_rows,  _mnemonic_id_group):
+    def fill_grid_control_type_column(self, _grid_control, total_rows, _mnemonic_id_group):
         choices_list = self.sqlite_sqls.get_mnemonic_table_data_as_list(mnemonic_id_group=_mnemonic_id_group)
         contact_choice_editor = wx.grid.GridCellChoiceEditor(choices_list, True)
         for row in range(0, total_rows):

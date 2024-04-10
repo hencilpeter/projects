@@ -1,0 +1,2 @@
+class IdentityModel:
+    pass

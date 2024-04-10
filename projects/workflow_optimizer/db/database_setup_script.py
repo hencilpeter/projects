@@ -108,6 +108,14 @@ conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,descri
 conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
        VALUES (43, 'number_of_leaves', 'eight', '8');");
 
+# salary type
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+      VALUES (44, 'salary_type', 'daily', 'Daily');");
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+      VALUES (45, 'salary_type', 'weekly', 'Weekly');");
+conn.execute("INSERT INTO mnemonic_data (id,mnemonic_id_group,mnemonic_id,description) \
+       VALUES (46, 'salary_type', 'monthly', 'Monthly');");
+
 conn.execute("DROP TABLE IF EXISTS employee;")
 conn.execute('''CREATE TABLE employee
          (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -127,16 +135,6 @@ conn.execute('''CREATE TABLE employee
          salary  DOUBLE 
 		  );
 		 ''')
-
-conn.execute("DROP TABLE IF EXISTS address;")
-conn.execute('''CREATE TABLE address
-    (id INTEGER PRIMARY KEY AUTOINCREMENT,
-     employee_number TEXT    NOT NULL,
-     address_type  TEXT    NOT NULL,
-    address_value  TEXT    NOT NULL,
-    start_date DATE,
-    end_date DATE);
-''')
 
 conn.execute("DROP TABLE IF EXISTS address;")
 conn.execute('''CREATE TABLE address
@@ -170,6 +168,15 @@ conn.execute('''CREATE TABLE identity
      );
 ''')
 
+conn.execute("DROP TABLE IF EXISTS department;")
+conn.execute('''CREATE TABLE department
+    (id INTEGER PRIMARY KEY AUTOINCREMENT,
+     department_id TEXT    NOT NULL,
+     department_name  TEXT    NOT NULL,
+     description TEXT    NOT NULL
+     );
+''')
+
 conn.execute("DROP TABLE IF EXISTS duty_catalog;")
 conn.execute('''CREATE TABLE duty_catalog
     (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -181,6 +188,37 @@ conn.execute('''CREATE TABLE duty_catalog
      default_department TEXT    NOT NULL
      );
 ''')
+
+# department - data
+conn.execute("INSERT INTO department ( department_id, department_name ,description) \
+      VALUES ('D101', 'Administration', 'Administration');");
+conn.execute("INSERT INTO department ( department_id, department_name ,description) \
+      VALUES ('D102', 'Production', 'Production');");
+conn.execute("INSERT INTO department ( department_id, department_name ,description) \
+      VALUES ('D103', 'Sales', 'Sales');");
+conn.execute("INSERT INTO department ( department_id, department_name ,description) \
+      VALUES ('D104', 'Accounts', 'Accounts');");
+conn.execute("INSERT INTO department ( department_id, department_name ,description) \
+      VALUES ('D105', 'Human Resource', 'Human Resource');");
+conn.execute("INSERT INTO department ( department_id, department_name ,description) \
+      VALUES ('D106', 'Marketing', 'Marketing');");
+conn.execute("INSERT INTO department ( department_id, department_name ,description) \
+       VALUES ('D107', 'Maintenance', 'Maintenance');");
+
+# duty
+conn.execute("INSERT INTO duty_catalog ( duty_code,duty_name,duty_description,salary_type,default_salary,default_department) \
+      VALUES ('DT101', 'supervision', 'Supervision','Monthly',10000,'Production');");
+conn.execute("INSERT INTO duty_catalog ( duty_code,duty_name,duty_description,salary_type,default_salary,default_department) \
+      VALUES ('DT102', 'machine_operation', 'Machine Operation','Weekly',300,'Production');");
+conn.execute("INSERT INTO duty_catalog ( duty_code,duty_name,duty_description,salary_type,default_salary,default_department) \
+      VALUES ('DT103', 'bobbin_winding', 'Bobbin Winding','Weekly',300,'Production');");
+conn.execute("INSERT INTO duty_catalog ( duty_code,duty_name,duty_description,salary_type,default_salary,default_department) \
+      VALUES ('DT104', 'mending', 'Mending','Weekly',300,'Production');");
+conn.execute("INSERT INTO duty_catalog ( duty_code,duty_name,duty_description,salary_type,default_salary,default_department) \
+       VALUES ('DT105', 'manager', 'Manager','Monthly',10000,'Administration');");
+
+
+
 
 conn.commit()
 

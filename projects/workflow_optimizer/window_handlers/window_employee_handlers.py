@@ -1,4 +1,6 @@
 import datetime
+import json
+
 from util.util_default_value import UtilDefaultValue
 from data_models.employee_model import EmployeeModel
 from data_models.address_model import AddressModel
@@ -23,13 +25,24 @@ class WindowEmployeeHandlers:
         _window_employee.cmb_qualification.Select(0)
         _window_employee.datepicker_employment_start_date.SetValue(UtilDefaultValue.get_current_date())
         _window_employee.datepicker_employment_end_date.SetValue(UtilDefaultValue.get_default_emp_end_date())
+        department_list = WindowEmployeeHandlers.get_department_list(sql_connection=_sqlite_connection)
+        _window_employee.cmd_department.SetItems(department_list)
         _window_employee.cmd_department.Select(-1)
 
         _window_employee.cm_no_of_leaves.SetItems(
             WindowEmployeeHandlers.get_leaves_list(sql_connection=_sqlite_connection))
         _window_employee.cm_no_of_leaves.Select(0)
 
+        duty_catalog =  WindowEmployeeHandlers.get_duty_catalog(sql_connection=_sqlite_connection)
+        duty_name_list = []
+        for row in duty_catalog:
+            dict_duty = json.loads(row)
+            duty_name_list.append(dict_duty['duty_description'])
+
+        _window_employee.cmb_primary_duty.SetItems(duty_name_list)
         _window_employee.cmb_primary_duty.Select(-1)
+        _window_employee.cmb_salary_type.SetItems(
+            WindowEmployeeHandlers.get_salary_type_list(sql_connection=_sqlite_connection))
         _window_employee.cmb_salary_type.Select(-1)
         _window_employee.txt_salary.Clear()
         # _window_employee.bitmap_employee_image.Clear()
@@ -79,8 +92,6 @@ class WindowEmployeeHandlers:
         sql = "select * from employee where employee_number = '{}'".format(employee_number)
         cursor = sql_connection.get_table_data(query=sql)
         dict_employee = defaultdict(lambda: -1)
-        # if cursor.rowcount != 1:
-        #     return dict_employee
         column_names = [description[0] for description in cursor.description]
 
         for row in cursor:
@@ -107,6 +118,35 @@ class WindowEmployeeHandlers:
             leave_list.append(dict_leaves[key])
 
         return leave_list
+
+    @staticmethod
+    def get_salary_type_list(sql_connection):
+        dict_salary_types = sql_connection.get_mnemonic_table_data('salary_type')
+        salary_list = []
+        for key in dict_salary_types.keys():
+            salary_list.append(dict_salary_types[key])
+
+        return salary_list
+
+    @staticmethod
+    def get_department_list(sql_connection):
+        department_list = sql_connection.get_single_column_list(table_name='department', column_name='department_name')
+        return department_list
+
+    @staticmethod
+    def get_duty_catalog(sql_connection):
+        duty_catalog_cursor = sql_connection.get_table_data("select * from duty_catalog")
+        column_names = [description[0] for description in duty_catalog_cursor.description]
+        result = []
+        for row in duty_catalog_cursor:
+            str_row = ""
+            list_current_row_columns = []
+            for col_name in column_names:
+                list_current_row_columns.append("\"" + str(col_name) + "\":\"" + str(row[column_names.index(col_name)])
+                                                + "\"")
+            str_row = "{" + ','.join(list_current_row_columns) + "}"
+            result.append(str_row)
+        return result
 
     @staticmethod
     def get_next_employee_number(_sql_connection):

@@ -1,0 +1,2 @@
+class ContactModel:
+    pass
