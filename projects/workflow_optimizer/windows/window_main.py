@@ -51,7 +51,7 @@ class WindowMain(wx.Frame):
 
     def handler_search_employee(self, event):
         search_employee = WindowSearchEmployee(None, wx.ID_ANY, "", _sqlite_sqls=self.sqlite_sqls)
-        search_employee.ShowModal()
+        return_value = search_employee.ShowModal()
         search_employee.Destroy()
 
     def handler_duty_catalog(self, event):  # wxGlade: MyFrame.<event_handler>\

@@ -248,8 +248,11 @@ class WindowEmployee(wx.Dialog):
         self.Close()
 
     def handler_search(self, event):
-        search_employee = WindowSearchEmployee(None, wx.ID_ANY, "")
-        search_employee.ShowModal()
+        search_employee = WindowSearchEmployee(None, wx.ID_ANY, "",_sqlite_sqls=self.sqlite_sqls)
+        return_value = search_employee.ShowModal()
+        selected_row = None
+        if return_value ==0:
+            selected_row = search_employee.selected_row
         search_employee.Destroy()
 
     # end of class AddUpdateEmployee
