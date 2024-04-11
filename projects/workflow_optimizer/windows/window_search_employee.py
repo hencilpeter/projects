@@ -13,7 +13,7 @@ class WindowSearchEmployee(wx.Dialog):
         sqlite_sqls = kwds["_sqlite_sqls"]
         self.employee_data_as_list = EmployeeModel.get_all_employee_details_as_list(_sql_connection=sqlite_sqls)
         self.employee_data_as_list_filtered = self.employee_data_as_list.copy()
-        self.selected_row = None
+        self.return_value = None
         del kwds["_sqlite_sqls"]
         wx.Dialog.__init__(self, *args, **kwds)
         self.selected_row_index = -1
@@ -80,19 +80,15 @@ class WindowSearchEmployee(wx.Dialog):
 
         self.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN, self.handler_department_cancel, self.search_department)
         self.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.handler_department_search, self.search_department)
-        #self.Bind(wx.EVT_TEXT, self.handler_department_text, self.search_department)
         self.Bind(wx.EVT_TEXT_ENTER, self.handler_department_enter, self.search_department)
         self.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN, self.handler_identity_cancel, self.search_employee_number)
         self.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.handler_identity_search, self.search_employee_number)
-        #self.Bind(wx.EVT_TEXT, self.handler_identity_text, self.search_employee_number)
         self.Bind(wx.EVT_TEXT_ENTER, self.handler_identity_enter, self.search_employee_number)
         self.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN, self.handler_firstname_cancel, self.search_firstname)
         self.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.handler_firstname_search, self.search_firstname)
-        #self.Bind(wx.EVT_TEXT, self.handler_firstname_text, self.search_firstname)
         self.Bind(wx.EVT_TEXT_ENTER, self.handler_firstname_enter, self.search_firstname)
         self.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN, self.handler_lastname_cencel, self.search_lastname)
         self.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.handler_lastname_serach, self.search_lastname)
-        #self.Bind(wx.EVT_TEXT, self.handler_lastname_text, self.search_lastname)
         self.Bind(wx.EVT_TEXT_ENTER, self.handler_lastname_enter, self.search_lastname)
         self.Bind(wx.grid.EVT_GRID_CMD_SELECT_CELL, self.handler_grid_select, self.grid_employees)
         self.Bind(wx.EVT_BUTTON, self.handler_Ok, self.btn_Ok)
@@ -108,10 +104,6 @@ class WindowSearchEmployee(wx.Dialog):
         self.apply_filter_on_grid()
         event.Skip()
 
-    # def handler_department_text(self, event):  # wxGlade: SearchEmployee.<event_handler>
-    #     print("Event handler 'handler_department_text' not implemented!")
-    #     event.Skip()
-
     def handler_department_enter(self, event):  # wxGlade: SearchEmployee.<event_handler>
         self.apply_filter_on_grid()
         event.Skip()
@@ -123,10 +115,6 @@ class WindowSearchEmployee(wx.Dialog):
     def handler_identity_search(self, event):  # wxGlade: SearchEmployee.<event_handler>
         self.apply_filter_on_grid()
         event.Skip()
-
-    # def handler_identity_text(self, event):  # wxGlade: SearchEmployee.<event_handler>
-    #     print("Event handler 'handler_identity_text' not implemented!")
-    #     event.Skip()
 
     def handler_identity_enter(self, event):  # wxGlade: SearchEmployee.<event_handler>
         self.apply_filter_on_grid()
@@ -140,10 +128,6 @@ class WindowSearchEmployee(wx.Dialog):
         self.apply_filter_on_grid()
         event.Skip()
 
-    # def handler_firstname_text(self, event):  # wxGlade: SearchEmployee.<event_handler>
-    #     print("Event handler 'handler_firstname_text' not implemented!")
-    #     event.Skip()
-
     def handler_firstname_enter(self, event):  # wxGlade: SearchEmployee.<event_handler>
         self.apply_filter_on_grid()
         event.Skip()
@@ -156,10 +140,6 @@ class WindowSearchEmployee(wx.Dialog):
         self.apply_filter_on_grid()
         event.Skip()
 
-    # def handler_lastname_text(self, event):  # wxGlade: SearchEmployee.<event_handler>
-    #     print("Event handler 'handler_lastname_text' not implemented!")
-    #     event.Skip()
-
     def handler_lastname_enter(self, event):  # wxGlade: SearchEmployee.<event_handler>
         self.apply_filter_on_grid()
         event.Skip()
@@ -170,13 +150,11 @@ class WindowSearchEmployee(wx.Dialog):
 
     def handler_Ok(self, event):
         if self.selected_row_index != -1 and self.selected_row_index < len(self.employee_data_as_list_filtered):
-            self.selected_row = self.employee_data_as_list_filtered[self.selected_row_index]
-        self.Destroy()
+            self.return_value = self.employee_data_as_list_filtered[self.selected_row_index]
+        self.EndModal(wx.ID_OK)
 
-
-    def handler_Cancel(self, event):  # wxGlade: SearchEmployee.<event_handler>
+    def handler_Cancel(self, event):
         self.Close()
-        #wx.Dialog.OnCancel()
 
     # end of class SearchEmployee
 

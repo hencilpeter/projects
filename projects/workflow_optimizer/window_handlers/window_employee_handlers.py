@@ -33,7 +33,7 @@ class WindowEmployeeHandlers:
             WindowEmployeeHandlers.get_leaves_list(sql_connection=_sqlite_connection))
         _window_employee.cm_no_of_leaves.Select(0)
 
-        duty_catalog =  WindowEmployeeHandlers.get_duty_catalog(sql_connection=_sqlite_connection)
+        duty_catalog = WindowEmployeeHandlers.get_duty_catalog(sql_connection=_sqlite_connection)
         duty_name_list = []
         for row in duty_catalog:
             dict_duty = json.loads(row)
@@ -66,8 +66,9 @@ class WindowEmployeeHandlers:
             employee_sql = model_employee.get_insert_sql()
 
         # address
-        address= AddressModel(_window_employee=_window_employee, _sql_connection=_sqlite_sql)
-        dict_current_address, dict_existing_address = address.get_current_and_existing_address(_employee_number=employee_number)
+        address = AddressModel(_window_employee=_window_employee, _sql_connection=_sqlite_sql)
+        dict_current_address, dict_existing_address = address.get_current_and_existing_address(
+            _employee_number=employee_number)
 
         # contact
 
@@ -100,6 +101,55 @@ class WindowEmployeeHandlers:
             break
 
         return dict_employee
+
+    @staticmethod
+    def populate_employee_data(_window_employee, _employee_dict):
+        # "id": "17", "employee_number": "MF0003", "first_name": "Prathima ", "last_name": "Venati", "father_name": "Anand", "sex": "F", "date_of_birth": "1990-01-30",
+        # "education": "High School", "employment_start_date": "2024-04-11", "employment_end_date": "9999-12-31", "department": "Production", "leaves_per_month": "0",
+        # "primary_duty_code": "DT102", "salary_type_code": "Daily", "salary": "300.0"}
+        _employee_dict = json.loads(_employee_dict)
+        _window_employee.txt_emp_number.SetValue(_employee_dict["employee_number"])
+        _window_employee.txt_first_name.SetValue(_employee_dict["first_name"])
+        _window_employee.txt_last_name.SetValue(_employee_dict["last_name"])
+        _window_employee.txt_father_name.SetValue(_employee_dict["father_name"])
+        if _employee_dict["sex"] == "F":
+            _window_employee.rd_btn_female.SetValue(1)
+        else:
+            _window_employee.rd_btn_female.SetValue(1)
+        _window_employee.datepicker_date_of_birth.SetValue(
+            datetime.datetime.strptime(_employee_dict["date_of_birth"], "%Y-%m-%d"))
+
+        _window_employee.cmb_qualification.SetValue(_employee_dict["education"])
+        _window_employee.datepicker_employment_start_date.SetValue(
+            datetime.datetime.strptime(_employee_dict["employment_start_date"], "%Y-%m-%d"))
+        _window_employee.datepicker_employment_end_date.SetValue(
+            datetime.datetime.strptime(_employee_dict["employment_end_date"], "%Y-%m-%d"))
+
+        _window_employee.cmd_department.SetValue(_employee_dict["department"])
+        _window_employee.cm_no_of_leaves.SetValue(_employee_dict["leaves_per_month"])
+
+        duty_description = CommonModel.get_list_dict_value_from_key(_list_dict=_window_employee.duty_catalog_list,
+                                                                    _key_column="duty_code",
+                                                                    _expected_key_column_value=_employee_dict[
+                                                                        "primary_duty_code"],
+                                                                    _value_column="duty_description")
+
+        _window_employee.cmb_primary_duty.SetValue(duty_description)
+
+        _window_employee.cmb_salary_type.SetValue(_employee_dict["salary_type_code"])
+        _window_employee.txt_salary.SetValue(_employee_dict["salary"])
+
+
+        # duty_catalog = WindowEmployeeHandlers.get_duty_catalog(sql_connection=_sqlite_connection)
+        # duty_name_list = []
+        # for row in duty_catalog:
+        #     dict_duty = json.loads(row)
+        #     duty_name_list.append(dict_duty['duty_description'])
+
+        # # _window_employee.bitmap_employee_image.Clear()
+        # _window_employee.grid_address.ClearGrid()
+        # _window_employee.grid_contact.ClearGrid()
+        # _window_employee.grid_identity.ClearGrid()
 
     @staticmethod
     def get_qualification_list(sql_connection):

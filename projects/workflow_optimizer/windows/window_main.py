@@ -1,4 +1,6 @@
 import wx
+from wx.core import wx
+
 from windows.window_search_employee import WindowSearchEmployee
 from windows.window_employee import WindowEmployee
 from windows.window_duty_catalog import DutyCatalog

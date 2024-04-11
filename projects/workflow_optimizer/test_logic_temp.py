@@ -51,3 +51,11 @@ sql = get_scd2_sql(_dict_existing=dict1, _dict_current=dict2, _employee_id=emplo
                    _column_type="address_type", _column_value="address_value")
 for item in sql:
     print(item)
+
+from datetime import datetime
+date_str = '09-19-2022'
+date_object = datetime.strptime(date_str, '%m-%d-%Y').date()
+print(date_object)
+test_date = "2014-12-12"
+sample_date = datetime.strptime(test_date, '%Y-%m-%d').date()
+print(sample_date)

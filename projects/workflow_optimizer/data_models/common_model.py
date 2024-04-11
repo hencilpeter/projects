@@ -1,4 +1,5 @@
 import datetime
+import json
 
 
 class CommonModel:
@@ -46,3 +47,12 @@ class CommonModel:
             str_row = "{" + ','.join(list_current_row_columns) + "}"
             result.append(str_row)
         return result
+
+    @staticmethod
+    def get_list_dict_value_from_key(_list_dict, _key_column, _expected_key_column_value, _value_column):
+        for dict_str in _list_dict:
+            dict_temp = json.loads(dict_str)
+            if dict_temp[_key_column] == _expected_key_column_value:
+                return dict_temp[_value_column]
+
+        return None

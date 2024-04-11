@@ -8,7 +8,7 @@ from windows.window_search_employee import WindowSearchEmployee
 import datetime
 from util.util_config_reader import UtilConfigReader
 from db.sqlite_sqls import SqliteSqls
-
+from data_models.common_model import CommonModel
 
 class WindowEmployee(wx.Dialog):
     def __init__(self, *args, **kwds):
@@ -20,6 +20,8 @@ class WindowEmployee(wx.Dialog):
 
         # sqlite
         self.sqlite_sqls = SqliteSqls(db_file_name=UtilConfigReader.get_application_config("app_database_file_name"))
+        self.duty_catalog_list = self.get_table_data_as_list(_table_name="duty_catalog")
+        print(self.duty_catalog_list)
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
@@ -226,9 +228,6 @@ class WindowEmployee(wx.Dialog):
         # initialize handlers
         WindowEmployeeHandlers.handle_clear_all_controls(self, _sqlite_connection=self.sqlite_sqls)
 
-        # #test
-        # self.cm_no_of_leaves.SetItems(['One', 'Two'])
-
     def fill_grid_control_type_column(self, _grid_control, total_rows, _mnemonic_id_group):
         choices_list = self.sqlite_sqls.get_mnemonic_table_data_as_list(mnemonic_id_group=_mnemonic_id_group)
         contact_choice_editor = wx.grid.GridCellChoiceEditor(choices_list, True)
@@ -250,12 +249,16 @@ class WindowEmployee(wx.Dialog):
     def handler_search(self, event):
         search_employee = WindowSearchEmployee(None, wx.ID_ANY, "",_sqlite_sqls=self.sqlite_sqls)
         return_value = search_employee.ShowModal()
-        selected_row = None
-        if return_value ==0:
-            selected_row = search_employee.selected_row
+        if return_value == wx.ID_OK and search_employee.return_value is not None:
+            WindowEmployeeHandlers.populate_employee_data(_window_employee=self,
+                                                          _employee_dict=search_employee.return_value)
         search_employee.Destroy()
 
     # end of class AddUpdateEmployee
+
+    def get_table_data_as_list(self, _table_name):
+        table_data_cursor = self.sqlite_sqls.get_table_data(query="select * from {};".format(_table_name))
+        return CommonModel.get_table_data_as_list(_data_cursor=table_data_cursor)
 
 # class MyApp(wx.App):
 #     def OnInit(self):
