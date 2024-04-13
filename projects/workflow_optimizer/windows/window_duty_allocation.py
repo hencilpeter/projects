@@ -5,13 +5,14 @@ import wx.adv
 import wx.grid
 from data_models.employee_model import EmployeeModel
 from data_models.common_model import CommonModel
-
-
+from util.util_duty_initializer import UtilDutyInitializer
+from datetime import datetime
 # end wxGlade
 
 # begin wxGlade: extracode
 # end wxGlade
 
+from collections import defaultdict
 
 class DutyAllocation(wx.Dialog):
     def __init__(self, *args, **kwds):
@@ -53,7 +54,7 @@ class DutyAllocation(wx.Dialog):
         label_2 = wx.StaticText(self, wx.ID_ANY, "Department(Filter)")
         sizer_5.Add(label_2, 0, wx.ALIGN_CENTER_VERTICAL, 0)
 
-        self.check_list_box_control = wx.ListCtrl(self, wx.ID_ANY, style = wx.LC_REPORT )
+        self.check_list_box_control = wx.ListCtrl(self, wx.ID_ANY, style=wx.LC_REPORT)
         self.check_list_box_control.SetMinSize((151, 90))
         self.check_list_box_control.EnableCheckBoxes()
         self.check_list_box_control.AppendColumn("Department Name", format=wx.LIST_FORMAT_LEFT, width=120)
@@ -217,6 +218,7 @@ class DutyAllocation(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.delete_employee_handler, self.btn_delete_employee)
         self.Bind(wx.EVT_BUTTON, self.reload_all_employees_handler, self.btn_reload_all_employees)
 
+        self.Bind(wx.EVT_BUTTON, self.allocate_duties, self.btn_duty_generate)
         # end wxGlade
 
     def get_department_list(self, _department_list):
@@ -288,24 +290,54 @@ class DutyAllocation(wx.Dialog):
         self.employee_data_as_list_filtered = self.employee_data_as_list
         self.department_select_handler(event=None)
 
-    def allocate_duties(self):
+    def allocate_duties(self, event):
         employee_number_list = []
         for index in range(0, self.grid_employee_detail.GetNumberRows()):
-            if self.grid_employee_detail.GetCellValue(index, 1)!= "":
+            if self.grid_employee_detail.GetCellValue(index, 1) != "":
                 employee_number_list.append(self.grid_employee_detail.GetCellValue(index, 1))
+
         employees_list = []
         for item in self.employee_data_as_list_filtered:
             dict_item = json.loads(item)
             if dict_item["employee_number"] in employee_number_list:
                 employees_list.append(item)
 
-        print(employees_list)
+        # Duty allocation
+        #duty_types = ['Night', 'Morning', "Evening"]
+        # employee_numbers = ["r1", "r2", "r3", "r4", "r5", "r6"]
+        # public_holidays = {"20240101": "holiday_new_year"}
+        # weekly_holidays = defaultdict(lambda: -1)
+        # weekly_holidays.update({"r1": ["sunday"], "r2": ["saturday", "sunday"]})
+
+        # # 1. assign default duty to all the employees
+        # dict_duty_schedule = duty_initializer.assign_default_duty('20240101', '20240131', duty_types, employee_numbers)
+        #
+        # # 2. assign public holidays
+        # dict_duty_schedule_public_holidays = duty_initializer.assign_normal_holidays(dict_duty_schedule=dict_duty_schedule,
+        #                                                                              dict_holidays=public_holidays)
+
+        # new round-robin approach
+        wx_start_date =self.datepicker_ctrl_start_date.GetValue()
+        wx_end_date = self.datepicker_ctrl_end_date.GetValue()
+        start_date = "{}{:02d}{:02d}".format(wx_start_date.GetYear(), wx_start_date.GetMonth() + 1, wx_start_date.GetDay())
+        end_date = "{}{:02d}{:02d}".format(wx_end_date.GetYear(), wx_end_date.GetMonth() + 1,
+                                             wx_end_date.GetDay())
+        list_company_holidays = ['20240402', '20240415', '20240419']
+        dict_duty_schedule, dict_emp_leaves = UtilDutyInitializer.assign_duty_round_robin(_list_emp_ids=employee_number_list,
+                                                                                      _from_date=start_date,
+                                                                                      _to_date=end_date,
+                                                                                      _list_company_holidays=list_company_holidays,
+                                                                                      _minimum_daily_required_resource_count=2)
+
+        print(dict_duty_schedule)
+        print(dict_emp_leaves)
+        #
+        #
+        # print(employees_list)
 
     # def get_duty_name_from_duty_code(self, ):
     #     pass
     #
-
-
 
 # # end of class DutyAllocation
 #
