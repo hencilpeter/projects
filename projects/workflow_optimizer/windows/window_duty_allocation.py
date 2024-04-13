@@ -17,6 +17,7 @@ from collections import defaultdict
 class DutyAllocation(wx.Dialog):
     def __init__(self, *args, **kwds):
         # begin wxGlade: DutyAllocation.__init__
+
         kwds["style"] = kwds.get("style", 0) | wx.DEFAULT_DIALOG_STYLE
         self.sqlite_sqls = kwds['_sqlite_sqls']
         del kwds['_sqlite_sqls']
@@ -41,6 +42,9 @@ class DutyAllocation(wx.Dialog):
         self.start_date = ""
         self.end_date = ""
         self.dict_duty_schedule = ""
+        self.duty_count = 0
+        self.dict_duty_schedule_filtered = ""
+        self.duty_count_filtered = 0
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
@@ -107,10 +111,10 @@ class DutyAllocation(wx.Dialog):
         self.search_control_department.ShowCancelButton(True)
         sizer_12.Add(self.search_control_department, 0, 0, 0)
 
-        self.search_control_identity = wx.SearchCtrl(self, wx.ID_ANY, "")
-        self.search_control_identity.SetMinSize((130, 23))
-        self.search_control_identity.ShowCancelButton(True)
-        sizer_12.Add(self.search_control_identity, 0, 0, 0)
+        self.search_control_employee_number = wx.SearchCtrl(self, wx.ID_ANY, "")
+        self.search_control_employee_number.SetMinSize((130, 23))
+        self.search_control_employee_number.ShowCancelButton(True)
+        sizer_12.Add(self.search_control_employee_number, 0, 0, 0)
 
         self.search_control_name = wx.SearchCtrl(self, wx.ID_ANY, "")
         self.search_control_name.SetMinSize((130, 23))
@@ -233,6 +237,17 @@ class DutyAllocation(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.load_duties, self.btn_load_duties)
         self.Bind(wx.EVT_BUTTON, self.load_clean_duties, self.btn_duty_clear)
 
+        self.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN, self.handler_filter_duties_grid, self.search_control_department)
+        self.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.handler_filter_duties_grid, self.search_control_department)
+        self.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN, self.handler_filter_duties_grid, self.search_control_employee_number)
+        self.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.handler_filter_duties_grid, self.search_control_employee_number)
+        self.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN, self.handler_filter_duties_grid, self.search_control_name)
+        self.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.handler_filter_duties_grid, self.search_control_name)
+        self.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN, self.handler_filter_duties_grid, self.search_control_duty_name)
+        self.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.handler_filter_duties_grid, self.search_control_duty_name)
+        self.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN, self.handler_filter_duties_grid, self.search_control_duty_date)
+        self.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.handler_filter_duties_grid, self.search_control_duty_date)
+
         # end wxGlade
 
     def get_department_list(self, _department_list):
@@ -311,6 +326,7 @@ class DutyAllocation(wx.Dialog):
         self.employee_data_as_list_filtered = self.employee_data_as_list
         self.department_select_handler(event=None)
 
+    # Duties section
     def allocate_duties(self, event):
         employee_number_list = []
         for index in range(0, self.grid_employee_detail.GetNumberRows()):
@@ -330,34 +346,45 @@ class DutyAllocation(wx.Dialog):
                                              wx_start_date.GetDay())
         self.end_date = "{}{:02d}{:02d}".format(wx_end_date.GetYear(), wx_end_date.GetMonth() + 1,
                                            wx_end_date.GetDay())
-        self.dict_duty_schedule, dict_emp_leaves = self.get_duties_and_leaves(_start_date=self.start_date, _end_date=self.end_date,
+        dict_duty_schedule, dict_emp_leaves = self.get_duties_and_leaves(_start_date=self.start_date, _end_date=self.end_date,
                                                                               _employee_number_list=employee_number_list,
                                                                          _minimum_daily_required_resource_count=minimum_daily_required_resource_count)
-        self.populate_duties(_dict_duties=self.dict_duty_schedule,
-                             _minimum_daily_required_resource_count=minimum_daily_required_resource_count)
+        duty_count = self.get_duty_count(_dict_duty_schedule=dict_duty_schedule)
+        self.update_duty_buffer(_dict_duty_schedule=dict_duty_schedule, _duty_count=duty_count)
+        self.populate_duties_from_dict(_dict_duties=dict_duty_schedule,
+                             _duty_count=duty_count)
 
     def save_duties(self, event):
         unique_employee_number_list = self.get_unique_employee_number_list()
         formatted_employee_numbers = "','".join(unique_employee_number_list)
         formatted_employee_numbers = "'" + formatted_employee_numbers + "'"
+        # delete_sql = "delete from employee_duties where employee_number in ({}) and duty_date >= '{}' and duty_date <= '{}';" \
+        #     .format(formatted_employee_numbers, datetime.strptime(self.start_date, '%Y%m%d').strftime('%Y-%m-%d'),
+        #             datetime.strptime(self.end_date, '%Y%m%d').strftime('%Y-%m-%d'))
         delete_sql = "delete from employee_duties where employee_number in ({}) and duty_date >= '{}' and duty_date <= '{}';" \
-            .format(formatted_employee_numbers, datetime.strptime(self.start_date, '%Y%m%d').strftime('%Y-%m-%d'),
-                    datetime.strptime(self.end_date, '%Y%m%d').strftime('%Y-%m-%d'))
+            .format(formatted_employee_numbers, self.start_date, self.end_date)
 
         # delete the old records
         self.sqlite_sqls.execute_and_commit_sql(delete_sql)
 
         # insert new records
         insert_sql_list = []
-        for row_number in range(0, self.grid_duty_detail.GetNumberRows()):
-            insert_sql_list.append(
-                "insert into employee_duties (employee_number, duty_date, duty_description) values('{}','{}','{}');" \
-                .format(self.grid_duty_detail.GetCellValue(row_number, 1),
-                        self.grid_duty_detail.GetCellValue(row_number, 4),
-                        ""))
+        # for row_number in range(0, self.grid_duty_detail.GetNumberRows()):
+        #     insert_sql_list.append(
+        #         "insert into employee_duties (employee_number, duty_date, duty_description) values('{}','{}','{}');" \
+        #         .format(self.grid_duty_detail.GetCellValue(row_number, 1),
+        #                 self.grid_duty_detail.GetCellValue(row_number, 4),
+        #                 ""))
+        for duty_date in self.dict_duty_schedule.keys():
+            for employee_number in self.dict_duty_schedule[duty_date]:
+                insert_sql_list.append(
+                        "insert into employee_duties (employee_number, duty_date, duty_description) values('{}','{}','{}');" \
+                        .format(duty_date,employee_number,""))
 
         build_insert_sql = ''.join(insert_sql_list)
         self.sqlite_sqls.executescript_and_commit_sql(build_insert_sql)
+        dial = wx.MessageDialog(self, "Duties Saved Successfully...", "Duties", wx.OK | wx.STAY_ON_TOP | wx.CENTRE)
+        dial.ShowModal()
 
     def load_duties(self, event):
         employee_number_list = []
@@ -373,16 +400,17 @@ class DutyAllocation(wx.Dialog):
 
         employee_number_str = "','".join(employee_number_list)
         employee_number_str = "'" + employee_number_str + "'"
-        sql = "select * from employee_duties where employee_number in ({}) and duty_date >= '{}' and duty_date <= '{}'"\
-            .format(employee_number_str, datetime.strptime(self.start_date, '%Y%m%d').strftime('%Y-%m-%d'),
-                    datetime.strptime(self.end_date, '%Y%m%d').strftime('%Y-%m-%d'))
-
+        # sql = "select * from employee_duties where employee_number in ({}) and duty_date >= '{}' and duty_date <= '{}'"\
+        #     .format(employee_number_str, datetime.strptime(self.start_date, '%Y%m%d').strftime('%Y-%m-%d'),
+        #             datetime.strptime(self.end_date, '%Y%m%d').strftime('%Y-%m-%d'))
+        sql = "select * from employee_duties where employee_number in ({}) and duty_date >= '{}' and duty_date <= '{}'" \
+            .format(employee_number_str, self.start_date, self.end_date)
 
         employee_duties_cursor = self.sqlite_sqls.get_table_data(sql)
         employee_duties_list = CommonModel.get_table_data_as_list(_data_cursor=employee_duties_cursor)
-        self.populate_duties_from_table_records(_table_duties_list=employee_duties_list)
-
-
+        dict_duty_schedule, duty_count = self.get_duty_dict_from_table_records(_table_duties_list=employee_duties_list)
+        self.update_duty_buffer(_dict_duty_schedule=dict_duty_schedule, _duty_count=duty_count)
+        self.populate_duties_from_dict(_dict_duties= dict_duty_schedule, _duty_count= duty_count)
 
 
     def load_clean_duties(self, event):
@@ -391,27 +419,92 @@ class DutyAllocation(wx.Dialog):
         self.end_date = ""
         self.dict_duty_schedule = ""
 
+    def handler_filter_duties_grid(self, event):
+        search_department_name = self.search_control_department.GetValue()
+        search_employee_number = self.search_control_employee_number.GetValue()
+        search_firstname = self.search_control_name.GetValue()
+        search_duty_name = self.search_control_duty_name.GetValue()
+        search_duty_date = self.search_control_duty_date.GetValue()
+
+        dict_filter_values = dict(
+            {"department": search_department_name, "employee_number": search_employee_number, "first_name": search_firstname,
+             "duty_name": search_duty_name, "duty_date": search_duty_date})
+
+        self.dict_duty_schedule_filtered = self.dict_duty_schedule.copy()
+        self.duty_count_filtered = self.duty_count
+
+        for duty_date in self.dict_duty_schedule.keys():
+            # duty date
+            if search_duty_date != "" and search_duty_date not in duty_date:
+                del self.dict_duty_schedule_filtered[duty_date]
+                continue
+
+            # employee number
+            # if search_employee_number != "":
+            #     employee_number_list = self.dict_duty_schedule[duty_date].copy()
+            #     for employee_number in self.dict_duty_schedule[duty_date]:
+            #         if search_employee_number not in employee_number:
+            #             employee_number_list.remove(employee_number)
+            #     self.dict_duty_schedule_filtered[duty_date] = employee_number_list
+            employee_number_list = self.dict_duty_schedule[duty_date].copy()
+            for employee_number in self.dict_duty_schedule[duty_date]:
+                # employee number
+                if search_employee_number != "" and search_employee_number not in employee_number:
+                    employee_number_list.remove(employee_number)
+                # department
+                elif search_department_name != "" and search_department_name not in self.employee_dict[employee_number][
+                    "department"]:
+                    employee_number_list.remove(employee_number)
+                elif search_firstname != "" and search_firstname not in self.employee_dict[employee_number][
+                    "first_name"]:
+                    employee_number_list.remove(employee_number)
+                elif search_duty_name != "":
+                    primary_duty_code = self.employee_dict[employee_number]["primary_duty_code"]
+                    duty_description = CommonModel.get_list_dict_value_from_key(_list_dict=self.duty_catalog_as_list,
+                                                                                _key_column="duty_code",
+                                                                                _expected_key_column_value=primary_duty_code,
+                                                                                _value_column="duty_description"
+                                                                                )
+
+                    if search_duty_name not in duty_description:
+                        employee_number_list.remove(employee_number)
+
+            self.dict_duty_schedule_filtered[duty_date] = employee_number_list
+
+
+
+        self.duty_count_filtered = self.get_duty_count(_dict_duty_schedule=self.dict_duty_schedule_filtered)
+        self.populate_duties_from_dict(_dict_duties=self.dict_duty_schedule_filtered,
+                                       _duty_count=self.duty_count_filtered)
+
+
+    def update_duty_buffer(self, _dict_duty_schedule, _duty_count):
+        self.dict_duty_schedule = _dict_duty_schedule.copy()
+        self.duty_count = _duty_count
+        self.dict_duty_schedule_filtered = _dict_duty_schedule.copy()
+        self.duty_count_filtered = _duty_count
+
+
     def get_unique_employee_number_list(self):
         unique_employee_number_list = []
         dict_employee_number = defaultdict(lambda :-1)
-        for row_number in range(0, self.grid_duty_detail.GetNumberRows()):
-            dict_employee_number[self.grid_duty_detail.GetCellValue(row_number, 1)] = 1
+        for duty_date in self.dict_duty_schedule.keys():
+            for employee_number in self.dict_duty_schedule[duty_date]:
+                dict_employee_number[employee_number] = 1
 
         for key in dict_employee_number.keys():
             unique_employee_number_list.append(key)
 
         return unique_employee_number_list
 
-    def populate_duties(self, _dict_duties, _minimum_daily_required_resource_count):
+    def populate_duties_from_dict(self, _dict_duties, _duty_count):
         if len(_dict_duties.keys()) == 0:
             return
 
         if self.grid_duty_detail.GetNumberRows() > 0:
             self.grid_duty_detail.DeleteRows(pos=0, numRows=self.grid_duty_detail.GetNumberRows())
 
-        grid_rows_count = len(_dict_duties.keys()) * _minimum_daily_required_resource_count
-
-        self.grid_duty_detail.AppendRows(grid_rows_count)
+        self.grid_duty_detail.AppendRows(_duty_count)
 
         current_row = 0
         for date_key in _dict_duties.keys():
@@ -426,30 +519,28 @@ class DutyAllocation(wx.Dialog):
 
                 current_row += 1
 
-
-    def populate_duties_from_table_records(self, _table_duties_list):
-        if self.grid_duty_detail.GetNumberRows() > 0:
-            self.grid_duty_detail.DeleteRows(pos=0, numRows=self.grid_duty_detail.GetNumberRows())
-
-        self.grid_duty_detail.AppendRows(len(_table_duties_list))
-
-        current_row = 0
+    def get_duty_dict_from_table_records(self, _table_duties_list):
+        dict_duties = defaultdict(lambda: -1)
+        duty_count = 0
         for item in _table_duties_list:
             dict_item = json.loads(item)
-            self.grid_duty_detail.SetCellValue(current_row, 0, self.employee_dict[dict_item["employee_number"]]["department"])
-            self.grid_duty_detail.SetCellValue(current_row, 1, dict_item["employee_number"])
-            self.grid_duty_detail.SetCellValue(current_row, 2, self.employee_dict[dict_item["employee_number"]]["first_name"])
-            duty_code = self.employee_dict[dict_item["employee_number"]]["primary_duty_code"]
-            duty_description = self.duty_catalog_dict[duty_code]["duty_description"]
-            self.grid_duty_detail.SetCellValue(current_row, 3, duty_description)
-            self.grid_duty_detail.SetCellValue(current_row, 4, dict_item["duty_date"])
+            if dict_duties[dict_item["duty_date"]] == -1:
+                dict_duties[dict_item["duty_date"]] = [dict_item["employee_number"]]
+            else:
+                dict_duties[dict_item["duty_date"]].append(dict_item["employee_number"])
+            duty_count += 1
 
-            current_row +=1
+        return dict_duties, duty_count
 
+    def get_duty_count(self, _dict_duty_schedule):
+        duty_count = 0
+        for duty_date in _dict_duty_schedule.keys():
+            duty_count += len(_dict_duty_schedule[duty_date])
 
+        return duty_count
 
-
-    def get_duties_and_leaves(self, _start_date, _end_date, _employee_number_list, _minimum_daily_required_resource_count):
+    def get_duties_and_leaves(self, _start_date, _end_date, _employee_number_list,
+                              _minimum_daily_required_resource_count):
 
         list_company_holidays = ['20240402', '20240415', '20240419']
         dict_duty_schedule, dict_emp_leaves = UtilDutyInitializer.assign_duty_round_robin(
