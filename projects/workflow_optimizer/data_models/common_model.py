@@ -1,6 +1,6 @@
 import datetime
 import json
-
+from collections import defaultdict
 
 class CommonModel:
     @staticmethod
@@ -56,3 +56,13 @@ class CommonModel:
                 return dict_temp[_value_column]
 
         return None
+
+    @staticmethod
+    def get_dict_from_list(_list_dict, _key_column):
+        dict_result = defaultdict(lambda: -1)
+        for dict_str in _list_dict:
+            dict_temp = json.loads(dict_str)
+            if _key_column in dict_temp.keys():
+                dict_result[dict_temp[_key_column]] = dict_temp
+
+        return dict_result

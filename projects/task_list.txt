@@ -20,5 +20,15 @@
    3.7 enable insert row logic    
    3.8 enable save logic 
     
+4. View/Printing
+   4.1 Duty Allocation 
+   4.2 Salary Slip    
 
-		
+5. Payroll 
+   5.1 Salary Entry
+   
+
+Required re-factoring
+=====================
+1. remove the min_resource_count from department table ?
+2. 

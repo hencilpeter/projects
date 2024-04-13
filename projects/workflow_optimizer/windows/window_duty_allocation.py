@@ -35,6 +35,9 @@ class DutyAllocation(wx.Dialog):
 
         department_list = self.get_department_list(_department_list=self.department_names_as_list)
 
+        self.employee_dict = CommonModel.get_dict_from_list( self.employee_data_as_list, "employee_number")
+        self.duty_catalog_dict = CommonModel.get_dict_from_list( self.duty_catalog_as_list, "duty_code")
+
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
         sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
@@ -302,38 +305,56 @@ class DutyAllocation(wx.Dialog):
             if dict_item["employee_number"] in employee_number_list:
                 employees_list.append(item)
 
-        # Duty allocation
-        #duty_types = ['Night', 'Morning', "Evening"]
-        # employee_numbers = ["r1", "r2", "r3", "r4", "r5", "r6"]
-        # public_holidays = {"20240101": "holiday_new_year"}
-        # weekly_holidays = defaultdict(lambda: -1)
-        # weekly_holidays.update({"r1": ["sunday"], "r2": ["saturday", "sunday"]})
+        minimum_daily_required_resource_count = 2
+        dict_duty_schedule, dict_emp_leaves = self.get_duties_and_leaves(_employee_number_list=employee_number_list,
+                                                                         _minimum_daily_required_resource_count=minimum_daily_required_resource_count)
+        self.populate_duties(_dict_duties=dict_duty_schedule,
+                             _minimum_daily_required_resource_count=minimum_daily_required_resource_count)
 
-        # # 1. assign default duty to all the employees
-        # dict_duty_schedule = duty_initializer.assign_default_duty('20240101', '20240131', duty_types, employee_numbers)
-        #
-        # # 2. assign public holidays
-        # dict_duty_schedule_public_holidays = duty_initializer.assign_normal_holidays(dict_duty_schedule=dict_duty_schedule,
-        #                                                                              dict_holidays=public_holidays)
+    def populate_duties(self, _dict_duties, _minimum_daily_required_resource_count):
+        print(_dict_duties)
+        if len(_dict_duties.keys()) == 0:
+            return
 
-        # new round-robin approach
-        wx_start_date =self.datepicker_ctrl_start_date.GetValue()
+        if self.grid_duty_detail.GetNumberRows() > 0:
+            self.grid_duty_detail.DeleteRows(pos=0, numRows=self.grid_duty_detail.GetNumberRows())
+
+        grid_rows_count = len(_dict_duties.keys()) * _minimum_daily_required_resource_count
+
+        self.grid_duty_detail.AppendRows(grid_rows_count)
+
+        current_row = 0
+        for date_key in _dict_duties.keys():
+            for employee_number in _dict_duties[date_key]:
+                self.grid_duty_detail.SetCellValue(current_row, 0, self.employee_dict[employee_number]["department"])
+                self.grid_duty_detail.SetCellValue(current_row, 1, employee_number)
+                self.grid_duty_detail.SetCellValue(current_row, 2, self.employee_dict[employee_number]["first_name"])
+                duty_code = self.employee_dict[employee_number]["primary_duty_code"]
+                duty_description  = self.duty_catalog_dict[duty_code]["duty_description"]
+                self.grid_duty_detail.SetCellValue(current_row, 3, duty_description)
+                self.grid_duty_detail.SetCellValue(current_row, 4, date_key)
+
+                current_row += 1
+
+
+
+    def get_duties_and_leaves(self, _employee_number_list, _minimum_daily_required_resource_count):
+        wx_start_date = self.datepicker_ctrl_start_date.GetValue()
         wx_end_date = self.datepicker_ctrl_end_date.GetValue()
-        start_date = "{}{:02d}{:02d}".format(wx_start_date.GetYear(), wx_start_date.GetMonth() + 1, wx_start_date.GetDay())
+        start_date = "{}{:02d}{:02d}".format(wx_start_date.GetYear(), wx_start_date.GetMonth() + 1,
+                                             wx_start_date.GetDay())
         end_date = "{}{:02d}{:02d}".format(wx_end_date.GetYear(), wx_end_date.GetMonth() + 1,
-                                             wx_end_date.GetDay())
+                                           wx_end_date.GetDay())
         list_company_holidays = ['20240402', '20240415', '20240419']
-        dict_duty_schedule, dict_emp_leaves = UtilDutyInitializer.assign_duty_round_robin(_list_emp_ids=employee_number_list,
-                                                                                      _from_date=start_date,
-                                                                                      _to_date=end_date,
-                                                                                      _list_company_holidays=list_company_holidays,
-                                                                                      _minimum_daily_required_resource_count=2)
+        dict_duty_schedule, dict_emp_leaves = UtilDutyInitializer.assign_duty_round_robin(
+            _list_emp_ids=_employee_number_list,
+            _from_date=start_date,
+            _to_date=end_date,
+            _list_company_holidays=list_company_holidays,
+            _minimum_daily_required_resource_count=_minimum_daily_required_resource_count)
 
-        print(dict_duty_schedule)
-        print(dict_emp_leaves)
-        #
-        #
-        # print(employees_list)
+        return dict_duty_schedule, dict_emp_leaves
+
 
     # def get_duty_name_from_duty_code(self, ):
     #     pass
