@@ -108,12 +108,14 @@ class UtilDutyInitializer:
         dqueue_emp_ids = deque(_list_emp_ids)
 
         # holidays list
-        list_company_holidays = [str(dt.strptime(holiday, "%Y%m%d")) for holiday in _list_company_holidays]
+        #list_company_holidays = [str(dt.strptime(holiday, "%Y%m%d")) for holiday in _list_company_holidays]
+        list_company_holidays = _list_company_holidays.copy()
 
         for day_count in range(0, days_between):
             current_date = dt.strptime(_from_date, "%Y%m%d") + datetime.timedelta(days=day_count)
+            #current_date = current_date.strftime("%Y%m%d")
             # dict_duty_schedule[current_date] = defaultdict(lambda: -1)
-            str_current_date = str(current_date)
+            str_current_date =  current_date.strftime("%Y%m%d") # str(current_date)
             if str_current_date in list_company_holidays:
                 # skip duty assignment for public holidays
                 continue

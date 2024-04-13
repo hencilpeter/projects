@@ -1,4 +1,6 @@
 import datetime
+from datetime import datetime as dt
+
 
 prefix = "MF"
 val = 1
@@ -52,10 +54,16 @@ sql = get_scd2_sql(_dict_existing=dict1, _dict_current=dict2, _employee_id=emplo
 for item in sql:
     print(item)
 
-from datetime import datetime
-date_str = '09-19-2022'
-date_object = datetime.strptime(date_str, '%m-%d-%Y').date()
-print(date_object)
-test_date = "2014-12-12"
-sample_date = datetime.strptime(test_date, '%Y-%m-%d').date()
-print(sample_date)
+# date_str = '09-19-2022'
+# date_object = datetime.strptime(date_str, '%m-%d-%Y').date()
+# print(date_object)
+# test_date = "2014-12-12"
+# sample_date = datetime.strptime(test_date, '%Y-%m-%d').date()
+# print(sample_date)
+
+_from_date = '20240101'
+for day_count in range(0, 2):
+    current_date = dt.strptime(_from_date, "%Y%m%d") + datetime.timedelta(days=day_count)
+    print(current_date)
+    current_date = current_date.strftime("%Y%m%d")
+    print(current_date)
