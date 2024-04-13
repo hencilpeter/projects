@@ -47,6 +47,8 @@ conn.execute("INSERT INTO duty_catalog ( duty_code,duty_name,duty_description,sa
 conn.execute("INSERT INTO duty_catalog ( duty_code,duty_name,duty_description,salary_type,default_salary,default_department, default_resource_count) \
        VALUES ('DT105', 'manager', 'Manager','Monthly',10000,'Administration',2);");
 
+
+
 conn.commit()
 
 conn.close()

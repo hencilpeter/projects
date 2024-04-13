@@ -191,7 +191,13 @@ conn.execute('''CREATE TABLE duty_catalog
      );
 ''')
 
-
+conn.execute("DROP TABLE IF EXISTS employee_duties;")
+conn.execute('''CREATE TABLE employee_duties
+    (employee_number TEXT    NOT NULL,
+     duty_date  TEXT    NOT NULL,
+     duty_description TEXT  NULL
+     );
+''')
 
 conn.commit()
 
