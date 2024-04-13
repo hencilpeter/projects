@@ -22,12 +22,15 @@ class DutyAllocation(wx.Dialog):
 
         wx.Dialog.__init__(self, *args, **kwds)
         self.SetSize((1305, 897))
-        self.SetTitle("dialog")
+        self.SetTitle("TODO: Duty Allocation")
 
         self.employee_data_as_list = EmployeeModel.get_all_employee_details_as_list(_sql_connection=sqlite_sqls)
         self.employee_data_as_list_filtered = self.employee_data_as_list.copy()
         department_cursor = sqlite_sqls.get_table_data("select * from department;")
         self.department_names_as_list = CommonModel.get_table_data_as_list(_data_cursor=department_cursor)
+
+        duty_catalog_cursor = sqlite_sqls.get_table_data("select * from duty_catalog;")
+        self.duty_catalog_as_list = CommonModel.get_table_data_as_list(_data_cursor=duty_catalog_cursor)
 
         department_list = self.get_department_list(_department_list=self.department_names_as_list)
 
@@ -120,7 +123,7 @@ class DutyAllocation(wx.Dialog):
         sizer_1.Add(sizer_8, 1, wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 0)
 
         self.grid_employee_detail = wx.grid.Grid(self, wx.ID_ANY, size=(1, 1))
-        self.grid_employee_detail.CreateGrid(10, 4)
+        self.grid_employee_detail.CreateGrid(10, 5)
         self.grid_employee_detail.SetRowLabelSize(30)
         self.grid_employee_detail.SetColLabelSize(30)
         self.grid_employee_detail.SetSelectionMode(wx.grid.Grid.SelectRows)
@@ -132,6 +135,9 @@ class DutyAllocation(wx.Dialog):
         self.grid_employee_detail.SetColSize(2, 100)
         self.grid_employee_detail.SetColLabelValue(3, "Last Name")
         self.grid_employee_detail.SetColSize(3, 100)
+        self.grid_employee_detail.SetMinSize((634, 575))
+        self.grid_employee_detail.SetColLabelValue(4, "Duty")
+        self.grid_employee_detail.SetColSize(4, 120)
         self.grid_employee_detail.SetMinSize((634, 575))
         sizer_8.Add(self.grid_employee_detail, 1, wx.EXPAND, 0)
 
@@ -230,6 +236,14 @@ class DutyAllocation(wx.Dialog):
                 self.grid_employee_detail.SetCellValue(row_count, 1, employee_dict["employee_number"])
                 self.grid_employee_detail.SetCellValue(row_count, 2, employee_dict["first_name"])
                 self.grid_employee_detail.SetCellValue(row_count, 3, employee_dict["last_name"])
+                primary_duty_code = employee_dict["primary_duty_code"]
+                duty_description = CommonModel.get_list_dict_value_from_key(_list_dict=self.duty_catalog_as_list,
+                                                                            _key_column="duty_code",
+                                                                            _expected_key_column_value=primary_duty_code,
+                                                                            _value_column="duty_description"
+                                                                            )
+                self.grid_employee_detail.SetCellValue(row_count, 4, duty_description)
+
                 row_count += 1
 
         self.grid_employee_detail.ClearSelection()
@@ -245,23 +259,27 @@ class DutyAllocation(wx.Dialog):
                                     _selected_department_list=selected_department_list)
 
     def delete_employee_handler(self, event):
+        new_employee_list = self.get_selected_employees_list()
+        self.employee_data_as_list_filtered = new_employee_list
+        self.department_select_handler(event=None)
+
+    def get_selected_employees_list(self):
         selected_rows = self.grid_employee_detail.GetSelectedRows()
 
+        new_employee_list = []
+
         if len(selected_rows) == 0:
-            return
+            return new_employee_list
 
         employee_number_list = []
         for row_index in selected_rows:
             employee_number_list.append(self.grid_employee_detail.GetCellValue(row_index, 1))
 
-        new_employee_list = []
         for item in self.employee_data_as_list_filtered:
             dict_item = json.loads(item)
-            if dict_item["employee_number"] not in  employee_number_list:
+            if dict_item["employee_number"] not in employee_number_list:
                 new_employee_list.append(item)
-
-        self.employee_data_as_list_filtered = new_employee_list
-        self.department_select_handler(event=None)
+        return new_employee_list
 
     def reload_all_employees_handler(self, event):
         for index in range(0, self.check_list_box_control.GetItemCount()):
@@ -270,7 +288,22 @@ class DutyAllocation(wx.Dialog):
         self.employee_data_as_list_filtered = self.employee_data_as_list
         self.department_select_handler(event=None)
 
+    def allocate_duties(self):
+        employee_number_list = []
+        for index in range(0, self.grid_employee_detail.GetNumberRows()):
+            if self.grid_employee_detail.GetCellValue(index, 1)!= "":
+                employee_number_list.append(self.grid_employee_detail.GetCellValue(index, 1))
+        employees_list = []
+        for item in self.employee_data_as_list_filtered:
+            dict_item = json.loads(item)
+            if dict_item["employee_number"] in employee_number_list:
+                employees_list.append(item)
 
+        print(employees_list)
+
+    # def get_duty_name_from_duty_code(self, ):
+    #     pass
+    #
 
 
 
