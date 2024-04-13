@@ -62,7 +62,7 @@ class WindowMain(wx.Frame):
         dlg_duty_manager.Destroy()
 
     def handler_duty_allocation(self, event):  # wxGlade: MyFrame.<event_handler>
-        dialog_duty_allocation = DutyAllocation(None, wx.ID_ANY, "")
+        dialog_duty_allocation = DutyAllocation(None, wx.ID_ANY, "",_sqlite_sqls=self.sqlite_sqls)
         dialog_duty_allocation.ShowModal()
         dialog_duty_allocation.Destroy()
 

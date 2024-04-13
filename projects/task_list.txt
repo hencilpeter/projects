@@ -9,4 +9,16 @@
   1.4 Test Save 
   1.5 Photo - TODO 
   1.6 Identity Path - TODO 
-  
+2. save address logic  
+3. Duty Allocation 
+   3.1 populate emplyee list [Done]
+   3.2 enable the employee filter [Done]
+   3.3 enable delete employee logic  [Done] 
+   3.4 enable reload employee logic [Done]	
+   3.5 enable duty allocation 
+   3.6 enable delete row logic 
+   3.7 enable insert row logic    
+   3.8 enable save logic 
+    
+
+		
