@@ -394,9 +394,6 @@ class DutyAllocation(wx.Dialog):
 
 
 
-
-
-
         # prepare dict with duty name as key
         # prepare new dict with employee list for each duty
         # for loop - for each duty type
@@ -482,7 +479,7 @@ class DutyAllocation(wx.Dialog):
             for employee_number in self.dict_duty_schedule[duty_date]:
                 insert_sql_list.append(
                         "insert into employee_duties (employee_number, duty_date, duty_description) values('{}','{}','{}');" \
-                        .format(duty_date,employee_number,""))
+                        .format(employee_number, duty_date,""))
 
         build_insert_sql = ''.join(insert_sql_list)
         self.sqlite_sqls.executescript_and_commit_sql(build_insert_sql)

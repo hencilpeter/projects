@@ -10,25 +10,37 @@
   1.5 Photo - TODO 
   1.6 Identity Path - TODO 
 2. save address logic  
-3. Duty Allocation 
+3. Duty Allocation  [Done ]
    3.1 populate emplyee list [Done]
    3.2 enable the employee filter [Done]
    3.3 enable delete employee logic  [Done] 
    3.4 enable reload employee logic [Done]	
    3.5 enable duty allocation 
-   3.6 enable delete row logic 
-   3.7 enable insert row logic    
+   3.6 enable delete row logic - move to another window 
+   3.7 enable insert row logic - move to another window.    
    3.8 enable save logic 
-    
-4. View/Printing
-   4.1 Duty Allocation 
-   4.2 Salary Slip    
 
-5. Payroll 
-   5.1 Salary Entry
+4. Payroll 
+   4.1 Salary Entry
+   
+5. View/Print
+   5.1 Duty Allocation 
+   - department and duty name filter 
+   - save as html logic 
+   5.2 Salary Slip    
+
+
    
 
 Required re-factoring
 =====================
 1. remove the min_resource_count from department table ?
 2. 
+
+duty_resource_catalog
+duty_code, 
+
+
+==============================
+self.Bind(wx.EVT_MENU,  self.handler_view_print_duty_allocation, item)
+ self.Bind(wx.EVT_MENU, self.handler_view_print_salary_slip, item)
