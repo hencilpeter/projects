@@ -12,6 +12,7 @@ from data_models.common_model import CommonModel
 import json
 from collections import defaultdict
 
+
 class ViewPrintDutyAllocation(wx.Dialog):
     def __init__(self, *args, **kwds):
         # begin wxGlade: ViewPrintDutyAllocation.__init__
@@ -27,11 +28,13 @@ class ViewPrintDutyAllocation(wx.Dialog):
         self.employee_data_as_list = EmployeeModel.get_all_employee_details_as_list(_sql_connection=self.sqlite_sqls)
         department_cursor = self.sqlite_sqls.get_table_data("select * from department;")
         self.department_names_as_list = CommonModel.get_table_data_as_list(_data_cursor=department_cursor)
-        self.employee_dict = CommonModel.get_dict_from_list( self.employee_data_as_list, "employee_number")
+        self.employee_dict = CommonModel.get_dict_from_list(self.employee_data_as_list, "employee_number")
 
         duty_catalog_cursor = self.sqlite_sqls.get_table_data("select * from duty_catalog;")
         self.duty_catalog_as_list = CommonModel.get_table_data_as_list(_data_cursor=duty_catalog_cursor)
-        self.duty_catalog_dict = CommonModel.get_dict_from_list( self.duty_catalog_as_list, "duty_code")
+        self.duty_catalog_dict = CommonModel.get_dict_from_list(self.duty_catalog_as_list, "duty_code")
+        self.dict_duty_schedule = defaultdict(lambda: -1)
+        self.duty_count = 0
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
@@ -45,13 +48,15 @@ class ViewPrintDutyAllocation(wx.Dialog):
         label_1.SetMinSize((54, 16))
         grid_sizer_1.Add(label_1, 0, 0, 0)
 
-        self.datepicker_ctrl_start_date = wx.adv.DatePickerCtrl(self, wx.ID_ANY, style=wx.adv.DP_DEFAULT | wx.adv.DP_DROPDOWN | wx.adv.DP_SHOWCENTURY)
+        self.datepicker_ctrl_start_date = wx.adv.DatePickerCtrl(self, wx.ID_ANY,
+                                                                style=wx.adv.DP_DEFAULT | wx.adv.DP_DROPDOWN | wx.adv.DP_SHOWCENTURY)
         grid_sizer_1.Add(self.datepicker_ctrl_start_date, 0, 0, 0)
 
         label_2 = wx.StaticText(self, wx.ID_ANY, "End Date:")
         grid_sizer_1.Add(label_2, 0, 0, 0)
 
-        self.datepicker_ctrl_end_date = wx.adv.DatePickerCtrl(self, wx.ID_ANY, style=wx.adv.DP_DEFAULT | wx.adv.DP_DROPDOWN | wx.adv.DP_SHOWCENTURY)
+        self.datepicker_ctrl_end_date = wx.adv.DatePickerCtrl(self, wx.ID_ANY,
+                                                              style=wx.adv.DP_DEFAULT | wx.adv.DP_DROPDOWN | wx.adv.DP_SHOWCENTURY)
         self.datepicker_ctrl_end_date.SetMinSize((80, 25))
         grid_sizer_1.Add(self.datepicker_ctrl_end_date, 0, 0, 0)
 
@@ -101,17 +106,20 @@ class ViewPrintDutyAllocation(wx.Dialog):
         self.grid_duties.SetColLabelValue(5, "Date")
         self.grid_duties.SetColSize(5, 100)
         self.grid_duties.SetMinSize((600, 620))
-        #sizer_1.Add(self.grid_duties, 0, wx.EXPAND | wx.FIXED_MINSIZE | wx.SHAPED, 0)
+        # sizer_1.Add(self.grid_duties, 0, wx.EXPAND | wx.FIXED_MINSIZE | wx.SHAPED, 0)
         sizer_1.Add(self.grid_duties, 1, wx.EXPAND, 0)
 
         sizer_4 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_1.Add(sizer_4, 0, wx.FIXED_MINSIZE | wx.SHAPED, 0)
 
-        sizer_5 = wx.FlexGridSizer(1, 3, 0, 0)
+        sizer_5 = wx.FlexGridSizer(1, 4, 0, 0)
         sizer_4.Add(sizer_5, 0, wx.ALIGN_BOTTOM | wx.FIXED_MINSIZE, 0)
 
         self.btn_load_duties = wx.Button(self, wx.ID_ANY, "Load Duties")
         sizer_5.Add(self.btn_load_duties, 0, 0, 0)
+
+        self.btn_refresh_duties = wx.Button(self, wx.ID_ANY, "Refresh Duties")
+        sizer_5.Add(self.btn_refresh_duties, 0, 0, 0)
 
         self.btn_save_as_html = wx.Button(self, wx.ID_ANY, "Save Duties as HTML")
         sizer_5.Add(self.btn_save_as_html, 0, 0, 0)
@@ -135,6 +143,7 @@ class ViewPrintDutyAllocation(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.load_duties_handler, self.btn_load_duties)
         self.Bind(wx.EVT_BUTTON, self.save_as_html_handler, self.btn_save_as_html)
         self.Bind(wx.EVT_BUTTON, self.handler_cancel, self.button_CANCEL)
+        self.Bind(wx.EVT_BUTTON, self.handler_refresh_duties, self.btn_refresh_duties)
         # end wxGlade
         self.populate_default_values()
 
@@ -150,6 +159,9 @@ class ViewPrintDutyAllocation(wx.Dialog):
     def handler_cancel(self, event):  # wxGlade: ViewPrintDutyAllocation.<event_handler>
         print("Event handler 'handler_cancel' not implemented!")
         event.Skip()
+
+    def handler_refresh_duties(self, event):
+        self.populate_duties_from_dict(_dict_duties=self.dict_duty_schedule, _duty_count=self.duty_count)
 
     def get_department_list(self, _department_list):
         department_list = []
@@ -171,31 +183,36 @@ class ViewPrintDutyAllocation(wx.Dialog):
             duty_name = self.duty_catalog_dict[duty_code]["duty_description"]
             self.combo_box_duty.Append(duty_name)
 
-
     def populate_duties_from_dict(self, _dict_duties, _duty_count):
         if len(_dict_duties.keys()) == 0:
             return
 
         if self.grid_duties.GetNumberRows() > 0:
-            self.grid_duties.DeleteRows(pos=0, numRows=self.grid_duty_detail.GetNumberRows())
+            self.grid_duties.DeleteRows(pos=0, numRows=self.grid_duties.GetNumberRows())
 
         self.grid_duties.AppendRows(_duty_count)
-        
+
         current_row = 0
+        filter_department_name = self.combo_box_department.GetValue()
+        filter_duty_name = self.combo_box_duty.GetValue()
         for date_key in _dict_duties.keys():
             for employee_number in _dict_duties[date_key]:
-                self.grid_duties.SetCellValue(current_row, 0, self.employee_dict[employee_number]["department"])
+                department_name = self.employee_dict[employee_number]["department"]
+                duty_code = self.employee_dict[employee_number]["primary_duty_code"]
+                duty_description = self.duty_catalog_dict[duty_code]["duty_description"]
+                if not (filter_department_name == 'All' or filter_department_name in department_name):
+                    continue
+
+                if not (filter_duty_name == 'All' or filter_duty_name in duty_description):
+                    continue
+                self.grid_duties.SetCellValue(current_row, 0, department_name)
                 self.grid_duties.SetCellValue(current_row, 1, employee_number)
                 self.grid_duties.SetCellValue(current_row, 2, self.employee_dict[employee_number]["first_name"])
                 self.grid_duties.SetCellValue(current_row, 3, self.employee_dict[employee_number]["last_name"])
-                duty_code = self.employee_dict[employee_number]["primary_duty_code"]
-                duty_description = self.duty_catalog_dict[duty_code]["duty_description"]
+
                 self.grid_duties.SetCellValue(current_row, 4, duty_description)
                 self.grid_duties.SetCellValue(current_row, 5, date_key)
                 current_row += 1
-
-
-
 
     # DUPLICATE CODE
     def load_duties(self):
@@ -210,26 +227,16 @@ class ViewPrintDutyAllocation(wx.Dialog):
         self.end_date = "{}{:02d}{:02d}".format(wx_end_date.GetYear(), wx_end_date.GetMonth() + 1,
                                                 wx_end_date.GetDay())
 
-        # employee_number_str = "','".join(employee_number_list)
-        # employee_number_str = "'" + employee_number_str + "'"
-        # sql = "select * from employee_duties where employee_number in ({}) and duty_date >= '{}' and duty_date <= '{}'" \
-        #     .format(employee_number_str, self.start_date, self.end_date)
         sql = "select * from employee_duties where duty_date >= '{}' and duty_date <= '{}'" \
             .format(self.start_date, self.end_date)
-
-        # sql = "select * from employee_duties;"
 
         employee_duties_cursor = self.sqlite_sqls.get_table_data(sql)
         employee_duties_list = CommonModel.get_table_data_as_list(_data_cursor=employee_duties_cursor)
         dict_duty_schedule, duty_count = self.get_duty_dict_from_table_records(_table_duties_list=employee_duties_list)
-        #self.update_duty_buffer(_dict_duty_schedule=dict_duty_schedule, _duty_count=duty_count)
-        self.populate_duties_from_dict(_dict_duties= dict_duty_schedule, _duty_count= duty_count)
-        #
-        # employee_duties_cursor = self.sqlite_sqls.get_table_data(sql)
-        # employee_duties_list = CommonModel.get_table_data_as_list(_data_cursor=employee_duties_cursor)
-        # dict_duty_schedule, duty_count = self.get_duty_dict_from_table_records(_table_duties_list=employee_duties_list)
-        # #self.update_duty_buffer(_dict_duty_schedule=dict_duty_schedule, _duty_count=duty_count)
-        # self.populate_duties_from_dict(_dict_duties= dict_duty_schedule, _duty_count= duty_count)
+        # self.update_duty_buffer(_dict_duty_schedule=dict_duty_schedule, _duty_count=duty_count)
+        self.dict_duty_schedule = dict_duty_schedule
+        self.duty_count = duty_count
+        self.populate_duties_from_dict(_dict_duties=dict_duty_schedule, _duty_count=duty_count)
 
     def get_duty_dict_from_table_records(self, _table_duties_list):
         dict_duties = defaultdict(lambda: -1)
