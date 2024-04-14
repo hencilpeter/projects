@@ -3,5 +3,7 @@
   "employee_id_format_template":"{}{:04d}",
   "employee_id_prefix": "MF",
   "employee_sub_grid_rows_count": 10,
-  "app_database_file_name": "./data/marania_data.db"
+  "app_database_file_name": "./data/marania_data.db",
+  "out_schedule_files_path": "./out/duty_schedules",
+  "out_payslip_files_path": "./out/payslips"
 }

@@ -1,3 +1,5 @@
+import os.path
+
 import wx
 
 # begin wxGlade: dependencies
@@ -11,7 +13,10 @@ from data_models.employee_model import EmployeeModel
 from data_models.common_model import CommonModel
 import json
 from collections import defaultdict
-
+from html.html_duty_viewer import HtmlDutyViewer
+from util.util_config_reader import UtilConfigReader
+from datetime import datetime
+from util.util_common import UtilCommon
 
 class ViewPrintDutyAllocation(wx.Dialog):
     def __init__(self, *args, **kwds):
@@ -153,7 +158,14 @@ class ViewPrintDutyAllocation(wx.Dialog):
         event.Skip()
 
     def save_as_html_handler(self, event):  # wxGlade: ViewPrintDutyAllocation.<event_handler>
-        print("Event handler 'save_as_html_handler' not implemented!")
+        dict_grid_duties = self.get_duties_from_grid()
+        # self.start_date = "{}{:02d}{:02d}".format(wx_start_date.GetYear(), wx_start_date.GetMonth() + 1,
+        #                                           wx_start_date.GetDay())
+        # self.end_date = "{}{:02d}{:02d}".format(wx_end_date.GetYear(), wx_end_date.GetMonth() + 1,
+        #                                         wx_end_date.GetDay())
+
+        self.save_duty_schedule_as_html(_dict_duty_schedule=dict_grid_duties, _start_date=self.start_date,
+                                        _end_date=self.end_date)
         event.Skip()
 
     def handler_cancel(self, event):  # wxGlade: ViewPrintDutyAllocation.<event_handler>
@@ -216,10 +228,6 @@ class ViewPrintDutyAllocation(wx.Dialog):
 
     # DUPLICATE CODE
     def load_duties(self):
-        # employee_number_list = []
-        # for index in range(0, self.grid_employee_detail.GetNumberRows()):
-        #     if self.grid_employee_detail.GetCellValue(index, 1) != "":
-        #         employee_number_list.append(self.grid_employee_detail.GetCellValue(index, 1))
         wx_start_date = self.datepicker_ctrl_start_date.GetValue()
         wx_end_date = self.datepicker_ctrl_end_date.GetValue()
         self.start_date = "{}{:02d}{:02d}".format(wx_start_date.GetYear(), wx_start_date.GetMonth() + 1,
@@ -250,6 +258,54 @@ class ViewPrintDutyAllocation(wx.Dialog):
             duty_count += 1
 
         return dict_duties, duty_count
+
+    def get_duties_from_grid(self):
+        dict_duties = defaultdict(lambda: -1)
+        for row_number in range(0, self.grid_duties.GetNumberRows()):
+            employee_number = self.grid_duties.GetCellValue(row_number, 1)
+            if employee_number == "":
+                continue
+            duty_date = self.grid_duties.GetCellValue(row_number, 5)
+            if dict_duties[duty_date] == -1:
+                dict_duties[duty_date] = [employee_number]
+            else:
+                dict_duties[duty_date].append(employee_number)
+
+        return dict_duties
+
+    def save_duty_schedule_as_html(self, _dict_duty_schedule, _start_date, _end_date):
+        html_duty_viewer = HtmlDutyViewer(
+            _header_name="Duty Schedule  ( {} - {}) ".format(_start_date, _end_date), _footer="End of the Document")
+
+        html_duty_viewer.add_table_row_header_with_two_column(_col1_header="Date", _col2_header="Employee Name(s)")
+
+        for business_date in _dict_duty_schedule:
+            list_emp_ids = _dict_duty_schedule[business_date]
+            list_emp_ids.sort()
+            formatted_employees = ""
+            count = 1
+            for employee_number in list_emp_ids:
+                formatted_employees = formatted_employees + "{}.{}, {} ({}) ".format(count, self.employee_dict[
+                    employee_number]["first_name"],
+                                                                                     self.employee_dict[
+                                                                                         employee_number]["last_name"],
+                                                                                     employee_number)
+                count += 1
+            html_duty_viewer.add_table_row_values_with_two_column(_col1_value=business_date,
+                                                                  _col2_value=formatted_employees)
+
+        html_duty_viewer.save_html_file(self.get_result_filename())
+        UtilCommon.show_message_dialog(_message_title="Duty Schedule",
+                                       _message="Duty Schedule has been created and saved...")
+
+
+
+    def get_result_filename(self):
+        file_path = UtilConfigReader.get_application_config(configuration_name="out_schedule_files_path")
+        timestamp = datetime.today().strftime('%Y%m%d%H%M%S')
+        file_full_path = os.path.join(file_path, "duty_schedule_"+timestamp+".html")
+        return file_full_path
+
 
 # end of class ViewPrintDutyAllocation
 

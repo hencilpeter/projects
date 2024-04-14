@@ -7,6 +7,7 @@ from data_models.employee_model import EmployeeModel
 from data_models.common_model import CommonModel
 from util.util_duty_initializer import UtilDutyInitializer
 from windows.window_insert_duty import WindowInsertDuty
+
 from datetime import datetime
 # end wxGlade
 
@@ -721,8 +722,6 @@ class DutyAllocation(wx.Dialog):
     def get_duties_and_leaves(self, _start_date, _end_date, _employee_number_list,
                               _list_company_holidays,
                               _minimum_daily_required_resource_count):
-
-        #list_company_holidays = ['20240402', '20240415', '20240419']
         dict_duty_schedule, dict_emp_leaves = UtilDutyInitializer.assign_duty_round_robin(
             _list_emp_ids=_employee_number_list,
             _from_date=_start_date,
