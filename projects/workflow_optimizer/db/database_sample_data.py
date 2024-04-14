@@ -48,6 +48,29 @@ conn.execute("INSERT INTO duty_catalog ( duty_code,duty_name,duty_description,sa
        VALUES ('DT105', 'manager', 'Manager','Monthly',10000,'Administration',2);");
 
 
+# holidays
+conn.execute("INSERT INTO company_holidays ( holiday_date, holiday_name, description) \
+      VALUES ('20240101', 'New Year', '');");
+conn.execute("INSERT INTO company_holidays ( holiday_date, holiday_name, description) \
+      VALUES ('20240115', 'Pongal', '');");
+conn.execute("INSERT INTO company_holidays ( holiday_date, holiday_name, description) \
+      VALUES ('20240126', 'Republic Day', '');");
+conn.execute("INSERT INTO company_holidays ( holiday_date, holiday_name, description) \
+      VALUES ('20240329', 'Good Friday', '');");
+conn.execute("INSERT INTO company_holidays ( holiday_date, holiday_name, description) \
+      VALUES ('20240402', 'Test1', '');");
+conn.execute("INSERT INTO company_holidays ( holiday_date, holiday_name, description) \
+      VALUES ('20240410', 'Test2', '');");
+conn.execute("INSERT INTO company_holidays ( holiday_date, holiday_name, description) \
+      VALUES ('20240501', 'May Day', '');");
+conn.execute("INSERT INTO company_holidays ( holiday_date, holiday_name, description) \
+      VALUES ('20240815', 'Indpendence Day', '');");
+conn.execute("INSERT INTO company_holidays ( holiday_date, holiday_name, description) \
+      VALUES ('20241111', 'Ayutha Pooja', '');");
+conn.execute("INSERT INTO company_holidays ( holiday_date, holiday_name, description) \
+      VALUES ('20241131', 'Deepavali', '');");
+conn.execute("INSERT INTO company_holidays ( holiday_date, holiday_name, description) \
+       VALUES ('20241225', 'Christmas', '');");
 
 conn.commit()
 

@@ -199,6 +199,15 @@ conn.execute('''CREATE TABLE employee_duties
      );
 ''')
 
+conn.execute("DROP TABLE IF EXISTS company_holidays;")
+conn.execute('''CREATE TABLE company_holidays
+    (holiday_date TEXT    NOT NULL,
+     holiday_name  TEXT    NOT NULL,
+     description TEXT  NULL
+     );
+''')
+
+
 conn.commit()
 
 conn.close()

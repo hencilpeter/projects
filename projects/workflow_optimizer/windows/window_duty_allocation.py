@@ -40,6 +40,7 @@ class DutyAllocation(wx.Dialog):
         self.employee_dict = CommonModel.get_dict_from_list( self.employee_data_as_list, "employee_number")
         self.duty_catalog_dict = CommonModel.get_dict_from_list( self.duty_catalog_as_list, "duty_code")
 
+        self.company_holidays_list = self.sqlite_sqls.get_single_column_list("company_holidays", "holiday_date")
         self.start_date = ""
         self.end_date = ""
         self.dict_duty_schedule = defaultdict(lambda :-1)
@@ -351,20 +352,110 @@ class DutyAllocation(wx.Dialog):
             if dict_item["employee_number"] in employee_number_list:
                 employees_list.append(item)
 
-        minimum_daily_required_resource_count = 2
         wx_start_date = self.datepicker_ctrl_start_date.GetValue()
         wx_end_date = self.datepicker_ctrl_end_date.GetValue()
         self.start_date = "{}{:02d}{:02d}".format(wx_start_date.GetYear(), wx_start_date.GetMonth() + 1,
-                                             wx_start_date.GetDay())
+                                                  wx_start_date.GetDay())
         self.end_date = "{}{:02d}{:02d}".format(wx_end_date.GetYear(), wx_end_date.GetMonth() + 1,
-                                           wx_end_date.GetDay())
-        dict_duty_schedule, dict_emp_leaves = self.get_duties_and_leaves(_start_date=self.start_date, _end_date=self.end_date,
-                                                                              _employee_number_list=employee_number_list,
-                                                                         _minimum_daily_required_resource_count=minimum_daily_required_resource_count)
-        duty_count = self.get_duty_count(_dict_duty_schedule=dict_duty_schedule)
-        self.update_duty_buffer(_dict_duty_schedule=dict_duty_schedule, _duty_count=duty_count)
-        self.populate_duties_from_dict(_dict_duties=dict_duty_schedule,
-                             _duty_count=duty_count)
+                                                wx_end_date.GetDay())
+
+        # iterate employees list
+        # list_company_holidays = ['20240402', '20240415', '20240419']
+
+        dict_employee_duty_code = defaultdict(lambda: -1)
+        for employee_number in employee_number_list:
+            if dict_employee_duty_code[self.employee_dict[employee_number]["primary_duty_code"]] == -1:
+                dict_employee_duty_code[self.employee_dict[employee_number]["primary_duty_code"]] = [employee_number]
+            else:
+                dict_employee_duty_code[self.employee_dict[employee_number]["primary_duty_code"]].append(
+                    employee_number)
+
+        dict_main_duty_schedule = defaultdict(lambda: -1)
+        for duty_code in dict_employee_duty_code:
+            current_duty_employee_number_list = dict_employee_duty_code[duty_code]
+            current_duty_minimum_resource_count = int(self.duty_catalog_dict[duty_code]["default_resource_count"])
+
+            # iterate employees list
+            dict_duty_schedule, dict_emp_leaves = self.get_duties_and_leaves(_start_date=self.start_date,
+                                                                             _end_date=self.end_date,
+                                                                             _employee_number_list=current_duty_employee_number_list,
+                                                                             _minimum_daily_required_resource_count=current_duty_minimum_resource_count,
+                                                                             _list_company_holidays=self.company_holidays_list)
+
+            dict_main_duty_schedule = UtilDutyInitializer.merge_two_duty_dictionaries(
+                _dict_duty_schedule1=dict_main_duty_schedule,
+                _dict_duty_schedule2=dict_duty_schedule)
+
+
+        duty_count = self.get_duty_count(_dict_duty_schedule=dict_main_duty_schedule)
+        self.update_duty_buffer(_dict_duty_schedule=dict_main_duty_schedule, _duty_count=duty_count)
+        self.populate_duties_from_dict(_dict_duties=dict_main_duty_schedule,
+                                       _duty_count=duty_count)
+
+
+
+
+
+
+        # prepare dict with duty name as key
+        # prepare new dict with employee list for each duty
+        # for loop - for each duty type
+        # read min number of resources from dict
+        # merge the dicts
+        #finally update the buffer and populate the dict
+
+
+        # minimum_daily_required_resource_count = 2
+        # wx_start_date = self.datepicker_ctrl_start_date.GetValue()
+        # wx_end_date = self.datepicker_ctrl_end_date.GetValue()
+        # self.start_date = "{}{:02d}{:02d}".format(wx_start_date.GetYear(), wx_start_date.GetMonth() + 1,
+        #                                           wx_start_date.GetDay())
+        # self.end_date = "{}{:02d}{:02d}".format(wx_end_date.GetYear(), wx_end_date.GetMonth() + 1,
+        #                                         wx_end_date.GetDay())
+        #
+        # # iterate employees list
+        # list_company_holidays = ['20240402', '20240415', '20240419']
+        # dict_duty_schedule, dict_emp_leaves = self.get_duties_and_leaves(_start_date=self.start_date,
+        #                                                                  _end_date=self.end_date,
+        #                                                                  _employee_number_list=employee_number_list,
+        #                                                                  _list_company_holidays = list_company_holidays,
+        #                                                                  _minimum_daily_required_resource_count=minimum_daily_required_resource_count)
+        # duty_count = self.get_duty_count(_dict_duty_schedule=dict_duty_schedule)
+        # self.update_duty_buffer(_dict_duty_schedule=dict_duty_schedule, _duty_count=duty_count)
+        # self.populate_duties_from_dict(_dict_duties=dict_duty_schedule,
+        #                                _duty_count=duty_count)
+
+        ############## old code
+        # employee_number_list = []
+        # for index in range(0, self.grid_employee_detail.GetNumberRows()):
+        #     if self.grid_employee_detail.GetCellValue(index, 1) != "":
+        #         employee_number_list.append(self.grid_employee_detail.GetCellValue(index, 1))
+        #
+        #
+        # employees_list = []
+        # for item in self.employee_data_as_list_filtered:
+        #     dict_item = json.loads(item)
+        #     if dict_item["employee_number"] in employee_number_list:
+        #         employees_list.append(item)
+        #
+        # minimum_daily_required_resource_count = 2
+        # wx_start_date = self.datepicker_ctrl_start_date.GetValue()
+        # wx_end_date = self.datepicker_ctrl_end_date.GetValue()
+        # self.start_date = "{}{:02d}{:02d}".format(wx_start_date.GetYear(), wx_start_date.GetMonth() + 1,
+        #                                      wx_start_date.GetDay())
+        # self.end_date = "{}{:02d}{:02d}".format(wx_end_date.GetYear(), wx_end_date.GetMonth() + 1,
+        #                                    wx_end_date.GetDay())
+        #
+        # # iterate employees list
+        # dict_duty_schedule, dict_emp_leaves = self.get_duties_and_leaves(_start_date=self.start_date, _end_date=self.end_date,
+        #                                                                       _employee_number_list=employee_number_list,
+        #                                                                  _minimum_daily_required_resource_count=minimum_daily_required_resource_count)
+        # duty_count = self.get_duty_count(_dict_duty_schedule=dict_duty_schedule)
+        # self.update_duty_buffer(_dict_duty_schedule=dict_duty_schedule, _duty_count=duty_count)
+        # self.populate_duties_from_dict(_dict_duties=dict_duty_schedule,
+        #                      _duty_count=duty_count)
+
+
 
     def save_duties(self, event):
         unique_employee_number_list = self.get_unique_employee_number_list()
@@ -504,7 +595,7 @@ class DutyAllocation(wx.Dialog):
         self.update_duty_buffer(_dict_duty_schedule=dict_duty_schedule_temp, _duty_count=duty_count_temp)
         self.populate_duties_from_dict(_dict_duties=self.dict_duty_schedule, _duty_count=self.duty_count)
 
-    # TODO
+
     def insert_duty_handler(self, event):
         window_insert_duty = WindowInsertDuty(None, wx.ID_ANY, "", _sqlite_sqls=self.sqlite_sqls)
         window_insert_duty.ShowModal()
@@ -631,14 +722,15 @@ class DutyAllocation(wx.Dialog):
         return duty_count
 
     def get_duties_and_leaves(self, _start_date, _end_date, _employee_number_list,
+                              _list_company_holidays,
                               _minimum_daily_required_resource_count):
 
-        list_company_holidays = ['20240402', '20240415', '20240419']
+        #list_company_holidays = ['20240402', '20240415', '20240419']
         dict_duty_schedule, dict_emp_leaves = UtilDutyInitializer.assign_duty_round_robin(
             _list_emp_ids=_employee_number_list,
             _from_date=_start_date,
             _to_date=_end_date,
-            _list_company_holidays=list_company_holidays,
+            _list_company_holidays=_list_company_holidays,
             _minimum_daily_required_resource_count=_minimum_daily_required_resource_count)
 
         return dict_duty_schedule, dict_emp_leaves

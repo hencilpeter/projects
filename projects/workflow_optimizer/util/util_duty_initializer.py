@@ -162,6 +162,29 @@ class UtilDutyInitializer:
         _dict_duty_schedule[_duty_date_emp_id2] = employee_list2
 
     @staticmethod
+    def merge_two_duty_dictionaries(_dict_duty_schedule1, _dict_duty_schedule2):
+        dict_merged_schedule = defaultdict(lambda: -1)
+        if len(_dict_duty_schedule1.keys()) == 0 and len(_dict_duty_schedule2.keys()) == 0:
+            return dict_merged_schedule
+
+        if len(_dict_duty_schedule1.keys()) == 0:
+            dict_merged_schedule = _dict_duty_schedule2.copy()
+            return dict_merged_schedule
+
+        if len(_dict_duty_schedule2.keys()) == 0:
+            dict_merged_schedule = _dict_duty_schedule1.copy()
+            return dict_merged_schedule
+
+        dict_merged_schedule = _dict_duty_schedule1.copy()
+        for duty_date in _dict_duty_schedule2.keys():
+            if dict_merged_schedule[duty_date] == -1:
+                dict_merged_schedule[duty_date] = _dict_duty_schedule2[duty_date]
+            else:
+                dict_merged_schedule[duty_date].extend(_dict_duty_schedule2[duty_date])
+
+        return dict_merged_schedule
+
+    @staticmethod
     def swap_duties(_dict_duty_schedule,  _swap_emp_id1, _duty_date_emp_id1, _swap_emp_id2,
                     _duty_date_emp_id2, _dict_emp_leaves = None):
 
