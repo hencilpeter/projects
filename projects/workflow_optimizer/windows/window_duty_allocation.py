@@ -6,6 +6,7 @@ import wx.grid
 from data_models.employee_model import EmployeeModel
 from data_models.common_model import CommonModel
 from util.util_duty_initializer import UtilDutyInitializer
+from windows.window_insert_duty import WindowInsertDuty
 from datetime import datetime
 # end wxGlade
 
@@ -41,9 +42,9 @@ class DutyAllocation(wx.Dialog):
 
         self.start_date = ""
         self.end_date = ""
-        self.dict_duty_schedule = ""
+        self.dict_duty_schedule = defaultdict(lambda :-1)
         self.duty_count = 0
-        self.dict_duty_schedule_filtered = ""
+        self.dict_duty_schedule_filtered = defaultdict(lambda :-1)
         self.duty_count_filtered = 0
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
@@ -198,8 +199,13 @@ class DutyAllocation(wx.Dialog):
         self.btn_load_duties = wx.Button(self, wx.ID_ANY, "Load Duties")
         sizer_11.Add(self.btn_load_duties, 0, 0, 0)
 
-        self.btn_duty_delete = wx.Button(self, wx.ID_ANY, "Delete")
+        self.btn_duty_delete = wx.Button(self, wx.ID_ANY, "Delete Duty")
         sizer_11.Add(self.btn_duty_delete, 0, 0, 0)
+        self.btn_duty_insert = wx.Button(self, wx.ID_ANY, "Insert Duty")
+        sizer_11.Add(self.btn_duty_insert, 0, 0, 0)
+        self.btn_duty_swap = wx.Button(self, wx.ID_ANY, "Swap Duties")
+        sizer_11.Add(self.btn_duty_swap, 0, 0, 0)
+
 
         self.btn_duty_clear = wx.Button(self, wx.ID_ANY, "Clear")
         sizer_11.Add(self.btn_duty_clear, 0, 0, 0)
@@ -236,6 +242,12 @@ class DutyAllocation(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.save_duties, self.btn_duty_save)
         self.Bind(wx.EVT_BUTTON, self.load_duties, self.btn_load_duties)
         self.Bind(wx.EVT_BUTTON, self.load_clean_duties, self.btn_duty_clear)
+
+        #
+        self.Bind(wx.EVT_BUTTON, self.delete_duty_handler, self.btn_duty_delete)
+        self.Bind(wx.EVT_BUTTON, self.insert_duty_handler, self.btn_duty_insert)
+        self.Bind(wx.EVT_BUTTON, self.swap_duty_handler, self.btn_duty_swap)
+
 
         self.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN, self.handler_filter_duties_grid, self.search_control_department)
         self.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.handler_filter_duties_grid, self.search_control_department)
@@ -417,7 +429,8 @@ class DutyAllocation(wx.Dialog):
         self.grid_duty_detail.ClearGrid()
         self.start_date = ""
         self.end_date = ""
-        self.dict_duty_schedule = ""
+        self.dict_duty_schedule = defaultdict(lambda :-1)
+        self.dict_duty_schedule_filtered  = defaultdict(lambda :-1)
 
     def handler_filter_duties_grid(self, event):
         search_department_name = self.search_control_department.GetValue()
@@ -425,10 +438,6 @@ class DutyAllocation(wx.Dialog):
         search_firstname = self.search_control_name.GetValue()
         search_duty_name = self.search_control_duty_name.GetValue()
         search_duty_date = self.search_control_duty_date.GetValue()
-
-        dict_filter_values = dict(
-            {"department": search_department_name, "employee_number": search_employee_number, "first_name": search_firstname,
-             "duty_name": search_duty_name, "duty_date": search_duty_date})
 
         self.dict_duty_schedule_filtered = self.dict_duty_schedule.copy()
         self.duty_count_filtered = self.duty_count
@@ -440,12 +449,6 @@ class DutyAllocation(wx.Dialog):
                 continue
 
             # employee number
-            # if search_employee_number != "":
-            #     employee_number_list = self.dict_duty_schedule[duty_date].copy()
-            #     for employee_number in self.dict_duty_schedule[duty_date]:
-            #         if search_employee_number not in employee_number:
-            #             employee_number_list.remove(employee_number)
-            #     self.dict_duty_schedule_filtered[duty_date] = employee_number_list
             employee_number_list = self.dict_duty_schedule[duty_date].copy()
             for employee_number in self.dict_duty_schedule[duty_date]:
                 # employee number
@@ -477,6 +480,94 @@ class DutyAllocation(wx.Dialog):
         self.populate_duties_from_dict(_dict_duties=self.dict_duty_schedule_filtered,
                                        _duty_count=self.duty_count_filtered)
 
+    def delete_duty_handler(self, event):
+        if len(self.dict_duty_schedule) == 0:
+            self.show_message_dialog(_message_title="Delete Duty", _message="Unable to delete.  Empty duty schedule...")
+            return
+
+        selected_rows = self.grid_duty_detail.GetSelectedRows()
+        if len(selected_rows) == 0:
+            self.show_message_dialog(_message_title="Delete Duty", _message="Unable to delete. No duty selected...")
+            return
+
+        # delete the duty entries
+        dict_duty_schedule_temp = self.dict_duty_schedule.copy()
+        for row_index in selected_rows:
+            employee_number = self.grid_duty_detail.GetCellValue(row_index, 1)
+            duty_date = self.grid_duty_detail.GetCellValue(row_index, 4)
+            employee_number_list = dict_duty_schedule_temp[duty_date]
+            employee_number_list.remove(employee_number)
+            dict_duty_schedule_temp[duty_date] = employee_number_list
+
+        duty_count_temp = self.get_duty_count(_dict_duty_schedule=dict_duty_schedule_temp)
+        # refresh the grid
+        self.update_duty_buffer(_dict_duty_schedule=dict_duty_schedule_temp, _duty_count=duty_count_temp)
+        self.populate_duties_from_dict(_dict_duties=self.dict_duty_schedule, _duty_count=self.duty_count)
+
+    # TODO
+    def insert_duty_handler(self, event):
+        window_insert_duty = WindowInsertDuty(None, wx.ID_ANY, "", _sqlite_sqls=self.sqlite_sqls)
+        window_insert_duty.ShowModal()
+
+        employee_number = window_insert_duty.txt_employee_Number.GetValue()
+        wx_duty_date = window_insert_duty.datepicker_ctrl_duty_date.GetValue()
+        duty_date = "{}{:02d}{:02d}".format(wx_duty_date.GetYear(), wx_duty_date.GetMonth() + 1,
+                                            wx_duty_date.GetDay())
+
+        duty_employee_list = []
+        dict_duty_schedule_temp = self.dict_duty_schedule.copy()
+        if dict_duty_schedule_temp[duty_date] != -1:
+            duty_employee_list = dict_duty_schedule_temp[duty_date]
+
+        duty_employee_list.append(employee_number)
+        dict_duty_schedule_temp[duty_date] = duty_employee_list
+        duty_count = self.get_duty_count(_dict_duty_schedule=dict_duty_schedule_temp)
+        # refresh the grid
+        self.update_duty_buffer(_dict_duty_schedule=dict_duty_schedule_temp, _duty_count=duty_count)
+        self.populate_duties_from_dict(_dict_duties=self.dict_duty_schedule, _duty_count=self.duty_count)
+        self.show_message_dialog(_message_title="Insert Duty", _message="Insert Duty Successful...")
+
+
+    def swap_duty_handler(self, event):
+        if len(self.dict_duty_schedule) == 0:
+            self.show_message_dialog(_message_title="Swap Duty", _message="Unable to Swap. Empty duty schedule...")
+            return
+
+        selected_rows = self.grid_duty_detail.GetSelectedRows()
+        if len(selected_rows) != 2:
+            self.show_message_dialog(_message_title="Swap Duty",
+                                     _message="Unable to Swap. Select two duties to be swapped...")
+            return
+
+        employee1_number = self.grid_duty_detail.GetCellValue(selected_rows[0], 1)
+        employee1_duty_date = self.grid_duty_detail.GetCellValue(selected_rows[0], 4)
+        employee2_number = self.grid_duty_detail.GetCellValue(selected_rows[1], 1)
+        employee2_duty_date = self.grid_duty_detail.GetCellValue(selected_rows[1], 4)
+
+        if employee1_number == employee2_number:
+            self.show_message_dialog(_message_title="Swap Duty",
+                                     _message="Unable to Swap. Same employee numbers have been selected...")
+            return
+
+        if employee1_duty_date == employee2_duty_date:
+            self.show_message_dialog(_message_title="Swap Duty",
+                                     _message="Unable to Swap. Same duty dates have been selected...")
+            return
+        dict_duty_schedule_temp = self.dict_duty_schedule.copy()
+
+        UtilDutyInitializer.swap_duties_version2(_dict_duty_schedule=dict_duty_schedule_temp, _swap_emp_id1=employee1_number,
+                                                 _duty_date_emp_id1=employee1_duty_date,
+                                                 _swap_emp_id2=employee2_number, _duty_date_emp_id2=employee2_duty_date)
+
+        # refresh the grid
+        self.update_duty_buffer(_dict_duty_schedule=dict_duty_schedule_temp, _duty_count=self.duty_count)
+        self.populate_duties_from_dict(_dict_duties=self.dict_duty_schedule, _duty_count=self.duty_count)
+        self.show_message_dialog(_message_title="Duty Swap", _message="Duty Swap Successful...")
+
+
+    def show_message_dialog(self, _message_title, _message, _style=wx.OK | wx.STAY_ON_TOP | wx.CENTRE):
+        message_dialog = wx.MessageDialog(self, _message, _message_title, _style)
+        message_dialog.ShowModal()
 
     def update_duty_buffer(self, _dict_duty_schedule, _duty_count):
         self.dict_duty_schedule = _dict_duty_schedule.copy()

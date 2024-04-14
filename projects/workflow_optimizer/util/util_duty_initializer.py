@@ -147,8 +147,23 @@ class UtilDutyInitializer:
         return dict_emp_leaves_dates_by_id
 
     @staticmethod
-    def swap_duties(_dict_duty_schedule, _dict_emp_leaves, _swap_emp_id1, _duty_date_emp_id1, _swap_emp_id2,
+    def swap_duties_version2(_dict_duty_schedule,  _swap_emp_id1, _duty_date_emp_id1, _swap_emp_id2,
                     _duty_date_emp_id2):
+        employee_list1 = _dict_duty_schedule[_duty_date_emp_id1]
+        employee_list2 = _dict_duty_schedule[_duty_date_emp_id2]
+
+        employee_list1.remove(_swap_emp_id1)
+        employee_list2.remove(_swap_emp_id2)
+
+        employee_list1.append(_swap_emp_id2)
+        employee_list2.append(_swap_emp_id1)
+
+        _dict_duty_schedule[_duty_date_emp_id1] = employee_list1
+        _dict_duty_schedule[_duty_date_emp_id2] = employee_list2
+
+    @staticmethod
+    def swap_duties(_dict_duty_schedule,  _swap_emp_id1, _duty_date_emp_id1, _swap_emp_id2,
+                    _duty_date_emp_id2, _dict_emp_leaves = None):
 
         formatted_duty_date_emp_id1 = str(dt.strptime(_duty_date_emp_id1, "%Y%m%d"))
         formatted_duty_date_emp_id2 = str(dt.strptime(_duty_date_emp_id2, "%Y%m%d"))
@@ -182,9 +197,10 @@ class UtilDutyInitializer:
                                              _key2=formatted_duty_date_emp_id2, _value2=_swap_emp_id2)
 
         # swap leaves
-        UtilDutyInitializer.swap_dict_key_values(_dict=_dict_emp_leaves, _key1=formatted_duty_date_emp_id1,
-                                             _value1=_swap_emp_id2,
-                                             _key2=formatted_duty_date_emp_id2, _value2=_swap_emp_id1)
+        if _dict_emp_leaves is not None:
+            UtilDutyInitializer.swap_dict_key_values(_dict=_dict_emp_leaves, _key1=formatted_duty_date_emp_id1,
+                                                     _value1=_swap_emp_id2,
+                                                     _key2=formatted_duty_date_emp_id2, _value2=_swap_emp_id1)
 
     @staticmethod
     def swap_dict_key_values(_dict, _key1, _value1, _key2, _value2):
