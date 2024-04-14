@@ -5,6 +5,7 @@ from windows.window_search_employee import WindowSearchEmployee
 from windows.window_employee import WindowEmployee
 from windows.window_duty_catalog import DutyCatalog
 from windows.window_duty_allocation import DutyAllocation
+from windows.window_view_print_duty_allocation import ViewPrintDutyAllocation
 from util.util_config_reader import UtilConfigReader
 from db.sqlite_sqls import SqliteSqls
 
@@ -32,8 +33,19 @@ class WindowMain(wx.Frame):
         item = wxglade_tmp_menu.Append(wx.ID_ANY, "Backup/Restore", "Backup/Restore")
         self.Bind(wx.EVT_MENU, self.handler_backup_restore, item)
         self.frame_menubar.Append(wxglade_tmp_menu, "Admin")
+
+        wxglade_tmp_menu = wx.Menu()
+        self.frame_menubar.Append(wxglade_tmp_menu, "Payroll")
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Salary Entry", "Salary Entry")
+        self.Bind(wx.EVT_MENU, self.handler_salary_entry, item)
+
         wxglade_tmp_menu = wx.Menu()
         self.frame_menubar.Append(wxglade_tmp_menu, "View/Print")
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Duty Allocation", "Duty Allocation")
+        self.Bind(wx.EVT_MENU, self.handler_view_print_duty_allocation, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Salary Slip", "Salary Slip")
+        self.Bind(wx.EVT_MENU, self.handler_view_print_salary_slip, item)
+
         wxglade_tmp_menu = wx.Menu()
         self.frame_menubar.Append(wxglade_tmp_menu, "Exit")
         item = wxglade_tmp_menu.Append(wx.ID_ANY, "Close Application", "Close Application")
@@ -74,8 +86,20 @@ class WindowMain(wx.Frame):
         print("closing the application...")
         self.Close()
 
+    def handler_salary_entry(self, event):
+        pass
 
-# end of class MyFrame
+    def handler_view_print_duty_allocation(self, event):
+        view_print_duty_allocation = ViewPrintDutyAllocation(None, wx.ID_ANY, "",_sqlite_sqls=self.sqlite_sqls)
+        view_print_duty_allocation.ShowModal()
+        view_print_duty_allocation.Destroy()
+
+    def handler_view_print_salary_slip(self, event):
+        pass
+
+
+
+    # end of class MyFrame
 
 class MenuBar(wx.App):
     def OnInit(self):
