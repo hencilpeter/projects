@@ -21,26 +21,15 @@
    3.8 enable save logic 
 
 4. Payroll 
-   4.1 Salary Entry
-   
+   4.1 Salary Entry  
+      - design the dialog 
+	  - load the automatically created duties 
+	  - allow user to edit 
+	  - save the salary 
+	  
 5. View/Print
-   5.1 Duty Allocation 
-   - department and duty name filter 
-   - save as html logic 
+   5.1 Duty Allocation   - [Done]
    5.2 Salary Slip    
 
 
    
-
-Required re-factoring
-=====================
-1. remove the min_resource_count from department table ?
-2. 
-
-duty_resource_catalog
-duty_code, 
-
-
-==============================
-self.Bind(wx.EVT_MENU,  self.handler_view_print_duty_allocation, item)
- self.Bind(wx.EVT_MENU, self.handler_view_print_salary_slip, item)

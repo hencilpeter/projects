@@ -1,6 +1,6 @@
 import datetime
 from datetime import datetime as dt
-
+from datetime import  timedelta
 
 prefix = "MF"
 val = 1
@@ -61,9 +61,20 @@ for item in sql:
 # sample_date = datetime.strptime(test_date, '%Y-%m-%d').date()
 # print(sample_date)
 
-_from_date = '20240101'
-for day_count in range(0, 2):
-    current_date = dt.strptime(_from_date, "%Y%m%d") + datetime.timedelta(days=day_count)
-    print(current_date)
-    current_date = current_date.strftime("%Y%m%d")
-    print(current_date)
+# _from_date = '20240101'
+# for day_count in range(0, 2):
+#     current_date = dt.strptime(_from_date, "%Y%m%d") + datetime.timedelta(days=day_count)
+#     print(current_date)
+#     current_date = current_date.strftime("%Y%m%d")
+#     print(current_date)
+
+
+input_dt = datetime.datetime(2022, 9, 13)
+first = input_dt.replace(day=1)
+print('first day of a month:', first.date())
+modified = input_dt.replace(month=10, day=1)
+print(modified)
+res = modified - timedelta(days=1)
+val = res.strftime("%Y%m%d")
+print(val)
+#print('Last day of a previous month is:', res.date())

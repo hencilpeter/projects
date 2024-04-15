@@ -6,6 +6,7 @@ from windows.window_employee import WindowEmployee
 from windows.window_duty_catalog import DutyCatalog
 from windows.window_duty_allocation import DutyAllocation
 from windows.window_view_print_duty_allocation import ViewPrintDutyAllocation
+from windows.window_salary_entry import SalaryEntry
 from util.util_config_reader import UtilConfigReader
 from db.sqlite_sqls import SqliteSqls
 
@@ -87,6 +88,9 @@ class WindowMain(wx.Frame):
         self.Close()
 
     def handler_salary_entry(self, event):
+        salary_entry = SalaryEntry(None, wx.ID_ANY, "",_sqlite_sqls=self.sqlite_sqls)
+        salary_entry.ShowModal()
+        salary_entry.Destroy()
         pass
 
     def handler_view_print_duty_allocation(self, event):
