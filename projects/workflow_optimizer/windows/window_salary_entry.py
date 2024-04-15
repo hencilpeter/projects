@@ -12,6 +12,9 @@ from data_models.employee_model import CommonModel
 import json
 from datetime import datetime, timedelta
 from collections import defaultdict
+from util.util_common import UtilCommon
+
+
 class SalaryEntry(wx.Dialog):
     def __init__(self, *args, **kwds):
         # begin wxGlade: SalaryEntry.__init__
@@ -47,9 +50,9 @@ class SalaryEntry(wx.Dialog):
         sizer_4.Add(label_1, 0, wx.ALIGN_CENTER_VERTICAL, 0)
 
         self.list_ctrl_department = wx.ListCtrl(self, wx.ID_ANY, style=wx.LC_REPORT)
-        #self.list_ctrl_department = wx.ListCtrl(self, wx.LC_REPORT )
+        # self.list_ctrl_department = wx.ListCtrl(self, wx.LC_REPORT )
         # style=wx.LC_HRULES | wx.LC_REPORT | wx.LC_VRULES)
-        #self.list_ctrl_department.SetMinSize((400, 169))
+        # self.list_ctrl_department.SetMinSize((400, 169))
         self.list_ctrl_department.SetSize((400, 100))
         self.list_ctrl_department.EnableCheckBoxes()
         self.list_ctrl_department.AppendColumn("Department Name", format=wx.LIST_FORMAT_LEFT, width=100)
@@ -59,7 +62,7 @@ class SalaryEntry(wx.Dialog):
         sizer_4.Add(label_2, 0, wx.ALIGN_CENTER_VERTICAL | wx.SHAPED, 0)
 
         self.datepicker_ctrl_date = wx.adv.DatePickerCtrl(self, wx.ID_ANY,
-                                                       style=wx.adv.DP_DEFAULT | wx.adv.DP_DROPDOWN | wx.adv.DP_SHOWCENTURY)
+                                                          style=wx.adv.DP_DEFAULT | wx.adv.DP_DROPDOWN | wx.adv.DP_SHOWCENTURY)
         sizer_4.Add(self.datepicker_ctrl_date, 0, wx.ALIGN_CENTER_VERTICAL, 0)
         self.grid_employees = wx.grid.Grid(self, wx.ID_ANY, size=(1, 1))
         self.grid_employees.CreateGrid(0, 5)
@@ -76,12 +79,14 @@ class SalaryEntry(wx.Dialog):
         self.grid_employees.SetColSize(3, 100)
         self.grid_employees.SetColLabelValue(4, "Duty Name")
         self.grid_employees.SetColSize(4, 100)
-        #self.grid_employees.SetMinSize((889, 200))
+        # self.grid_employees.SetMinSize((889, 200))
         self.grid_employees.SetSize((100, 200))
         sizer_3.Add(self.grid_employees, 0, wx.EXPAND | wx.FIXED_MINSIZE, 0)
 
         self.grid_salary_detail = wx.grid.Grid(self, wx.ID_ANY, size=(1, 1))
         self.grid_salary_detail.CreateGrid(0, 8)
+        self.grid_salary_detail.SetRowLabelSize(30)
+        self.grid_salary_detail.SetColLabelSize(30)
         self.grid_salary_detail.SetSelectionMode(wx.grid.Grid.SelectRows)
         self.grid_salary_detail.SetColLabelValue(0, "Department")
         self.grid_salary_detail.SetColSize(0, 100)
@@ -99,7 +104,7 @@ class SalaryEntry(wx.Dialog):
         self.grid_salary_detail.SetColSize(6, 100)
         self.grid_salary_detail.SetColLabelValue(7, "Entry/Type")
         self.grid_salary_detail.SetColSize(7, 100)
-        #self.grid_salary_detail.SetMinSize((993, 420))
+        # self.grid_salary_detail.SetMinSize((993, 420))
         self.grid_salary_detail.SetMinSize((223, 420))
         sizer_3.Add(self.grid_salary_detail, 1, wx.EXPAND, 0)
 
@@ -164,9 +169,7 @@ class SalaryEntry(wx.Dialog):
 
         start_date = datetime(wx_date.GetYear(), wx_date.GetMonth() + 1, 1)
         start_date_str = start_date.strftime("%Y%m%d")
-        end_date = start_date.replace(month=wx_date.GetMonth() + 2, day=1)
-        end_date = end_date - timedelta(days=1)
-        end_date_str = end_date.strftime("%Y%m%d")
+        end_date_str = UtilCommon.get_end_month_date(_date_yyyymmdd=start_date_str)
 
         # get the filtered employees numbers
         employee_list = []
@@ -182,7 +185,7 @@ class SalaryEntry(wx.Dialog):
         duty_data_list = CommonModel.get_table_data_as_list(_data_cursor=duty_cursor)
 
         # construct dict from duty data list
-        dict_emp_duty = defaultdict(lambda :-1)
+        dict_emp_duty = defaultdict(lambda: -1)
         for duty_item in duty_data_list:
             dict_temp = json.loads(duty_item)
             if dict_emp_duty[dict_temp["employee_number"]] == -1:
@@ -190,23 +193,36 @@ class SalaryEntry(wx.Dialog):
             else:
                 dict_emp_duty[dict_temp["employee_number"]].append(dict_temp["duty_date"])
 
-
         # duty date
         for employee_number in dict_emp_duty.keys():
-            duty_date_list = dict_emp_duty[employee_number]
-            dict_week_dates = defaultdict(lambda :-1)
-            for duty_date in duty_date_list:
-                week_no = datetime.strptime(duty_date, '%Y%m%d').isocalendar()[1]
-                if dict_week_dates[week_no] == -1:
-                    dict_week_dates[week_no] = [duty_date]
-                else:
-                    dict_week_dates[week_no].append(duty_date)
+            if self.employee_dict[employee_number]["primary_duty_code"] == "DT104":  # monthly
+                week_no = \
+                datetime.strptime(UtilCommon.get_end_month_date(_date_yyyymmdd=start_date_str), '%Y%m%d').isocalendar()[
+                    1]
+                print("Week No : {}, Monthly Basic Salary - {}".format(week_no,
+                                                                       self.employee_dict[employee_number]["salary"]))
+                continue
+            elif self.employee_dict[employee_number]["primary_duty_code"] == "DT103":  # daily
+                duty_date_list = dict_emp_duty[employee_number]
+                dict_week_dates = defaultdict(lambda: -1)
+                for duty_date in duty_date_list:
+                    week_no = datetime.strptime(duty_date, '%Y%m%d').isocalendar()[1]
+                    if dict_week_dates[week_no] == -1:
+                        dict_week_dates[week_no] = [duty_date]
+                    else:
+                        dict_week_dates[week_no].append(duty_date)
 
-            print(employee_number)
-            for week_no in dict_week_dates.keys():
-                print("week no : {}, dates : {}".format(week_no, dict_week_dates[week_no]))
-
-
+                print(employee_number)
+                for week_no in dict_week_dates.keys():
+                    print("Week No:{}, Dates : {}, Work Days : {}, Day Sal : {}, Weekly Salary ({} X {}) : {}"
+                          .format(week_no, dict_week_dates[week_no], len(dict_week_dates[week_no]),
+                                  self.employee_dict[employee_number]["salary"], len(dict_week_dates[week_no]),
+                                  self.employee_dict[employee_number]["salary"], (
+                                              int(len(dict_week_dates[week_no])) * float(
+                                          self.employee_dict[employee_number]["salary"]))))
+            else:
+                print("salary code not implemented - code {}".format(self.employee_dict[employee_number]
+                                                                     ["primary_duty_code"]))
 
         #  prepare the description
         # populate the table
@@ -280,7 +296,6 @@ class SalaryEntry(wx.Dialog):
                 row_count += 1
 
         self.grid_employees.ClearSelection()
-
 
 # end of class SalaryEntry
 
