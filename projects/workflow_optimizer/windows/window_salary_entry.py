@@ -195,13 +195,22 @@ class SalaryEntry(wx.Dialog):
 
         # duty date
         for employee_number in dict_emp_duty.keys():
+            # week_no = -1
+            # description = ""
+            # days_count = 0
+            inesrt_sql_list = []
             if self.employee_dict[employee_number]["primary_duty_code"] == "DT104":  # monthly
                 week_no = \
                 datetime.strptime(UtilCommon.get_end_month_date(_date_yyyymmdd=start_date_str), '%Y%m%d').isocalendar()[
                     1]
-                print("Week No : {}, Monthly Basic Salary - {}".format(week_no,
-                                                                       self.employee_dict[employee_number]["salary"]))
-                continue
+                description = "Week No : {}, Monthly Basic Salary - {}".format(week_no,
+                                                                       self.employee_dict[employee_number]["salary"])
+                # print("Week No : {}, Monthly Basic Salary - {}".format(week_no,
+                #                                                        self.employee_dict[employee_number]["salary"]))
+                inesrt_sql_list.append("INSERT INTO  employee_salary_data(employee_number, salary_month, week_number,"
+                                       "description, earning_type, amount) VALUES('{}','{}', {}, '{}', '{}',{});".format(
+                    employee_number, end_date_str, week_no, description, "auto",
+                    self.employee_dict[employee_number]["salary"]))
             elif self.employee_dict[employee_number]["primary_duty_code"] == "DT103":  # daily
                 duty_date_list = dict_emp_duty[employee_number]
                 dict_week_dates = defaultdict(lambda: -1)
@@ -214,15 +223,26 @@ class SalaryEntry(wx.Dialog):
 
                 print(employee_number)
                 for week_no in dict_week_dates.keys():
-                    print("Week No:{}, Dates : {}, Work Days : {}, Day Sal : {}, Weekly Salary ({} X {}) : {}"
-                          .format(week_no, dict_week_dates[week_no], len(dict_week_dates[week_no]),
-                                  self.employee_dict[employee_number]["salary"], len(dict_week_dates[week_no]),
-                                  self.employee_dict[employee_number]["salary"], (
-                                              int(len(dict_week_dates[week_no])) * float(
-                                          self.employee_dict[employee_number]["salary"]))))
+                    number_of_days = len(dict_week_dates[week_no])
+                    salary = float(self.employee_dict[employee_number]["salary"])
+                    description = "Week No:{}, Dates : {}, Work Days : {}, Day Sal : {}, Weekly Salary ({} X {}) : {}"\
+                        .format(week_no, dict_week_dates[week_no], number_of_days,
+                                  self.employee_dict[employee_number]["salary"], number_of_days,
+                                  self.employee_dict[employee_number]["salary"], (number_of_days * salary))
+                    print(description)
+                    inesrt_sql_list.append("INSERT INTO  employee_salary_data(employee_number, salary_month, week_number, " \
+                                 "description, earning_type, amount) VALUES('{}','{}', {}, '{}', '{}',{});".format(employee_number, end_date_str, week_no, description, "auto", (number_of_days * salary)))
             else:
                 print("salary code not implemented - code {}".format(self.employee_dict[employee_number]
                                                                      ["primary_duty_code"]))
+
+            if len(inesrt_sql_list) > 0:
+                print(inesrt_sql_list)
+                final_sql = ",".join(inesrt_sql_list)
+                print(final_sql)
+                #self.sqlite_sqls.executescript_and_commit_sql(final_sql)
+
+
 
         #  prepare the description
         # populate the table

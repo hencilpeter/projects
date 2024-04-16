@@ -207,6 +207,16 @@ conn.execute('''CREATE TABLE company_holidays
      );
 ''')
 
+conn.execute("DROP TABLE IF EXISTS employee_salary_data;")
+conn.execute('''CREATE TABLE employee_salary_data
+    (employee_number TEXT    NOT NULL,
+     salary_month  TEXT    NOT NULL,
+     week_number INTEGER,
+	 description  TEXT    NOT NULL,
+	 earning_type  TEXT    NOT NULL,
+	 amount DOUBLE
+     );
+''')
 
 conn.commit()
 
