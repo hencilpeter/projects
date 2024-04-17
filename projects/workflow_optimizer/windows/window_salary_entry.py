@@ -38,6 +38,8 @@ class SalaryEntry(wx.Dialog):
 
         department_list = self.get_department_list(_department_list=self.department_names_as_list)
 
+        self.salary_dict = defaultdict(lambda: -1)
+
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
         sizer_3 = wx.BoxSizer(wx.VERTICAL)
@@ -151,6 +153,9 @@ class SalaryEntry(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.delete_employee_handler, self.btn_delete_employee)
         self.Bind(wx.EVT_BUTTON, self.calculate_duty_salaries_handler, self.btn_calculate_salaries)
 
+        self.Bind(wx.EVT_BUTTON, self.save_handler, self.btn_save)
+        self.Bind(wx.EVT_BUTTON, self.clear_handler, self.btn_clear)
+
         self.Bind(wx.EVT_LIST_ITEM_CHECKED, self.department_select_handler, self.list_ctrl_department)
         self.Bind(wx.EVT_LIST_ITEM_UNCHECKED, self.department_select_handler, self.list_ctrl_department)
 
@@ -166,7 +171,6 @@ class SalaryEntry(wx.Dialog):
 
     def calculate_duty_salaries_handler(self, event):
         wx_date = self.datepicker_ctrl_date.GetValue()
-
         start_date = datetime(wx_date.GetYear(), wx_date.GetMonth() + 1, 1)
         start_date_str = start_date.strftime("%Y%m%d")
         end_date_str = UtilCommon.get_end_month_date(_date_yyyymmdd=start_date_str)
@@ -193,25 +197,32 @@ class SalaryEntry(wx.Dialog):
             else:
                 dict_emp_duty[dict_temp["employee_number"]].append(dict_temp["duty_date"])
 
+        salary_dict = defaultdict(lambda: -1)
         # duty date
         for employee_number in dict_emp_duty.keys():
-            # week_no = -1
-            # description = ""
-            # days_count = 0
             inesrt_sql_list = []
-            if self.employee_dict[employee_number]["primary_duty_code"] == "DT104":  # monthly
+            duty_code = self.employee_dict[employee_number]["primary_duty_code"]
+            salary_type = self.duty_catalog_dict[duty_code]["salary_type"]
+            # duty_name =
+            if salary_type == "Monthly":  # monthly
+                print("implemented code : {}".format(self.employee_dict[employee_number]["primary_duty_code"]))
                 week_no = \
-                datetime.strptime(UtilCommon.get_end_month_date(_date_yyyymmdd=start_date_str), '%Y%m%d').isocalendar()[
-                    1]
-                description = "Week No : {}, Monthly Basic Salary - {}".format(week_no,
-                                                                       self.employee_dict[employee_number]["salary"])
-                # print("Week No : {}, Monthly Basic Salary - {}".format(week_no,
-                #                                                        self.employee_dict[employee_number]["salary"]))
-                inesrt_sql_list.append("INSERT INTO  employee_salary_data(employee_number, salary_month, week_number,"
-                                       "description, earning_type, amount) VALUES('{}','{}', {}, '{}', '{}',{});".format(
-                    employee_number, end_date_str, week_no, description, "auto",
-                    self.employee_dict[employee_number]["salary"]))
-            elif self.employee_dict[employee_number]["primary_duty_code"] == "DT103":  # daily
+                    datetime.strptime(UtilCommon.get_end_month_date(_date_yyyymmdd=start_date_str),
+                                      '%Y%m%d').isocalendar()[
+                        1]
+                salary = float(self.employee_dict[employee_number]["salary"])
+                description = "Basic Monthly Salary - {}".format(self.employee_dict[employee_number]["salary"])
+
+                # inesrt_sql_list.append("INSERT INTO  employee_salary_data(employee_number, salary_month, week_number,"
+                #                        "description, earning_type, amount) VALUES('{}','{}', {}, '{}', '{}',{});".format(
+                #     employee_number, end_date_str, week_no, description, "auto", self.employee_dict[employee_number]["salary"]))
+                dict_entry = self.get_salary_entry_dict(_salary_entry_key=week_no, _salary_month=end_date_str,
+                                                        _description=description, _calculation_type="auto",
+                                                        _entry_type="earning",
+                                                        _amount=salary)
+                UtilCommon.assign_or_append_dict(_dict=salary_dict, _dict_key=employee_number, _dict_value=dict_entry)
+            elif salary_type == "Daily":  # daily
+                print("implemented code : {}".format(self.employee_dict[employee_number]["primary_duty_code"]))
                 duty_date_list = dict_emp_duty[employee_number]
                 dict_week_dates = defaultdict(lambda: -1)
                 for duty_date in duty_date_list:
@@ -225,37 +236,114 @@ class SalaryEntry(wx.Dialog):
                 for week_no in dict_week_dates.keys():
                     number_of_days = len(dict_week_dates[week_no])
                     salary = float(self.employee_dict[employee_number]["salary"])
-                    description = "Week No:{}, Dates : {}, Work Days : {}, Day Sal : {}, Weekly Salary ({} X {}) : {}"\
+                    description = "Week No:{}, Dates : {}, Work Days : {}, Day Sal : {}, Weekly Salary ({} X {}) : {}" \
                         .format(week_no, dict_week_dates[week_no], number_of_days,
-                                  self.employee_dict[employee_number]["salary"], number_of_days,
-                                  self.employee_dict[employee_number]["salary"], (number_of_days * salary))
-                    print(description)
-                    inesrt_sql_list.append("INSERT INTO  employee_salary_data(employee_number, salary_month, week_number, " \
-                                 "description, earning_type, amount) VALUES('{}','{}', {}, '{}', '{}',{});".format(employee_number, end_date_str, week_no, description, "auto", (number_of_days * salary)))
+                                self.employee_dict[employee_number]["salary"], number_of_days,
+                                self.employee_dict[employee_number]["salary"], (number_of_days * salary))
+                    description = description.replace("'","")
+                    # print(description)
+                    # inesrt_sql_list.append("INSERT INTO  employee_salary_data(employee_number, salary_month, week_number, " \
+                    #              "description, earning_type, amount) VALUES('{}','{}', {}, '{}', '{}',{});".format(employee_number, end_date_str, week_no, description, "auto", (number_of_days * salary)))
+                    dict_entry = self.get_salary_entry_dict(_salary_entry_key=week_no, _salary_month=end_date_str,
+                                                            _description=description, _calculation_type="auto",
+                                                            _entry_type="earning",
+                                                            _amount=number_of_days * salary)
+                    UtilCommon.assign_or_append_dict(_dict=salary_dict, _dict_key=employee_number,
+                                                     _dict_value=dict_entry)
             else:
                 print("salary code not implemented - code {}".format(self.employee_dict[employee_number]
                                                                      ["primary_duty_code"]))
 
-            if len(inesrt_sql_list) > 0:
-                print(inesrt_sql_list)
-                final_sql = ",".join(inesrt_sql_list)
-                print(final_sql)
-                #self.sqlite_sqls.executescript_and_commit_sql(final_sql)
-
-
-
-        #  prepare the description
-        # populate the table
-        pass
+        self.salary_dict = salary_dict
+        self.populate_duties_grid(_salary_dict=salary_dict)
 
     def add_earning_deduction_handler(self, event):
+
         pass
 
     def save_handler(self, event):
+        if len(self.salary_dict.keys()) == 0:
+            return
+
+        employee_numbers = "','".join(self.salary_dict.keys())
+        employee_numbers = "'" + employee_numbers + "'"
+        wx_date = self.datepicker_ctrl_date.GetValue()
+        start_date = datetime(wx_date.GetYear(), wx_date.GetMonth() + 1, 1)
+        start_date_str = start_date.strftime("%Y%m%d")
+        end_date_str = UtilCommon.get_end_month_date(_date_yyyymmdd=start_date_str)
+
+        # delete the old data if any
+        delete_sql = "delete from employee_salary_data where employee_number in ({}) and salary_month = '{}';"\
+            .format(employee_numbers, end_date_str)
+        self.sqlite_sqls.execute_and_commit_sql(delete_sql)
+
+        # save new data
+        insert_salary_data_sql = []
+        for employee_number in self.salary_dict.keys():
+            salary_entry_list = self.salary_dict[employee_number]
+            for salary_entry in salary_entry_list:
+                for salary_id_key in salary_entry.keys():
+                    insert_salary_data_sql.append("insert into employee_salary_data(employee_number,salary_month,week_number,description,calculation_type,entry_type,amount) "
+                                                  "values('{}', '{}', {}, '{}', '{}', '{}', {});".format(employee_number,end_date_str, salary_id_key,
+                                                                                                               salary_entry[salary_id_key]["description"],
+                                                                                                               salary_entry[salary_id_key]["calculation_type"],
+                                                                                                               salary_entry[salary_id_key]["entry_type"],
+                                                                                                               salary_entry[salary_id_key]["amount"] ))
+
+        build_insert_sql = ''.join(insert_salary_data_sql)
+        print(build_insert_sql)
+        self.sqlite_sqls.executescript_and_commit_sql(build_insert_sql)
+        dial = wx.MessageDialog(self, "Salary Data Saved Successfully...", "Salary Data", wx.OK | wx.STAY_ON_TOP | wx.CENTRE)
+        dial.ShowModal()
+
         pass
 
     def clear_handler(self, event):
-        pass
+        if self.grid_salary_detail.GetNumberRows() > 0:
+            self.grid_salary_detail.DeleteRows(pos=0, numRows=self.grid_salary_detail.GetNumberRows())
+
+        if len(self.salary_dict.keys()) != 0:
+            self.salary_dict.clear()
+
+        self.populate_duties_grid(_salary_dict=self.salary_dict)
+
+
+    def get_salary_entry_dict(self, _salary_entry_key, _salary_month, _description, _calculation_type, _entry_type,
+                              _amount):
+        salary_entry_dict = defaultdict(lambda: -1)
+        salary_entry_dict[_salary_entry_key] = {"salary_month": _salary_month, "description": _description,
+                                                "calculation_type": _calculation_type,
+                                                "entry_type": _entry_type, "amount": _amount}
+        return salary_entry_dict
+
+    def populate_duties_grid(self, _salary_dict):
+        if len(_salary_dict.keys()) == 0:
+            return
+        if self.grid_salary_detail.GetNumberRows() > 0:
+            self.grid_salary_detail.DeleteRows(pos=0, numRows=_salary_dict.GetNumberRows())
+
+        current_row = 0
+        for employee_number in _salary_dict.keys():
+            salary_entry_list = _salary_dict[employee_number]
+            for salary_entry in salary_entry_list:
+                for salary_id_key in salary_entry.keys():
+                    self.grid_salary_detail.AppendRows(1)
+                    self.grid_salary_detail.SetCellValue(current_row, 0,
+                                                         self.employee_dict[employee_number]["department"])
+                    self.grid_salary_detail.SetCellValue(current_row, 1, employee_number)
+                    self.grid_salary_detail.SetCellValue(current_row, 2,
+                                                         self.employee_dict[employee_number]["first_name"])
+                    self.grid_salary_detail.SetCellValue(current_row, 3,
+                                                         self.employee_dict[employee_number]["last_name"])
+                    self.grid_salary_detail.SetCellValue(current_row, 4,
+                                                         salary_entry[salary_id_key]["description"])
+                    self.grid_salary_detail.SetCellValue(current_row, 5, salary_entry[salary_id_key]["entry_type"])
+
+                    self.grid_salary_detail.SetCellValue(current_row, 6, str(salary_entry[salary_id_key]["amount"]))
+
+                    self.grid_salary_detail.SetCellValue(current_row, 7,
+                                                         str(salary_entry[salary_id_key]["calculation_type"]))
+                    current_row += 1
 
     def get_department_list(self, _department_list):
         department_list = []

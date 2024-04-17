@@ -26,3 +26,10 @@ class UtilCommon:
         last_date = nxt_mnth - datetime.timedelta(days=nxt_mnth.day)
         last_date_yyyymmdd = last_date.strftime("%Y%m%d")
         return last_date_yyyymmdd
+
+    @staticmethod
+    def assign_or_append_dict(_dict, _dict_key, _dict_value):
+        if _dict[_dict_key] == -1:
+            _dict[_dict_key] = [_dict_value]
+        else:
+            _dict[_dict_key].append(_dict_value)

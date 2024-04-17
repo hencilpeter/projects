@@ -213,7 +213,8 @@ conn.execute('''CREATE TABLE employee_salary_data
      salary_month  TEXT    NOT NULL,
      week_number INTEGER,
 	 description  TEXT    NOT NULL,
-	 earning_type  TEXT    NOT NULL,
+	 calculation_type  TEXT    NOT NULL,
+	 entry_type  TEXT    NOT NULL,
 	 amount DOUBLE
      );
 ''')
