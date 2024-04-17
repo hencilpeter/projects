@@ -7,6 +7,7 @@ from windows.window_duty_catalog import DutyCatalog
 from windows.window_duty_allocation import DutyAllocation
 from windows.window_view_print_duty_allocation import ViewPrintDutyAllocation
 from windows.window_salary_entry import SalaryEntry
+from windows.window_salary_slip import SalaryAdvice
 from util.util_config_reader import UtilConfigReader
 from db.sqlite_sqls import SqliteSqls
 
@@ -99,6 +100,8 @@ class WindowMain(wx.Frame):
         view_print_duty_allocation.Destroy()
 
     def handler_view_print_salary_slip(self, event):
+        view_print_salary_advice= SalaryAdvice(None, wx.ID_ANY, "",_sqlite_sqls=self.sqlite_sqls)
+        view_print_salary_advice.ShowModal()
         pass
 
 
