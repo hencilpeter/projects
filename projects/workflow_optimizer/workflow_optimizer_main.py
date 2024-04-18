@@ -3,7 +3,7 @@ from util.util_config_reader import UtilConfigReader
 
 
 def load_configuration():
-    UtilConfigReader.load_configuration("./data/app_config.json")
+    UtilConfigReader.load_configuration("./data/app_config.json", "./data/payslip_config.json")
 
 
 if __name__ == "__main__":

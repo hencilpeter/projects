@@ -9,7 +9,7 @@ import json
 from datetime import datetime, timedelta
 from collections import defaultdict
 from util.util_common import UtilCommon
-
+from util.util_payslip import UtilPayslip
 from data_models.employee_model import EmployeeModel
 from data_models.common_model import CommonModel
 # end wxGlade
@@ -128,7 +128,6 @@ class SalaryAdvice(wx.Dialog):
             self.refresh_grid_handler(None)
         search_employee.Destroy()
 
-
     def delete_employee_handler(self, event):  # wxGlade: SalaryAdvice.<event_handler>
         print("Event handler 'delete_employee_handler' not implemented!")
         event.Skip()
@@ -152,7 +151,9 @@ class SalaryAdvice(wx.Dialog):
             current_row += 1
 
     def save_salary_handler(self, event):  # wxGlade: SalaryAdvice.<event_handler>
-        print("Event handler 'save_salary_handler' not implemented!")
+        salary_month = self.get_selected_month()
+        UtilPayslip.generate_payslip(_salary_dict=self.employee_salary_dict, _sql_connection=self.sqlite_sqls,
+                                     _salary_month=salary_month)
         event.Skip()
 
     def add_update_employee_salary_dict(self, _employee_dict):
@@ -162,6 +163,7 @@ class SalaryAdvice(wx.Dialog):
         self.employee_salary_dict[_employee_dict["employee_number"]] = {"department":_employee_dict["department"],
                                                                         "first_name":_employee_dict["first_name"],
                                                                         "last_name":_employee_dict["last_name"],
+                                                                        "employment_start_date": _employee_dict["employment_start_date"],
                                                                         "salary_month":salary_month,
                                                                         "is_salary_data_available":is_salary_data_available}
 
