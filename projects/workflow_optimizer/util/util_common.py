@@ -3,6 +3,8 @@ from datetime import datetime as dt
 import datetime
 from datetime import  timedelta
 import decimal
+from collections import defaultdict
+import json
 
 class UtilCommon:
     @staticmethod
@@ -34,6 +36,19 @@ class UtilCommon:
             _dict[_dict_key] = [_dict_value]
         else:
             _dict[_dict_key].append(_dict_value)
+
+    @staticmethod
+    def get_dict_from_list(_list, _dict_key):
+        _dict = defaultdict(lambda :-1)
+        for list_item in _list:
+            dict_item = json.loads(list_item)
+            print(_dict[dict_item[_dict_key]])
+            if _dict[dict_item[_dict_key]] == -1:
+                _dict[dict_item[_dict_key]] = [dict_item]
+            else:
+                _dict[dict_item[_dict_key]].append(dict_item)
+
+        return _dict
 
     @staticmethod
     def NumToWords(num):
