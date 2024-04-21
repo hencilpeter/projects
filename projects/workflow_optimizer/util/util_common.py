@@ -42,7 +42,6 @@ class UtilCommon:
         _dict = defaultdict(lambda :-1)
         for list_item in _list:
             dict_item = json.loads(list_item)
-            print(_dict[dict_item[_dict_key]])
             if _dict[dict_item[_dict_key]] == -1:
                 _dict[dict_item[_dict_key]] = [dict_item]
             else:

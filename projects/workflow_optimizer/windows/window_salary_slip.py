@@ -162,7 +162,7 @@ class SalaryAdvice(wx.Dialog):
         sql_salary_data_available = "select count(*) from employee_salary_data where employee_number = '{}' and salary_month='{}';".format(
             _employee_number, _salary_month)
         salary_record_count = self.sqlite_sqls.get_record_count(sql_salary_data_available)
-        return (True if salary_record_count > 0 else False)
+        return True if salary_record_count > 0 else False
 
     def get_selected_month(self):
         wx_date = self.datepicker_ctrl_salary_month.GetValue()

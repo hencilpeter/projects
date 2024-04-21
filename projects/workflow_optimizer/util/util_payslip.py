@@ -1,6 +1,7 @@
 # importing modules
 
 import decimal
+import os.path
 from collections import defaultdict
 from datetime import datetime
 
@@ -13,6 +14,7 @@ from data_models.common_model import CommonModel
 from util.util_common import UtilCommon
 from util.util_config_reader import UtilConfigReader
 
+import wx
 
 class UtilPayslip:
     salary_data_dict = defaultdict(lambda: -1)
@@ -54,9 +56,12 @@ class UtilPayslip:
 
     @staticmethod
     def add_line_in_pdf(_pdf_object, _column, _row, _content, _row_decrement_value=None, _font_name=None,
-                        _font_size=None):
+                        _font_size=None, _fill_colour= None):
         if _font_name is not None and _font_size is not None:
             _pdf_object.setFont(_font_name, _font_size)
+
+        if _fill_colour is not None and len(_fill_colour) == 3:
+            _pdf_object.setFillColorRGB(_fill_colour[0], _fill_colour[1], _fill_colour[2])
 
         if _row_decrement_value is not None:
             _row = _row - _row_decrement_value
@@ -90,9 +95,11 @@ class UtilPayslip:
 
         # load all salary data
         UtilPayslip.load_all_salary_data(_sql_connection=_sql_connection, _salary_month=_salary_month)
-
+        salary_slip_count = 0
         for employee_number in _salary_dict:
             salary_entry = _salary_dict[employee_number]
+            if not salary_entry["is_salary_data_available"]:
+                continue
             payslip_file_name = UtilPayslip.get_pdf_filename(_employee_number=employee_number,
                                                              _salary_entry_dict=salary_entry)
 
@@ -236,38 +243,30 @@ class UtilPayslip:
                                                                 _row_decrement_value=30)
 
             current_line_row_line = UtilPayslip.add_line_in_pdf(pdf_object, 110, current_line_row_line,
-                                                                "{}".format(amount_in_words),
-                                                                _row_decrement_value=10, _font_name="Courier-Bold",
-                                                                _font_size=8)
-
-            current_line_row_line -= 20
-            text = pdf_object.beginText(110, current_line_row_line)
-            text.setFont("Courier", 12)
-            text.setFillColor(colors.black)
-            len_text = len(amount_in_words)
-            net_pay_words = amount_in_words.split(" ")
-            line_max_length = 60
-            current_line_text = ''
-            for word in net_pay_words:
-                if len(current_line_text) >= line_max_length:
-                    text.textLine(current_line_text)
-                    current_line_text = ''
-                current_line_text += word + ' '
-            if current_line_text.startswith("Rupees "):
-                text.textLine(current_line_text)
-            else:
-                current_line_text = "{} {} {}".format("Rupees ", current_line_text, " only.")
-                text.textLine(current_line_text)
+                                                                "{}".format(amount_in_words if amount_in_words
+                                                                            .startswith(
+                                                                    "Rupees ") else "Rupees " + amount_in_words
+                                                                                    + " only."),
+                                                                _row_decrement_value=20, _font_name="Courier-Bold",
+                                                                _font_size=14, _fill_colour=(0, 0, 255))
 
             current_line_row_line -= 70
             pdf_object.setFont("Courier-Bold", 24)
+            pdf_object.setFillColorRGB(0, 0, 0)
             pdf_object.drawCentredString(300, current_line_row_line, "**********")
 
             # saving the pdf
             pdf_object.save()
+            salary_slip_count += 1
+
+        # message box
+        dial = wx.MessageDialog(None, "There are {} Payslip(s) Saved Successfully...".format(salary_slip_count),
+                                "Payslip", wx.OK | wx.STAY_ON_TOP | wx.CENTRE)
+        dial.ShowModal()
 
     @staticmethod
     def get_pdf_filename(_employee_number, _salary_entry_dict):
+        file_path = UtilConfigReader.get_application_config(configuration_name="out_payslip_files_path")
         file_name = "{}_{}_{}{}.pdf".format(_salary_entry_dict["salary_month"], _employee_number,
                                             _salary_entry_dict["first_name"], _salary_entry_dict["last_name"])
-        return file_name
+        return os.path.join(file_path, file_name)
