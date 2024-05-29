@@ -1,0 +1,1 @@
+Powershell.exe -executionpolicy remotesigned -File  C:\Users\User\Documents\GitHub\projects\TestAutomationUsingAIV2\testdata\SQLCover\RunSQLCover.ps1 

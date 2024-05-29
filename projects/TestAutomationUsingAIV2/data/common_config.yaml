@@ -1,0 +1,18 @@
+common:
+  test_db_prefix: Automation_Test_DB_
+  test_code_base_path: C:\Users\User\Documents\GitHub\projects\TestAutomationUsingAIV2\testdata
+  test_code_folder: input_sql_scripts
+  build_path: C:\Users\User\Documents\GitHub\projects\TestAutomationUsingAIV2\build
+
+processing_order:
+  1: schema
+  2: table
+  3: stored_procedure
+
+sql_server_database:
+  host_name: DESKTOP-E3UH19M
+  port: 1440
+  database: BankProjectDB
+  schema: dbo
+  user: dbuser
+  password: Test1234
