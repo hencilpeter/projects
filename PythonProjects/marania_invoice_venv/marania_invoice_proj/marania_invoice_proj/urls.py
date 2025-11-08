@@ -17,6 +17,12 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
+from marania_invoice_app import views as invoice_views
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+
+    #marania invoice app urls 
+    path('', invoice_views.show_dashboard, name='dashboard'),
+
 ]

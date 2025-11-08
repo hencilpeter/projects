@@ -45,15 +45,39 @@ Marania Invoice- Application Development
   - register the app 
   INSTALLED_APPS = [
     ...
-    'invoice_app',]
-	
+    'marania_invoice_app',]
+6. create the required models 
+	- Customer
+	- Product
+	- ProductPrice
+	- Configuration
+	- CustomerPriceMap	
+7. Register the models in admin.py 
+	admin.site.register(Client)
+	admin.site.register(Product)
+	admin.site.register(Invoice)
+	admin.site.register(Settings)
+8. Changes for adding forms:
+   - create a file forms.py  in marania_invoice_app
+   - inside the project root create "tempaltes" folder and include the path in settings.py: TEMPLATES []
+             also create a project directory inside and keep the html files 
+       marania_invoice_proj\templates\marania_invoice_app
+	  settings.py:
+	  ------------
+		'DIRS': [os.path.join(BASE_DIR,'templates')],
+	- inside the application folder, create a views.py & urls.py file and copy the code 
+	- register the crispy forms in settings.py  :  'crispy_forms',
 
-customer 
 
-product
-productprice
-configuration
-customerpricemap
-deliverytransport
-invoice
-invoicechangeaudit
+
+"12/176 Ananthanadarkudy,
+NAGERCOIL, 
+Tamilnadu-629201
+State Code 33"	
+
+12/176 Ananthanadarkudy,
+NAGERCOIL, Tamilnadu-629201
+
+GSTIN: 33EOTPK1667E1ZP
+Contact: 8300873957
+State Code 33"
