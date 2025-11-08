@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 
 from marania_invoice_app import views as invoice_views
 
@@ -23,6 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     #marania invoice app urls 
-    path('', invoice_views.show_dashboard, name='dashboard'),
+    path('', invoice_views.dashboard, name='dashboard'),
+    path('invoice/',include('marania_invoice_app.urls')),
 
 ]
