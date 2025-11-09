@@ -1,0 +1,136 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+
+{% block main %}
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  
+  <div class="container my-5">
+  <h2 class="mb-4">Customers</h2>
+
+  <!-- Button to open Add Customer Form -->
+  <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#customerForm" aria-expanded="false">
+    Add Customer
+  </button>
+
+  <!-- Add/Edit Customer Form -->
+  <div class="collapse" id="customerForm">
+    <div class="card card-body mb-4">
+
+     <form method="POST"  action="{% url 'create_customer' %}">
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-md-3">
+            {{ form.code.label_tag }}
+            {{ form.code }}
+            {{ form.code.errors }}
+          </div>
+          <div class="col-md-4">
+            {{ form.name.label_tag }}
+            {{ form.name }}
+            {{ form.name.errors }}
+          </div>
+          <div class="col-md-3">
+            {{ form.gst.label_tag }}
+            {{ form.gst }}
+            {{ form.gst.errors }}
+          </div>
+          <div class="col-md-3">
+            {{ form.phone.label_tag }}
+            {{ form.phone }}
+            {{ form.phone.errors }}
+          </div>
+          <div class="col-md-4">
+            {{ form.email.label_tag }}
+            {{ form.email }}
+            {{ form.email.errors }}
+          </div>
+          <div class="col-md-6">
+            {{ form.address_bill_to.label_tag }}
+            {{ form.address_bill_to }}
+            {{ form.address_bill_to.errors }}
+          </div>
+          <div class="col-md-6">
+            {{ form.address_ship_to.label_tag }}
+            {{ form.address_ship_to }}
+            {{ form.address_ship_to.errors }}
+          </div>
+          <div class="col-md-3">
+            {{ form.is_within_state.label_tag }}
+            {{ form.is_within_state }}
+            {{ form.is_within_state.errors }}
+          </div>
+          <div class="col-md-3">
+            {{ form.price_list_tag.label_tag }}
+            {{ form.price_list_tag }}
+            {{ form.price_list_tag.errors }}
+          </div>
+          <div class="col-md-3">
+            {{ form.default_delivery_transport.label_tag }}
+            {{ form.default_delivery_transport }}
+            {{ form.default_delivery_transport.errors }}
+          </div>
+          <div class="col-md-3">
+            {{ form.default_delivery_location.label_tag }}
+            {{ form.default_delivery_location }}
+            {{ form.default_delivery_location.errors }}
+          </div>
+      </div>
+        <button type="submit" class="btn btn-success mt-3">Save Customer</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Customer List Table -->
+  <div class="table-responsive">
+    <table class="table table-striped table-bordered">
+      <thead class="table-dark">
+        <tr>
+          <th>Code</th>
+          <th>Name</th>
+          <th>GST</th>
+          <th>Phone</th>
+          <th>Email</th>
+          <th>Bill To</th>
+          <th>Ship To</th>
+          <th>Within State</th>
+          <th>Price List</th>
+          <th>Transport</th>
+          <th>Delivery Location</th>
+          <th>Created</th>
+          <th>Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for customer in customers %}
+        <tr>
+          <td>{{ customer.code }}</td>
+          <td>{{ customer.name }}</td>
+          <td>{{ customer.gst }}</td>
+          <td>{{ customer.phone }}</td>
+          <td>{{ customer.email }}</td>
+          <td>{{ customer.address_bill_to }}</td>
+          <td>{{ customer.address_ship_to }}</td>
+          <td>{{ customer.is_within_state|yesno:"Yes,No" }}</td>
+          <td>{{ customer.price_list_tag }}</td>
+          <td>{{ customer.default_delivery_transport }}</td>
+          <td>{{ customer.default_delivery_location }}</td>
+          <td>{{ customer.created_at|date:"Y-m-d H:i" }}</td>
+          <td>{{ customer.updated_at|date:"Y-m-d H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="13" class="text-center">No customers found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+ </main> 
+
+{% endblock %}

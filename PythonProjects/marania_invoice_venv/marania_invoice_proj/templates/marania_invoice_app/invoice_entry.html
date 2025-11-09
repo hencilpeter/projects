@@ -1,0 +1,175 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+
+{% block main %}
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  
+  <div class="container my-5">
+
+  <!-- Button to open Add Customer Form -->
+  <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#customerForm" aria-expanded="false">
+    Add Customer
+  </button>
+
+  <div class="container">
+    <h2 class="mb-4 text-center">Invoice Data Entry</h2>
+    <form method="POST" action="{% url 'invoice_entry' %}">
+        {% csrf_token %}
+
+        <!-- Customer Group -->
+        <div class="group-box">
+            <div class="group-title">CUSTOMER DETAILS</div>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Customer Code</label>
+                    <input type="text" name="customer_code" class="form-control" required>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">Customer Name</label>
+                    <input type="text" name="customer_name" class="form-control" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Address</label>
+                <textarea name="customer_address" class="form-control" rows="2"></textarea>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">GST</label>
+                    <input type="text" name="customer_gst" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Contact</label>
+                    <input type="text" name="customer_contact" class="form-control">
+                </div>
+            </div>
+        </div>
+
+        <!-- Invoice Group -->
+        <div class="group-box">
+            <div class="group-title">Invoice Details</div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Invoice Date</label>
+                    <input type="date" name="invoice_date" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Invoice Number</label>
+                    <input type="text" name="invoice_number" class="form-control" required>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dispatch Field -->
+        <div class="group-box">
+            <div class="group-title">Dispatch Details</div>
+            <div class="mb-3">
+                <label class="form-label">Dispatched Through</label>
+                <input type="text" name="dispatched_through" class="form-control">
+            </div>
+        </div>
+
+  <!-- Invoice Items Group -->
+        <div class="group-box">
+            <div class="group-title">INVOICE ITEMS</div>
+
+            <div id="item-container">
+                    
+            </div>
+
+            <button type="button" id="add-item" class="btn btn-secondary btn-sm">+ Add Another Item</button>
+        </div>
+
+        <!-- Submit -->
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary">Submit Invoice</button>
+        </div>
+    </form>
+</div>
+
+<!-- JS to Add More Item Rows -->
+<script>
+    document.getElementById('add-item').addEventListener('click', function() {
+        const container = document.getElementById('item-container');
+        const row = document.createElement('div');
+        row.classList.add('item-row', 'row', 'mb-3');
+          row.innerHTML = `
+        <div class="d-flex align-items-center flex-wrap gap-1 w-100">
+        
+             <!-- Item Spec -->
+            <div class="d-flex align-items-center" style="flex: 1.2; position: relative;">
+                <input type="text" name="item_spec[]" 
+                      class="form-control form-control-sm item-spec" 
+                      placeholder="Specification">
+                <small class="text-success ms-1 spec-message" style="display:none;">✓ Spec entered</small>
+            </div>
+
+            <input type="text" name="item_code[]" class="form-control form-control-sm" placeholder="Code" style="flex: 0.6;">
+            <input type="text" name="item_description[]" class="form-control form-control-sm" placeholder="Description" style="flex: 1.5;">
+            <input type="text" name="item_mesh_size[]" class="form-control form-control-sm" placeholder="MM" style="flex: 0.3;">
+            <input type="text" name="item_mesh_depth[]" class="form-control form-control-sm" placeholder="MD" style="flex: 0.3;">
+            <input type="number" name="item_quantity[]" class="form-control form-control-sm" placeholder="Qty" style="flex: 0.4;">
+            <input type="number" name="item_price[]" step="1" class="form-control form-control-sm" placeholder="Price" style="flex: 0.4;">
+
+            <!-- Grouped HSN + GST + Final -->
+            <div class="d-flex gap-1" style="flex: 1.5;">
+                <input type="text" name="item_gst[]" class="form-control form-control-sm" placeholder="GST">
+                <input type="text" name="item_final_price[]" class="form-control form-control-sm" placeholder="Price+GST" style="width: 90px;">
+                <input type="text" name="item_hsn[]" class="form-control form-control-sm" placeholder="HSN">
+            </div>
+
+            <!-- Buttons -->
+            <div class="d-flex gap-1 justify-content-center" style="flex: 0.4;">
+                <button type="button" class="btn btn-outline-secondary btn-sm clear-item">Clear</button>
+                <button type="button" class="btn btn-outline-danger btn-sm delete-item">Del</button>
+            </div>
+        </div>
+    `;
+
+    // Enable lost focus event
+  row.querySelector('.item-spec').addEventListener('blur', function () {
+    const index = this.dataset.index;  // reads data-index
+    console.log("Current index:", index)
+
+    const message = this.parentElement.querySelector('.spec-message');
+   document.getElementsByName('item_description[]')[0].value = index;
+ 
+   document.getElementsByName('item_description[]')[index].value = "Test123";
+    if (this.value.trim() !== "") {
+        message.style.display = 'inline';
+    } else {
+        message.style.display = 'none';
+    }
+});
+
+        container.appendChild(row);
+    });
+
+    
+        // Add new item
+    document.getElementById('add-item').addEventListener('click', function() {
+        document.getElementById('item-container').appendChild(createItemRow());
+    });
+
+    // Delegate clear/delete button actions
+    document.getElementById('item-container').addEventListener('click', function(e) {
+        if (e.target.classList.contains('delete-item')) {
+            e.target.closest('.item-row').remove();
+        } else if (e.target.classList.contains('clear-item')) {
+            const inputs = e.target.closest('.item-row').querySelectorAll('input');
+            inputs.forEach(input => input.value = '');
+        }
+    });
+</script>
+  
+</div>
+
+
+ </main> 
+
+{% endblock %}

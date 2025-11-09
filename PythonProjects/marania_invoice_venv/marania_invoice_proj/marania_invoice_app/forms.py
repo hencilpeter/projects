@@ -24,3 +24,5 @@ class CustomerForm(forms.ModelForm):
             'default_delivery_transport': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Delivery Transport'}),
             'default_delivery_location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Delivery Location'}),
         }
+
+        
