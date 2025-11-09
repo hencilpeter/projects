@@ -94,27 +94,30 @@
 
 <!-- JS to Add More Item Rows -->
 <script>
+  let rowIndex = -1;  // Tracks current row index
     document.getElementById('add-item').addEventListener('click', function() {
         const container = document.getElementById('item-container');
         const row = document.createElement('div');
         row.classList.add('item-row', 'row', 'mb-3');
+        rowIndex = rowIndex + 1
+        row.dataset.index = rowIndex;
           row.innerHTML = `
         <div class="d-flex align-items-center flex-wrap gap-1 w-100">
         
              <!-- Item Spec -->
-            <div class="d-flex align-items-center" style="flex: 1.2; position: relative;">
+            <div class="d-flex align-items-center" style="flex: 1.6; position: relative;">
                 <input type="text" name="item_spec[]" 
                       class="form-control form-control-sm item-spec" 
                       placeholder="Specification">
                 <small class="text-success ms-1 spec-message" style="display:none;">✓ Spec entered</small>
             </div>
 
-            <input type="text" name="item_code[]" class="form-control form-control-sm" placeholder="Code" style="flex: 0.6;">
+            <input type="text" name="item_code[]" class="form-control form-control-sm" placeholder="Code" style="flex: 0.3;">
             <input type="text" name="item_description[]" class="form-control form-control-sm" placeholder="Description" style="flex: 1.5;">
             <input type="text" name="item_mesh_size[]" class="form-control form-control-sm" placeholder="MM" style="flex: 0.3;">
             <input type="text" name="item_mesh_depth[]" class="form-control form-control-sm" placeholder="MD" style="flex: 0.3;">
             <input type="number" name="item_quantity[]" class="form-control form-control-sm" placeholder="Qty" style="flex: 0.4;">
-            <input type="number" name="item_price[]" step="1" class="form-control form-control-sm" placeholder="Price" style="flex: 0.4;">
+            <input type="number" name="item_price[]" step="1" class="form-control form-control-sm" placeholder="Q.Price" style="flex: 0.4;">
 
             <!-- Grouped HSN + GST + Final -->
             <div class="d-flex gap-1" style="flex: 1.5;">
@@ -133,18 +136,64 @@
 
     // Enable lost focus event
   row.querySelector('.item-spec').addEventListener('blur', function () {
-    const index = this.dataset.index;  // reads data-index
+    const index = row.dataset.index;  // reads data-index
     console.log("Current index:", index)
-
     const message = this.parentElement.querySelector('.spec-message');
-   document.getElementsByName('item_description[]')[0].value = index;
- 
-   document.getElementsByName('item_description[]')[index].value = "Test123";
+      current_item_spec = document.getElementsByName('item_spec[]')[index].value;
+
+      // Split the string by '/'
+    const parts = current_item_spec.split('/');
+
+    quantity = 0;
+    price = 0; 
+    gst_percentage = 5/100;
+    gst_amount = 0
+    total_amount = 0
+    if (parts.length >= 5){
+      if ( (parts.length == 5) && (parts[0].startsWith("DK16") || parts[0].startsWith("DK20")))
+      {
+         document.getElementsByName('item_description[]')[index].value = "Mono Filament Fishnet"; 
+      }
+      else if (parts[0].startsWith("DK16") || parts[0].startsWith("DK20")) {
+              document.getElementsByName('item_description[]')[index].value = "Mono Filament Fishnet ( " + parts[5] + " )";
+          }  
+    }
+
+    if (parts.length >= 4){
+      document.getElementsByName('item_price[]')[index].value =  parts[4] ;
+      price = parts[4] ;
+    }
+
+    if (parts.length >= 3){
+     document.getElementsByName('item_quantity[]')[index].value = parts[3];
+     quantity = parts[3];
+    }
+
+    if (parts.length >= 2){
+      document.getElementsByName('item_mesh_depth[]')[index].value = parts[2];
+    }
+     
+    if (parts.length >= 1){
+      document.getElementsByName('item_mesh_size[]')[index].value = parts[1];
+    }
+
+    if (parts.length >= 0){
+      document.getElementsByName('item_code[]')[index].value = parts[0];
+    }
+
+      gst_amount = (quantity * price ) * gst_percentage;
+      total_amount = (quantity * price ) + gst_amount
+      document.getElementsByName('item_gst[]')[index].value = gst_amount;
+      document.getElementsByName('item_final_price[]')[index].value = total_amount;
+      document.getElementsByName('item_hsn[]')[index].value = "5808";
+  
+
     if (this.value.trim() !== "") {
         message.style.display = 'inline';
     } else {
         message.style.display = 'none';
     }
+
 });
 
         container.appendChild(row);
