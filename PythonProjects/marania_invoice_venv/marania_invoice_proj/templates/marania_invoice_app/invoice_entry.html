@@ -5,309 +5,189 @@
 
 {% block main %}
 
+{% load dict_extras %}  <!-- load once at the top -->
+
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-  
   <div class="container my-5">
-  <h2 class="mb-4">Invocie</h2>
-  <!-- Button to open Add Customer Form -->
-  <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#customerForm" aria-expanded="false">
-    Add Invoice
-  </button>
-  <div class="collapse" id="customerForm">
-  <div class="container" >
-    <h2 class="mb-4 text-center">Invoice Data Entry</h2>
-    <form method="POST" action="{% url 'save_invoice' %}">
-        {% csrf_token %}
 
-<!-- Invoice Group -->
- <!-- Customer Group -->
-<div class="group-box p-2 border rounded mb-2">
+    <h2 class="mb-4">Invoice</h2>
 
-     <div class="card shadow-sm p-3">
-            <!-- Row 1: Date & Invoice Number -->
-            <div class="row mb-3">
-                <div class="col-md-4">
-                    {{ invoice_form.invoice_date }}
-                </div>
-                <div class="col-md-8">
-                    {{ invoice_form.invoice_number }}
-                </div>
-            </div>
+    <!-- Button to open Add Invoice Form -->
+    <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#customerForm" aria-expanded="false" aria-controls="customerForm">
+      Add Invoice
+    </button>
 
-            <!-- Row 2: Customer Code, Name, GST -->
-            <div class="row mb-3">
-                <div class="col-md-3">
-                    {{ invoice_form.customer_code }}
-                </div>
-                <div class="col-md-6">
-                    {{ invoice_form.customer_name }}
-                </div>
-                <div class="col-md-3">
-                    {{ invoice_form.customer_gst }}
-                </div>
-            </div>
+    <!-- Collapsible Invoice Form -->
+    <div class="collapse" id="customerForm">
+      <!-- <div class="container border rounded p-4 mb-4 shadow-sm"> -->
+        <form method="POST" action="{% url 'save_invoice' %}">
+          {% csrf_token %}
 
-            <!-- Row 3: Address Bill To & Ship To -->
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    {{ invoice_form.customer_address_bill_to }}
-                </div>
-                <div class="col-md-6">
-                    {{ invoice_form.customer_address_ship_to }}
-                </div>
-            </div>
+          <!-- Customer Group -->
+          <!-- <div class="group-box p-2 border rounded mb-3"> -->
+            <div class="card shadow-sm p-3">
 
-            <!-- Row 4: Contact & Email -->
-            <div class="row mb-3">
-                <div class="col-md-4">
-                    {{ invoice_form.customer_contact }}
-                </div>
-                <div class="col-md-8">
-                    {{ invoice_form.customer_email }}
-                </div>
-            </div>
+              <!-- Row 1: Date & Invoice Number -->
+              <div class="row mb-3">
+                <div class="col-md-4">{{ invoice_form.invoice_date }}</div>
+                <div class="col-md-8">{{ invoice_form.invoice_number }}</div>
+              </div>
 
-            <!-- Row 5: Dispatched Through -->
-            <div class="row mb-3">
-                <div class="col-md-12">
-                    {{ invoice_form.dispatched_through }}
-                </div>
-            </div>
+              <!-- Row 2: Customer Code, Name, GST -->
+              <div class="row mb-3">
+                <div class="col-md-3">{{ invoice_form.customer_code }}</div>
+                <div class="col-md-6">{{ invoice_form.customer_name }}</div>
+                <div class="col-md-3">{{ invoice_form.customer_gst }}</div>
+              </div>
 
-  <!-- Invoice Items Group -->
-        <div class="group-box">
-            <div class="group-title">INVOICE ITEMS</div>
-            <div id="item-container">
-                    
-            </div>
+              <!-- Row 3: Address Bill To & Ship To -->
+              <div class="row mb-3">
+                <div class="col-md-6">{{ invoice_form.customer_address_bill_to }}</div>
+                <div class="col-md-6">{{ invoice_form.customer_address_ship_to }}</div>
+              </div>
 
-            <button type="button" id="add-item" class="btn btn-secondary btn-sm">+ Add Another Item</button>
+              <!-- Row 4: Contact & Email -->
+              <div class="row mb-3">
+                <div class="col-md-4">{{ invoice_form.customer_contact }}</div>
+                <div class="col-md-8">{{ invoice_form.customer_email }}</div>
+              </div>
+
+              <!-- Row 5: Dispatched Through -->
+              <div class="row mb-3">
+                <div class="col-md-12">{{ invoice_form.dispatched_through }}</div>
+              </div>
+
+              <!-- Invoice Items Group -->
+              <div class="group-box mb-3">
+                <div class="group-title">INVOICE ITEMS</div>
+                <div id="item-container"></div>
+                <button type="button" id="add-item" class="btn btn-secondary btn-sm mt-2">+ Add Another Item</button>
+              </div>
+
+              <!-- Submit & Reset -->
+              <div class="text-center">
+                <button type="submit" class="btn btn-primary me-2">Submit Invoice</button>
+                <button type="reset" class="btn btn-secondary">Clear Invoice</button>
+              </div>
+
+            </div> <!-- card -->
+          <!-- </div> group-box -->
+        </form>
+      <!-- </div> container collapse -->
+    </div> <!-- collapse -->
+
+    <!-- Invoice List (outside collapse) -->
+    <div class="invoice-list mt-4">
+      {% if invoices %}
+        <div class="table-responsive">
+          <table class="table table-striped table-hover table-bordered table-sm align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Invoice #</th>
+                <th scope="col">Customer</th>
+                <th scope="col">Weight</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for invoice in invoices %}
+                <tr>
+                  <td>{{ invoice.invoice_date|date:"Y-m-d" }}</td>
+                  <td>{{ invoice.invoice_number }}</td>
+                  <td>{{ invoice.customer_name }}</td>
+                  {% with invoice_item=invoiceitems|get_item:invoice.invoice_number %}
+                    <td>
+                      {% if invoice_item %}
+                        {{ invoice_item.item_quantity }}
+                      {% else %}
+                        <span class="text-muted">0</span>
+                      {% endif %}
+                    </td>
+                  {% endwith %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
+      {% else %}
+        <p class="text-muted">No invoices found.</p>
+      {% endif %}
+    </div> <!-- invoice-list -->
 
-        <!-- Submit -->
-        <div class="text-center">
-            <button type="submit" class="btn btn-primary">Submit Invoice</button>
-            <button type="reset" class="btn btn-secondary">Clear Invoice</button>
-        </div>
-    </form>
-</div>
-</div>
-<!-- JS to Add More Item Rows -->
+  </div> <!-- container -->
+</main>
+
+<!-- JS Section -->
 <script>
- //TEMP CODE - START
- // Initialize empty dictionary to store customers
-let customers = {};
-const customerDetails = {
-        name: "KK Fishnets",
-        gst: "GSTKK1234",
-        address: {
-            billTo: "Manavalakurichi, KK District",
-            shipTo: "Manavalakurichi, KK District"
-        },
-        contact: "90909090875",
-        email: "kkf@gmail.com"
-    };
-
-// Store in dictionary using customer code as key
-customers["KKF"] = customerDetails;
- //TEMP CODE - END  
-
-
-  let rowIndex = -1;  // Tracks current row index
-
-
-// Select the input
-const customerCodeInput = document.querySelector('input[name="customer_code"]');
-
-// Add lost focus (blur) event handler
-customerCodeInput.addEventListener('blur', function() {
-    const value = this.value; // current input value
-    console.log("Customer Code lost focus. Value:", value);
-
-    // Example: validate the code or perform any action
-    if(value === "") {
-        alert("Customer code cannot be empty!");
-    } else {
-        // You can also lookup a dictionary here to auto-fill other fields
-        console.log("Proceed with customer code:", value);
-        if (value == "KKF"){
-           document.querySelector('input[name="customer_name"]').value = customers["KKF"] .name;
-           document.querySelector('input[name="customer_gst"]').value = customers["KKF"] .gst;
-           document.querySelector('textarea[name="customer_address_bill_to"]').value = customers["KKF"].address.billTo;
-           document.querySelector('textarea[name="customer_address_ship_to"]').value = customers["KKF"].address.shipTo;
-           document.querySelector('input[name="customer_contact"]').value = customers["KKF"].contact;
-           document.querySelector('input[name="customer_email"]').value = customers["KKF"].email;
-        }
+  // Customer autofill logic
+  let customers = {
+    "KKF": {
+      name: "KK Fishnets",
+      gst: "GSTKK1234",
+      address: { billTo: "Manavalakurichi, KK District", shipTo: "Manavalakurichi, KK District" },
+      contact: "90909090875",
+      email: "kkf@gmail.com"
     }
-});
+  };
 
+  const customerCodeInput = document.querySelector('input[name="customer_code"]');
+  customerCodeInput.addEventListener('blur', function() {
+    const code = this.value.trim();
+    if (!code) { alert("Customer code cannot be empty!"); return; }
+    if (customers[code]) {
+      const c = customers[code];
+      document.querySelector('input[name="customer_name"]').value = c.name;
+      document.querySelector('input[name="customer_gst"]').value = c.gst;
+      document.querySelector('textarea[name="customer_address_bill_to"]').value = c.address.billTo;
+      document.querySelector('textarea[name="customer_address_ship_to"]').value = c.address.shipTo;
+      document.querySelector('input[name="customer_contact"]').value = c.contact;
+      document.querySelector('input[name="customer_email"]').value = c.email;
+    }
+  });
 
-    document.getElementById('add-item').addEventListener('click', function() {
-        const container = document.getElementById('item-container');
-        const row = document.createElement('div');
-        row.classList.add('item-row', 'row', 'mb-3');
-        rowIndex = rowIndex + 1
-        row.dataset.index = rowIndex;
-          row.innerHTML = `
-        <div class="d-flex align-items-center flex-wrap gap-1 w-100">
-        
-             <!-- Item Spec -->
-            <div class="d-flex align-items-center" style="flex: 1.6; position: relative;">
-                <input type="text" name="item_spec[]" 
-                      class="form-control form-control-sm item-spec" 
-                      placeholder="Specification">
-                <small class="text-success ms-1 spec-message" style="display:none;">✓ Spec entered</small>
-            </div>
+  // Invoice Items JS
+  let rowIndex = -1;
+  const container = document.getElementById('item-container');
+  document.getElementById('add-item').addEventListener('click', function() {
+    rowIndex++;
+    const row = document.createElement('div');
+    row.classList.add('item-row', 'row', 'mb-3');
+    row.dataset.index = rowIndex;
 
-            <input type="text" name="item_code[]" class="form-control form-control-sm" placeholder="Code" style="flex: 0.3;">
-            <input type="text" name="item_description[]" class="form-control form-control-sm" placeholder="Description" style="flex: 1.5;">
-            <input type="text" name="item_mesh_size[]" class="form-control form-control-sm" placeholder="MM" style="flex: 0.3;">
-            <input type="text" name="item_mesh_depth[]" class="form-control form-control-sm" placeholder="MD" style="flex: 0.3;">
-            <input type="number" name="item_quantity[]" class="form-control form-control-sm" placeholder="Qty" style="flex: 0.4;">
-            <input type="number" name="item_price[]" step="1" class="form-control form-control-sm" placeholder="Q.Price" style="flex: 0.4;">
-
-            <!-- Grouped HSN + GST + Final -->
-            <div class="d-flex gap-1" style="flex: 1.5;">
-                <input type="text" name="item_gst[]" class="form-control form-control-sm" placeholder="GST">
-                <input type="text" name="item_final_price[]" class="form-control form-control-sm" placeholder="Price+GST" style="width: 90px;">
-                <input type="text" name="item_hsn[]" class="form-control form-control-sm" placeholder="HSN">
-            </div>
-
-            <!-- Buttons -->
-            <div class="d-flex gap-1 justify-content-center" style="flex: 0.4;">
-                <button type="button" class="btn btn-outline-secondary btn-sm clear-item">Clear</button>
-                <button type="button" class="btn btn-outline-danger btn-sm delete-item">Del</button>
-            </div>
+    row.innerHTML = `
+      <div class="d-flex align-items-center flex-wrap gap-1 w-100">
+        <div class="d-flex align-items-center" style="flex:1.6;position:relative;">
+          <input type="text" name="item_spec[]" class="form-control form-control-sm item-spec" placeholder="Specification">
+          <small class="text-success ms-1 spec-message" style="display:none;">✓ Spec entered</small>
         </div>
+        <input type="text" name="item_code[]" class="form-control form-control-sm" placeholder="Code" style="flex:0.3;">
+        <input type="text" name="item_description[]" class="form-control form-control-sm" placeholder="Description" style="flex:1.5;">
+        <input type="text" name="item_mesh_size[]" class="form-control form-control-sm" placeholder="MM" style="flex:0.3;">
+        <input type="text" name="item_mesh_depth[]" class="form-control form-control-sm" placeholder="MD" style="flex:0.3;">
+        <input type="number" name="item_quantity[]" class="form-control form-control-sm" placeholder="Qty" style="flex:0.4;">
+        <input type="number" name="item_price[]" step="1" class="form-control form-control-sm" placeholder="Q.Price" style="flex:0.4;">
+        <div class="d-flex gap-1" style="flex:1.5;">
+          <input type="text" name="item_gst[]" class="form-control form-control-sm" placeholder="GST">
+          <input type="text" name="item_final_price[]" class="form-control form-control-sm" placeholder="Price+GST" style="width:90px;">
+          <input type="text" name="item_hsn[]" class="form-control form-control-sm" placeholder="HSN">
+        </div>
+        <div class="d-flex gap-1 justify-content-center" style="flex:0.4;">
+          <button type="button" class="btn btn-outline-secondary btn-sm clear-item">Clear</button>
+          <button type="button" class="btn btn-outline-danger btn-sm delete-item">Del</button>
+        </div>
+      </div>
     `;
+    container.appendChild(row);
+  });
 
-    // Enable lost focus event
-  row.querySelector('.item-spec').addEventListener('blur', function () {
-    const index = row.dataset.index;  // reads data-index
-    console.log("Current index:", index)
-    const message = this.parentElement.querySelector('.spec-message');
-      current_item_spec = document.getElementsByName('item_spec[]')[index].value;
-
-      // Split the string by '/'
-    const parts = current_item_spec.split('/');
-
-    quantity = 0;
-    price = 0; 
-    gst_percentage = 5/100;
-    gst_amount = 0
-    total_amount = 0
-    if (parts.length >= 5){
-      if ( (parts.length == 5) && (parts[0].startsWith("DK16") || parts[0].startsWith("DK20")))
-      {
-         document.getElementsByName('item_description[]')[index].value = "Mono Filament Fishnet"; 
-      }
-      else if (parts[0].startsWith("DK16") || parts[0].startsWith("DK20")) {
-              document.getElementsByName('item_description[]')[index].value = "Mono Filament Fishnet ( " + parts[5] + " )";
-          }  
+  container.addEventListener('click', function(e){
+    if(e.target.classList.contains('delete-item')){
+      e.target.closest('.item-row').remove();
+    } else if(e.target.classList.contains('clear-item')){
+      e.target.closest('.item-row').querySelectorAll('input').forEach(inp=>inp.value='');
     }
-
-    if (parts.length >= 4){
-      document.getElementsByName('item_price[]')[index].value =  parts[4] ;
-      price = parts[4] ;
-    }
-
-    if (parts.length >= 3){
-     document.getElementsByName('item_quantity[]')[index].value = parts[3];
-     quantity = parts[3];
-    }
-
-    if (parts.length >= 2){
-      document.getElementsByName('item_mesh_depth[]')[index].value = parts[2];
-    }
-     
-    if (parts.length >= 1){
-      document.getElementsByName('item_mesh_size[]')[index].value = parts[1];
-    }
-
-    if (parts.length >= 0){
-      document.getElementsByName('item_code[]')[index].value = parts[0];
-    }
-
-      gst_amount = (quantity * price ) * gst_percentage;
-      total_amount = (quantity * price ) + gst_amount
-      document.getElementsByName('item_gst[]')[index].value = gst_amount;
-      document.getElementsByName('item_final_price[]')[index].value = total_amount;
-      document.getElementsByName('item_hsn[]')[index].value = "5808";
-  
-
-    if (this.value.trim() !== "") {
-        message.style.display = 'inline';
-    } else {
-        message.style.display = 'none';
-    }
-
-});
-
-        container.appendChild(row);
-    });
-
-    
-        // Add new item
-    document.getElementById('add-item').addEventListener('click', function() {
-        document.getElementById('item-container').appendChild(createItemRow());
-    });
-
-    // Delegate clear/delete button actions
-    document.getElementById('item-container').addEventListener('click', function(e) {
-        if (e.target.classList.contains('delete-item')) {
-            e.target.closest('.item-row').remove();
-        } else if (e.target.classList.contains('clear-item')) {
-            const inputs = e.target.closest('.item-row').querySelectorAll('input');
-            inputs.forEach(input => input.value = '');
-        }
-    });
+  });
 </script>
-  
 
- {% load dict_extras %}  <!-- load once at the top -->
-
-{% if invoices %}
-<div class="table-responsive">
-  <table class="table table-striped table-hover table-bordered table-sm align-middle">
-    <thead class="table-dark">
-      <tr>
-        <th scope="col">Date</th>
-        <th scope="col">Invoice #</th>
-        <th scope="col">Customer</th>
-        <th scope="col">Weight</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for invoice in invoices %}
-      <tr>
-        <!-- Format date -->
-        <td>{{ invoice.invoice_date|date:"Y-m-d" }}</td>
-        <td>{{ invoice.invoice_number }}</td>
-        <td>{{ invoice.customer_name }}</td>
-
-        <!-- Access invoice_item from dictionary -->
-        {% with invoice_item=invoiceitems|get_item:invoice.invoice_number %}
-          <td>
-            {% if invoice_item %}
-              {{ invoice_item.item_quantity }}
-            {% else %}
-              <span class="text-muted">0</span>
-            {% endif %}
-          </td>
-        {% endwith %}
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% else %}
-<p class="text-muted">No invoices found.</p>
-{% endif %}
-
-
-</div>
-
-
- </main> 
 
 {% endblock %}
