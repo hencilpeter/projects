@@ -19,65 +19,70 @@
     <form method="POST" action="{% url 'invoice_entry' %}">
         {% csrf_token %}
 
-        <!-- Customer Group -->
-        <div class="group-box">
-            <div class="group-title">CUSTOMER DETAILS</div>
-            <div class="row mb-3">
-                <div class="col-md-4">
-                    <label class="form-label">Customer Code</label>
-                    <input type="text" name="customer_code" class="form-control" required>
-                </div>
-                <div class="col-md-8">
-                    <label class="form-label">Customer Name</label>
-                    <input type="text" name="customer_name" class="form-control" required>
-                </div>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Address</label>
-                <textarea name="customer_address" class="form-control" rows="2"></textarea>
-            </div>
-
-            <div class="row mb-3">
-                <div class="col-md-4">
-                    <label class="form-label">GST</label>
-                    <input type="text" name="customer_gst" class="form-control">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Contact</label>
-                    <input type="text" name="customer_contact" class="form-control">
-                </div>
-            </div>
+<!-- Invoice Group -->
+<div class="group-box p-2 border rounded mb-2">
+    <div class="row g-2 mb-1">
+        <div class="col-md-6">
+            <input type="date" name="invoice_date" class="form-control form-control-sm" placeholder="Invoice Date" required>
         </div>
-
-        <!-- Invoice Group -->
-        <div class="group-box">
-            <div class="group-title">Invoice Details</div>
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label class="form-label">Invoice Date</label>
-                    <input type="date" name="invoice_date" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Invoice Number</label>
-                    <input type="text" name="invoice_number" class="form-control" required>
-                </div>
-            </div>
+        <div class="col-md-6">
+            <input type="text" name="invoice_number" class="form-control form-control-sm" placeholder="Invoice Number" required>
         </div>
+    </div>
+</div>
 
-        <!-- Dispatch Field -->
-        <div class="group-box">
-            <div class="group-title">Dispatch Details</div>
-            <div class="mb-3">
-                <label class="form-label">Dispatched Through</label>
-                <input type="text" name="dispatched_through" class="form-control">
-            </div>
+
+ <!-- Customer Group -->
+<div class="group-box p-2 border rounded mb-2">
+
+    <!-- First Row: Code, Name, GST -->
+    <div class="row g-2 mb-1">
+        <div class="col-md-3">
+            <input type="text" name="customer_code" class="form-control form-control-sm" placeholder="Customer Code" required>
         </div>
+        <div class="col-md-5">
+            <input type="text" name="customer_name" class="form-control form-control-sm" placeholder="Customer Name" required>
+        </div>
+        <div class="col-md-4">
+            <input type="text" name="customer_gst" class="form-control form-control-sm" placeholder="GST">
+        </div>
+    </div>
+
+    <!-- Second Row: Address (Bill To & Ship To) -->
+    <div class="row g-2 mb-1">
+        <div class="col-md-6">
+            <textarea name="customer_address_bill_to" class="form-control form-control-sm" rows="2" placeholder="Address (Bill To)"></textarea>
+        </div>
+        <div class="col-md-6">
+            <textarea name="customer_address_ship_to" class="form-control form-control-sm" rows="2" placeholder="Address (Ship To)"></textarea>
+        </div>
+    </div>
+
+    <!-- Third Row: Contact & Email -->
+    <div class="row g-2 mb-1">
+        <div class="col-md-3">
+            <input type="text" name="customer_contact" class="form-control form-control-sm" placeholder="Contact">
+        </div>
+        <div class="col-md-4">
+            <input type="text" name="customer_email" class="form-control form-control-sm" placeholder="Email">
+        </div>
+    </div>
+</div>
+
+
+<!-- Dispatch Field -->
+<div class="group-box p-2 border rounded mb-2">
+    <div class="row g-2 mb-1">
+        <div class="col-md-6">
+            <input type="text" name="dispatched_through" class="form-control form-control-sm" placeholder="Dispatched Through">
+        </div>
+    </div>
+</div>
+
 
   <!-- Invoice Items Group -->
         <div class="group-box">
             <div class="group-title">INVOICE ITEMS</div>
-
             <div id="item-container">
                     
             </div>
@@ -94,7 +99,54 @@
 
 <!-- JS to Add More Item Rows -->
 <script>
+ //TEMP CODE - START
+ // Initialize empty dictionary to store customers
+let customers = {};
+const customerDetails = {
+        name: "KK Fishnets",
+        gst: "GSTKK1234",
+        address: {
+            billTo: "Manavalakurichi, KK District",
+            shipTo: "Manavalakurichi, KK District"
+        },
+        contact: "90909090875",
+        email: "kkf@gmail.com"
+    };
+
+// Store in dictionary using customer code as key
+customers["KKF"] = customerDetails;
+ //TEMP CODE - END  
+
+
   let rowIndex = -1;  // Tracks current row index
+
+
+// Select the input
+const customerCodeInput = document.querySelector('input[name="customer_code"]');
+
+// Add lost focus (blur) event handler
+customerCodeInput.addEventListener('blur', function() {
+    const value = this.value; // current input value
+    console.log("Customer Code lost focus. Value:", value);
+
+    // Example: validate the code or perform any action
+    if(value === "") {
+        alert("Customer code cannot be empty!");
+    } else {
+        // You can also lookup a dictionary here to auto-fill other fields
+        console.log("Proceed with customer code:", value);
+        if (value == "KKF"){
+           document.querySelector('input[name="customer_name"]').value = customers["KKF"] .name;
+           document.querySelector('input[name="customer_gst"]').value = customers["KKF"] .gst;
+           document.querySelector('textarea[name="customer_address_bill_to"]').value = customers["KKF"].address.billTo;
+           document.querySelector('textarea[name="customer_address_ship_to"]').value = customers["KKF"].address.shipTo;
+           document.querySelector('input[name="customer_contact"]').value = customers["KKF"].contact;
+           document.querySelector('input[name="customer_email"]').value = customers["KKF"].email;
+        }
+    }
+});
+
+
     document.getElementById('add-item').addEventListener('click', function() {
         const container = document.getElementById('item-container');
         const row = document.createElement('div');
