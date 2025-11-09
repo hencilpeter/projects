@@ -1,4 +1,5 @@
 from django.db import models
+from datetime import date
 
 # Create your models here.
 class Customer(models.Model):
@@ -78,24 +79,38 @@ class CustomerPriceMap(models.Model):
     
 
 class Invoice(models.Model):
-    invoice_date = models.DateField(null=True, blank=True)
+    invoice_date = models.DateField(null=True, blank=True, default=date.today)
     invoice_number = models.CharField(max_length=50, unique=True, null=True)
     
-    customer_code = models.CharField(max_length=50, unique=True, null=True)
+    customer_code = models.CharField(max_length=50, unique=False, null=True)
     customer_name = models.CharField(max_length=100, null=True)
-    gst = models.CharField(max_length=20, null=True, blank=True)
+    customer_gst = models.CharField(max_length=20, null=True, blank=True)
 
     customer_address_bill_to = models.TextField(null=True, blank=True)
     customer_address_ship_to = models.TextField(null=True, blank=True)
 
-    contact = models.CharField(max_length=20, null=True, blank=True)
-    email = models.EmailField(null=True, blank=True)
+    customer_contact = models.CharField(max_length=20, null=True, blank=True)
+    customer_email = models.EmailField(null=True, blank=True)
 
     dispatched_through = models.CharField(max_length=100, null=True, blank=True)
 
     def __str__(self):
         return f"{self.invoice_number} - {self.customer_name}"
 
-class invoiceitems(models.Model):
-    pass
+class InvoiceItem(models.Model):
+    invoice = models.ForeignKey(
+        Invoice,
+        related_name='items',      # allows invoice.items.all()
+        on_delete=models.CASCADE,  # deletes items if invoice is deleted
+        to_field='invoice_number'  # optional: link by invoice_number instead of id
+    )
+    item_spec = models.CharField(max_length=200, blank=True, null=True)
+    item_code = models.CharField(max_length=50, blank=True, null=True)
+    item_description = models.CharField(max_length=200, blank=True, null=True)
+    item_mesh_size = models.CharField(max_length=20, blank=True, null=True)
+    item_mesh_depth = models.CharField(max_length=20, blank=True, null=True)
+    item_quantity = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    item_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
+    def __str__(self):
+        return f"{self.invoice.invoice_number or ''} - {self.invoice.customer_name or ''} -{self.item_description or ''} - {self.item_quantity or ''}"

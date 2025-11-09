@@ -1,6 +1,7 @@
 from django import forms
 from .models import Customer
-from .models import Invoice
+from .models import Invoice, InvoiceItem
+from django.forms import inlineformset_factory
 
 class CustomerForm(forms.ModelForm):
     class Meta:
@@ -33,14 +34,14 @@ class InvoiceForm(forms.ModelForm):
             'invoice_number',
             'customer_code',
             'customer_name',
-            'gst',
+            'customer_gst',
             'customer_address_bill_to',
             'customer_address_ship_to',
-            'contact',
-            'email',
+            'customer_contact',
+            'customer_email',
             'dispatched_through'
         ]
-        
+
         widgets = {
             'invoice_date': forms.DateInput(attrs={
                 'type': 'date', 'class': 'form-control form-control-sm'
@@ -54,7 +55,7 @@ class InvoiceForm(forms.ModelForm):
             'customer_name': forms.TextInput(attrs={
                 'class': 'form-control form-control-sm', 'placeholder': 'Customer Name'
             }),
-            'gst': forms.TextInput(attrs={
+            'customer_gst': forms.TextInput(attrs={
                 'class': 'form-control form-control-sm', 'placeholder': 'GST'
             }),
             'customer_address_bill_to': forms.Textarea(attrs={
@@ -63,13 +64,65 @@ class InvoiceForm(forms.ModelForm):
             'customer_address_ship_to': forms.Textarea(attrs={
                 'class': 'form-control form-control-sm', 'rows': 2, 'placeholder': 'Address (Ship To)'
             }),
-            'contact': forms.TextInput(attrs={
+            'customer_contact': forms.TextInput(attrs={
                 'class': 'form-control form-control-sm', 'placeholder': 'Contact'
             }),
-            'email': forms.EmailInput(attrs={
+            'customer_email': forms.EmailInput(attrs={
                 'class': 'form-control form-control-sm', 'placeholder': 'Email'
             }),
             'dispatched_through': forms.TextInput(attrs={
                 'class': 'form-control form-control-sm', 'placeholder': 'Dispatched Through'
             }),
         }
+
+class InvoiceItemForm(forms.ModelForm):
+    class Meta:
+        model = InvoiceItem
+        fields = ['item_spec','item_code', 'item_description','item_mesh_size','item_mesh_depth', 'item_quantity', 'item_price']
+
+        widgets = {
+            'item_spec': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm item-spec',
+                'placeholder': 'Specification',
+                'style': 'flex: 1.6;'
+            }),
+            'item_code': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Code',
+                'style': 'flex: 0.3;'
+            }),
+            'item_description': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Description',
+                'style': 'flex: 1.5;'
+            }),
+            'item_mesh_size': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'MM',
+                'style': 'flex: 0.3;'
+            }),
+            'item_mesh_depth': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'MD',
+                'style': 'flex: 0.3;'
+            }),
+            'item_quantity': forms.NumberInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Qty',
+                'style': 'flex: 0.4;'
+            }),
+            'item_price': forms.NumberInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Q.Price',
+                'step': '1',
+                'style': 'flex: 0.4;'
+            }),
+        }
+        
+# 👇 This creates a formset of items linked to an Invoice
+InvoiceItemFormSet = inlineformset_factory(
+    Invoice, InvoiceItem,
+    form=InvoiceItemForm,
+    extra=1,  # how many blank forms to show initially
+    can_delete=True
+)
