@@ -177,8 +177,66 @@
         </div>
       </div>
     `;
+
+      // Enable lost focus event
+  row.querySelector('.item-spec').addEventListener('blur', function () {
+    const index = row.dataset.index;  // reads data-index
+    console.log("Current index:", index)
+    const message = this.parentElement.querySelector('.spec-message');
+      current_item_spec = document.getElementsByName('item_spec[]')[index].value;
+
+      // Split the string by '/'
+    const parts = current_item_spec.split('/');
+
+    quantity = 0;
+    price = 0; 
+    gst_percentage = 5/100;
+    gst_amount = 0
+    total_amount = 0
+    if (parts.length >= 5){
+      if ( (parts.length == 5) && (parts[0].startsWith("DK16") || parts[0].startsWith("DK20")))
+      {
+         document.getElementsByName('item_description[]')[index].value = "Mono Filament Fishnet"; 
+      }
+      else if (parts[0].startsWith("DK16") || parts[0].startsWith("DK20")) {
+              document.getElementsByName('item_description[]')[index].value = "Mono Filament Fishnet ( " + parts[5] + " )";
+          }  
+    }
+
+    if (parts.length >= 4){
+      document.getElementsByName('item_price[]')[index].value =  parts[4] ;
+      price = parts[4] ;
+    }
+
+    if (parts.length >= 3){
+     document.getElementsByName('item_quantity[]')[index].value = parts[3];
+     quantity = parts[3];
+    }
+
+    if (parts.length >= 2){
+      document.getElementsByName('item_mesh_depth[]')[index].value = parts[2];
+    }
+     
+    if (parts.length >= 1){
+      document.getElementsByName('item_mesh_size[]')[index].value = parts[1];
+    }
+
+    if (parts.length >= 0){
+      document.getElementsByName('item_code[]')[index].value = parts[0];
+    }
+
+    gst_amount = (quantity * price ) * gst_percentage;
+    total_amount = (quantity * price ) + gst_amount
+    document.getElementsByName('item_gst[]')[index].value = gst_amount;
+    document.getElementsByName('item_final_price[]')[index].value = total_amount;
+    document.getElementsByName('item_hsn[]')[index].value = "5808";
+
+})
+
     container.appendChild(row);
   });
+
+ 
 
   container.addEventListener('click', function(e){
     if(e.target.classList.contains('delete-item')){
