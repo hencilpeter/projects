@@ -77,8 +77,24 @@ class CustomerPriceMap(models.Model):
         return f"{self.customer.name} - {self.product.code}: {self.price}"
     
 
-class invoice(models.Model):
-    pass
+class Invoice(models.Model):
+    invoice_date = models.DateField(null=True, blank=True)
+    invoice_number = models.CharField(max_length=50, unique=True, null=True)
+    
+    customer_code = models.CharField(max_length=50, unique=True, null=True)
+    customer_name = models.CharField(max_length=100, null=True)
+    gst = models.CharField(max_length=20, null=True, blank=True)
+
+    customer_address_bill_to = models.TextField(null=True, blank=True)
+    customer_address_ship_to = models.TextField(null=True, blank=True)
+
+    contact = models.CharField(max_length=20, null=True, blank=True)
+    email = models.EmailField(null=True, blank=True)
+
+    dispatched_through = models.CharField(max_length=100, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.invoice_number} - {self.customer_name}"
 
 class invoiceitems(models.Model):
     pass

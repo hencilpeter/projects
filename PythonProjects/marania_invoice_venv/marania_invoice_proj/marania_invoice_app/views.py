@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from . import forms
 from .forms import CustomerForm
-from .models import Customer, Configuration
+from .models import Customer, Configuration, Invoice
 from collections import defaultdict
 #from singleton import singleton
 
@@ -38,8 +38,8 @@ def customer(request):
     return render(request, 'marania_invoice_app/customer.html', context)
 
 def invoice_entry(request):
-    Customers = Customer.objects.all()
-    context = {} #{'form': forms.CustomerForm() ,'customers':Customers}
+    Invoices = Invoice.objects.all()
+    context = {'invoice_form': forms.InvoiceForm() ,'invoices':Invoices}
     return render(request, 'marania_invoice_app/invoice_entry.html', context)
 
 ########################################################

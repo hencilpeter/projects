@@ -20,62 +20,7 @@
         {% csrf_token %}
 
 <!-- Invoice Group -->
-
- <!-- Customer Group -->
 <div class="group-box p-2 border rounded mb-2">
-
-     <div class="card shadow-sm p-3">
-            <!-- Row 1: Date & Invoice Number -->
-            <div class="row mb-3">
-                <div class="col-md-4">
-                    {{ invoice_form.invoice_date }}
-                </div>
-                <div class="col-md-8">
-                    {{ invoice_form.invoice_number }}
-                </div>
-            </div>
-
-            <!-- Row 2: Customer Code, Name, GST -->
-            <div class="row mb-3">
-                <div class="col-md-3">
-                    {{ invoice_form.customer_code }}
-                </div>
-                <div class="col-md-6">
-                    {{ invoice_form.customer_name }}
-                </div>
-                <div class="col-md-3">
-                    {{ invoice_form.gst }}
-                </div>
-            </div>
-
-            <!-- Row 3: Address Bill To & Ship To -->
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    {{ invoice_form.customer_address_bill_to }}
-                </div>
-                <div class="col-md-6">
-                    {{ invoice_form.customer_address_ship_to }}
-                </div>
-            </div>
-
-            <!-- Row 4: Contact & Email -->
-            <div class="row mb-3">
-                <div class="col-md-4">
-                    {{ invoice_form.contact }}
-                </div>
-                <div class="col-md-8">
-                    {{ invoice_form.email }}
-                </div>
-            </div>
-
-            <!-- Row 5: Dispatched Through -->
-            <div class="row mb-3">
-                <div class="col-md-12">
-                    {{ invoice_form.dispatched_through }}
-                </div>
-            </div>
-
-<!-- <div class="group-box p-2 border rounded mb-2">
     <div class="row g-2 mb-1">
         <div class="col-md-6">
             <input type="date" name="invoice_date" class="form-control form-control-sm" placeholder="Invoice Date" required>
@@ -84,10 +29,14 @@
             <input type="text" name="invoice_number" class="form-control form-control-sm" placeholder="Invoice Number" required>
         </div>
     </div>
-</div> -->
+</div>
+
+
+ <!-- Customer Group -->
+<div class="group-box p-2 border rounded mb-2">
 
     <!-- First Row: Code, Name, GST -->
-    <!-- <div class="row g-2 mb-1">
+    <div class="row g-2 mb-1">
         <div class="col-md-3">
             <input type="text" name="customer_code" class="form-control form-control-sm" placeholder="Customer Code" required>
         </div>
@@ -97,20 +46,20 @@
         <div class="col-md-4">
             <input type="text" name="customer_gst" class="form-control form-control-sm" placeholder="GST">
         </div>
-    </div> -->
+    </div>
 
     <!-- Second Row: Address (Bill To & Ship To) -->
-    <!-- <div class="row g-2 mb-1">
+    <div class="row g-2 mb-1">
         <div class="col-md-6">
             <textarea name="customer_address_bill_to" class="form-control form-control-sm" rows="2" placeholder="Address (Bill To)"></textarea>
         </div>
         <div class="col-md-6">
             <textarea name="customer_address_ship_to" class="form-control form-control-sm" rows="2" placeholder="Address (Ship To)"></textarea>
         </div>
-    </div> -->
+    </div>
 
     <!-- Third Row: Contact & Email -->
-    <!-- <div class="row g-2 mb-1">
+    <div class="row g-2 mb-1">
         <div class="col-md-3">
             <input type="text" name="customer_contact" class="form-control form-control-sm" placeholder="Contact">
         </div>
@@ -118,17 +67,17 @@
             <input type="text" name="customer_email" class="form-control form-control-sm" placeholder="Email">
         </div>
     </div>
-</div> -->
+</div>
 
 
 <!-- Dispatch Field -->
-<!-- <div class="group-box p-2 border rounded mb-2">
+<div class="group-box p-2 border rounded mb-2">
     <div class="row g-2 mb-1">
         <div class="col-md-6">
             <input type="text" name="dispatched_through" class="form-control form-control-sm" placeholder="Dispatched Through">
         </div>
     </div>
-</div> -->
+</div>
 
 
   <!-- Invoice Items Group -->
