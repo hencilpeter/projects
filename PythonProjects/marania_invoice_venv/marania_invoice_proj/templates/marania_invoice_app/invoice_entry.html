@@ -14,7 +14,7 @@
 
     <!-- Button to open Add Invoice Form -->
     <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#customerForm" aria-expanded="false" aria-controls="customerForm">
-      Add Invoice
+      New Invoice
     </button>
 
     <!-- Collapsible Invoice Form -->
@@ -87,6 +87,8 @@
                 <th scope="col">Invoice #</th>
                 <th scope="col">Customer</th>
                 <th scope="col">Weight</th>
+                <th scope="col">Sub Total</th>
+                <th scope="col">Invoice Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -98,7 +100,21 @@
                   {% with invoice_item=invoiceitems|get_item:invoice.invoice_number %}
                     <td>
                       {% if invoice_item %}
-                        {{ invoice_item.item_quantity }}
+                        {{ invoice_item.weight }}
+                      {% else %}
+                        <span class="text-muted">0</span>
+                      {% endif %}
+                    </td>
+                     <td>
+                      {% if invoice_item %}
+                        {{ invoice_item.sub_total }}
+                      {% else %}
+                        <span class="text-muted">0</span>
+                      {% endif %}
+                    </td>
+                     <td>
+                      {% if invoice_item %}
+                        {{ invoice_item.invoice_amount }}
                       {% else %}
                         <span class="text-muted">0</span>
                       {% endif %}

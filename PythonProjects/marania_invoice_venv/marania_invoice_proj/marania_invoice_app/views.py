@@ -7,6 +7,7 @@ from collections import defaultdict,OrderedDict
 #from singleton import singleton
 import pdb
 
+from decimal import Decimal
 
 # @singleton
 class Configurations:
@@ -20,7 +21,32 @@ class Configurations:
         #self.config['IGST'] = configurations['IGST']
 
 
+########################################################-Helper Functions-############
+def invoice_summary():
+    invoice_items = InvoiceItem.objects.select_related('invoice').all()
+    invoice_summary = {}
 
+    for invoice_item in invoice_items:
+        invoice_number = invoice_item.invoice.invoice_number
+        invoice_amount = invoice_item.item_price * (Decimal(1.05))  # item price + 5%
+
+        if invoice_number not in invoice_summary:
+            invoice_summary[invoice_number] = {
+                'date': invoice_item.invoice.invoice_date,
+                'customer': invoice_item.invoice.customer_name,
+                'weight': invoice_item.item_quantity,
+                'sub_total': invoice_item.item_price,
+                'invoice_amount': invoice_amount
+            }
+        else:
+            summary = invoice_summary[invoice_number]
+            summary['weight'] += invoice_item.item_quantity
+            summary['sub_total'] += invoice_item.item_price
+            summary['invoice_amount'] += invoice_amount
+
+    return invoice_summary
+
+#################################
 
 # Create your views here.
 #@login_required
@@ -39,18 +65,18 @@ def customer(request):
 
 def invoice_entry(request):
     Invoices = Invoice.objects.all().order_by('-invoice_number')
-    InvoiceItems = InvoiceItem.objects.all()
-    invoice_dict = defaultdict()
-    for invoiceitem in InvoiceItems:
-        invoice_dict[invoiceitem.invoice.invoice_number] = invoiceitem
-    
-    #ordered_dict = OrderedDict(sorted(invoice_dict.items(), key=lambda x: x[0], reverse=False))
+    #InvoiceItems = InvoiceItem.objects.all()
+    #invoice_dict = defaultdict()
+    # Invoice Summary
+    # for invoiceitem in InvoiceItems:
+    #     invoice_dict[invoiceitem.invoice.invoice_number] = invoiceitem
 
+    summary_data = invoice_summary()
     context = {'invoice_form': forms.InvoiceForm() ,'invoice_item_form':forms.InvoiceItem(),
-               'invoices':Invoices, 'invoiceitems':invoice_dict}
+               'invoices':Invoices, 'invoiceitems':summary_data}
     return render(request, 'marania_invoice_app/invoice_entry.html', context)
 
-########################################################
+      
 
 
 
