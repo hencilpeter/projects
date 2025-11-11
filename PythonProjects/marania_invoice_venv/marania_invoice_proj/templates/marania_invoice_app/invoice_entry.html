@@ -7,6 +7,34 @@
 
 {% load dict_extras %}  <!-- load once at the top -->
 
+<style>
+.btn-3d-yellow {
+  background: linear-gradient(to bottom, #ffeb3b, #f9c60a) !important;
+  color: #212529 !important;
+  border: 1px solid #e0b800 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 0 #caa600, 0 6px 12px rgba(0, 0, 0, 0.15) !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease-in-out;
+  padding: 4px 10px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-3d-yellow:hover {
+  background: linear-gradient(to bottom, #ffe600, #f9b208) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #caa600, 0 10px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+.btn-3d-yellow:active {
+  background: linear-gradient(to bottom, #f9c60a, #d4a500) !important;
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #caa600 inset !important;
+}
+</style>
+
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
   <div class="container my-5">
 
@@ -20,7 +48,7 @@
     <!-- Collapsible Invoice Form -->
     <div class="collapse" id="customerForm">
       <!-- <div class="container border rounded p-4 mb-4 shadow-sm"> -->
-        <form method="POST" action="{% url 'save_invoice' %}">
+        <form method="POST" action="{% url 'invoice_save' %}">
           {% csrf_token %}
 
           <!-- Customer Group -->
@@ -35,7 +63,16 @@
 
               <!-- Row 2: Customer Code, Name, GST -->
               <div class="row mb-3">
-                <div class="col-md-3">{{ invoice_form.customer_code }}</div>
+                <div class="col-md-3">
+                  {{ invoice_form.customer_code }}
+                    <!-- The datalist options -->
+                      <datalist id="customer_code_list">
+                          {% for customer in customers %}
+                              <option value="{{ customer.code }}-{{ customer.name }}"></option>
+                          {% endfor %}
+                      </datalist>
+                </div>
+
                 <div class="col-md-6">{{ invoice_form.customer_name }}</div>
                 <div class="col-md-3">{{ invoice_form.customer_gst }}</div>
               </div>
@@ -89,6 +126,7 @@
                 <th scope="col">Weight</th>
                 <th scope="col">Sub Total</th>
                 <th scope="col">Invoice Amount</th>
+                <th scope="col">View Invoice</th>
               </tr>
             </thead>
             <tbody>
@@ -120,6 +158,16 @@
                       {% endif %}
                     </td>
                   {% endwith %}
+                  <!-- 🌈 Attractive View Button -->
+
+                  <td>
+                    <a href="javascript:void(0);" 
+                      onclick="openInvoicePopup('{{ invoice.invoice_number }}')" 
+                      class="btn btn-sm btn-secondary d-inline-flex align-items-center">
+                      <i class="bi bi-eye me-1"></i> View
+                    </a>
+                  </td>
+
                 </tr>
               {% endfor %}
             </tbody>
@@ -135,6 +183,32 @@
 
 <!-- JS Section -->
 <script>
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Find the input field connected to your datalist
+    const input = document.querySelector('input[list="customer_code_list"]');
+    const datalist = document.getElementById('customer_code_list');
+
+    if (input && datalist) {
+        input.addEventListener('input', function() {
+            const val = input.value;
+            const option = Array.from(datalist.options).find(o => o.value === val);
+
+            if (option) {
+                // If user selected a full "CODE-NAME" entry,
+                // trim it down to show only the CODE part.
+                const codeOnly = val.split('-')[0].trim();
+                input.value = codeOnly;
+            }
+        });
+    }
+});
+
+  function openInvoicePopup(invoiceNumber) {
+  const url = `/invoice/invoice_entry/view/${invoiceNumber}`;
+  window.open(url, 'InvoicePopup', 'width=1000,height=750,top=100,left=200,resizable=yes,scrollbars=yes');
+}
+
   // Customer autofill logic
   let customers = {
     "KKF": {

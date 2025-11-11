@@ -7,7 +7,9 @@ path('customer',views.customer, name='customer'),
 path('invoice_entry', views.invoice_entry, name='invoice_entry'),
 
 path('customer/add/', views.create_customer, name='create_customer'),
-path('invoice_entry/save', views.save_invoice, name='save_invoice'),
+path('invoice_entry/save', views.invoice_save, name='invoice_save'),
+path('invoice_entry/view/<str:invoice_number>', views.invoice_view, name='invoice_view'),
+
 # path('login',views.login, name='login'),
 # path('logout',views.logout, name='logout'),
 # path('dashboard',views.dashboard, name='dashboard'),

@@ -65,6 +65,7 @@ def customer(request):
 
 def invoice_entry(request):
     Invoices = Invoice.objects.all().order_by('-invoice_number')
+    Customers = Customer.objects.all()
     #InvoiceItems = InvoiceItem.objects.all()
     #invoice_dict = defaultdict()
     # Invoice Summary
@@ -72,8 +73,10 @@ def invoice_entry(request):
     #     invoice_dict[invoiceitem.invoice.invoice_number] = invoiceitem
 
     summary_data = invoice_summary()
+    customer_codes = ['CUST001', 'CUST002', 'CUST003', 'CUST004']
     context = {'invoice_form': forms.InvoiceForm() ,'invoice_item_form':forms.InvoiceItem(),
-               'invoices':Invoices, 'invoiceitems':summary_data}
+               'invoices':Invoices, 'invoiceitems':summary_data,
+               'customer_codes': customer_codes, 'customers':Customers}
     return render(request, 'marania_invoice_app/invoice_entry.html', context)
 
       
@@ -95,7 +98,7 @@ def create_customer(request):
     context = {'form': CustomerForm}
     return render(request, 'marania_invoice_app/customer.html', context)
 
-def save_invoice(request):
+def invoice_save(request):
     
     #pdb.set_trace()
 
@@ -136,4 +139,70 @@ def save_invoice(request):
     context = {'invoice_form': forms.InvoiceForm() ,'invoices':Invoices}
     return render(request, 'marania_invoice_app/invoice_entry.html', context)
 
+
+def invoice_view(request, invoice_number):
+    context = {
+        "company": {
+            "logo_url": "/static/images/logo.png",
+            "name": "SUN NETS",
+            "address": "33/N, HENTRY STREET, NAGERCOIL - 629001, KANNIYAKUMARI DISTRICT",
+            "gstin": "33ADJPL6559R1ZP",
+            "state_name": "Tamil Nadu",
+            "state_code": "33",
+            "contact": "9443389998",
+            "bank_name": "SUN NETS",
+            "bank_bank": "STATE BANK OF INDIA",
+            "bank_account": "67122303997",
+            "bank_branch": "KANYAKUMARI",
+            "ifsc": "SBIN0070013",
+        },
+        "invoice": {
+            "invoice_no": "2025-26/177",
+            "date": "3-Oct-25",
+            "delivery_note": "",
+            "payment_terms": "",
+            "reference_no": "",
+            "other_ref": "",
+            "order_no": "",
+            "order_date": "",
+            "dispatch_doc": "",
+            "delivery_date": "",
+            "dispatch_mode": "",
+            "destination": "",
+            "lr_no": "",
+            "vehicle_no": "TN75R4178",
+            "terms_delivery": "",
+            "subtotal": "47,667.19",
+            "cgst": "1,191.68",
+            "sgst": "1,191.68",
+            "round_off": "0.45",
+            "total": "₹50,051.00",
+            "tax_words": "INR Two Thousand Three Hundred Eighty Three and Thirty Six paise Only",
+            "amount_words": "INR Fifty Thousand Fifty One Only"
+        },
+        "consignee": {
+            "name": "Marania Filaments",
+            "address": "5/118a, Elavuvillai, Kilaattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari",
+            "gstin": "33AGAPJ9143P1Z4",
+            "state_name": "Tamil Nadu",
+            "state_code": "33"
+        },
+        "buyer": {
+            "name": "Marania Filaments",
+            "address": "5/118a, Elavuvillai, Kilaattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari",
+            "gstin": "33AGAPJ9143P1Z4",
+            "state_name": "Tamil Nadu",
+            "state_code": "33"
+        },
+        "items": [
+            {"packages": "1", "description": ".20DK/34MM/150MD", "hsn": "5608", "gst_rate": 5, "quantity": "50.700 KGS", "rate": "476.19", "unit": "KGS", "amount": "24,142.83"},
+            {"packages": "1", "description": ".20DK/36MM/150MD", "hsn": "5608", "gst_rate": 5, "quantity": "49.900 KGS", "rate": "471.43", "unit": "KGS", "amount": "23,524.36"},
+        ],
+        "taxes": [
+            {"hsn": "5608", "taxable_value": "47,667.19", "cgst_rate": 2.5, "cgst_amount": "1,191.68", "sgst_rate": 2.5, "sgst_amount": "1,191.68", "total_tax": "2,383.36"}
+        ]
+    }
+    
+    #Invoices = Invoice.objects.all()
+    return render(request, 'marania_invoice_app/invoice_view.html', context) 
 

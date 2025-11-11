@@ -27,6 +27,17 @@ class CustomerForm(forms.ModelForm):
         }
 
 class InvoiceForm(forms.ModelForm):
+  # CharField allows typing new values
+    customer_code = forms.CharField(
+        label='Customer Code',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control form-control-sm',
+            'placeholder': 'Hencil - Select or type customer code',
+            'list': 'customer_code_list',  # links to datalist id in HTML
+        }) 
+    )
+
+
     class Meta:
         model = Invoice
         fields = [
@@ -41,7 +52,7 @@ class InvoiceForm(forms.ModelForm):
             'customer_email',
             'dispatched_through'
         ]
-
+            
         widgets = {
             'invoice_date': forms.DateInput(attrs={
                 'type': 'date', 'class': 'form-control form-control-sm'
@@ -49,9 +60,9 @@ class InvoiceForm(forms.ModelForm):
             'invoice_number': forms.TextInput(attrs={
                 'class': 'form-control form-control-sm', 'placeholder': 'Invoice Number'
             }),
-            'customer_code': forms.TextInput(attrs={
-                'class': 'form-control form-control-sm', 'placeholder': 'Customer Code'
-            }),
+            # 'customer_code': forms.ComboField(attrs={
+            #      'class': 'form-control form-control-sm', 'placeholder': 'Customer Code'
+            # }),
             'customer_name': forms.TextInput(attrs={
                 'class': 'form-control form-control-sm', 'placeholder': 'Customer Name'
             }),
@@ -74,6 +85,21 @@ class InvoiceForm(forms.ModelForm):
                 'class': 'form-control form-control-sm', 'placeholder': 'Dispatched Through'
             }),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Preload existing customers in the dropdown
+        # self.fields['customer_code'].widget.choices = [
+        #     (c.code, f"{c.code} - {c.name}") for c in Customer.objects.all()
+        # ]
+        options_html = "".join(
+            [f"<option value='{c.code}'>{c.code} - {c.name}</option>" for c in Customer.objects.all()]
+        )
+        # Append datalist HTML to the widget's template
+        self.fields['customer_code'].widget.attrs['data-datalist'] = options_html
+
+
+
 
 class InvoiceItemForm(forms.ModelForm):
     class Meta:
