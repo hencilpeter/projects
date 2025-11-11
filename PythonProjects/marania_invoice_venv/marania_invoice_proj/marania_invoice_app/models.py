@@ -12,9 +12,6 @@ class Customer(models.Model):
     address_ship_to = models.TextField(null=True, blank=True)
     is_within_state = models.BooleanField(default=True)
     price_list_tag = models.CharField(max_length=50, null=True, blank=True)
-    default_delivery_transport = models.CharField(max_length=100, null=True, blank=True)
-    default_delivery_location = models.CharField(max_length=255, null=True, blank=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

@@ -1,6 +1,7 @@
 from django import forms
 from .models import Customer
 from .models import Invoice, InvoiceItem
+from .models import Transportation
 from django.forms import inlineformset_factory
 
 class CustomerForm(forms.ModelForm):
@@ -10,7 +11,8 @@ class CustomerForm(forms.ModelForm):
         fields = [
             'code', 'name', 'gst', 'phone', 'email',
             'address_bill_to', 'address_ship_to', 'is_within_state',
-            'price_list_tag', 'default_delivery_transport', 'default_delivery_location'
+            'price_list_tag'
+            #, 'default_delivery_transport', 'default_delivery_location'
         ]
         widgets = {
             'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Code'}),
@@ -22,8 +24,8 @@ class CustomerForm(forms.ModelForm):
             'address_ship_to': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Shipping address'}),
             'is_within_state': forms.Select(attrs={'class': 'form-select'}, choices=[(True, 'Yes'), (False, 'No')]),
             'price_list_tag': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Price List Tag'}),
-            'default_delivery_transport': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Delivery Transport'}),
-            'default_delivery_location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Delivery Location'}),
+            # 'default_delivery_transport': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Delivery Transport'}),
+            # 'default_delivery_location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Delivery Location'}),
         }
 
 class InvoiceForm(forms.ModelForm):
@@ -162,6 +164,34 @@ class InvoiceItemForm(forms.ModelForm):
             }),
         }
         
+
+class TransportationForm(forms.ModelForm):
+    class Meta:
+        model = Transportation
+        fields = ['vehicle_name', 'vehicle_number', 'delivery_place', 'transport_gst', 'is_default_transport']
+        widgets = {
+            'vehicle_name': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm vehicle-name',
+                'placeholder': 'Vehicle name'
+            }),
+            'vehicle_number': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm vehicle-number',
+                'placeholder': 'Vehicle number'
+            }),
+            'delivery_place': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm delivery-place',
+                'placeholder': 'Delivery place'
+            }),
+            'transport_gst': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm transport-gst',
+                'placeholder': 'Transport GST'
+            }),
+            'is_default_transport': forms.CheckboxInput(attrs={
+                'class': 'form-check-input is-default-transport'
+            }),
+        }
+
+
 # 👇 This creates a formset of items linked to an Invoice
 InvoiceItemFormSet = inlineformset_factory(
     Invoice, InvoiceItem,
