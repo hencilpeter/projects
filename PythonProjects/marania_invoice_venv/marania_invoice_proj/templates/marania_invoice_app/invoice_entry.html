@@ -73,7 +73,16 @@
                       </datalist>
                 </div>
 
-                <div class="col-md-6">{{ invoice_form.customer_name }}</div>
+                <div class="col-md-6">
+                  {{ invoice_form.customer_name }}
+                  <!-- The datalist options -->
+                      <datalist id="customer_name_list">
+                          {% for customer in customers %}
+                              <option value="{{ customer.name }}"></option>
+                          {% endfor %}
+                      </datalist>
+                </div>
+
                 <div class="col-md-3">{{ invoice_form.customer_gst }}</div>
               </div>
 
@@ -222,10 +231,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   const customerCodeInput = document.querySelector('input[name="customer_code"]');
   customerCodeInput.addEventListener('blur', function() {
-    const code = this.value.trim();
+    const code = this.value.toUpperCase().trim();
     if (!code) { alert("Customer code cannot be empty!"); return; }
     if (customers[code]) {
-      const c = customers[code];
+      const c = customers[code.toUpperCase()];
       document.querySelector('input[name="customer_name"]').value = c.name;
       document.querySelector('input[name="customer_gst"]').value = c.gst;
       document.querySelector('textarea[name="customer_address_bill_to"]').value = c.address.billTo;

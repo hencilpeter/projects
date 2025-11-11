@@ -32,11 +32,28 @@ class InvoiceForm(forms.ModelForm):
         label='Customer Code',
         widget=forms.TextInput(attrs={
             'class': 'form-control form-control-sm',
-            'placeholder': 'Hencil - Select or type customer code',
+            'placeholder': 'Customer Code',
             'list': 'customer_code_list',  # links to datalist id in HTML
         }) 
     )
 
+    customer_name = forms.CharField(
+        label='Customer Name',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control form-control-sm',
+            'placeholder': 'Customer Name',
+            'list': 'customer_name_list',  # links to datalist id in HTML
+        }) 
+    )
+
+    dispatched_through = forms.CharField(
+        label='Dispatched Through',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control form-control-sm',
+            'placeholder': 'Dispatched Through',
+            'list': 'dispatched_through_list',  # links to datalist id in HTML
+        }) 
+    )
 
     class Meta:
         model = Invoice
@@ -63,9 +80,9 @@ class InvoiceForm(forms.ModelForm):
             # 'customer_code': forms.ComboField(attrs={
             #      'class': 'form-control form-control-sm', 'placeholder': 'Customer Code'
             # }),
-            'customer_name': forms.TextInput(attrs={
-                'class': 'form-control form-control-sm', 'placeholder': 'Customer Name'
-            }),
+            # 'customer_name': forms.TextInput(attrs={
+            #     'class': 'form-control form-control-sm', 'placeholder': 'Customer Name'
+            # }),
             'customer_gst': forms.TextInput(attrs={
                 'class': 'form-control form-control-sm', 'placeholder': 'GST'
             }),
@@ -81,22 +98,22 @@ class InvoiceForm(forms.ModelForm):
             'customer_email': forms.EmailInput(attrs={
                 'class': 'form-control form-control-sm', 'placeholder': 'Email'
             }),
-            'dispatched_through': forms.TextInput(attrs={
-                'class': 'form-control form-control-sm', 'placeholder': 'Dispatched Through'
-            }),
+            # 'dispatched_through': forms.TextInput(attrs={
+            #     'class': 'form-control form-control-sm', 'placeholder': 'Dispatched Through'
+            # }),
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
         # Preload existing customers in the dropdown
         # self.fields['customer_code'].widget.choices = [
         #     (c.code, f"{c.code} - {c.name}") for c in Customer.objects.all()
         # ]
-        options_html = "".join(
-            [f"<option value='{c.code}'>{c.code} - {c.name}</option>" for c in Customer.objects.all()]
-        )
-        # Append datalist HTML to the widget's template
-        self.fields['customer_code'].widget.attrs['data-datalist'] = options_html
+        # options_html = "".join(
+        #     [f"<option value='{c.code}'>{c.code} - {c.name}</option>" for c in Customer.objects.all()]
+        # )
+        # # Append datalist HTML to the widget's template
+        # self.fields['customer_code'].widget.attrs['data-datalist'] = options_html
 
 
 

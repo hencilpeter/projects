@@ -56,6 +56,7 @@ class ProductPrice(models.Model):
 class Configuration(models.Model):
     name = models.CharField(max_length=100, unique=True, null=False, blank=False)
     value = models.CharField(max_length=255, null=True, blank=True)
+    category = models.CharField(max_length=255, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -114,3 +115,17 @@ class InvoiceItem(models.Model):
 
     def __str__(self):
         return f"{self.invoice.invoice_number or ''} - {self.invoice.customer_name or ''} -{self.item_description or ''} - {self.item_quantity or ''}"
+
+class Transportation(models.Model):
+    customer = models.ForeignKey(
+        Customer,
+        related_name='items',      # allows invoice.items.all()
+        on_delete=models.CASCADE,  # deletes items if invoice is deleted
+        to_field='code'  # optional: link by customer_code instead of id
+        )
+    vehicle_name = models.CharField(max_length=100, blank=True, null=True)
+    vehicle_number = models.CharField(max_length=50, blank=True, null=True)
+    delivery_place  = models.CharField(max_length=50, blank=True, null=True)
+    transport_gst = models.CharField(max_length=20, null=True, blank=True)
+    is_default_transport = models.BooleanField(default=False)
+

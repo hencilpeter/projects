@@ -11,6 +11,7 @@ admin.site.register(Configuration)
 admin.site.register(CustomerPriceMap)
 admin.site.register(Invoice)
 admin.site.register(InvoiceItem)
+admin.site.register(Transportation)
 
 
 
