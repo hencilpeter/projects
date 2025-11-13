@@ -116,13 +116,17 @@ class InvoiceItem(models.Model):
 class Transportation(models.Model):
     customer = models.ForeignKey(
         Customer,
-        related_name='items',      # allows invoice.items.all()
-        on_delete=models.CASCADE,  # deletes items if invoice is deleted
+        related_name='items',      # allows customer.items.all()
+        on_delete=models.CASCADE,  # deletes items if customer is deleted
         to_field='code'  # optional: link by customer_code instead of id
         )
-    vehicle_name = models.CharField(max_length=100, blank=True, null=True)
-    vehicle_number = models.CharField(max_length=50, blank=True, null=True)
     delivery_place  = models.CharField(max_length=50, blank=True, null=True)
-    transport_gst = models.CharField(max_length=20, null=True, blank=True)
+    transporter_name = models.CharField(max_length=100, null=True, blank=True)
+    transporter_gst = models.CharField(max_length=30, null=True, blank=True)
+    vehicle_name_number = models.CharField(max_length=100, blank=True, null=True)
     is_default_transport = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.customer.name} - {self.delivery_place}-{self.transporter_name}-{self.is_default_transport}"
+
 

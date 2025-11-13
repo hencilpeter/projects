@@ -168,28 +168,29 @@ class InvoiceItemForm(forms.ModelForm):
 class TransportationForm(forms.ModelForm):
     class Meta:
         model = Transportation
-        fields = ['vehicle_name', 'vehicle_number', 'delivery_place', 'transport_gst', 'is_default_transport']
+        fields = ['delivery_place', 'transporter_name', 'transporter_gst',  'vehicle_name_number', 'is_default_transport']
         widgets = {
-            'vehicle_name': forms.TextInput(attrs={
-                'class': 'form-control form-control-sm vehicle-name',
-                'placeholder': 'Vehicle name'
-            }),
-            'vehicle_number': forms.TextInput(attrs={
-                'class': 'form-control form-control-sm vehicle-number',
-                'placeholder': 'Vehicle number'
-            }),
-            'delivery_place': forms.TextInput(attrs={
+             'delivery_place': forms.TextInput(attrs={
                 'class': 'form-control form-control-sm delivery-place',
                 'placeholder': 'Delivery place'
             }),
-            'transport_gst': forms.TextInput(attrs={
-                'class': 'form-control form-control-sm transport-gst',
-                'placeholder': 'Transport GST'
+            'transporter_name': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm transporter-name',
+                'placeholder': 'Transporter Name'
+            }),
+            'transporter_gst': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm transporter-gst',
+                'placeholder': 'Transporter GST'
+            }),
+            'vehicle_name_number': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm vehicle-name-number',
+                'placeholder': 'Vehicle Name & Number'
             }),
             'is_default_transport': forms.CheckboxInput(attrs={
                 'class': 'form-check-input is-default-transport'
             }),
         }
+
 
 
 # 👇 This creates a formset of items linked to an Invoice

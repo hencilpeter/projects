@@ -2,10 +2,12 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from . import forms
 from .forms import CustomerForm, InvoiceForm
-from .models import Customer, Configuration, Invoice,InvoiceItem
+from .models import Customer, Configuration, Invoice,InvoiceItem, Transportation
 from collections import defaultdict,OrderedDict
 #from singleton import singleton
 import pdb
+import json
+from django.utils.html import escapejs
 
 from decimal import Decimal
 
@@ -66,31 +68,75 @@ def customer(request):
 def invoice_entry(request):
     Invoices = Invoice.objects.all().order_by('-invoice_number')
     Customers = Customer.objects.all()
+    customer_dict = defaultdict(lambda:-1)
+    transporter_dict = defaultdict(lambda:-1)
+    
+    # customer details 
+    for customer in Customer.objects.all():
+        customer_dict[customer.code] = {'name':customer.name, 'gst':customer.gst, 'phone':customer.phone, 'email':customer.email, 
+                                        'address_bill_to':customer.address_bill_to, 'address_ship_to':customer.address_ship_to,
+                                        'is_within_state':customer.is_within_state,'price_list_tag':customer.price_list_tag}
+    
+    # transportation details 
+    for transporter in Transportation.objects.all():
+        code = transporter.customer.code 
+        transporter_dict_temp = {'delivery_place':transporter.delivery_place, 'transporter_name':transporter.transporter_name,
+                            'transporter_gst':transporter.transporter_gst, 'vehicle_name_number':transporter.vehicle_name_number,
+                            'is_default_transport':transporter.is_default_transport}
+
+        if code not in transporter_dict:
+            transporter_dict[code] = [transporter_dict_temp]
+        else:
+            transporter_dict[code].append(transporter_dict_temp)
+
     #InvoiceItems = InvoiceItem.objects.all()
     #invoice_dict = defaultdict()
     # Invoice Summary
     # for invoiceitem in InvoiceItems:
     #     invoice_dict[invoiceitem.invoice.invoice_number] = invoiceitem
 
+
     summary_data = invoice_summary()
-    customer_codes = ['CUST001', 'CUST002', 'CUST003', 'CUST004']
-    context = {'invoice_form': forms.InvoiceForm() ,'invoice_item_form':forms.InvoiceItem(),
+    context = {'invoice_form': forms.InvoiceForm() , #'invoice_item_form':forms.InvoiceItem(),
                'invoices':Invoices, 'invoiceitems':summary_data,
-               'customer_codes': customer_codes, 'customers':Customers}
+               'customers':Customers, 'customer_dict': json.dumps(customer_dict),
+               'transporter_dict':json.dumps(transporter_dict)}
+    
     return render(request, 'marania_invoice_app/invoice_entry.html', context)
 
       
-
-
-
-
 ############################-Functions-###################################
+from django.contrib import messages
 
 def create_customer(request):
     if request.method == 'POST':
         form = CustomerForm(request.POST)  # Bind POST data to the form
         if form.is_valid():                # Validate the data
-            form.save()                    # Save the form to the database
+            customer_instance = form.save()                    # Save the form to the database
+            # save transportation details 
+            delivery_place_list = request.POST.getlist('delivery_place[]')
+            transporter_name_list = request.POST.getlist('transporter_name[]')
+            transporter_gst_list = request.POST.getlist('transporter_gst[]')
+            vehicle_name_number_list = request.POST.getlist('vehicle_name_number[]')
+            default_transport_index = request.POST.get('default_transport')
+            transporter_list = []
+
+            for index in range(len(delivery_place_list)):
+                if delivery_place_list[index].strip():
+                    # Only mark as True if checkbox was checked
+                    is_default = (str(index) == default_transport_index)
+
+                    transporter_list.append(Transportation(customer=customer_instance,               
+                            delivery_place=delivery_place_list[index],
+                            transporter_name=transporter_name_list[index],
+                            transporter_gst=transporter_gst_list[index],
+                            vehicle_name_number=vehicle_name_number_list[index],
+                            is_default_transport=is_default,
+                            ))
+                    
+            if (len(transporter_list) > 0):
+                Transportation.objects.bulk_create(transporter_list)    # save the transporter items     
+
             return redirect('customer')  # Redirect after save
     else:
         form = CustomerForm()  # Empty form for GET request
@@ -107,7 +153,7 @@ def invoice_save(request):
         if form.is_valid():                # Validate the data
             invoice_instance  = form.save()                    # Save the form to the database
 
-              #invoice items 
+            #invoice items 
             item_spec_list = request.POST.getlist('item_spec[]')
             item_code_list = request.POST.getlist('item_code[]')
             item_description_list = request.POST.getlist('item_description[]')

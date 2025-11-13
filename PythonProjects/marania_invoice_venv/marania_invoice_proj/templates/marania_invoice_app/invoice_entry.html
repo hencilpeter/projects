@@ -2,7 +2,6 @@
 {% load static %}
 {% load crispy_forms_tags %}
 
-
 {% block main %}
 
 {% load dict_extras %}  <!-- load once at the top -->
@@ -99,9 +98,18 @@
               </div>
 
               <!-- Row 5: Dispatched Through -->
-              <div class="row mb-3">
+               <div class="row mb-3">
+                <div class="col-md-12">
+                  {{ invoice_form.dispatched_through }}
+                  <datalist id="dispatched_through_list"></datalist>
+                </div>
+                </div>
+
+              <!-- <div class="row mb-3">
                 <div class="col-md-12">{{ invoice_form.dispatched_through }}</div>
-              </div>
+                    <datalist id="dispatched_through_list">
+                    </datalist> 
+              </div> -->
 
               <!-- Invoice Items Group -->
               <div class="group-box mb-3">
@@ -190,9 +198,12 @@
   </div> <!-- container -->
 </main>
 
+<!-- Safely embed the dictionary -->
+<!-- {{ customer_dict|json_script:"customer-data" }} -->
+
 <!-- JS Section -->
 <script>
-
+console.log("TEST TEST TEST")
 document.addEventListener('DOMContentLoaded', function() {
     // Find the input field connected to your datalist
     const input = document.querySelector('input[list="customer_code_list"]');
@@ -218,29 +229,46 @@ document.addEventListener('DOMContentLoaded', function() {
   window.open(url, 'InvoicePopup', 'width=1000,height=750,top=100,left=200,resizable=yes,scrollbars=yes');
 }
 
-  // Customer autofill logic
-  let customers = {
-    "KKF": {
-      name: "KK Fishnets",
-      gst: "GSTKK1234",
-      address: { billTo: "Manavalakurichi, KK District", shipTo: "Manavalakurichi, KK District" },
-      contact: "90909090875",
-      email: "kkf@gmail.com"
-    }
-  };
-
   const customerCodeInput = document.querySelector('input[name="customer_code"]');
   customerCodeInput.addEventListener('blur', function() {
     const code = this.value.toUpperCase().trim();
     if (!code) { alert("Customer code cannot be empty!"); return; }
-    if (customers[code]) {
-      const c = customers[code.toUpperCase()];
-      document.querySelector('input[name="customer_name"]').value = c.name;
-      document.querySelector('input[name="customer_gst"]').value = c.gst;
-      document.querySelector('textarea[name="customer_address_bill_to"]').value = c.address.billTo;
-      document.querySelector('textarea[name="customer_address_ship_to"]').value = c.address.shipTo;
-      document.querySelector('input[name="customer_contact"]').value = c.contact;
-      document.querySelector('input[name="customer_email"]').value = c.email;
+
+     // Read and parse it back into a JavaScript object
+    const customerData = JSON.parse('{{ customer_dict|escapejs }}');
+    if (customerData[code]) {
+      document.querySelector('input[name="customer_name"]').value = customerData[code].name;
+      document.querySelector('input[name="customer_gst"]').value = customerData[code].gst;
+      document.querySelector('textarea[name="customer_address_bill_to"]').value = customerData[code].address_bill_to;
+      document.querySelector('textarea[name="customer_address_ship_to"]').value = customerData[code].address_ship_to;
+      document.querySelector('input[name="customer_contact"]').value = customerData[code].phone;
+      document.querySelector('input[name="customer_email"]').value = customerData[code].email;
+
+      // populate dispatched through control 
+      const transporter_dict = JSON.parse('{{ transporter_dict|escapejs }}');
+      const dispatched_through = document.getElementById('dispatched_through');
+      const datalist = document.getElementById('dispatched_through_list');
+
+      datalist.innerHTML = '';
+      let defaultValue = '';
+      if (transporter_dict[code]) {
+        currentIndex = -1 ;
+        defaultIndex = -1;
+        transporter_dict[code].forEach(item => {
+        currentIndex = currentIndex + 1;
+        const option = document.createElement('option');
+        option.value = `${item.transporter_name} ( ${item.delivery_place} ) ` ; //item.transporter_name;
+
+        datalist.appendChild(option);
+        if ( item.is_default_transport ) {
+               defaultValue = option.value;
+        }
+      });
+
+      document.querySelector('input[name="dispatched_through"]').value = defaultValue;
+
+      }
+
     }
   });
 

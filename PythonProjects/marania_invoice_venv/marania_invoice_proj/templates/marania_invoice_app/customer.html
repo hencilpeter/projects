@@ -145,6 +145,19 @@
 
  <script>
   let rowIndex = -1;
+
+
+  document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('default-transport-checkbox')) {
+    const row = e.target.closest('.transport-row');
+    const hiddenInput = row.querySelector('.default-transport-hidden');
+
+    // Set value to 1 if checked, 0 if unchecked
+    hiddenInput.value = e.target.checked ? '1' : '1';
+  }
+});
+
+
   const container = document.getElementById('item-container');
   document.getElementById('add-item').addEventListener('click', function() {
     rowIndex++;
@@ -162,11 +175,11 @@
     </div>
     
     <div class="flex-fill">
-      <input type="text" name="transport_gst[]" class="form-control form-control-sm" placeholder="Transporter Name">
+      <input type="text" name="transporter_name[]" class="form-control form-control-sm" placeholder="Transporter Name">
     </div>
 
     <div class="flex-fill">
-      <input type="text" name="transport_gst[]" class="form-control form-control-sm" placeholder="Transporter GST">
+      <input type="text" name="transporter_gst[]" class="form-control form-control-sm" placeholder="Transporter GST">
     </div>
 
     <div class="flex-fill">
@@ -175,12 +188,15 @@
     
 
     <!-- Default transport radio button with label -->
-    <div class="flex-fill d-flex align-items-center justify-content-center">
-      <label class="mb-0">
-        <input type="radio" name="default_transport" class="form-check-input me-1">
-        Default Transport
+    <div class="d-flex align-items-center">
+    <label class="mb-0">
+                <!-- Radio button (same name for all rows) -->
+                <input type="radio" name="default_transport" value="${rowIndex}" class="form-check-input">
+                     Default Transport
       </label>
-    </div>
+            </div>
+
+
   </div>
 
   <!-- Buttons: aligned next to inputs -->
@@ -208,7 +224,6 @@
 
 });
 
-
  container.addEventListener('click', function(e){
     if(e.target.classList.contains('delete-item')){
       e.target.closest('.item-row').remove();
@@ -226,62 +241,6 @@
 
     }
   });
-
-
-//       // Enable lost focus event
-//   row.querySelector('.item-spec').addEventListener('blur', function () {
-//     const index = row.dataset.index;  // reads data-index
-//     console.log("Current index:", index)
-//     const message = this.parentElement.querySelector('.spec-message');
-//       current_item_spec = document.getElementsByName('item_spec[]')[index].value;
-
-//       // Split the string by '/'
-//     const parts = current_item_spec.split('/');
-
-//     quantity = 0;
-//     price = 0; 
-//     gst_percentage = 5/100;
-//     gst_amount = 0
-//     total_amount = 0
-//     if (parts.length >= 5){
-//       if ( (parts.length == 5) && (parts[0].startsWith("DK16") || parts[0].startsWith("DK20")))
-//       {
-//          document.getElementsByName('item_description[]')[index].value = "Mono Filament Fishnet"; 
-//       }
-//       else if (parts[0].startsWith("DK16") || parts[0].startsWith("DK20")) {
-//               document.getElementsByName('item_description[]')[index].value = "Mono Filament Fishnet ( " + parts[5] + " )";
-//           }  
-//     }
-
-//     if (parts.length >= 4){
-//       document.getElementsByName('item_price[]')[index].value =  parts[4] ;
-//       price = parts[4] ;
-//     }
-
-//     if (parts.length >= 3){
-//      document.getElementsByName('item_quantity[]')[index].value = parts[3];
-//      quantity = parts[3];
-//     }
-
-//     if (parts.length >= 2){
-//       document.getElementsByName('item_mesh_depth[]')[index].value = parts[2];
-//     }
-     
-//     if (parts.length >= 1){
-//       document.getElementsByName('item_mesh_size[]')[index].value = parts[1];
-//     }
-
-//     if (parts.length >= 0){
-//       document.getElementsByName('item_code[]')[index].value = parts[0];
-//     }
-
-//     gst_amount = (quantity * price ) * gst_percentage;
-//     total_amount = (quantity * price ) + gst_amount
-//     document.getElementsByName('item_gst[]')[index].value = gst_amount;
-//     document.getElementsByName('item_final_price[]')[index].value = total_amount;
-//     document.getElementsByName('item_hsn[]')[index].value = "5808";
-
-// })
 
     container.appendChild(row);
   });
