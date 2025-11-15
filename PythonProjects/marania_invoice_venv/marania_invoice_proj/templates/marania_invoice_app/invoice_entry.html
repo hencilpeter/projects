@@ -368,32 +368,50 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log("item code" + item_code);
       console.log("price_dict" + price_dict);
 
-      if (price_dict[item_code])
+      if (price_dict[item_code] &&  parts[4] == "")
       {
-        console.log("price dict has value fro the code");
-        console.log("price dict for the item code : "+price_dict[item_code])
-        console.log("customer data: "+JSON.stringify(customerdata.price_list_tag))
-        console.log("price list tag : "+JSON.stringify(price_dict[item_code][customerdata.price_list_tag]))
+        // console.log("price dict has value fro the code");
+        // console.log("price dict for the item code : "+price_dict[item_code])
+        // console.log("customer data: "+JSON.stringify(customerdata.price_list_tag))
+        // console.log("price list tag : "+JSON.stringify(price_dict[item_code][customerdata.price_list_tag]))
 
           if (price_dict[item_code][customerdata.price_list_tag]){
-            const mesh_size = document.getElementsByName('item_mesh_size[]')[index].value;
+            const mesh_size = Number(document.getElementsByName('item_mesh_size[]')[index].value);
             customer_price_dict = price_dict[item_code][customerdata.price_list_tag];
             
             console.log("customer_price_dict Data:", JSON.stringify(customer_price_dict));
-            
+            customer_price_dict.forEach(item => {
+              // Each item is an object with a single key
+              const key = Object.keys(item)[0];   // e.g. "15-16"
+              const value = Object.values(item)[0]; // e.g. "810.00"
+
+              // Split the key if needed
+              const parts = key.split("-"); // ["15", "16"]
+              const start = Number(parts[0]);
+              const end = parts[1] == '999' ? Infinity: Number(parts[1]); 
+              //Number(parts[1]);
+              const product_price = Number(value);
+              if ( mesh_size >= start && (mesh_size <= end) ) {
+                price = product_price; 
+                document.getElementsByName('item_price[]')[index].value = price;
+                console.log(`configured price selected : ${price}`);
+              }
+              else{
+                console.log(`price not configured for this item.`);
+              }
+
+              //console.log(`Start: ${start}, End: ${end}, Price: ${price}`);
+          });
+           
           }
       }
       
-     
-      // if (price_dict[code]) {
 
     }
     
-
-
-
     gst_amount = (quantity * price ) * gst_percentage;
-    total_amount = (quantity * price ) + gst_amount
+    total_amount = (quantity * price ) + gst_amount;
+    console.log(`Price: ${price}`);
     document.getElementsByName('item_gst[]')[index].value = gst_amount;
     document.getElementsByName('item_final_price[]')[index].value = total_amount;
     document.getElementsByName('item_hsn[]')[index].value = "5808";

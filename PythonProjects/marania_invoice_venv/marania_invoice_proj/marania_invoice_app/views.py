@@ -9,7 +9,7 @@ import pdb
 import json
 from django.utils.html import escapejs
 
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN
 
 # @singleton
 class Configurations:
@@ -26,6 +26,24 @@ class Configurations:
 def get_invoices_dict():
     invoice_items = InvoiceItem.objects.select_related('invoice').all()
     invoices = Invoice.objects.all()
+    
+    invoice_dict = defaultdict(lambda:-1)
+    invice_item_dict = defaultdict(lambda:-1)
+    for invoice_item in invoice_items:
+        if invoice_item.invoice.invoice_number not in invice_item_dict:
+            invice_item_dict[invoice_item.invoice.invoice_number] = [invoice_item]
+        else:
+            invice_item_dict[invoice_item.invoice.invoice_number].append(invoice_item)
+
+    for invoice in invoices:
+        invoice_dict[invoice.invoice_number]={
+                    "invoice_date": invoice.invoice_date,"customer_code":invoice.customer_code,"customer_name":invoice.customer_name,
+                    "customer_gst":invoice.customer_gst,"customer_address_bill_to":invoice.customer_address_bill_to,
+                    "customer_address_ship_to":invoice.customer_address_ship_to,"customer_contact":invoice.customer_contact,"customer_email":invoice.customer_email, 
+                    "invoice_items":invice_item_dict[invoice.invoice_number]}
+    
+    return invoice_dict
+   
 
 ########################################################-Helper Functions-############
 
@@ -107,10 +125,11 @@ def invoice_entry(request):
     print(price_dict)
 
     summary_data = invoice_summary()
-    context = {'invoice_form': forms.InvoiceForm() , #'invoice_item_form':forms.InvoiceItem(),
+    context = {'invoice_form': forms.InvoiceForm() , 
                'invoices':Invoices, 'invoiceitems':summary_data,
                'customers':Customers, 'customer_dict': json.dumps(customer_dict),
-               'transporter_dict':json.dumps(transporter_dict), 'price_dict':json.dumps(price_dict)}
+               'transporter_dict':json.dumps(transporter_dict), 'price_dict':json.dumps(price_dict)
+               }
     
     return render(request, 'marania_invoice_app/invoice_entry.html', context)
 
@@ -197,24 +216,73 @@ def invoice_save(request):
 
 
 def invoice_view(request, invoice_number):
-    context = {
-        "company": {
-            "logo_url": "/static/images/marania_eagle_logo.png",
-            "name": "MARANIA FILAMENTS", # TODO
-            "address": "5/118a, Elavuvillai, Kilaattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari", # TODO
-            "gstin": "33AGAPJ9143P1Z4",
+    invoice_dict = get_invoices_dict()
+    if invoice_dict[invoice_number] == -1:
+        context = {}
+        return  render(request, 'marania_invoice_app/invoice_view.html', context) 
+
+    invoice_data_dict = defaultdict(lambda:-1)
+    print("Invoice Date ########################"+str(invoice_dict[invoice_number]["invoice_date"]))
+    #print(invoice_dict[invoice_number])
+
+    #company details 
+    company_dict = {"logo_url": "/static/images/marania_eagle_logo.png",
+                      "name": "MARANIA FILAMENTS", # TODO
+                    "address": "5/118a, Elavuvillai, Kilaattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari", # TODO
+                    "gstin": "33AGAPJ9143P1Z4",
+                    "state_name": "Tamil Nadu",
+                    "state_code": "33",
+                    "contact": "94898 58997,94877 86997",
+                    "bank_name": "MARANIA FILAMENTS",
+                    "bank_bank": "ICICI ",
+                    "bank_account": "250105500252",
+                    "bank_branch": "VETTURNIMADAM,NAGERCOIL",
+                    "ifsc": "ICIC0002501",
+                    }
+    
+    consignee_dict= {
+            "name": invoice_dict[invoice_number]["customer_name"],
+            "address": invoice_dict[invoice_number]["customer_address_bill_to"],
+            "gstin": invoice_dict[invoice_number]["customer_gst"],
             "state_name": "Tamil Nadu",
-            "state_code": "33",
-            "contact": "94898 58997,94877 86997",
-            "bank_name": "SUN NETS",
-            "bank_bank": "STATE BANK OF INDIA",
-            "bank_account": "67122303997",
-            "bank_branch": "KANYAKUMARI",
-            "ifsc": "SBIN0070013",
-        },
-        "invoice": {
+            "state_code": "33"
+        }
+    
+    buyer_dict= {
+            "name": invoice_dict[invoice_number]["customer_name"],
+            "address": invoice_dict[invoice_number]["customer_address_ship_to"],
+            "gstin": invoice_dict[invoice_number]["customer_gst"],
+            "state_name": "Tamil Nadu",
+            "state_code": "33"
+        }
+    invoice_items = invoice_dict[invoice_number]["invoice_items"]
+    items= [
+            # {"packages": "1", "description": ".20DK/34MM/150MD", "hsn": "5608", "gst_rate": 5, "quantity": "50.700 KGS", "rate": "476.19", "unit": "KGS", "amount": "24,142.83"},
+            # {"packages": "1", "description": ".20DK/36MM/150MD", "hsn": "5608", "gst_rate": 5, "quantity": "49.900 KGS", "rate": "471.43", "unit": "KGS", "amount": "23,524.36"},
+        ]
+    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+    print(invoice_items)
+    sub_total = 0
+    for invoice_item in invoice_items:
+        amount = invoice_item.item_quantity * invoice_item.item_price 
+        amount = Decimal(amount).quantize(Decimal("0.00"), rounding=ROUND_DOWN)
+        sub_total += amount
+        items.append({"packages": "1", "description": invoice_item.item_code,"hsn": "5608", "gst_rate": 5, "quantity": str(invoice_item.item_quantity) + " KGS", 
+                      "rate": invoice_item.item_price, "unit": "KGS", "amount": amount})
+        
+
+    taxes= [
+            {"hsn": "5608", "taxable_value": "47,667.19", "cgst_rate": 2.5, "cgst_amount": "1,191.68", "sgst_rate": 2.5, "sgst_amount": "1,191.68", "total_tax": "2,383.36"}
+        ]
+
+    cgst = Decimal(Decimal(sub_total) * Decimal(.025)).quantize(Decimal("0.00"), rounding=ROUND_DOWN)
+    sgst = Decimal(Decimal(sub_total) * Decimal(.025)).quantize(Decimal("0.00"), rounding=ROUND_DOWN)
+    total = sub_total + cgst + sgst
+    tax_words =""
+    amount_words = ""
+    invoice= {
             "invoice_no": invoice_number,
-            "date": "3-Oct-25",
+            "date": invoice_dict[invoice_number]["invoice_date"],
             "delivery_note": "",
             "payment_terms": "",
             "reference_no": "",
@@ -228,36 +296,77 @@ def invoice_view(request, invoice_number):
             "lr_no": "",
             "vehicle_no": "TN75R4178",
             "terms_delivery": "",
-            "subtotal": "47,667.19",
-            "cgst": "1,191.68",
-            "sgst": "1,191.68",
+            "subtotal": sub_total ,
+            "cgst": cgst,
+            "sgst": sgst,
             "round_off": "0.45",
-            "total": "₹50,051.00",
+            "total": total,
             "tax_words": "INR Two Thousand Three Hundred Eighty Three and Thirty Six paise Only",
-            "amount_words": "INR Fifty Thousand Fifty One Only"
-        },
-        "consignee": {
-            "name": "Marania Filaments",
-            "address": "5/118a, Elavuvillai, Kilaattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari",
-            "gstin": "33AGAPJ9143P1Z4",
-            "state_name": "Tamil Nadu",
-            "state_code": "33"
-        },
-        "buyer": {
-            "name": "Marania Filaments",
-            "address": "5/118a, Elavuvillai, Kilaattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari",
-            "gstin": "33AGAPJ9143P1Z4",
-            "state_name": "Tamil Nadu",
-            "state_code": "33"
-        },
-        "items": [
-            {"packages": "1", "description": ".20DK/34MM/150MD", "hsn": "5608", "gst_rate": 5, "quantity": "50.700 KGS", "rate": "476.19", "unit": "KGS", "amount": "24,142.83"},
-            {"packages": "1", "description": ".20DK/36MM/150MD", "hsn": "5608", "gst_rate": 5, "quantity": "49.900 KGS", "rate": "471.43", "unit": "KGS", "amount": "23,524.36"},
-        ],
-        "taxes": [
-            {"hsn": "5608", "taxable_value": "47,667.19", "cgst_rate": 2.5, "cgst_amount": "1,191.68", "sgst_rate": 2.5, "sgst_amount": "1,191.68", "total_tax": "2,383.36"}
-        ]
-    }
+            "amount_words": "INR Fifty Thousand Fifty One Only"}
+    context = {"company":company_dict, "invoice":invoice, "consignee":consignee_dict, "buyer":buyer_dict, "items":items,"taxes":taxes}
+
+
+    # context = {
+    #     "company": {
+    #         "logo_url": "/static/images/marania_eagle_logo.png",
+    #         "name": "MARANIA FILAMENTS", # TODO
+    #         "address": "5/118a, Elavuvillai, Kilaattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari", # TODO
+    #         "gstin": "33AGAPJ9143P1Z4",
+    #         "state_name": "Tamil Nadu",
+    #         "state_code": "33",
+    #         "contact": "94898 58997,94877 86997",
+    #         "bank_name": "SUN NETS",
+    #         "bank_bank": "STATE BANK OF INDIA",
+    #         "bank_account": "67122303997",
+    #         "bank_branch": "KANYAKUMARI",
+    #         "ifsc": "SBIN0070013",
+    #     },
+    #     "invoice": {
+    #         "invoice_no": invoice_number,
+    #         "date": "3-Oct-25",
+    #         "delivery_note": "",
+    #         "payment_terms": "",
+    #         "reference_no": "",
+    #         "other_ref": "",
+    #         "order_no": "",
+    #         "order_date": "",
+    #         "dispatch_doc": "",
+    #         "delivery_date": "",
+    #         "dispatch_mode": "",
+    #         "destination": "",
+    #         "lr_no": "",
+    #         "vehicle_no": "TN75R4178",
+    #         "terms_delivery": "",
+    #         "subtotal": "47,667.19",
+    #         "cgst": "1,191.68",
+    #         "sgst": "1,191.68",
+    #         "round_off": "0.45",
+    #         "total": "₹50,051.00",
+    #         "tax_words": "INR Two Thousand Three Hundred Eighty Three and Thirty Six paise Only",
+    #         "amount_words": "INR Fifty Thousand Fifty One Only"
+    #     },
+    #     "consignee": {
+    #         "name": "Marania Filaments",
+    #         "address": "5/118a, Elavuvillai, Kilaattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari",
+    #         "gstin": "33AGAPJ9143P1Z4",
+    #         "state_name": "Tamil Nadu",
+    #         "state_code": "33"
+    #     },
+    #     "buyer": {
+    #         "name": "Marania Filaments",
+    #         "address": "5/118a, Elavuvillai, Kilaattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari",
+    #         "gstin": "33AGAPJ9143P1Z4",
+    #         "state_name": "Tamil Nadu",
+    #         "state_code": "33"
+    #     },
+    #     "items": [
+    #         {"packages": "1", "description": ".20DK/34MM/150MD", "hsn": "5608", "gst_rate": 5, "quantity": "50.700 KGS", "rate": "476.19", "unit": "KGS", "amount": "24,142.83"},
+    #         {"packages": "1", "description": ".20DK/36MM/150MD", "hsn": "5608", "gst_rate": 5, "quantity": "49.900 KGS", "rate": "471.43", "unit": "KGS", "amount": "23,524.36"},
+    #     ],
+    #     "taxes": [
+    #         {"hsn": "5608", "taxable_value": "47,667.19", "cgst_rate": 2.5, "cgst_amount": "1,191.68", "sgst_rate": 2.5, "sgst_amount": "1,191.68", "total_tax": "2,383.36"}
+    #     ]
+    # }
     
     #Invoices = Invoice.objects.all()
     return render(request, 'marania_invoice_app/invoice_view.html', context) 
