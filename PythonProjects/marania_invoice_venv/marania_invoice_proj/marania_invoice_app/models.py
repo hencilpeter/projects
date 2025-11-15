@@ -19,36 +19,21 @@ class Customer(models.Model):
         return f"{self.name} ({self.code})"
     
 
-class Product(models.Model):
-    code = models.CharField(max_length=50, unique=True, null=False, blank=False)
-    name = models.CharField(max_length=255, null=False, blank=False)
-    display_name = models.CharField(max_length=255, null=True, blank=True)
-    hsn = models.CharField(max_length=10, null=True, blank=True)
-    category = models.CharField(max_length=100, null=True, blank=True)
-    description = models.TextField(null=True, blank=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    is_active = models.BooleanField(default=True)
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.display_name or self.name} ({self.code})"
 
     
-class ProductPrice(models.Model):
-    code = models.CharField(max_length=50, unique=True, null=False, blank=False)
-    category = models.CharField(max_length=100, null=False, blank=False)
-    meshsize_start = models.IntegerField(null=True, blank=True)
-    meshsize_end = models.IntegerField(null=True, blank=True)
-    price_per_kilogram = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
-    remark = models.TextField(null=True, blank=True)
+# class ProductPrice(models.Model):
+#     code = models.CharField(max_length=50, unique=True, null=False, blank=False)
+#     category = models.CharField(max_length=100, null=False, blank=False)
+#     meshsize_start = models.IntegerField(null=True, blank=True)
+#     meshsize_end = models.IntegerField(null=True, blank=True)
+#     price_per_kilogram = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
+#     remark = models.TextField(null=True, blank=True)
 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return f"{self.code} - {self.category}"
+#     def __str__(self):
+#         return f"{self.code} - {self.category}"
 
 class Configuration(models.Model):
     name = models.CharField(max_length=100, unique=True, null=False, blank=False)
@@ -130,3 +115,50 @@ class Transportation(models.Model):
         return f"{self.customer.name} - {self.delivery_place}-{self.transporter_name}-{self.is_default_transport}"
 
 
+
+class Product(models.Model):
+    code = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=200)
+    display_name = models.CharField(max_length=200, blank=True, null=True)
+    hsn = models.CharField(max_length=20, blank=True, null=True)
+
+    cgst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    sgst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    igst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+
+    description = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+class PriceList(models.Model):
+    product = models.ForeignKey(
+        Product,
+        related_name='items',      # allows product.items.all()
+        on_delete=models.CASCADE,  # deletes items if product is deleted
+        to_field='code'  # optional: link by product_code instead of id
+        )
+    code = models.CharField(max_length=50)
+    customer_group = models.CharField(max_length=100)
+    sequence_id = models.PositiveIntegerField()
+    twine_code = models.CharField(max_length=50)
+    mesh_size_start = models.CharField(max_length=5) # models.DecimalField(max_digits=10, decimal_places=2)
+    mesh_size_end =   models.CharField(max_length=5) # models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    is_active = models.BooleanField(default=True)
+    note = models.TextField(blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Price List"
+        verbose_name_plural = "Price Lists"
+        ordering = ["sequence_id"]
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.code} - {self.customer_group} - {self.sequence_id}"
+    

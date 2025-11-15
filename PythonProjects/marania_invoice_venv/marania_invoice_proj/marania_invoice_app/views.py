@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from . import forms
 from .forms import CustomerForm, InvoiceForm
-from .models import Customer, Configuration, Invoice,InvoiceItem, Transportation
+from .models import Customer, Configuration, Invoice,InvoiceItem, Transportation, PriceList
 from collections import defaultdict,OrderedDict
 #from singleton import singleton
 import pdb
@@ -22,8 +22,14 @@ class Configurations:
         #self.config['SGST'] = configurations['SGST']
         #self.config['IGST'] = configurations['IGST']
 
+#######################################################-Common Functions-#############
+def get_invoices_dict():
+    invoice_items = InvoiceItem.objects.select_related('invoice').all()
+    invoices = Invoice.objects.all()
 
 ########################################################-Helper Functions-############
+
+
 def invoice_summary():
     invoice_items = InvoiceItem.objects.select_related('invoice').all()
     invoice_summary = {}
@@ -70,6 +76,7 @@ def invoice_entry(request):
     Customers = Customer.objects.all()
     customer_dict = defaultdict(lambda:-1)
     transporter_dict = defaultdict(lambda:-1)
+    price_dict = defaultdict(lambda:-1)
     
     # customer details 
     for customer in Customer.objects.all():
@@ -83,24 +90,27 @@ def invoice_entry(request):
         transporter_dict_temp = {'delivery_place':transporter.delivery_place, 'transporter_name':transporter.transporter_name,
                             'transporter_gst':transporter.transporter_gst, 'vehicle_name_number':transporter.vehicle_name_number,
                             'is_default_transport':transporter.is_default_transport}
-
         if code not in transporter_dict:
             transporter_dict[code] = [transporter_dict_temp]
         else:
             transporter_dict[code].append(transporter_dict_temp)
-
-    #InvoiceItems = InvoiceItem.objects.all()
-    #invoice_dict = defaultdict()
-    # Invoice Summary
-    # for invoiceitem in InvoiceItems:
-    #     invoice_dict[invoiceitem.invoice.invoice_number] = invoiceitem
-
+    
+    # price list details  
+    for price_item in PriceList.objects.all():
+        size_range = price_item.mesh_size_start+"-"+price_item.mesh_size_end
+        price_item_dict = {size_range:str(price_item.price)}
+        if price_item.twine_code not in price_dict:
+            price_dict[price_item.twine_code]={price_item.customer_group:[price_item_dict]}
+        else:
+            price_dict[price_item.twine_code][price_item.customer_group].append(price_item_dict)
+    print("price list details ")
+    print(price_dict)
 
     summary_data = invoice_summary()
     context = {'invoice_form': forms.InvoiceForm() , #'invoice_item_form':forms.InvoiceItem(),
                'invoices':Invoices, 'invoiceitems':summary_data,
                'customers':Customers, 'customer_dict': json.dumps(customer_dict),
-               'transporter_dict':json.dumps(transporter_dict)}
+               'transporter_dict':json.dumps(transporter_dict), 'price_dict':json.dumps(price_dict)}
     
     return render(request, 'marania_invoice_app/invoice_entry.html', context)
 
@@ -189,13 +199,13 @@ def invoice_save(request):
 def invoice_view(request, invoice_number):
     context = {
         "company": {
-            "logo_url": "/static/images/logo.png",
-            "name": "SUN NETS",
-            "address": "33/N, HENTRY STREET, NAGERCOIL - 629001, KANNIYAKUMARI DISTRICT",
-            "gstin": "33ADJPL6559R1ZP",
+            "logo_url": "/static/images/marania_eagle_logo.png",
+            "name": "MARANIA FILAMENTS", # TODO
+            "address": "5/118a, Elavuvillai, Kilaattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari", # TODO
+            "gstin": "33AGAPJ9143P1Z4",
             "state_name": "Tamil Nadu",
             "state_code": "33",
-            "contact": "9443389998",
+            "contact": "94898 58997,94877 86997",
             "bank_name": "SUN NETS",
             "bank_bank": "STATE BANK OF INDIA",
             "bank_account": "67122303997",
@@ -203,7 +213,7 @@ def invoice_view(request, invoice_number):
             "ifsc": "SBIN0070013",
         },
         "invoice": {
-            "invoice_no": "2025-26/177",
+            "invoice_no": invoice_number,
             "date": "3-Oct-25",
             "delivery_note": "",
             "payment_terms": "",

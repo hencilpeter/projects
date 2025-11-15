@@ -203,7 +203,8 @@
 
 <!-- JS Section -->
 <script>
-console.log("TEST TEST TEST")
+
+const customerData = JSON.parse('{{ customer_dict|escapejs }}');
 document.addEventListener('DOMContentLoaded', function() {
     // Find the input field connected to your datalist
     const input = document.querySelector('input[list="customer_code_list"]');
@@ -235,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!code) { alert("Customer code cannot be empty!"); return; }
 
      // Read and parse it back into a JavaScript object
-    const customerData = JSON.parse('{{ customer_dict|escapejs }}');
+    //const customerData = JSON.parse('{{ customer_dict|escapejs }}');
     if (customerData[code]) {
       document.querySelector('input[name="customer_name"]').value = customerData[code].name;
       document.querySelector('input[name="customer_gst"]').value = customerData[code].gst;
@@ -307,10 +308,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // Enable lost focus event
   row.querySelector('.item-spec').addEventListener('blur', function () {
+    
     const index = row.dataset.index;  // reads data-index
     console.log("Current index:", index)
     const message = this.parentElement.querySelector('.spec-message');
-      current_item_spec = document.getElementsByName('item_spec[]')[index].value;
+    current_item_spec = document.getElementsByName('item_spec[]')[index].value;
 
       // Split the string by '/'
     const parts = current_item_spec.split('/');
@@ -351,6 +353,44 @@ document.addEventListener('DOMContentLoaded', function() {
     if (parts.length >= 0){
       document.getElementsByName('item_code[]')[index].value = parts[0];
     }
+
+    // read price details 
+    if (document.getElementsByName('item_code[]')[index].value != "")
+    {
+      const price_dict = JSON.parse('{{ price_dict|escapejs }}');
+      const customerCodeInput = document.querySelector('input[name="customer_code"]').value;
+      const item_code = document.getElementsByName('item_code[]')[index].value;
+      const customerData = JSON.parse('{{ customer_dict|escapejs }}');
+
+      customerdata = customerData[customerCodeInput];
+      
+      console.log("item code is not empty.." + customerCodeInput);
+      console.log("item code" + item_code);
+      console.log("price_dict" + price_dict);
+
+      if (price_dict[item_code])
+      {
+        console.log("price dict has value fro the code");
+        console.log("price dict for the item code : "+price_dict[item_code])
+        console.log("customer data: "+JSON.stringify(customerdata.price_list_tag))
+        console.log("price list tag : "+JSON.stringify(price_dict[item_code][customerdata.price_list_tag]))
+
+          if (price_dict[item_code][customerdata.price_list_tag]){
+            const mesh_size = document.getElementsByName('item_mesh_size[]')[index].value;
+            customer_price_dict = price_dict[item_code][customerdata.price_list_tag];
+            
+            console.log("customer_price_dict Data:", JSON.stringify(customer_price_dict));
+            
+          }
+      }
+      
+     
+      // if (price_dict[code]) {
+
+    }
+    
+
+
 
     gst_amount = (quantity * price ) * gst_percentage;
     total_amount = (quantity * price ) + gst_amount
