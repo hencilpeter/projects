@@ -8,6 +8,7 @@ from collections import defaultdict,OrderedDict
 import pdb
 import json
 from django.utils.html import escapejs
+#from num2words import num2words
 
 from decimal import Decimal, ROUND_DOWN
 
@@ -40,12 +41,94 @@ def get_invoices_dict():
                     "invoice_date": invoice.invoice_date,"customer_code":invoice.customer_code,"customer_name":invoice.customer_name,
                     "customer_gst":invoice.customer_gst,"customer_address_bill_to":invoice.customer_address_bill_to,
                     "customer_address_ship_to":invoice.customer_address_ship_to,"customer_contact":invoice.customer_contact,"customer_email":invoice.customer_email, 
+                    "dispatched_through":invoice.dispatched_through,
                     "invoice_items":invice_item_dict[invoice.invoice_number]}
     
     return invoice_dict
    
 
 ########################################################-Helper Functions-############
+# def amount_in_words(amount):
+#     # Split rupees and paise
+#     rupees = int(amount)
+#     paise = int(round((amount - rupees) * 100))
+
+#     # Convert rupees and paise to words
+#     words = ""
+#     if rupees > 0:
+#         words += num2words(rupees, to='number').title() + " Rupees"
+#     if paise > 0:
+#         words += " and " + num2words(paise, to='number').title() + " Paise"
+#     return words
+def number_to_words(num):
+    """
+    Convert a number to words in Indian numbering system with Rupees and Paise.
+    """
+
+    ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+            "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen",
+            "Sixteen", "Seventeen", "Eighteen", "Nineteen"]
+    
+    tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+
+    def two_digits(n):
+        if n < 20:
+            return ones[n]
+        else:
+            return tens[n // 10] + (" " + ones[n % 10] if n % 10 != 0 else "")
+    
+    def three_digits(n):
+        h = n // 100
+        rem = n % 100
+        if h and rem:
+            return ones[h] + " Hundred " + two_digits(rem)
+        elif h:
+            return ones[h] + " Hundred"
+        elif rem:
+            return two_digits(rem)
+        else:
+            return ""
+    
+    def convert_to_words(n):
+        crore = n // 10000000
+        n %= 10000000
+        lakh = n // 100000
+        n %= 100000
+        thousand = n // 1000
+        n %= 1000
+        hundred = n  # remaining
+        
+        parts = []
+        if crore: parts.append(three_digits(crore) + " Crore")
+        if lakh: parts.append(three_digits(lakh) + " Lakh")
+        if thousand: parts.append(three_digits(thousand) + " Thousand")
+        if hundred: parts.append(three_digits(hundred))
+        
+        return " ".join(parts)
+    
+    # Split rupees and paise
+    rupees = int(num)
+    paise = int(round((num - rupees) * 100))
+
+    words = ""
+    if rupees:
+        words += "Rupees " + convert_to_words(rupees)
+    if paise:
+        if words:
+            words += " and "
+        words += convert_to_words(paise) + " Paise"
+    if not words:
+        words = "Rupees Zero"
+    words += " Only"
+    
+    return words
+
+# Test examples
+# print(number_to_words(12345678.90))
+# print(number_to_words(5000))
+# print(number_to_words(0.75))
+# print(number_to_words(0))
+
 
 
 def invoice_summary():
@@ -222,7 +305,7 @@ def invoice_view(request, invoice_number):
         return  render(request, 'marania_invoice_app/invoice_view.html', context) 
 
     invoice_data_dict = defaultdict(lambda:-1)
-    print("Invoice Date ########################"+str(invoice_dict[invoice_number]["invoice_date"]))
+    # print("Invoice Date ########################"+str(invoice_dict[invoice_number]["invoice_date"]))
     #print(invoice_dict[invoice_number])
 
     #company details 
@@ -244,6 +327,7 @@ def invoice_view(request, invoice_number):
             "name": invoice_dict[invoice_number]["customer_name"],
             "address": invoice_dict[invoice_number]["customer_address_bill_to"],
             "gstin": invoice_dict[invoice_number]["customer_gst"],
+            "contact":invoice_dict[invoice_number]["customer_contact"],
             "state_name": "Tamil Nadu",
             "state_code": "33"
         }
@@ -252,37 +336,42 @@ def invoice_view(request, invoice_number):
             "name": invoice_dict[invoice_number]["customer_name"],
             "address": invoice_dict[invoice_number]["customer_address_ship_to"],
             "gstin": invoice_dict[invoice_number]["customer_gst"],
+            "contact":invoice_dict[invoice_number]["customer_contact"],
             "state_name": "Tamil Nadu",
             "state_code": "33"
         }
     invoice_items = invoice_dict[invoice_number]["invoice_items"]
     items= [
             # {"packages": "1", "description": ".20DK/34MM/150MD", "hsn": "5608", "gst_rate": 5, "quantity": "50.700 KGS", "rate": "476.19", "unit": "KGS", "amount": "24,142.83"},
-            # {"packages": "1", "description": ".20DK/36MM/150MD", "hsn": "5608", "gst_rate": 5, "quantity": "49.900 KGS", "rate": "471.43", "unit": "KGS", "amount": "23,524.36"},
         ]
-    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-    print(invoice_items)
+
     sub_total = 0
+    total_quantity = 0
     for invoice_item in invoice_items:
         amount = invoice_item.item_quantity * invoice_item.item_price 
         amount = Decimal(amount).quantize(Decimal("0.00"), rounding=ROUND_DOWN)
         sub_total += amount
-        items.append({"packages": "1", "description": invoice_item.item_code,"hsn": "5608", "gst_rate": 5, "quantity": str(invoice_item.item_quantity) + " KGS", 
+        total_quantity += invoice_item.item_quantity
+        description =  f"{invoice_item.item_description}" 
+        items.append({"packages": "1", "description": description,"hsn": "5608", "gst_rate": 5, "quantity": str(invoice_item.item_quantity) + " KGS", 
                       "rate": invoice_item.item_price, "unit": "KGS", "amount": amount})
         
 
-    taxes= [
-            {"hsn": "5608", "taxable_value": "47,667.19", "cgst_rate": 2.5, "cgst_amount": "1,191.68", "sgst_rate": 2.5, "sgst_amount": "1,191.68", "total_tax": "2,383.36"}
-        ]
+    # taxes= [
+    #         {"hsn": "5608", "taxable_value": "47,667.19", "cgst_rate": 2.5, "cgst_amount": "1,191.68", "sgst_rate": 2.5, "sgst_amount": "1,191.68", "total_tax": "2,383.36"}
+    #     ]
 
     cgst = Decimal(Decimal(sub_total) * Decimal(.025)).quantize(Decimal("0.00"), rounding=ROUND_DOWN)
     sgst = Decimal(Decimal(sub_total) * Decimal(.025)).quantize(Decimal("0.00"), rounding=ROUND_DOWN)
     total = sub_total + cgst + sgst
+    rounded_total = round(total,2)
+    round_off_amount = rounded_total - total
     tax_words =""
-    amount_words = ""
+    amount_words = number_to_words(Decimal(rounded_total))
+    invoice_date = invoice_dict[invoice_number]["invoice_date"]
     invoice= {
             "invoice_no": invoice_number,
-            "date": invoice_dict[invoice_number]["invoice_date"],
+            "date": invoice_date.strftime("%d-%m-%Y"),
             "delivery_note": "",
             "payment_terms": "",
             "reference_no": "",
@@ -294,80 +383,22 @@ def invoice_view(request, invoice_number):
             "dispatch_mode": "",
             "destination": "",
             "lr_no": "",
-            "vehicle_no": "TN75R4178",
+            "vehicle_no": "",
             "terms_delivery": "",
+            "dispatched_through":invoice_dict[invoice_number]["dispatched_through"],
             "subtotal": sub_total ,
-            "cgst": cgst,
-            "sgst": sgst,
-            "round_off": "0.45",
-            "total": total,
-            "tax_words": "INR Two Thousand Three Hundred Eighty Three and Thirty Six paise Only",
-            "amount_words": "INR Fifty Thousand Fifty One Only"}
-    context = {"company":company_dict, "invoice":invoice, "consignee":consignee_dict, "buyer":buyer_dict, "items":items,"taxes":taxes}
+            "total_quantity":total_quantity,
+            "cgst_amount": cgst,
+            "sgst_amount": sgst,
+            "igst_rate":"5",
+            "sgst_rate":"2.5",
+            "cgst_rate":"2.5",
+            "round_off": round_off_amount,
+            "total": rounded_total,
+            "tax_words": "",
+            "amount_words": amount_words}
+    # 
+    context = {"company":company_dict, "invoice":invoice, "consignee":consignee_dict, "buyer":buyer_dict, "items":items}
 
-
-    # context = {
-    #     "company": {
-    #         "logo_url": "/static/images/marania_eagle_logo.png",
-    #         "name": "MARANIA FILAMENTS", # TODO
-    #         "address": "5/118a, Elavuvillai, Kilaattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari", # TODO
-    #         "gstin": "33AGAPJ9143P1Z4",
-    #         "state_name": "Tamil Nadu",
-    #         "state_code": "33",
-    #         "contact": "94898 58997,94877 86997",
-    #         "bank_name": "SUN NETS",
-    #         "bank_bank": "STATE BANK OF INDIA",
-    #         "bank_account": "67122303997",
-    #         "bank_branch": "KANYAKUMARI",
-    #         "ifsc": "SBIN0070013",
-    #     },
-    #     "invoice": {
-    #         "invoice_no": invoice_number,
-    #         "date": "3-Oct-25",
-    #         "delivery_note": "",
-    #         "payment_terms": "",
-    #         "reference_no": "",
-    #         "other_ref": "",
-    #         "order_no": "",
-    #         "order_date": "",
-    #         "dispatch_doc": "",
-    #         "delivery_date": "",
-    #         "dispatch_mode": "",
-    #         "destination": "",
-    #         "lr_no": "",
-    #         "vehicle_no": "TN75R4178",
-    #         "terms_delivery": "",
-    #         "subtotal": "47,667.19",
-    #         "cgst": "1,191.68",
-    #         "sgst": "1,191.68",
-    #         "round_off": "0.45",
-    #         "total": "₹50,051.00",
-    #         "tax_words": "INR Two Thousand Three Hundred Eighty Three and Thirty Six paise Only",
-    #         "amount_words": "INR Fifty Thousand Fifty One Only"
-    #     },
-    #     "consignee": {
-    #         "name": "Marania Filaments",
-    #         "address": "5/118a, Elavuvillai, Kilaattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari",
-    #         "gstin": "33AGAPJ9143P1Z4",
-    #         "state_name": "Tamil Nadu",
-    #         "state_code": "33"
-    #     },
-    #     "buyer": {
-    #         "name": "Marania Filaments",
-    #         "address": "5/118a, Elavuvillai, Kilaattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari",
-    #         "gstin": "33AGAPJ9143P1Z4",
-    #         "state_name": "Tamil Nadu",
-    #         "state_code": "33"
-    #     },
-    #     "items": [
-    #         {"packages": "1", "description": ".20DK/34MM/150MD", "hsn": "5608", "gst_rate": 5, "quantity": "50.700 KGS", "rate": "476.19", "unit": "KGS", "amount": "24,142.83"},
-    #         {"packages": "1", "description": ".20DK/36MM/150MD", "hsn": "5608", "gst_rate": 5, "quantity": "49.900 KGS", "rate": "471.43", "unit": "KGS", "amount": "23,524.36"},
-    #     ],
-    #     "taxes": [
-    #         {"hsn": "5608", "taxable_value": "47,667.19", "cgst_rate": 2.5, "cgst_amount": "1,191.68", "sgst_rate": 2.5, "sgst_amount": "1,191.68", "total_tax": "2,383.36"}
-    #     ]
-    # }
-    
-    #Invoices = Invoice.objects.all()
     return render(request, 'marania_invoice_app/invoice_view.html', context) 
 

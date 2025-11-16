@@ -76,6 +76,7 @@ class Invoice(models.Model):
     customer_email = models.EmailField(null=True, blank=True)
 
     dispatched_through = models.CharField(max_length=100, null=True, blank=True)
+    
 
     def __str__(self):
         return f"{self.invoice_number} - {self.customer_name}"
