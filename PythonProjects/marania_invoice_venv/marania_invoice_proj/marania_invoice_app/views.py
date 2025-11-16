@@ -9,8 +9,46 @@ import pdb
 import json
 from django.utils.html import escapejs
 #from num2words import num2words
+from django.http import HttpResponse
+from django.template import TemplateDoesNotExist
 
 from decimal import Decimal, ROUND_DOWN
+import pdfkit
+#from weasyprint import HTML
+from django.template.loader import render_to_string
+
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+#from xhtml2pdf import pisa
+import io
+
+
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+#from weasyprint import HTML, CSS
+
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+#from xhtml2pdf import pisa
+import io
+
+
+import imgkit
+from PIL import Image
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+import io
+
+import pdfkit
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+
+
+from django.http import HttpResponse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+from io import BytesIO
+
 
 # @singleton
 class Configurations:
@@ -297,18 +335,10 @@ def invoice_save(request):
     context = {'invoice_form': forms.InvoiceForm() ,'invoices':Invoices}
     return render(request, 'marania_invoice_app/invoice_entry.html', context)
 
+def get_invoice_dictonaries(invoice_number):
 
-def invoice_view(request, invoice_number):
     invoice_dict = get_invoices_dict()
-    if invoice_dict[invoice_number] == -1:
-        context = {}
-        return  render(request, 'marania_invoice_app/invoice_view.html', context) 
-
-    invoice_data_dict = defaultdict(lambda:-1)
-    # print("Invoice Date ########################"+str(invoice_dict[invoice_number]["invoice_date"]))
-    #print(invoice_dict[invoice_number])
-
-    #company details 
+     #company details 
     company_dict = {"logo_url": "/static/images/marania_eagle_logo.png",
                       "name": "MARANIA FILAMENTS", # TODO
                     "address": "5/118a, Elavuvillai, Kilaattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari", # TODO
@@ -316,11 +346,11 @@ def invoice_view(request, invoice_number):
                     "state_name": "Tamil Nadu",
                     "state_code": "33",
                     "contact": "94898 58997,94877 86997",
-                    "bank_name": "MARANIA FILAMENTS",
-                    "bank_bank": "ICICI ",
-                    "bank_account": "250105500252",
+                    "bank_account_name": "MARANIA FILAMENTS",
+                    "bank_name": "ICICI ",
+                    "bank_account_no": "250105500252",
                     "bank_branch": "VETTURNIMADAM,NAGERCOIL",
-                    "ifsc": "ICIC0002501",
+                    "bank_ifsc": "ICIC0002501",
                     }
     
     consignee_dict= {
@@ -397,8 +427,133 @@ def invoice_view(request, invoice_number):
             "total": rounded_total,
             "tax_words": "",
             "amount_words": amount_words}
-    # 
+    
+    return company_dict, invoice, consignee_dict, buyer_dict, items
+
+
+def invoice_view(request, invoice_number):
+    invoice_dict = get_invoices_dict()
+    if invoice_dict[invoice_number] == -1:
+        context = {}
+        return  render(request, 'marania_invoice_app/invoice_view.html', context) 
+
+    invoice_data_dict = defaultdict(lambda:-1)
+    # print("Invoice Date ########################"+str(invoice_dict[invoice_number]["invoice_date"]))
+    #print(invoice_dict[invoice_number])
+
+    company_dict, invoice, consignee_dict, buyer_dict, items = get_invoice_dictonaries(invoice_number)
     context = {"company":company_dict, "invoice":invoice, "consignee":consignee_dict, "buyer":buyer_dict, "items":items}
 
     return render(request, 'marania_invoice_app/invoice_view.html', context) 
+
+
+from weasyprint import HTML,CSS
+def invoice_pdf(request, invoice_number):
+    company_dict, invoice, consignee_dict, buyer_dict, items = get_invoice_dictonaries(invoice_number)
+    context = {"company": company_dict, "invoice": invoice, "consignee": consignee_dict, "buyer": buyer_dict, "items": items}
+    
+    template = get_template('marania_invoice_app/invoice_view.html')
+    html_string = template.render(context)
+    
+    # CSS to remove margins
+    css_string = """
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+        }
+    """
+    
+    # Generate PDF with custom CSS
+    html = HTML(string=html_string)
+    css = CSS(string=css_string)
+    pdf_file = html.write_pdf(stylesheets=[css])
+    
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="invoice_{invoice_number}.pdf"'
+    
+    return response
+
+    # company_dict, invoice, consignee_dict, buyer_dict, items = get_invoice_dictonaries(invoice_number)
+    # context = {"company": company_dict, "invoice": invoice, "consignee": consignee_dict, "buyer": buyer_dict, "items": items}
+    
+    # template = get_template('marania_invoice_app/invoice_view.html')
+    # html_string = template.render(context)
+    
+    # pdf_file = HTML(string=html_string).write_pdf()
+    
+    # response = HttpResponse(pdf_file, content_type='application/pdf')
+    # response['Content-Disposition'] = f'attachment; filename="invoice_{invoice_number}.pdf"'
+    # return response
+
+    # working code 
+    # company_dict, invoice, consignee_dict, buyer_dict, items = get_invoice_dictonaries(invoice_number)
+    # context = {"company": company_dict, "invoice": invoice, "consignee": consignee_dict, "buyer": buyer_dict, "items": items}
+    
+    # # Use PDF-specific template instead
+    # template = get_template('marania_invoice_app/invoice_view.html')
+    # html = template.render(context)
+    
+    # response = HttpResponse(content_type='application/pdf')
+    # response['Content-Disposition'] = f'attachment; filename="invoice_{invoice_number}.pdf"'
+    
+    # pisa.CreatePDF(html, dest=response)
+    # return response
+
+
+
+
+
+
+    # company_dict, invoice, consignee_dict, buyer_dict, items = get_invoice_dictonaries(invoice_number)
+    # context = {"company": company_dict, "invoice": invoice, "consignee": consignee_dict, "buyer": buyer_dict, "items": items}
+    
+    # template = get_template('marania_invoice_app/invoice_view.html')
+    # html = template.render(context)
+    
+    # response = HttpResponse(content_type='application/pdf')
+    # response['Content-Disposition'] = f'attachment; filename="invoice_{invoice_number}.pdf"'
+    
+    # pisa.CreatePDF(html, dest=response)
+    # return response
+
+
+
+    # company_dict, invoice, consignee_dict, buyer_dict, items = get_invoice_dictonaries(invoice_number)
+    # context = {
+    #     "company": company_dict,
+    #     "invoice": invoice,
+    #     "consignee": consignee_dict,
+    #     "buyer": buyer_dict,
+    #     "items": items,
+    # }
+
+    # # Render HTML
+    # html_string = render_to_string('marania_invoice_app/invoice_view.html', context)
+
+    # # Configure wkhtmltopdf
+    # # config = pdfkit.configuration(wkhtmltopdf=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe")  # Windows path
+
+    # # Generate PDF
+    # pdf_bytes = pdfkit.from_string(
+    #     html_string,
+    #     False,  # False → return bytes
+    #     options={
+    #         'page-size': 'A4',
+    #         'margin-top': '10mm',
+    #         'margin-bottom': '10mm',
+    #         'margin-left': '10mm',
+    #         'margin-right': '10mm',
+    #         'encoding': "UTF-8",
+    #         'enable-local-file-access': ''  # needed if using local CSS/images
+    #     },
+    #     #configuration=config
+    # )
+
+    # response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    # response['Content-Disposition'] = f'attachment; filename="Invoice_{invoice_number}.pdf"'
+    # return response
 

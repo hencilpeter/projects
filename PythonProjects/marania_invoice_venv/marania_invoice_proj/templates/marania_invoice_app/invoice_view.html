@@ -6,16 +6,16 @@
     <title>Invoice – {{ invoice.invoice_no }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <style>
+    <style>	
         @page { 
             size: A4; 
-            margin: 20mm;
+            margin: 10mm;
         }
         body { 
             font-size: 13px; 
             font-family: Arial, sans-serif; 
             margin: 0; 
-            padding: 15px; 
+            padding: 10px; 
         }
 
         table {
@@ -126,11 +126,13 @@
             State: {{ company.state_name }} (Code: {{ company.state_code }})<br>
             Contact: <b>{{ company.contact }}</b>
         </td>
+		<!--
 		<td width="30%">
 			<div style="display: flex; justify-content: center; align-items: center; height: 100%;">
 				<img src="{{ company.logo_url }}" alt="Company Logo" class="company-logo" style="height: auto; width: auto;">
 			</div>
 	    </td>
+		-->
     </tr>
 </table>
 
@@ -160,21 +162,35 @@
 
     <!-- Buyer + Consignee -->
     <tr>
-        <td width="55%" class="buyer-consignee-spacing">
+        <td width="55%" class="buyer-consignee-spacing" >
             <b><u>Buyer (Bill To)</u></b><br>
             <b>{{ consignee.name }}</b><br>
-            {{ consignee.address|linebreaksbr }} <br>
+			{% for line in consignee.address.splitlines %}
+				<span style="font-size: 11px; display: block; line-height: 1.1;">
+				{{ line }}
+				</span>
+			{% endfor %}
+			<span style="font-size: 13px; display: block; line-height: 1.5;">
             GSTIN: <b>{{ consignee.gstin }}</b><br>
 			Contact:  <b>{{ consignee.contact }} </b><br>
+			</span>
             <!--State: {{ invoice.bill_to_state }} (Code: {{ invoice.bill_to_state_code }})<br> -->
 
             <hr class="custom-hr">
 
             <b><u>Consignee (Ship To)</u></b><br>
             <b>{{ buyer.name }}</b><br>
-            {{ buyer.address|linebreaksbr }}<br>
-            GSTIN:  <b>{{ buyer.gstin }} </b><br>
+          
+			{% for line in buyer.address.splitlines %}
+				<span style="font-size: 11px; display: block; line-height: 1.1;">
+				{{ line }}
+				</span>
+			{% endfor %}
+			<span style="font-size: 13px; display: block; line-height: 1.5;">
+            GSTIN: <b>{{ buyer.gstin }}</b><br>
 			Contact:  <b>{{ buyer.contact }} </b><br>
+			</span>
+			
             <!--State: {{ invoice.ship_to_state }} (Code: {{ invoice.ship_to_state_code }}) -->
         </td>
     </tr>
@@ -206,9 +222,9 @@
 	</tbody>
     <tr>
         <th colspan="3" class="text-end">SUB TOTAL</th>
-        <th class="text-end"><b>{{ invoice.total_quantity }}</b></th>
+        <th class="text-end">{{ invoice.total_quantity }}</th>
         <th></th>
-        <th class="text-end"><b>{{ invoice.subtotal }}</b></th>
+        <th class="text-end">{{ invoice.subtotal }}</th>
     </tr>
 
     {% if igst_amount > 0 %}

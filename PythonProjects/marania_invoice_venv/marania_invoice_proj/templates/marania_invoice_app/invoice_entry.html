@@ -121,6 +121,7 @@
               <!-- Submit & Reset -->
               <div class="text-center">
                 <button type="submit" class="btn btn-primary me-2">Submit Invoice</button>
+                <button type="button" class="btn btn-info me-2" onclick="calculateTax()">Calculate Tax</button>
                 <button type="reset" class="btn btn-secondary">Clear Invoice</button>
               </div>
 
@@ -183,7 +184,19 @@
                       class="btn btn-sm btn-secondary d-inline-flex align-items-center">
                       <i class="bi bi-eye me-1"></i> View
                     </a>
+                  
+                 <a href="{% url 'invoice_pdf' invoice.invoice_number %}" 
+   class="btn btn-sm btn-secondary d-inline-flex align-items-center">
+   <i class="bi bi-eye me-1"></i> PDF
+</a>
+
+                     <a href="javascript:void(0);" 
+                      onclick="openInvoicePopup('{{ invoice.invoice_number }}')" 
+                      class="btn btn-sm btn-secondary d-inline-flex align-items-center">
+                      <i class="bi bi-eye me-1"></i> Excel
+                    </a>
                   </td>
+                   
 
                 </tr>
               {% endfor %}
@@ -203,6 +216,11 @@
 
 <!-- JS Section -->
 <script>
+
+function calculateTax() {
+    // Your tax calculation logic here
+    alert("Tax calculated!");
+}
 
 const customerData = JSON.parse('{{ customer_dict|escapejs }}');
 document.addEventListener('DOMContentLoaded', function() {
