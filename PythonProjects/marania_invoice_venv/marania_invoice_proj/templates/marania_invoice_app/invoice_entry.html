@@ -121,7 +121,8 @@
               <!-- Submit & Reset -->
               <div class="text-center">
                 <button type="submit" class="btn btn-primary me-2">Submit Invoice</button>
-                <button type="button" class="btn btn-info me-2" onclick="calculateTax()">Calculate Tax</button>
+                <button type="button" class="btn btn-info me-2" onclick="showGSTCalculator()">GST Calculator</button>
+                <button type="button" class="btn btn-info me-2" onclick="showPriceList()">Price List</button>
                 <button type="reset" class="btn btn-secondary">Clear Invoice</button>
               </div>
 
@@ -217,9 +218,16 @@
 <!-- JS Section -->
 <script>
 
-function calculateTax() {
+function showGSTCalculator() {
+    // Your tax calculation logic here    
+    const url = `/invoice/invoice_entry/show_gst_calculator`;
+    window.open(url, 'CalculatorPopup', 'width=1000,height=750,top=100,left=200,resizable=yes,scrollbars=yes');
+    
+}
+
+function showPriceList() {
     // Your tax calculation logic here
-    alert("Tax calculated!");
+    alert("Price List!");
 }
 
 const customerData = JSON.parse('{{ customer_dict|escapejs }}');

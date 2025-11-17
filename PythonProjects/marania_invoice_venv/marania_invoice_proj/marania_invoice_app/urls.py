@@ -10,7 +10,7 @@ path('customer/add/', views.create_customer, name='create_customer'),
 path('invoice_entry/save', views.invoice_save, name='invoice_save'),
 path('invoice_entry/view/<str:invoice_number>', views.invoice_view, name='invoice_view'),
 path('invoice_entry/pdf/<str:invoice_number>/', views.invoice_pdf, name='invoice_pdf'),
-
+path('invoice_entry/show_gst_calculator', views.show_gst_calculator, name='show_gst_calculator'),
 # path('login',views.login, name='login'),
 # path('logout',views.logout, name='logout'),
 # path('dashboard',views.dashboard, name='dashboard'),

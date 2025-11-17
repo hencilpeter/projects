@@ -210,6 +210,9 @@ def customer(request):
     context = {'form': forms.CustomerForm() ,'customers':Customers}
     return render(request, 'marania_invoice_app/customer.html', context)
 
+def show_gst_calculator(request):
+     return render(request, "marania_invoice_app/gst_calculator.html") 
+
 def invoice_entry(request):
     Invoices = Invoice.objects.all().order_by('-invoice_number')
     Customers = Customer.objects.all()
@@ -477,83 +480,4 @@ def invoice_pdf(request, invoice_number):
     
     return response
 
-    # company_dict, invoice, consignee_dict, buyer_dict, items = get_invoice_dictonaries(invoice_number)
-    # context = {"company": company_dict, "invoice": invoice, "consignee": consignee_dict, "buyer": buyer_dict, "items": items}
     
-    # template = get_template('marania_invoice_app/invoice_view.html')
-    # html_string = template.render(context)
-    
-    # pdf_file = HTML(string=html_string).write_pdf()
-    
-    # response = HttpResponse(pdf_file, content_type='application/pdf')
-    # response['Content-Disposition'] = f'attachment; filename="invoice_{invoice_number}.pdf"'
-    # return response
-
-    # working code 
-    # company_dict, invoice, consignee_dict, buyer_dict, items = get_invoice_dictonaries(invoice_number)
-    # context = {"company": company_dict, "invoice": invoice, "consignee": consignee_dict, "buyer": buyer_dict, "items": items}
-    
-    # # Use PDF-specific template instead
-    # template = get_template('marania_invoice_app/invoice_view.html')
-    # html = template.render(context)
-    
-    # response = HttpResponse(content_type='application/pdf')
-    # response['Content-Disposition'] = f'attachment; filename="invoice_{invoice_number}.pdf"'
-    
-    # pisa.CreatePDF(html, dest=response)
-    # return response
-
-
-
-
-
-
-    # company_dict, invoice, consignee_dict, buyer_dict, items = get_invoice_dictonaries(invoice_number)
-    # context = {"company": company_dict, "invoice": invoice, "consignee": consignee_dict, "buyer": buyer_dict, "items": items}
-    
-    # template = get_template('marania_invoice_app/invoice_view.html')
-    # html = template.render(context)
-    
-    # response = HttpResponse(content_type='application/pdf')
-    # response['Content-Disposition'] = f'attachment; filename="invoice_{invoice_number}.pdf"'
-    
-    # pisa.CreatePDF(html, dest=response)
-    # return response
-
-
-
-    # company_dict, invoice, consignee_dict, buyer_dict, items = get_invoice_dictonaries(invoice_number)
-    # context = {
-    #     "company": company_dict,
-    #     "invoice": invoice,
-    #     "consignee": consignee_dict,
-    #     "buyer": buyer_dict,
-    #     "items": items,
-    # }
-
-    # # Render HTML
-    # html_string = render_to_string('marania_invoice_app/invoice_view.html', context)
-
-    # # Configure wkhtmltopdf
-    # # config = pdfkit.configuration(wkhtmltopdf=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe")  # Windows path
-
-    # # Generate PDF
-    # pdf_bytes = pdfkit.from_string(
-    #     html_string,
-    #     False,  # False → return bytes
-    #     options={
-    #         'page-size': 'A4',
-    #         'margin-top': '10mm',
-    #         'margin-bottom': '10mm',
-    #         'margin-left': '10mm',
-    #         'margin-right': '10mm',
-    #         'encoding': "UTF-8",
-    #         'enable-local-file-access': ''  # needed if using local CSS/images
-    #     },
-    #     #configuration=config
-    # )
-
-    # response = HttpResponse(pdf_bytes, content_type='application/pdf')
-    # response['Content-Disposition'] = f'attachment; filename="Invoice_{invoice_number}.pdf"'
-    # return response
-

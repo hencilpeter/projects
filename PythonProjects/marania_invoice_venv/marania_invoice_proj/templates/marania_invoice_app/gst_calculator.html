@@ -1,0 +1,149 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GST Calculator</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body class="bg-light py-4">
+
+  <div class="container">
+    <h2 class="text-center mb-4">GST Calculator</h2>
+
+    <!-- Section 1 -->
+    <div class="card mb-4">
+      <div class="card-header bg-primary text-white">Total Price (Including GST) ➤ Actual Price (Excluding GST)</div>
+      <div class="card-body">
+
+        <!-- Inputs -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label class="form-label">GST % per Unit</label>
+            <input type="number" id="gst1" class="form-control" value="5" step="1" min="0">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Quantity</label>
+            <input type="number" id="qty1" class="form-control" value="1" step="1" min="1">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Unit Price (Including GST)</label>
+            <input type="number" id="unitPriceIncl1" class="form-control" value="0.00" step="0.01">
+          </div>
+        </div>
+
+        <!-- Outputs -->
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Unit Price (Excluding GST)</label>
+            <input type="text" id="unitPriceExcl1" class="form-control" readonly>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">GST Amount per Unit</label>
+            <input type="text" id="unitGST1" class="form-control" readonly>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Total Price (Excluding GST)</label>
+            <input type="text" id="totalExcl1" class="form-control" readonly>
+          </div>
+
+          <div class="col-md-4 mt-3">
+            <label class="form-label">Total Price (Including GST)</label>
+            <input type="text" id="totalIncl1" class="form-control" readonly>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2 -->
+    <div class="card mb-4">
+      <div class="card-header bg-secondary text-white">Actual Price (Excluding GST) ➤ Total Price (Including GST)</div>
+      <div class="card-body">
+
+        <!-- Inputs -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label class="form-label">GST % per Unit</label>
+            <input type="number" id="gst2" class="form-control" value="5" step="1" min="0">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Quantity</label>
+            <input type="number" id="qty2" class="form-control" value="1" step="1" min="1">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Unit Price (Excluding GST)</label>
+            <input type="number" id="unitPriceExcl2" class="form-control" value="0.00" step="0.01">
+          </div>
+        </div>
+
+        <!-- Outputs -->
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Unit Price (Including GST)</label>
+            <input type="text" id="unitPriceIncl2" class="form-control" readonly>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">GST Amount per Unit</label>
+            <input type="text" id="unitGST2" class="form-control" readonly>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Total Price (Excluding GST)</label>
+            <input type="text" id="totalExcl2" class="form-control" readonly>
+          </div>
+
+          <div class="col-md-4 mt-3">
+            <label class="form-label">Total Price (Including GST)</label>
+            <input type="text" id="totalIncl2" class="form-control" readonly>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calculation Script -->
+  <script>
+    function calculateSection1() {
+      const gst = parseFloat($('#gst1').val());
+      const qty = parseInt($('#qty1').val());
+      const inclPrice = parseFloat($('#unitPriceIncl1').val());
+      const exclPrice = inclPrice / (1 + gst / 100);
+      const gstAmount = inclPrice - exclPrice;
+      $('#unitPriceExcl1').val(exclPrice.toFixed(2));
+      $('#unitGST1').val(gstAmount.toFixed(2));
+      $('#totalExcl1').val((exclPrice * qty).toFixed(2));
+      $('#totalIncl1').val((inclPrice * qty).toFixed(2));
+    }
+
+    function calculateSection2() {
+      const gst = parseFloat($('#gst2').val());
+      const qty = parseInt($('#qty2').val());
+      const exclPrice = parseFloat($('#unitPriceExcl2').val());
+      const gstAmount = exclPrice * (gst / 100);
+      const inclPrice = exclPrice + gstAmount;
+      $('#unitGST2').val(gstAmount.toFixed(2));
+      $('#unitPriceIncl2').val(inclPrice.toFixed(2));
+      $('#totalExcl2').val((exclPrice * qty).toFixed(2));
+      $('#totalIncl2').val((inclPrice * qty).toFixed(2));
+    }
+
+    $('input').on('input', function () {
+      calculateSection1();
+      calculateSection2();
+    });
+
+    // Initial calculation
+    calculateSection1();
+    calculateSection2();
+  </script>
+
+</body>
+</html>
