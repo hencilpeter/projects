@@ -29,34 +29,53 @@ class CustomerForm(forms.ModelForm):
         }
 
 class InvoiceForm(forms.ModelForm):
-  # CharField allows typing new values
+    # Manually declare only fields that need datalist / custom placeholder
+    print("Form1")
     customer_code = forms.CharField(
         label='Customer Code',
         widget=forms.TextInput(attrs={
             'class': 'form-control form-control-sm',
-            'placeholder': 'Customer Code',
+            'placeholder': 'Customer Code (Bill to)',
             'list': 'customer_code_list',  # links to datalist id in HTML
-        }) 
+        })
     )
-
+    print("Form2")
     customer_name = forms.CharField(
         label='Customer Name',
         widget=forms.TextInput(attrs={
             'class': 'form-control form-control-sm',
-            'placeholder': 'Customer Name',
+            'placeholder': 'Customer Name (Bill to)',
             'list': 'customer_name_list',  # links to datalist id in HTML
-        }) 
+        })
     )
-
+    print("Form3")
+    ship_to_customer_code = forms.CharField(
+        label='Customer Code',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control form-control-sm',
+            'placeholder': 'Customer Code (Ship to)',
+            'list': 'ship_to_customer_code_list',  # links to datalist id in HTML
+        })
+    )
+    print("Form4")
+    ship_to_customer_name = forms.CharField(
+        label='Customer Name',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control form-control-sm',
+            'placeholder': 'Customer Name (Ship to)',
+            'list': 'ship_to_customer_name_list',  # links to datalist id in HTML
+        })
+    )
+    print("Form5")
     dispatched_through = forms.CharField(
         label='Dispatched Through',
         widget=forms.TextInput(attrs={
             'class': 'form-control form-control-sm',
             'placeholder': 'Dispatched Through',
             'list': 'dispatched_through_list',  # links to datalist id in HTML
-        }) 
+        })
     )
-
+    print("Form6")
     class Meta:
         model = Invoice
         fields = [
@@ -65,58 +84,63 @@ class InvoiceForm(forms.ModelForm):
             'customer_code',
             'customer_name',
             'customer_gst',
-            'customer_address_bill_to',
-            'customer_address_ship_to',
+            'customer_address',
             'customer_contact',
             'customer_email',
+            'ship_to_customer_code',
+            'ship_to_customer_name',
+            'ship_to_customer_gst',
+            'ship_to_customer_address',
+            'ship_to_customer_contact',
+            'ship_to_customer_email',
             'dispatched_through'
         ]
-            
+
         widgets = {
             'invoice_date': forms.DateInput(attrs={
-                'type': 'date', 'class': 'form-control form-control-sm'
+                'class': 'form-control form-control-sm',
+                'type': 'date'
             }),
             'invoice_number': forms.TextInput(attrs={
-                'class': 'form-control form-control-sm', 'placeholder': 'Invoice Number'
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Invoice Number'
             }),
-            # 'customer_code': forms.ComboField(attrs={
-            #      'class': 'form-control form-control-sm', 'placeholder': 'Customer Code'
-            # }),
-            # 'customer_name': forms.TextInput(attrs={
-            #     'class': 'form-control form-control-sm', 'placeholder': 'Customer Name'
-            # }),
             'customer_gst': forms.TextInput(attrs={
-                'class': 'form-control form-control-sm', 'placeholder': 'GST'
+                'class': 'form-control form-control-sm',
+                'placeholder': 'GST Number (Bill to)'
             }),
-            'customer_address_bill_to': forms.Textarea(attrs={
-                'class': 'form-control form-control-sm', 'rows': 2, 'placeholder': 'Address (Bill To)'
-            }),
-            'customer_address_ship_to': forms.Textarea(attrs={
-                'class': 'form-control form-control-sm', 'rows': 2, 'placeholder': 'Address (Ship To)'
+            'customer_address': forms.Textarea(attrs={
+                'class': 'form-control form-control-sm',
+                'rows': 3,
+                'placeholder': 'Customer Address (Bill to)'
             }),
             'customer_contact': forms.TextInput(attrs={
-                'class': 'form-control form-control-sm', 'placeholder': 'Contact'
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Contact Number (Bill to)'
             }),
             'customer_email': forms.EmailInput(attrs={
-                'class': 'form-control form-control-sm', 'placeholder': 'Email'
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Email (Bill to)'
             }),
-            # 'dispatched_through': forms.TextInput(attrs={
-            #     'class': 'form-control form-control-sm', 'placeholder': 'Dispatched Through'
-            # }),
+            'ship_to_customer_gst': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'GST Number (Ship to)'
+            }),
+            'ship_to_customer_address': forms.Textarea(attrs={
+                'class': 'form-control form-control-sm',
+                'rows': 3,
+                'placeholder': 'Address (Ship to)'
+            }),
+            'ship_to_customer_contact': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Contact Number (Ship to)'
+            }),
+            'ship_to_customer_email': forms.EmailInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Email (Ship to)'
+            }),
         }
-
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-        # Preload existing customers in the dropdown
-        # self.fields['customer_code'].widget.choices = [
-        #     (c.code, f"{c.code} - {c.name}") for c in Customer.objects.all()
-        # ]
-        # options_html = "".join(
-        #     [f"<option value='{c.code}'>{c.code} - {c.name}</option>" for c in Customer.objects.all()]
-        # )
-        # # Append datalist HTML to the widget's template
-        # self.fields['customer_code'].widget.attrs['data-datalist'] = options_html
-
+            
 
 
 

@@ -164,23 +164,7 @@
     <tr>
         <td width="55%" class="buyer-consignee-spacing" >
             <b><u>Buyer (Bill To)</u></b><br>
-            <b>{{ consignee.name }}</b><br>
-			{% for line in consignee.address.splitlines %}
-				<span style="font-size: 11px; display: block; line-height: 1.1;">
-				{{ line }}
-				</span>
-			{% endfor %}
-			<span style="font-size: 13px; display: block; line-height: 1.5;">
-            GSTIN: <b>{{ consignee.gstin }}</b><br>
-			Contact:  <b>{{ consignee.contact }} </b><br>
-			</span>
-            <!--State: {{ invoice.bill_to_state }} (Code: {{ invoice.bill_to_state_code }})<br> -->
-
-            <hr class="custom-hr">
-
-            <b><u>Consignee (Ship To)</u></b><br>
             <b>{{ buyer.name }}</b><br>
-          
 			{% for line in buyer.address.splitlines %}
 				<span style="font-size: 11px; display: block; line-height: 1.1;">
 				{{ line }}
@@ -190,9 +174,25 @@
             GSTIN: <b>{{ buyer.gstin }}</b><br>
 			Contact:  <b>{{ buyer.contact }} </b><br>
 			</span>
+            <!--State: {{ invoice.bill_to_state }} (Code: {{ invoice.bill_to_state_code }})<br> -->
+
+            <hr class="custom-hr">
+
+            <b><u>Consignee (Ship To)</u></b><br>
+            <b>{{ consignee.name }}</b><br>
+          
+			{% for line in consignee.address.splitlines %}
+				<span style="font-size: 11px; display: block; line-height: 1.1;">
+				{{ line }}
+				</span>
+			{% endfor %}
+			<span style="font-size: 13px; display: block; line-height: 1.5;">
+            GSTIN: <b>{{ consignee.gstin }}</b><br>
+			Contact:  <b>{{ consignee.contact }} </b><br>
+			</span>
 			
             <!--State: {{ invoice.ship_to_state }} (Code: {{ invoice.ship_to_state_code }}) -->
-        </td>
+       </td>
     </tr>
 </table>
 

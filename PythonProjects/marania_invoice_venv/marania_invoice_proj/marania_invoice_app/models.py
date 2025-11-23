@@ -68,18 +68,22 @@ class Invoice(models.Model):
     customer_code = models.CharField(max_length=50, unique=False, null=True)
     customer_name = models.CharField(max_length=100, null=True)
     customer_gst = models.CharField(max_length=20, null=True, blank=True)
-
-    customer_address_bill_to = models.TextField(null=True, blank=True)
-    customer_address_ship_to = models.TextField(null=True, blank=True)
-
-    customer_contact = models.CharField(max_length=20, null=True, blank=True)
+    customer_address = models.TextField(null=True, blank=True)
+    customer_contact = models.CharField(max_length=30, null=True, blank=True)
     customer_email = models.EmailField(null=True, blank=True)
+
+    ship_to_customer_code = models.CharField(max_length=50, unique=False, null=True)
+    ship_to_customer_name = models.CharField(max_length=100, null=True)
+    ship_to_customer_gst = models.CharField(max_length=20, null=True, blank=True)
+    ship_to_customer_address = models.TextField(null=True, blank=True)
+    ship_to_customer_contact = models.CharField(max_length=30, null=True, blank=True)
+    ship_to_customer_email = models.EmailField(null=True, blank=True)
 
     dispatched_through = models.CharField(max_length=100, null=True, blank=True)
     
 
     def __str__(self):
-        return f"{self.invoice_number} - {self.customer_name}"
+        return f"{self.invoice_number}-{self.invoice_date}-{self.customer_name}"
 
 class InvoiceItem(models.Model):
     invoice = models.ForeignKey(
@@ -97,7 +101,7 @@ class InvoiceItem(models.Model):
     item_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
     def __str__(self):
-        return f"{self.invoice.invoice_number or ''} - {self.invoice.customer_name or ''} -{self.item_description or ''} - {self.item_quantity or ''}"
+        return f"{self.invoice.invoice_number or ''}({self.invoice.invoice_date})-{self.invoice.customer_name or ''} -{self.item_description or ''} - {self.item_quantity or ''}"
 
 class Transportation(models.Model):
     customer = models.ForeignKey(

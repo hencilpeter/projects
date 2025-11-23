@@ -84,20 +84,64 @@
 
                 <div class="col-md-3">{{ invoice_form.customer_gst }}</div>
               </div>
+        
+            <!-- Row 3: Customer contact, email and address -->
+            <div class="row mb-3 d-flex align-items-stretch">
+                <!-- Left column: contact and email stacked -->
+                <div class="col-md-6 d-flex flex-column">
+                    <div class="mb-2">{{ invoice_form.customer_contact }}</div>
+                    <div class="mb-2">{{ invoice_form.customer_email }}</div>
+                </div>
 
-              <!-- Row 3: Address Bill To & Ship To -->
+                <!-- Right column: address, stretches to match left column height -->
+                <div class="col-md-6 h-100">
+                    {{ invoice_form.customer_address }}
+                </div>
+            </div>
+
+
+              <!--  Row 4-->
               <div class="row mb-3">
-                <div class="col-md-6">{{ invoice_form.customer_address_bill_to }}</div>
-                <div class="col-md-6">{{ invoice_form.customer_address_ship_to }}</div>
-              </div>
+                <div class="col-md-3">
+                  {{ invoice_form.ship_to_customer_code }}
+                    <!-- The datalist options -->
+                      <datalist id="ship_to_customer_code_list">
+                          {% for customer in customers %}
+                              <option value="{{ customer.code }}-{{ customer.name }}"></option>
+                          {% endfor %}
+                      </datalist>
+                </div>
 
-              <!-- Row 4: Contact & Email -->
-              <div class="row mb-3">
-                <div class="col-md-4">{{ invoice_form.customer_contact }}</div>
-                <div class="col-md-8">{{ invoice_form.customer_email }}</div>
-              </div>
+                <div class="col-md-6">
+                  {{ invoice_form.ship_to_customer_name }}
+                  <!-- The datalist options -->
+                      <datalist id="ship_to_customer_name_list">
+                          {% for customer in customers %}
+                              <option value="{{ customer.name }}"></option>
+                          {% endfor %}
+                      </datalist>
+                </div>
 
-              <!-- Row 5: Dispatched Through -->
+                <div class="col-md-3">{{ invoice_form.ship_to_customer_gst }}</div>
+              </div>
+        
+            <!-- Row 5: Customer contact, email and address -->
+            <div class="row mb-3 d-flex align-items-stretch">
+                <!-- Left column: contact and email stacked -->
+                <div class="col-md-6 d-flex flex-column">
+                    <div class="mb-2">{{ invoice_form.ship_to_customer_contact }}</div>
+                    <div class="mb-2">{{ invoice_form.ship_to_customer_email }}</div>
+                </div>
+
+                <!-- Right column: address, stretches to match left column height -->
+                <div class="col-md-6 h-100">
+                    {{ invoice_form.ship_to_customer_address }}
+                </div>
+            </div>
+
+
+
+              <!-- Row 6: Dispatched Through -->
                <div class="row mb-3">
                 <div class="col-md-12">
                   {{ invoice_form.dispatched_through }}
@@ -105,11 +149,7 @@
                 </div>
                 </div>
 
-              <!-- <div class="row mb-3">
-                <div class="col-md-12">{{ invoice_form.dispatched_through }}</div>
-                    <datalist id="dispatched_through_list">
-                    </datalist> 
-              </div> -->
+
 
               <!-- Invoice Items Group -->
               <div class="group-box mb-3">
@@ -176,7 +216,7 @@
                         <span class="text-muted">0</span>
                       {% endif %}
                     </td>
-                  {% endwith %}
+                  {% endwith %} 
                   <!-- 🌈 Attractive View Button -->
 
                   <td>
@@ -187,9 +227,9 @@
                     </a>
                   
                  <a href="{% url 'invoice_pdf' invoice.invoice_number %}" 
-   class="btn btn-sm btn-secondary d-inline-flex align-items-center">
-   <i class="bi bi-eye me-1"></i> PDF
-</a>
+                    class="btn btn-sm btn-secondary d-inline-flex align-items-center">
+                    <i class="bi bi-eye me-1"></i> PDF
+                  </a>
 
                      <a href="javascript:void(0);" 
                       onclick="openInvoicePopup('{{ invoice.invoice_number }}')" 
@@ -249,12 +289,42 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Ship to Customer Code 
+    const ship_to_input = document.querySelector('input[list="ship_to_customer_code_list"]');
+    const ship_to_datalist = document.getElementById('ship_to_customer_code_list');
+    if (ship_to_input && ship_to_datalist) {
+      ship_to_input.addEventListener('input', function() {
+                  const val = ship_to_input.value;
+                  const option = Array.from(ship_to_datalist.options).find(o => o.value === val);
+
+                  if (option) {
+                      // If user selected a full "CODE-NAME" entry,
+                      // trim it down to show only the CODE part.
+                      const codeOnly = val.split('-')[0].trim();
+                      ship_to_input.value = codeOnly;
+                  }
+              });
+    }
+
 });
 
   function openInvoicePopup(invoiceNumber) {
   const url = `/invoice/invoice_entry/view/${invoiceNumber}`;
   window.open(url, 'InvoicePopup', 'width=1000,height=750,top=100,left=200,resizable=yes,scrollbars=yes');
 }
+
+  const ship_to_customerCodeInput = document.querySelector('input[name="ship_to_customer_code"]');
+  ship_to_customerCodeInput.addEventListener('blur', function() {
+     const code = this.value.toUpperCase().trim();
+    if (!code) { alert("Ship to Customer code cannot be empty!"); return; }
+     document.querySelector('input[name="ship_to_customer_name"]').value = customerData[code].name;
+      document.querySelector('input[name="ship_to_customer_gst"]').value = customerData[code].gst;
+      document.querySelector('textarea[name="ship_to_customer_address"]').value = customerData[code].address_bill_to;
+      document.querySelector('input[name="ship_to_customer_contact"]').value = customerData[code].phone;
+      document.querySelector('input[name="ship_to_customer_email"]').value = customerData[code].email;
+
+  });
 
   const customerCodeInput = document.querySelector('input[name="customer_code"]');
   customerCodeInput.addEventListener('blur', function() {
@@ -264,12 +334,22 @@ document.addEventListener('DOMContentLoaded', function() {
      // Read and parse it back into a JavaScript object
     //const customerData = JSON.parse('{{ customer_dict|escapejs }}');
     if (customerData[code]) {
+      //Bill to customer
       document.querySelector('input[name="customer_name"]').value = customerData[code].name;
       document.querySelector('input[name="customer_gst"]').value = customerData[code].gst;
-      document.querySelector('textarea[name="customer_address_bill_to"]').value = customerData[code].address_bill_to;
-      document.querySelector('textarea[name="customer_address_ship_to"]').value = customerData[code].address_ship_to;
+      document.querySelector('textarea[name="customer_address"]').value = customerData[code].address_bill_to;
       document.querySelector('input[name="customer_contact"]').value = customerData[code].phone;
       document.querySelector('input[name="customer_email"]').value = customerData[code].email;
+
+      //Ship to customer  
+      document.querySelector('input[name="ship_to_customer_code"]').value = code;//customerData[code].code;
+      document.querySelector('input[name="ship_to_customer_name"]').value = customerData[code].name;
+      document.querySelector('input[name="ship_to_customer_gst"]').value = customerData[code].gst;
+      document.querySelector('textarea[name="ship_to_customer_address"]').value = customerData[code].address_bill_to;
+      document.querySelector('input[name="ship_to_customer_contact"]').value = customerData[code].phone;
+      document.querySelector('input[name="ship_to_customer_email"]').value = customerData[code].email;
+
+      //document.querySelector('textarea[name="ship_to_customer_address"]').value = customerData[code].address_ship_to;
 
       // populate dispatched through control 
       const transporter_dict = JSON.parse('{{ transporter_dict|escapejs }}');
@@ -291,13 +371,14 @@ document.addEventListener('DOMContentLoaded', function() {
                defaultValue = option.value;
         }
       });
-
       document.querySelector('input[name="dispatched_through"]').value = defaultValue;
-
       }
 
     }
   });
+
+
+
 
   // Invoice Items JS
   let rowIndex = -1;
