@@ -49,6 +49,11 @@ from django.template.loader import get_template
 from xhtml2pdf import pisa
 from io import BytesIO
 
+from django.db import transaction
+
+
+from django.http import JsonResponse
+#from .models import Invoice, InvoiceItem
 
 # @singleton
 class Configurations:
@@ -62,6 +67,17 @@ class Configurations:
         #self.config['IGST'] = configurations['IGST']
 
 #######################################################-Common Functions-#############
+def get_next_invoice_number():
+    try:
+        # Get the single CompanySettings row
+        settings = CompanySettings.objects.get(id=1)
+        # Format: PREFIX + current invoice number
+        next_invoice = f"{settings.current_invoice_number+1}"
+        return next_invoice
+    except CompanySettings.DoesNotExist:
+        # Handle case if row is missing
+        return None
+
 def get_invoices_dict():
     invoice_items = InvoiceItem.objects.select_related('invoice').all()
     invoices = Invoice.objects.all()
@@ -262,7 +278,7 @@ def invoice_entry(request):
     print(price_dict)
 
     summary_data = invoice_summary()
-    context = {'invoice_form': forms.InvoiceForm() , 
+    context = {'invoice_form': forms.InvoiceForm(initial={'invoice_number':get_next_invoice_number}) , 
                'invoices':Invoices, 'invoiceitems':summary_data,
                'customers':Customers, 'customer_dict': json.dumps(customer_dict),
                'transporter_dict':json.dumps(transporter_dict), 'price_dict':json.dumps(price_dict)
@@ -317,7 +333,19 @@ def invoice_save(request):
         try:
             form = InvoiceForm(request.POST)  # Bind POST data to the form
             if form.is_valid():                # Validate the data
+                invoice_number = form.cleaned_data['invoice_number']
                 invoice_instance  = form.save()                    # Save the form to the database
+                invoice_number_int = int(invoice_number)
+                try:
+                # Lock row to prevent race conditions
+                    with transaction.atomic():      
+                        settings = CompanySettings.objects.select_for_update().get(id=1)
+                        settings.current_invoice_number = invoice_number_int
+                        settings.save()     
+                except CompanySettings.DoesNotExist:
+                    # Optionally handle missing row
+                    print("###Exception raised while saving the invoice number")
+                    pass
 
                 #invoice items 
                 item_spec_list = request.POST.getlist('item_spec[]')
@@ -526,3 +554,33 @@ def company_settings_view(request):
 #         return redirect("company_settings")
 
 #     return render(request, "company_settings.html", {"form": form})
+
+
+
+def get_invoice(request, invoice_number):
+    # print("get invoice called!!!!!!")
+    invoice = Invoice.objects.get(invoice_number=invoice_number)
+    items = InvoiceItem.objects.filter(invoice=invoice).values(
+        'item_spec', 'item_code', 'item_description', 'item_mesh_size', 'item_mesh_depth',
+        'item_quantity', 'item_price' #, 'item_gst', 'item_final_price', 'item_hsn'
+    )
+    return JsonResponse({
+        "invoice": {
+            "invoice_number": invoice.invoice_number,
+            "invoice_date": invoice.invoice_date.strftime("%Y-%m-%d"),
+            "customer_code": invoice.customer_code,
+            "customer_name": invoice.customer_name,
+            "customer_gst": invoice.customer_gst,
+            "customer_address": invoice.customer_address,
+            "customer_contact": invoice.customer_contact,
+            "customer_email": invoice.customer_email,
+            "ship_to_customer_code": invoice.ship_to_customer_code,
+            "ship_to_customer_name": invoice.ship_to_customer_name,
+            "ship_to_customer_gst": invoice.ship_to_customer_gst,
+            "ship_to_customer_address": invoice.ship_to_customer_address,
+            "ship_to_customer_contact": invoice.ship_to_customer_contact,
+            "ship_to_customer_email": invoice.ship_to_customer_email,
+            "dispatched_through": invoice.dispatched_through,
+        },
+        "items": list(items)
+    })

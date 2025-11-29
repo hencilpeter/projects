@@ -236,6 +236,13 @@
                       class="btn btn-sm btn-secondary d-inline-flex align-items-center">
                       <i class="bi bi-eye me-1"></i> Excel
                     </a>
+
+                    <a href="javascript:void(0);" 
+                       onclick="loadInvoice('{{ invoice.invoice_number }}')" 
+                        class="btn btn-sm btn-primary d-inline-flex align-items-center">
+                        <i class="bi bi-upload me-1"></i> Load
+                    </a>
+
                   </td>
                    
 
@@ -257,6 +264,60 @@
 
 <!-- JS Section -->
 <script>
+
+function loadInvoice(invoiceNumber) {
+  //alert("Load Invoice Called!");
+    fetch(`/invoice/invoice_entry/get_invoice/${invoiceNumber}/`)
+    .then(response => response.json())
+    .then(data => {
+        // Populate invoice fields
+        document.querySelector('input[name="invoice_number"]').value = data.invoice.invoice_number;
+        document.querySelector('input[name="invoice_date"]').value = data.invoice.invoice_date;
+
+        // Customer fields
+        document.querySelector('input[name="customer_code"]').value = data.invoice.customer_code;
+        document.querySelector('input[name="customer_name"]').value = data.invoice.customer_name;
+        document.querySelector('input[name="customer_gst"]').value = data.invoice.customer_gst;
+        document.querySelector('textarea[name="customer_address"]').value = data.invoice.customer_address;
+        document.querySelector('input[name="customer_contact"]').value = data.invoice.customer_contact;
+        document.querySelector('input[name="customer_email"]').value = data.invoice.customer_email;
+
+        // Ship To fields
+        document.querySelector('input[name="ship_to_customer_code"]').value = data.invoice.ship_to_customer_code;
+        document.querySelector('input[name="ship_to_customer_name"]').value = data.invoice.ship_to_customer_name;
+        document.querySelector('input[name="ship_to_customer_gst"]').value = data.invoice.ship_to_customer_gst;
+        document.querySelector('textarea[name="ship_to_customer_address"]').value = data.invoice.ship_to_customer_address;
+        document.querySelector('input[name="ship_to_customer_contact"]').value = data.invoice.ship_to_customer_contact;
+        document.querySelector('input[name="ship_to_customer_email"]').value = data.invoice.ship_to_customer_email;
+
+        document.querySelector('input[name="dispatched_through"]').value = data.invoice.dispatched_through;
+
+        // Clear existing invoice items
+        const container = document.getElementById('item-container');
+        container.innerHTML = '';
+
+        // Add invoice items dynamically
+        data.items.forEach((item, idx) => {
+            document.getElementById('add-item').click(); // creates a new row
+            document.getElementsByName('item_spec[]')[idx].value = item.item_spec;
+            document.getElementsByName('item_code[]')[idx].value = item.item_code;
+            document.getElementsByName('item_description[]')[idx].value = item.item_description;
+            document.getElementsByName('item_mesh_size[]')[idx].value = item.mesh_size;
+            document.getElementsByName('item_mesh_depth[]')[idx].value = item.mesh_depth;
+            document.getElementsByName('item_quantity[]')[idx].value = item.quantity;
+            document.getElementsByName('item_price[]')[idx].value = item.price;
+            document.getElementsByName('item_gst[]')[idx].value = item.gst;
+            document.getElementsByName('item_final_price[]')[idx].value = item.final_price;
+            document.getElementsByName('item_hsn[]')[idx].value = item.hsn;
+        });
+
+        // Open the invoice form collapse
+        const invoiceForm = new bootstrap.Collapse(document.getElementById('customerForm'), { show: true });
+    })
+    .catch(error => console.error('Error loading invoice:', error));
+}
+
+
 
 function showGSTCalculator() {
     // Your tax calculation logic here    

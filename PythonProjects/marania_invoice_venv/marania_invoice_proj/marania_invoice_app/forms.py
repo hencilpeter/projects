@@ -77,6 +77,7 @@ class InvoiceForm(forms.ModelForm):
         })
     )
     
+    
     class Meta:
         model = Invoice
         fields = [
@@ -216,24 +217,6 @@ class TransportationForm(forms.ModelForm):
             }),
         }
 
-# class CompanySettingsForm(forms.ModelForm):
-#     class Meta:
-#         model = CompanySettings
-#         fields = [
-#             "current_invoice_number",
-#             "invoice_prefix",
-#             "igst", "cgst", "sgst",
-#             "company_title",
-#             "company_address",
-#             "company_phone",
-#             "company_email",
-#         ]
-
-#         widgets = {
-#             "company_address": forms.Textarea(attrs={"rows": 3}),
-#         }
-
-
 class CompanySettingsForm(forms.ModelForm):
     class Meta:
         model = CompanySettings
@@ -243,6 +226,7 @@ class CompanySettingsForm(forms.ModelForm):
             "igst",
             "cgst",
             "sgst",
+            "finance_year",
             "company_title",
             "company_address",
             "company_phone",
@@ -255,6 +239,7 @@ class CompanySettingsForm(forms.ModelForm):
             "igst": "IGST ( Integrated Goods and Services Tax % )",
             "cgst": "CGST ( Central Goods and Services Tax % )",
             "sgst": "SGST ( State Goods and Services Tax %)",
+            "finance_year": "Finance Year",
             "company_title": "Company Name",
             "company_address": "Company Address",
             "company_phone": "Contact Number",

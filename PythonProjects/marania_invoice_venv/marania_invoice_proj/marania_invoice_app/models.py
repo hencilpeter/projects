@@ -10,7 +10,9 @@ def current_indian_financial_year():
     else:  # January to March
         start_year = year - 1
         end_year = year
-    return f"{start_year}-{end_year}"  # e.g., "2025-2026"
+    #return f"{start_year}-{end_year}"  # e.g., "2025-2026"
+    return f"{str(start_year)[-2:]}-{str(end_year)[-2:]}"
+
 
 # Create your models here.
 class Customer(models.Model):

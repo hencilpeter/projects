@@ -13,6 +13,7 @@ path('invoice_entry/pdf/<str:invoice_number>/', views.invoice_pdf, name='invoice
 path('invoice_entry/show_gst_calculator', views.show_gst_calculator, name='show_gst_calculator'),
 
 path('settings/company/', views.company_settings_view, name='company_settings'),
+path('invoice_entry/get_invoice/<str:invoice_number>/', views.get_invoice, name='get_invoice'),
 #path("settings/company", views.company_settings_view, name="company_settings"),
 
 
