@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from . import forms
-from .forms import CustomerForm, InvoiceForm
-from .models import Customer, Configuration, Invoice,InvoiceItem, Transportation, PriceList
+from .forms import CustomerForm, InvoiceForm, CompanySettingsForm
+from .models import Customer, Configuration, Invoice,InvoiceItem, Transportation, PriceList, CompanySettings
 from collections import defaultdict,OrderedDict
 #from singleton import singleton
 import pdb
@@ -66,8 +66,8 @@ def get_invoices_dict():
     invoice_items = InvoiceItem.objects.select_related('invoice').all()
     invoices = Invoice.objects.all()
     
-    invoice_dict = defaultdict(lambda:-1)
-    invice_item_dict = defaultdict(lambda:-1)
+    invoice_dict = defaultdict(lambda:{})
+    invice_item_dict = defaultdict(lambda:{})
     for invoice_item in invoice_items:
         if invoice_item.invoice.invoice_number not in invice_item_dict:
             invice_item_dict[invoice_item.invoice.invoice_number] = [invoice_item]
@@ -75,10 +75,22 @@ def get_invoices_dict():
             invice_item_dict[invoice_item.invoice.invoice_number].append(invoice_item)
 
     for invoice in invoices:
+       
+        # for field in invoice._meta.fields:
+        #     print(field.name, getattr(invoice, field.name))
+#"ship_to_customer_address":invoice.ship_to_customer_address,
+
         invoice_dict[invoice.invoice_number]={
-                    "invoice_date": invoice.invoice_date,"customer_code":invoice.customer_code,"customer_name":invoice.customer_name,
-                    "customer_gst":invoice.customer_gst,"customer_address_bill_to":invoice.customer_address_bill_to,
-                    "customer_address_ship_to":invoice.customer_address_ship_to,"customer_contact":invoice.customer_contact,"customer_email":invoice.customer_email, 
+                    "invoice_date": invoice.invoice_date,
+                    #bill to 
+                    "customer_code":invoice.customer_code,"customer_name":invoice.customer_name,
+                    "customer_gst":invoice.customer_gst,"customer_address":invoice.customer_address,                    
+                    "customer_contact":invoice.customer_contact,"customer_email":invoice.customer_email, 
+                    #ship to
+                    "ship_to_customer_code":invoice.ship_to_customer_code, "ship_to_customer_name":invoice.ship_to_customer_name,
+                    "ship_to_customer_gst":invoice.ship_to_customer_gst, "ship_to_customer_address":invoice.ship_to_customer_address,
+                    "ship_to_customer_contact":invoice.ship_to_customer_contact,"ship_to_customer_email":invoice.ship_to_customer_email,
+
                     "dispatched_through":invoice.dispatched_through,
                     "invoice_items":invice_item_dict[invoice.invoice_number]}
     
@@ -175,21 +187,23 @@ def invoice_summary():
 
     for invoice_item in invoice_items:
         invoice_number = invoice_item.invoice.invoice_number
-        invoice_amount = invoice_item.item_price * (Decimal(1.05))  # item price + 5%
+        item_subtotal = invoice_item.item_quantity * invoice_item.item_price
+        item_amount = item_subtotal * (Decimal(1.05))
+        #invoice_amount = invoice_item.item_price * (Decimal(1.05))  # item price + 5%
 
         if invoice_number not in invoice_summary:
             invoice_summary[invoice_number] = {
                 'date': invoice_item.invoice.invoice_date,
                 'customer': invoice_item.invoice.customer_name,
                 'weight': invoice_item.item_quantity,
-                'sub_total': invoice_item.item_price,
-                'invoice_amount': invoice_amount
+                'sub_total': item_subtotal,
+                'invoice_amount': item_amount
             }
         else:
             summary = invoice_summary[invoice_number]
             summary['weight'] += invoice_item.item_quantity
-            summary['sub_total'] += invoice_item.item_price
-            summary['invoice_amount'] += invoice_amount
+            summary['sub_total'] += item_subtotal
+            summary['invoice_amount'] += item_amount
 
     return invoice_summary
 
@@ -202,7 +216,6 @@ def dashboard(request):
     print(config)
     context = {'config':config.config}
     return render(request, 'marania_invoice_app/dashboard.html', context)
-    #return render(request, 'marania_invoice_app/customer.html', context)
 
 
 def customer(request):
@@ -300,37 +313,47 @@ def create_customer(request):
 def invoice_save(request):
     
     #pdb.set_trace()
-
     if request.method == 'POST':
-        form = InvoiceForm(request.POST)  # Bind POST data to the form
-        if form.is_valid():                # Validate the data
-            invoice_instance  = form.save()                    # Save the form to the database
+        try:
+            form = InvoiceForm(request.POST)  # Bind POST data to the form
+            if form.is_valid():                # Validate the data
+                invoice_instance  = form.save()                    # Save the form to the database
 
-            #invoice items 
-            item_spec_list = request.POST.getlist('item_spec[]')
-            item_code_list = request.POST.getlist('item_code[]')
-            item_description_list = request.POST.getlist('item_description[]')
-            item_mesh_size_list = request.POST.getlist('item_mesh_size[]')
-            item_mesh_depth_list = request.POST.getlist('item_mesh_depth[]')
-            item_quantity_list = request.POST.getlist('item_quantity[]')
-            item_price_list = request.POST.getlist('item_price[]')
-            
-            invoice_item_list = []
-            for index in range(len(item_code_list)):
-                if item_code_list[index].strip():
-                    invoice_item_list.append(InvoiceItem(invoice=invoice_instance,               # mandatory ForeignKey
-                            item_spec=item_spec_list[index],
-                            item_code=item_code_list[index],
-                            item_description=item_description_list[index],
-                            item_mesh_size=item_mesh_size_list[index],
-                            item_mesh_depth=item_mesh_depth_list[index],
-                            item_quantity=item_quantity_list[index],
-                            item_price=item_price_list[index],))
-            
-            if (len(item_code_list) > 0):
-                InvoiceItem.objects.bulk_create(invoice_item_list)    # save the invoice items 
+                #invoice items 
+                item_spec_list = request.POST.getlist('item_spec[]')
+                item_code_list = request.POST.getlist('item_code[]')
+                item_description_list = request.POST.getlist('item_description[]')
+                item_mesh_size_list = request.POST.getlist('item_mesh_size[]')
+                item_mesh_depth_list = request.POST.getlist('item_mesh_depth[]')
+                item_quantity_list = request.POST.getlist('item_quantity[]')
+                item_price_list = request.POST.getlist('item_price[]')
+
+                invoice_item_list = []
+                for index in range(len(item_code_list)):
+                    if item_code_list[index].strip():
+                        invoice_item_list.append(InvoiceItem(invoice=invoice_instance,               # mandatory ForeignKey
+                                item_spec=item_spec_list[index],
+                                item_code=item_code_list[index],
+                                item_description=item_description_list[index],
+                                item_mesh_size=item_mesh_size_list[index],
+                                item_mesh_depth=item_mesh_depth_list[index],
+                                item_quantity=item_quantity_list[index],
+                                item_price=item_price_list[index],))
+
+                if (len(item_code_list) > 0):
+                    InvoiceItem.objects.bulk_create(invoice_item_list)    # save the invoice items 
+            else:
+                print("&&&&&&&&&&&&&&FORM IS NOT VALID&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+                print(form.errors)
+                
+        except Exception as e:
+            print("Exception raised...@@@@@@@@@@@@@@@@@@@@@@@")
+            # Catch any exception while instantiating or saving the form
+            print(f"Error: {e}")
+            return HttpResponse(f"An error occurred: {e}")
+        
                     
-            return redirect('invoice_entry')  # Redirect after save
+        return redirect('invoice_entry')  # Redirect after save
     else:
         form = InvoiceForm()  # Empty form for GET request
 
@@ -355,19 +378,18 @@ def get_invoice_dictonaries(invoice_number):
                     "bank_branch": "VETTURNIMADAM,NAGERCOIL",
                     "bank_ifsc": "ICIC0002501",
                     }
-    
     consignee_dict= {
-            "name": invoice_dict[invoice_number]["customer_name"],
-            "address": invoice_dict[invoice_number]["customer_address_bill_to"],
-            "gstin": invoice_dict[invoice_number]["customer_gst"],
-            "contact":invoice_dict[invoice_number]["customer_contact"],
+            "name": invoice_dict[invoice_number]["ship_to_customer_name"],
+            "address": invoice_dict[invoice_number]["ship_to_customer_address"],
+            "gstin": invoice_dict[invoice_number]["ship_to_customer_gst"],
+            "contact":invoice_dict[invoice_number]["ship_to_customer_contact"],
             "state_name": "Tamil Nadu",
             "state_code": "33"
         }
     
     buyer_dict= {
             "name": invoice_dict[invoice_number]["customer_name"],
-            "address": invoice_dict[invoice_number]["customer_address_ship_to"],
+            "address": invoice_dict[invoice_number]["customer_address"],
             "gstin": invoice_dict[invoice_number]["customer_gst"],
             "contact":invoice_dict[invoice_number]["customer_contact"],
             "state_name": "Tamil Nadu",
@@ -377,7 +399,6 @@ def get_invoice_dictonaries(invoice_number):
     items= [
             # {"packages": "1", "description": ".20DK/34MM/150MD", "hsn": "5608", "gst_rate": 5, "quantity": "50.700 KGS", "rate": "476.19", "unit": "KGS", "amount": "24,142.83"},
         ]
-
     sub_total = 0
     total_quantity = 0
     for invoice_item in invoice_items:
@@ -481,3 +502,27 @@ def invoice_pdf(request, invoice_number):
     return response
 
     
+def company_settings_view(request):
+    settings, created = CompanySettings.objects.get_or_create(id=1)
+
+    if request.method == "POST":
+        form = CompanySettingsForm(request.POST, instance=settings)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Settings saved successfully!")
+            return redirect("company_settings")  # redirect to same view
+
+    else:
+        form = CompanySettingsForm(instance=settings)
+    return render(request, "marania_invoice_app/company_settings_form.html", {"form": form})
+  
+
+#   def company_settings(request):
+#     settings = CompanySettings.objects.first()  # Only one row
+#     form = CompanySettingsForm(request.POST or None, instance=settings)
+
+#     if request.method == "POST" and form.is_valid():
+#         form.save()
+#         return redirect("company_settings")
+
+#     return render(request, "company_settings.html", {"form": form})

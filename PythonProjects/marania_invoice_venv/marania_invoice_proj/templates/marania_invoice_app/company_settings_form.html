@@ -1,0 +1,82 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+
+    <div class="container my-5">
+
+        {# --- SUCCESS / ERROR MESSAGES --- #}
+        <!-- {% if messages %}
+            <div class="container mb-3">
+                {% for message in messages %}
+                    <div class="alert alert-success alert-dismissible fade show shadow-sm" 
+                         role="alert" id="auto-dismiss-alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <script>
+                // Auto fade-out after 3 seconds
+                setTimeout(function () {
+                    const alert = document.getElementById("auto-dismiss-alert");
+                    if (alert) {
+                        alert.classList.remove("show");
+                        alert.classList.add("fade");
+                        setTimeout(() => alert.remove(), 500);
+                    }
+                }, 3000);
+            </script> -->
+        <!-- {% endif %} -->
+
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Company Settings</h4>
+            </div>
+
+            <div class="card-body">
+
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <div class="row g-3">
+
+                        {% for field in form %}
+                        <div class="col-md-6">
+
+                            <label class="form-label fw-semibold">{{ field.label }}</label>
+
+                            {% if field.name == "company_address" %}
+                                {{ field|add_class:"form-control"|attr:"rows:4" }}
+                            {% else %}
+                                {{ field|add_class:"form-control" }}
+                            {% endif %}
+
+                            {% if field.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ field.errors }}
+                                </div>
+                            {% endif %}
+
+                        </div>
+                        {% endfor %}
+
+                    </div>
+
+                    <button class="btn btn-success mt-4" type="submit">
+                        Save Settings
+                    </button>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+
+</main>
+{% endblock %}

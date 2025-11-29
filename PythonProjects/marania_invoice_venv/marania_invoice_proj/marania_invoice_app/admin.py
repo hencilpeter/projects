@@ -13,6 +13,6 @@ admin.site.register(Invoice)
 admin.site.register(InvoiceItem)
 admin.site.register(Transportation)
 admin.site.register(PriceList)
-
+admin.site.register(CompanySettings)
 
 

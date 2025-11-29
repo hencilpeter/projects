@@ -1,5 +1,17 @@
 {% load static %}
 
+{% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+            <div class="alert alert-success alert-dismissible fade show shadow-sm" 
+                 role="alert" id="auto-dismiss-alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
 <!doctype html>
 <html lang="en">
   <head>
@@ -161,6 +173,18 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
       btn.textContent = '+';
     });
   });
+
+
+   // Auto fade-out after 3 seconds
+    setTimeout(function () {
+        const alert = document.getElementById("auto-dismiss-alert");
+        if (alert) {
+            alert.classList.remove("show");
+            alert.classList.add("fade");
+            setTimeout(() => alert.remove(), 500); // remove after fade
+        }
+    }, 3000);
+    
 </script>
 
 <!-- CSS for smaller rounded button -->
@@ -190,7 +214,7 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
         </h6>
         <ul class="nav flex-column mb-2">
           <li class="nav-item">
-            <a class="nav-link" href="#">
+            <a class="nav-link"  href="{% url 'company_settings' %}">
               <span data-feather="file-text"></span>
               Company
             </a>

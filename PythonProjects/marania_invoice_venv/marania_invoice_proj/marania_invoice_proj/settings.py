@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'marania_invoice_app',
     'crispy_forms',
+    'widget_tweaks',
 ]
 
 MIDDLEWARE = [

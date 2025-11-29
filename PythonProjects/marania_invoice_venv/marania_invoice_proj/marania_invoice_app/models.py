@@ -1,6 +1,17 @@
 from django.db import models
 from datetime import date
 
+def current_indian_financial_year():
+    today = date.today()
+    year = today.year
+    if today.month >= 4:  # April or later
+        start_year = year
+        end_year = year + 1
+    else:  # January to March
+        start_year = year - 1
+        end_year = year
+    return f"{start_year}-{end_year}"  # e.g., "2025-2026"
+
 # Create your models here.
 class Customer(models.Model):
     code = models.CharField(max_length=50, unique=True, null=False, blank=False)
@@ -166,4 +177,37 @@ class PriceList(models.Model):
 
     def __str__(self):
         return f"{self.code} - {self.customer_group} - {self.sequence_id}"
+    
+
+class CompanySettings(models.Model):
+    # Ensure only one row exists
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+
+    # Invoice running number
+    current_invoice_number = models.PositiveIntegerField(default=1)
+    invoice_prefix = models.CharField(max_length=20, default="INV")
+
+    # GST values
+    igst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    cgst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    sgst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+
+    finance_year = models.CharField(max_length=20, default=current_indian_financial_year())
+
+    # Company information
+    company_title = models.CharField(max_length=255)
+    company_address = models.TextField()
+
+    # Optional: contact info
+    company_phone = models.CharField(max_length=50, blank=True, null=True)
+    company_email = models.EmailField(blank=True, null=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return "Company Settings"
+
+    class Meta:
+        verbose_name = "Company Setting"
+        verbose_name_plural = "Company Settings"
     

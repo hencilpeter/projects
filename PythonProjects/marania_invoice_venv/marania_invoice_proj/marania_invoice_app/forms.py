@@ -2,6 +2,7 @@ from django import forms
 from .models import Customer
 from .models import Invoice, InvoiceItem
 from .models import Transportation
+from .models import CompanySettings
 from django.forms import inlineformset_factory
 
 class CustomerForm(forms.ModelForm):
@@ -30,7 +31,7 @@ class CustomerForm(forms.ModelForm):
 
 class InvoiceForm(forms.ModelForm):
     # Manually declare only fields that need datalist / custom placeholder
-    print("Form1")
+    
     customer_code = forms.CharField(
         label='Customer Code',
         widget=forms.TextInput(attrs={
@@ -39,7 +40,7 @@ class InvoiceForm(forms.ModelForm):
             'list': 'customer_code_list',  # links to datalist id in HTML
         })
     )
-    print("Form2")
+    
     customer_name = forms.CharField(
         label='Customer Name',
         widget=forms.TextInput(attrs={
@@ -48,7 +49,7 @@ class InvoiceForm(forms.ModelForm):
             'list': 'customer_name_list',  # links to datalist id in HTML
         })
     )
-    print("Form3")
+    
     ship_to_customer_code = forms.CharField(
         label='Customer Code',
         widget=forms.TextInput(attrs={
@@ -57,7 +58,7 @@ class InvoiceForm(forms.ModelForm):
             'list': 'ship_to_customer_code_list',  # links to datalist id in HTML
         })
     )
-    print("Form4")
+    
     ship_to_customer_name = forms.CharField(
         label='Customer Name',
         widget=forms.TextInput(attrs={
@@ -66,7 +67,7 @@ class InvoiceForm(forms.ModelForm):
             'list': 'ship_to_customer_name_list',  # links to datalist id in HTML
         })
     )
-    print("Form5")
+    
     dispatched_through = forms.CharField(
         label='Dispatched Through',
         widget=forms.TextInput(attrs={
@@ -75,7 +76,7 @@ class InvoiceForm(forms.ModelForm):
             'list': 'dispatched_through_list',  # links to datalist id in HTML
         })
     )
-    print("Form6")
+    
     class Meta:
         model = Invoice
         fields = [
@@ -215,6 +216,68 @@ class TransportationForm(forms.ModelForm):
             }),
         }
 
+# class CompanySettingsForm(forms.ModelForm):
+#     class Meta:
+#         model = CompanySettings
+#         fields = [
+#             "current_invoice_number",
+#             "invoice_prefix",
+#             "igst", "cgst", "sgst",
+#             "company_title",
+#             "company_address",
+#             "company_phone",
+#             "company_email",
+#         ]
+
+#         widgets = {
+#             "company_address": forms.Textarea(attrs={"rows": 3}),
+#         }
+
+
+class CompanySettingsForm(forms.ModelForm):
+    class Meta:
+        model = CompanySettings
+        fields = [
+            "current_invoice_number",
+            "invoice_prefix",
+            "igst",
+            "cgst",
+            "sgst",
+            "company_title",
+            "company_address",
+            "company_phone",
+            "company_email",
+        ]
+
+        labels = {
+            "current_invoice_number": "Current Invoice Number",
+            "invoice_prefix": "Invoice Prefix",
+            "igst": "IGST ( Integrated Goods and Services Tax % )",
+            "cgst": "CGST ( Central Goods and Services Tax % )",
+            "sgst": "SGST ( State Goods and Services Tax %)",
+            "company_title": "Company Name",
+            "company_address": "Company Address",
+            "company_phone": "Contact Number",
+            "company_email": "Email Address",
+        }
+
+        widgets = {
+            "company_address": forms.Textarea(
+                attrs={
+                    "rows": 4,                 # Show 4-line height
+                    "class": "form-control",   # Bootstrap styling
+                    "placeholder": "company address",
+                }
+            ),
+            "company_title": forms.TextInput(attrs={"class": "form-control"}),
+            "current_invoice_number": forms.NumberInput(attrs={"class": "form-control"}),
+            "invoice_prefix": forms.TextInput(attrs={"class": "form-control"}),
+            "igst": forms.NumberInput(attrs={"class": "form-control"}),
+            "cgst": forms.NumberInput(attrs={"class": "form-control"}),
+            "sgst": forms.NumberInput(attrs={"class": "form-control"}),
+            "company_phone": forms.TextInput(attrs={"class": "form-control"}),
+            "company_email": forms.EmailInput(attrs={"class": "form-control"}),
+        }
 
 
 # 👇 This creates a formset of items linked to an Invoice
@@ -224,3 +287,4 @@ InvoiceItemFormSet = inlineformset_factory(
     extra=1,  # how many blank forms to show initially
     can_delete=True
 )
+
