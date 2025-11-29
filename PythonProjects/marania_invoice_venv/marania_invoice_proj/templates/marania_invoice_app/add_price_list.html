@@ -20,7 +20,7 @@
 .price-table textarea {
     height: 18px !important;       /* slightly smaller than td */
     width: 50%;
-    padding: 0 2px !important;
+    padding: 0 1px !important;
     margin: 0 !important;
     line-height: 1 !important;
     font-size: 12px !important;
@@ -165,7 +165,7 @@ document.getElementById("add-row").addEventListener("click", function () {
     let tbody = document.getElementById("price-tbody");
     let totalForms = document.getElementById("id_form-TOTAL_FORMS");
     let count = parseInt(totalForms.value);
-    alert("Add")
+    
     let firstRow = tbody.querySelector(".price-row");
 
     // Clone first row HTML and replace IDs
