@@ -1,0 +1,201 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tax Invoice - {{ invoice.invoice_no }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    @page { size: A4; margin: 12mm; }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 13px;
+      background: #fff;
+      color: #000;
+    }
+    .invoice-container {
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 15px 18px;
+      background: #fff;
+      max-width: 850px;
+      margin: auto;
+    }
+    .invoice-title {
+      font-weight: 700;
+      font-size: 18px;
+      text-transform: uppercase;
+      text-align: center;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+      margin-bottom: 4px;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { border: 1px solid #444 !important; padding: 4px 6px !important; vertical-align: top; }
+    th { background-color: #f1f1f1; }
+    .section-title {
+      background-color: #f9f9f9;
+      font-weight: 600;
+      padding: 4px 6px;
+      border: 1px solid #ddd;
+    }
+    .footer-text { text-align: center; font-size: 12px; color: #555; margin-top: 8px; }
+    .text-end { text-align: right !important; }
+    .signature { text-align: right; margin-top: 20px; font-weight: 500; }
+  </style>
+</head>
+<body>
+
+<div class="invoice-container">
+
+  <!-- Compact Header -->
+  <div class="d-flex justify-content-between align-items-start mb-2">
+    <div>
+      <img src="{{ company.logo_url }}" alt="Logo" style="height:55px;">
+      <div class="fw-bold mt-1" style="font-size:15px;">{{ company.name }}</div>
+      <div style="font-size:12px; line-height:1.3;">
+        {{ company.address }}<br>
+        GSTIN/UIN: {{ company.gstin }}<br>
+        State: {{ company.state_name }}, Code: {{ company.state_code }}<br>
+        Contact: {{ company.contact }}
+      </div>
+    </div>
+
+    <div class="text-center">
+      <div class="fw-bold" style="font-size:18px; text-transform:uppercase;">Tax Invoice</div>
+      <hr style="margin:3px 0; border-top:1px solid #000; width:100px;">
+    </div>
+
+    <div style="width:42%;">
+      <table class="table table-bordered table-sm mb-0" style="font-size:12px;">
+        <tr><td><b>Invoice No.</b></td><td>{{ invoice.invoice_no }}</td></tr>
+        <tr><td><b>Dated</b></td><td>{{ invoice.date }}</td></tr>
+        <tr><td><b>Vehicle No.</b></td><td>{{ invoice.vehicle_no }}</td></tr>
+        <tr><td><b>Delivery Note</b></td><td>{{ invoice.delivery_note }}</td></tr>
+        <tr><td><b>Destination</b></td><td>{{ invoice.destination }}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Consignee / Buyer / Bank -->
+  <div class="row mt-2">
+    <div class="col-md-6">
+      <div class="section-title">Consignee (Ship To)</div>
+      <strong>{{ consignee.name }}</strong><br>
+      {{ consignee.address }}<br>
+      GSTIN/UIN: {{ consignee.gstin }}<br>
+      State: {{ consignee.state_name }}, Code: {{ consignee.state_code }}
+    </div>
+    <div class="col-md-6">
+      <div class="section-title">Company’s Bank Details</div>
+      <strong>A/c Name:</strong> {{ company.bank_name }}<br>
+      <strong>Bank Name:</strong> {{ company.bank_bank }}<br>
+      <strong>A/c No:</strong> {{ company.bank_account }}<br>
+      <strong>Branch:</strong> {{ company.bank_branch }}<br>
+      <strong>IFSC Code:</strong> {{ company.ifsc }}
+    </div>
+  </div>
+
+  <div class="row mt-2">
+    <div class="col-md-6">
+      <div class="section-title">Buyer (Bill To)</div>
+      <strong>{{ buyer.name }}</strong><br>
+      {{ buyer.address }}<br>
+      GSTIN/UIN: {{ buyer.gstin }}<br>
+      State: {{ buyer.state_name }}, Code: {{ buyer.state_code }}
+    </div>
+  </div>
+
+  <!-- Items -->
+  <div class="table-responsive mt-3">
+    <table class="table table-bordered table-sm">
+      <thead class="table-light">
+        <tr>
+          <th>Sl No</th>
+          <th>No. & Kind of Pkgs</th>
+          <th>Description of Goods</th>
+          <th>HSN/SAC</th>
+          <th>GST Rate</th>
+          <th>Quantity</th>
+          <th>Rate</th>
+          <th>Per</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ item.packages }}</td>
+          <td>{{ item.description }}</td>
+          <td>{{ item.hsn }}</td>
+          <td>{{ item.gst_rate }}%</td>
+          <td>{{ item.quantity }}</td>
+          <td>{{ item.rate }}</td>
+          <td>{{ item.unit }}</td>
+          <td>{{ item.amount }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="fw-bold table-light">
+          <td colspan="8" class="text-end">Total</td>
+          <td>{{ invoice.subtotal }}</td>
+        </tr>
+        <tr><td colspan="8" class="text-end">CGST</td><td>{{ invoice.cgst }}</td></tr>
+        <tr><td colspan="8" class="text-end">SGST</td><td>{{ invoice.sgst }}</td></tr>
+        <tr><td colspan="8" class="text-end">Rounded Off</td><td>{{ invoice.round_off }}</td></tr>
+        <tr class="fw-bold table-light">
+          <td colspan="8" class="text-end">Grand Total</td>
+          <td><b>{{ invoice.total }}</b></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Tax Summary -->
+  <div class="table-responsive mt-2">
+    <table class="table table-bordered table-sm">
+      <thead class="table-light">
+        <tr>
+          <th>HSN/SAC</th>
+          <th>Taxable Value</th>
+          <th>CGST Rate</th>
+          <th>CGST Amount</th>
+          <th>SGST Rate</th>
+          <th>SGST Amount</th>
+          <th>Total Tax</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tax in taxes %}
+        <tr>
+          <td>{{ tax.hsn }}</td>
+          <td>{{ tax.taxable_value }}</td>
+          <td>{{ tax.cgst_rate }}%</td>
+          <td>{{ tax.cgst_amount }}</td>
+          <td>{{ tax.sgst_rate }}%</td>
+          <td>{{ tax.sgst_amount }}</td>
+          <td>{{ tax.total_tax }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <p><strong>Tax Amount (in words):</strong> {{ invoice.tax_words }}</p>
+  <p><strong>Amount Chargeable (in words):</strong> {{ invoice.amount_words }}</p>
+
+  <p><strong>Declaration:</strong><br>
+  We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</p>
+
+  <div class="signature">
+    for <strong>{{ company.name }}</strong><br><br>
+    Authorised Signatory
+  </div>
+
+  <div class="footer-text">
+    This is a Computer Generated Invoice
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,137 @@
+1. Create Invoicing App with Python Django and Bootstrap Step by Step
+https://www.youtube.com/watch?v=9XE0sf0XYuw
+2. Final Lecture: Create Invoicing App with Python Django and Bootstrap
+https://www.youtube.com/watch?v=KU_taqbG00U&t=10597s
+
+----------------------------------------------------------------------------------------
+Customer (code,name, address_billto, address_shipto, pin, phone, gst, is_within_state, DefultTransporter) 
+Transporter(code, name, vehicle_number, vechicle_type, category (individual/railway/transport) ) 
+------
+invoice(customer_code, date, invoice_number, invoice_transport, invoice_orders) 
+
+
+python manage.py collectstatic
+
+base path: 
+D:\Dell_Inspiron_FullBK_20200606\Hencil\HencilData\Hencil\Sample Applications\python_samples\python_django_samples
+
+subst x: "D:\Dell_Inspiron_FullBK_20200606\Hencil\HencilData\Hencil\Sample Applications\python_samples\python_django_samples"
+
+Time Zone: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+
+bootstrap: https://getbootstrap.com/docs/5.1/examples/
+Bootstrap control reference : https://getbootstrap.com/docs/5.3/components/accordion/
+
+we need to copy the asset folder along with the specific control name folder 
+Github: https://github.com/skolo-online/invoicing
+
+https://skolo-online.medium.com/
+Lecture-Part1:
+https://medium.com/nerd-for-tech/create-invoicing-app-with-django-and-bootstrap-part-1-6619d493060d
+Lecture-Part2:
+https://python.plainenglish.io/create-an-invoicing-app-with-django-and-bootstrap-a989a8a1b88a
+Final Lecture:
+https://python.plainenglish.io/build-a-complete-invoicing-web-application-with-django-8e6c56745935
+
+----------------------
+Steps: (Lecture 1 ) https://www.youtube.com/watch?v=9XE0sf0XYuw
+-------------------
+1.  Env setup
+	(i) virutal environment 
+		py -m venv invocie_sample1
+	(ii) activate virtual environment 
+		\python_sample_project\Scripts\activate
+	(iii) install django 
+		(invoice_sample1) X:\invoice_sample1>
+		pip install django
+    (iv) subst X: "path"
+	(v) pip install uuid
+	    pip install pillow
+		
+
+2. Project/Application Setup 	
+(i) Create a project 
+	django-admin startproject invoice_proj
+(ii) create application 
+     python manage.py startapp invoice_app 
+3. Run the server 
+		python manage.py runserver
+
+		Try the below:
+		http://127.0.0.1:8000/
+		http://127.0.0.1:8000/admin/
+		py manage.py runserver 0.0.0.0:5000  #  for specific port 
+
+4. Create Super user 
+	(i) create default database and tables : 
+	       python manage.py makemigrations
+	(ii) python manage.py migrate
+	(iii) create super user  : 
+	      python manage.py createsuperuser    
+		(give user name(email id )  and password ) 
+	     Username : jhpeter@gmail.com (user) 
+         Password: Test1234	
+
+5. settings change 
+   - timezone change:  settings.py
+          ALLOWED_HOSTS = ['*']
+          TIME_ZONE = 'Asia/Kolkata' #'UTC'
+		  STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
+		  MEDIA_ROOT = os.path.join(BASE_DIR, 'uploads')
+	      MEDIA_URL = '/uploads/'
+  - register the app 
+  INSTALLED_APPS = [
+    ...
+    'invoice_app',]
+		  
+6. static/uploads folder creation 
+   X:\invoice_sample1\invoice_proj>mkdir static 
+   X:\invoice_sample1\invoice_proj>mkdir uploads   
+   X:\invoice_sample1\invoice_proj>py manage.py collectstatic
+   - create a assets folder inside static and move the files 
+		(invoice_sample1) X:\invoice_sample1\invoice_proj\static>mkdir assets
+		copy the required fils to assets. I have copied from the orginal github repo. 
+7. Build model:
+   - copy the base code to the models.py 
+   - register the model in admin.py 
+   - migrate 
+   - now test the new model in admin 
+   
+		
+
+Steps: (Lecture 2 ) - https://www.youtube.com/watch?v=5FILKEYu54M
+github: https://github.com/skolo-online/invoicing2
+-------------------
+pip install django
+pip install psycopg2
+pip install Pillow 
+pip install uuid
+pip install requests
+pip install django-crispy-forms
+
+1. create a folder called "forms.py" inside invoice_app  and copy the code 
+
+fyi..below case does not require a model 
+    class NormalForm(forms.Form): # not derived from forms.ModelForm
+
+2. inside the project root create "tempaltes" folder and include the path in settings.py: TEMPLATES []
+
+ (invoice_sample1) X:\invoice_sample1\invoice_proj>mkdir templates
+ also create a project directory inside and keep the html files 
+  settings.py:
+  ------------
+  'DIRS': [os.path.join(BASE_DIR,'templates')],
+	
+3. inside the project root folder, create a views.py & urls.py file and copy the code 
+4. register the crispy forms in settings.py  :  'crispy_forms',
+
+
+Steps : Lecture 3- Final ) - https://www.youtube.com/watch?v=KU_taqbG00U&t=343s
+github : https://github.com/skolo-online/invoice3/
+C:\Users\User\Documents\GitHub\ApplicationDevelopment\invoice3\
+-----------------------------------------------------------
+2:37 
+pip install xvfb 
+
+
+D:\Dell_Inspiron_FullBK_20200606\Hencil\HencilData\Hencil\Sample Applications\python_samples\python_django_samples\invoice_sample1\invoice_proj\invoice_app\views.py
