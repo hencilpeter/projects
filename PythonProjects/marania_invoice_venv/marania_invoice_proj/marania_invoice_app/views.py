@@ -54,6 +54,7 @@ from django.db import transaction
 
 from django.http import JsonResponse
 #from .models import Invoice, InvoiceItem
+from .forms import PriceListFormSet
 
 # @singleton
 class Configurations:
@@ -627,3 +628,20 @@ def get_invoice(request, invoice_number):
         },
         "items": list(items)
     })
+
+
+def add_price_list(request):
+    if request.method == "POST":
+        formset = PriceListFormSet(request.POST)
+
+        if formset.is_valid():
+            formset.save()
+            messages.success(request, "Price list records saved successfully!")
+            return redirect("add_price_list")
+        else:
+            messages.error(request, "Please correct the errors and try again.")
+
+    else:
+        formset = PriceListFormSet(queryset=PriceList.objects.none())
+
+    return render(request, "marania_invoice_app/add_price_list.html", {"formset": formset})

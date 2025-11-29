@@ -14,6 +14,10 @@ path('invoice_entry/show_gst_calculator', views.show_gst_calculator, name='show_
 
 path('settings/company/', views.company_settings_view, name='company_settings'),
 path('invoice_entry/get_invoice/<str:invoice_number>/', views.get_invoice, name='get_invoice'),
+
+# price list 
+ path("price-list/add/", views.add_price_list, name="add_price_list"),
+ 
 #path("settings/company", views.company_settings_view, name="company_settings"),
 
 

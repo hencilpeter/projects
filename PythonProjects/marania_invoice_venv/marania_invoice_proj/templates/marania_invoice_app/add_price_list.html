@@ -1,0 +1,183 @@
+{% extends "partials/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block main %}
+
+<style>
+
+    /* Force minimal row height */
+.price-table td, 
+.price-table th {
+    padding: 1px 2px !important;   /* minimal padding */
+    height: 20px !important;       /* compact height */
+    line-height: 1 !important;
+    vertical-align: middle !important;
+}
+
+/* Inputs, selects, textareas */
+.price-table input,
+.price-table select,
+.price-table textarea {
+    height: 18px !important;       /* slightly smaller than td */
+    width: 50%;
+    padding: 0 2px !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+    font-size: 12px !important;
+    box-sizing: border-box !important;  /* ensure padding doesn't add height */
+}
+
+
+
+
+/* Optional: force nowrap to prevent auto height increase */
+.price-table td {
+    white-space: nowrap;
+}
+
+
+/* ====== Content Wrapper Left Margin ====== */
+.content-wrapper {
+    margin-left: 350px !important;  
+    padding: 20px;
+}
+
+/* ====== Table Styling ====== */
+.price-table-container {
+    overflow-x: auto;
+    padding: 20px;
+}
+
+table.price-table th,
+table.price-table td {
+    vertical-align: middle !important;
+    padding: 2px 4px !important;  /* reduced padding for smaller cell height */
+    font-size: 12px !important;
+    line-height: 1 !important;
+}
+
+/* ====== Product Column Compact ====== */
+td.product-cell select,
+td select,
+td .form-select {
+    padding: 0 4px !important;   
+    height: 22px !important;       /* reduced height */
+    font-size: 12px !important;
+    line-height: 1 !important;
+}
+
+/* ====== Small Columns Styling ====== */
+.col-small {
+    width: 70px !important;
+    max-width: 70px !important;
+    white-space: nowrap;
+}
+
+.col-small input,
+.col-small select {
+    width: 100% !important;
+    padding: 0 4px !important;
+    font-size: 12px !important;
+    height: 22px !important;       /* reduced height */
+    line-height: 1 !important;
+}
+
+/* ====== Textarea Styling ====== */
+textarea.form-control {
+    min-height: 28px !important;   /* reduced height */
+    padding: 2px 4px !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+}
+
+/* ====== Button Styling ====== */
+#add-row {
+    margin-bottom: 10px;
+}
+</style>
+
+<div class="content-wrapper">
+
+<h3 class="mb-4">Add Price List</h3>
+
+<form method="POST">
+    {% csrf_token %}
+
+
+<!-- ADD ROW BUTTON -->
+<button type="button" class="btn btn-primary mb-2" id="add-row">
+    + Add New Row
+</button>
+
+<div class="price-table-container">
+    <table class="table table-bordered price-table">
+        <thead class="table-dark">
+            <tr>
+                <th>Product</th>
+                <th class="col-small">Seq</th>
+                <th class="col-small">Code</th>
+                <th class="col-small">Group</th>
+                <th class="col-small">Twine Code</th>
+                <th class="col-small">Mesh Start</th>
+                <th class="col-small">Mesh End</th>
+                <th class="col-small">Price</th>
+                <th>Active</th>
+                <th>Note</th>
+                <th>Delete</th>
+            </tr>
+        </thead>
+    
+        <tbody id="price-tbody">
+    {{ formset.management_form }}
+
+    {% for form in formset %}
+    <tr class="price-row" style="height: 20px;">  <!-- force minimal row height -->
+        <td class="product-cell" style="padding: 1px 2px;">{{ form.product }}</td>
+        <td class="col-small" style="padding: 1px 2px;">{{ form.code }}</td>
+        <td class="col-small" style="padding: 1px 2px;">{{ form.customer_group }}</td>
+        <td class="col-small" style="padding: 1px 2px;">{{ form.sequence_id }}</td>
+        <td class="col-small" style="padding: 1px 2px;">{{ form.twine_code }}</td>
+        <td class="col-small" style="padding: 1px 2px;">{{ form.mesh_size_start }}</td>
+        <td class="col-small" style="padding: 1px 2px;">{{ form.mesh_size_end }}</td>
+        <td class="col-small" style="padding: 1px 2px;">{{ form.price }}</td>
+        <td class="text-center" style="padding: 1px 2px;">{{ form.is_active }}</td>
+        <td style="padding: 1px 2px;">{{ form.note }}</td>
+        <td class="text-center" style="padding: 1px 2px;">{{ form.DELETE }}</td>
+    </tr>
+    {% endfor %}
+</tbody>
+
+
+
+    </table>
+</div>
+
+<button type="submit" class="btn btn-success mt-3">Save Records</button>
+
+
+</form>
+</div>
+
+<!-- JS: Add New Row -->
+
+<script>
+document.getElementById("add-row").addEventListener("click", function () {
+    let tbody = document.getElementById("price-tbody");
+    let totalForms = document.getElementById("id_form-TOTAL_FORMS");
+    let count = parseInt(totalForms.value);
+    alert("Add")
+    let firstRow = tbody.querySelector(".price-row");
+
+    // Clone first row HTML and replace IDs
+    let newRow = firstRow.outerHTML.replace(/form-0/g, `form-${count}`);
+    newRow = newRow.replace(/id_form-0/g, `id_form-${count}`);
+
+    // Append new row
+    tbody.insertAdjacentHTML("beforeend", newRow);
+
+    // Update management form count
+    totalForms.value = count + 1;
+});
+</script>
+
+{% endblock %}
