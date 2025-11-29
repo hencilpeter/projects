@@ -1,0 +1,58 @@
+
+1. VALUING EQUITIES
+	1.1 Top-Down Valuation Approach 
+		Focuses on the macro factors of the economy, such as GDP, employment, taxation, interest rates, etc. before examining micro factors such as specific sectors or companies. 
+		i.e. Economy, market and industry have a significant impact on the total returns for individual stocks:
+			- macro-economic analysis 
+			- industry analysis 
+			
+		(*) Macro-economic Analysis
+		    (i) A Top-down approach to understanding a business begins with the global economy.
+		    (ii) Domestic businesses are rarely isolated and operate as part of the global economy.
+			(iii) Domestic economics are very exposed to its domestic condition like growth rate, political stability and currency risk. 
+			(e.g russia-ukrian war, covid-19 pandemic, rising inflation and rates )
+		(*) Gross Domestic Product (GDP) 
+		    (i) used as single measure of a contry's overall economic activity 
+			(ii) measures market value of final goods and services produced domestically. 
+			(iii) GDP figures typically expressed in real (inflation adjusted) term, referred to as real GDP growth. 
+		(*) Inflation
+			(i) Measured using the rate of change of the consumer price index (CPI), which represents the price of a basket of goods and services bought by a typical consumer
+			(ii) Moderate inflation (~2%) is good for the economy, by encouraging people to spend rather than save, boosting economic growth
+			(iii) High inflation or hyperinflation (>10%), usually due to high money supply growth or political turmoil, is bad. Domestic currency falls, and capital flows to other assets (e.g. Gold) and more stable countries
+		(*) Interest Rates
+			(i)  Higher growth, inflation tend to lead to higher rates. 
+			(ii) Reflect the cost of borrowing
+			(iii)Impacts business performances via:
+				For the firm:
+				- lower inerest rates imply less interest expense and higher profit. 
+				- reduces cost of capital and increasing viable investment opportunities. 
+				For the customer:
+				- lower interest rates reduces the cost of current consumption (e.g. cheaper to buy a car on a loan)
+				- increasing sales for businesses. 
+			Additional notes: 
+			(*) SIBOR versus SOR
+			   SIBOR (SG Interbank Offered Rate) – determined by the demand and supply of funds in the SG interbank market
+			   SOR (Swap Offer Rate) – derived from USD LIBOR, USD/SGD FX Swap rates. SOR tends to be more volatile
+		(*) Fiscal Policy
+		    - Government actions that alter the levels of government spending and taxes
+			  e.g.Trump reduced US taxes in Dec ‘17, benefiting wealthy individuals.
+		(*) Monetary Policy
+			- Policy measures by Central Banks.
+			-  Interest rate regime is most common
+			- Typical stimulative measures when economy is weak is to lower rates, and vice versa
+			- Lower rates cheapen cost of borrowing by consumers and businesses, thus encourages consumption and business investments 
+		
+	1.2 Bottom-up Valuation Approach 
+			Bottom-up is an investment approach that focuses on the fundamentals of the individual company rather than the overall macro environment. 
+	   i.e findings stokcs that provide superior returns regardless of teh market and industry outlook. 
+	       - fundamental analysis
+		   - technical analysis 
+
+(*) INDUSTRY ANALYSIS
+	- Three primary objectives
+		The sensitivity of the industry to key macro factors
+		How the industry operates and the key performance metrics
+		The competitive structure of the industry
+	- Generally, an industry’s prospects within the global business environment determines how well a firm fares, 
+	  thus industry analysis precedes company analysis 	
+	- Few companies can do well in an industry with poor outlook

@@ -1,6 +1,7 @@
 import datetime
-from datetime import datetime as dt
 from datetime import  timedelta
+from datetime import datetime as dt
+
 
 prefix = "MF"
 val = 1
@@ -70,6 +71,7 @@ for item in sql:
 
 
 input_dt = datetime.datetime(2022, 9, 13)
+
 first = input_dt.replace(day=1)
 print('first day of a month:', first.date())
 modified = input_dt.replace(month=10, day=1)
@@ -78,3 +80,44 @@ res = modified - timedelta(days=1)
 val = res.strftime("%Y%m%d")
 print(val)
 #print('Last day of a previous month is:', res.date())
+
+# test_date = datetime.datetime.strptime('20241216', '%Y%m%d')
+# test_date = test_date.replace(month=test_date.month+1, day=1)
+# print(test_date)
+# res = test_date - timedelta(days=1)
+# print("last date : {}".format(res))
+# initializing date
+test_date = datetime.datetime(2018, 12, 4)
+
+# printing original date
+print("The original date is : " + str(test_date))
+
+# getting next month
+# using replace to get to last day + offset
+# to reach next month
+nxt_mnth = test_date.replace(day=28) + datetime.timedelta(days=4)
+
+# subtracting the days from next month date to
+# get last date of current Month
+res = nxt_mnth - datetime.timedelta(days=nxt_mnth.day)
+
+# printing result
+print("Last date of month : " + str(res))
+print(res.strftime("%Y%m%d"))
+
+
+temp_str = 'Week No:14, Dates : [20240401, 20240403, 20240405, 20240406], Work Days : 4, Day Sal : 200.0, Weekly Salary (4 X 200.0) : 800.0'
+chunk_length = 70
+number_of_chunks = len(temp_str)/chunk_length
+chunk_list = []
+for start_location in range(0, len(temp_str), chunk_length):
+    end_location= len(temp_str) if start_location+chunk_length > len(temp_str) else start_location+chunk_length
+    chunk_list.append(temp_str[start_location:end_location])
+
+    #print(temp_str[start_location:end_location])
+print(chunk_list)
+
+#mydate = datetime.datetime.now()
+import datetime
+mydate = datetime.datetime.strptime("20240514", "%Y%m%d")
+print(mydate.strftime("%B")+" " + str(mydate.year))

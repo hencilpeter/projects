@@ -1,5 +1,7 @@
 import os
 from distutils.dir_util import copy_tree
+from collections import defaultdict
+
 
 class FileUtil:
     @staticmethod
@@ -36,3 +38,25 @@ class FileUtil:
 
         copy_tree(source_directory, target_directory)
 
+    @staticmethod
+    def get_code_coverage_dictionary(filename):
+        file_data = FileUtil.read_text_file(file_name=filename)
+
+        file_lines = file_data.split("\n")
+        print(file_lines)
+        for line in file_lines:
+            line = line.strip()
+
+            if line == "" or "warning" in str(line).lower() or "-" in line or "\\" in line:
+                continue
+
+            split_line = line.split(" ")
+            split_line = [item for item in split_line if len(item) > 0]
+            break
+
+        dict_code_coverage = defaultdict(lambda: -1)
+        dict_code_coverage["StatementCount"] = split_line[0]
+        dict_code_coverage["CoveredStatementCount"] = split_line[1]
+        dict_code_coverage["HitCount"] = split_line[2]
+
+        return dict_code_coverage

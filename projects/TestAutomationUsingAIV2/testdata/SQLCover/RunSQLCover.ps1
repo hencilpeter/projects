@@ -2,8 +2,11 @@
 $SQLCoverScriptDir = Split-Path $script:MyInvocation.MyCommand.Path
 $SQLCoverDllFullPath =   $SQLCoverScriptDir  + "\SQLCover.dll"
 
-$result = Get-CoverTSql $SQLCoverDllFullPath "server=.;integrated security=sspi;initial catalog=Automation_Test_DB_20240529232334" "Automation_Test_DB_20240529232334" "tSQLt.RunAll"
+$result = Get-CoverTSql $SQLCoverDllFullPath "server=.;integrated security=sspi;initial catalog=Automation_Test_DB_20240531133448" "Automation_Test_DB_20240531133448" "tSQLt.RunAll"
 
-echo $result > "code_coverage_result.txt"
+#echo $result > "code_coverage_result.txt"
+
+$result | Out-File -FilePath "code_coverage_result.txt" -Encoding default
+
 
 #Export-Html $result  $SQLCoverScriptDir

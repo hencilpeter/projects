@@ -21,7 +21,25 @@ commented data2
 # print(test_script)
 
 
+# import subprocess
+# p = subprocess.Popen(["C:\\Users\\User\\Documents\\GitHub\\projects\\TestAutomationUsingAIV2\\testdata\SQLCover\\RunSQLCover.cmd"], cwd="C:\\Users\\User\\Documents\\GitHub\\projects\\TestAutomationUsingAIV2\\testdata\\SQLCover")
+# p.wait()
 
-import subprocess
-p = subprocess.Popen(["C:\\Users\\User\\Documents\\GitHub\\projects\\TestAutomationUsingAIV2\\testdata\SQLCover\\RunSQLCover.cmd"], cwd="C:\\Users\\User\\Documents\\GitHub\\projects\\TestAutomationUsingAIV2\\testdata\\SQLCover")
-p.wait()
+file_data = '''      
+Warnings StatementCount CoveredStatementCount HitCount
+-------- -------------- --------------------- --------
+                      7                     4        4
+'''
+
+print(file_data)
+file_lines = file_data.split("\n")
+print(file_lines)
+for line in file_lines:
+    line = line.strip()
+
+    if line is "" or "warning" in str(line).lower() or "-" in line or "\\" in line:
+        continue
+
+    split_line = line.split(" ")
+    split_line = [ item for item in split_line if len(item) > 0]
+    print(split_line)

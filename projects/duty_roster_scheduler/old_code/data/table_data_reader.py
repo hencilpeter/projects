@@ -34,8 +34,3 @@ class TableDataReader:
     def write_data(self, insert_statement):
         self.execute_and_commit_sql(insert_statement)
 
-
-# tab = TableDataReader()
-# result = tab.get_mnemonic_table_data("address_id")
-#
-# print(result)

@@ -13,8 +13,15 @@ Marania Invoice- Application Development
 		pip install uuid
 		pip install requests
 		pip install django-crispy-forms
-    
-	
+		pip install num2words
+		pip install django-widget-tweaks
+   pip install num2words --target /path/to/installation/directory 
+   ( C:\Users\User\Documents\GitHub\PythonProjects\marania_invoice_venv>)
+		pip install pdfkit --target .\Lib\site-packages	
+		
+		pip install weasyprint --target .\Lib\site-packages
+		pip install xhtml2pdf --target .\Lib\site-packages
+		
 2. Project/Application Setup 	
 	(i) Create a project 
 		django-admin startproject marania_invoice_proj
@@ -67,17 +74,44 @@ Marania Invoice- Application Development
 		'DIRS': [os.path.join(BASE_DIR,'templates')],
 	- inside the application folder, create a views.py & urls.py file and copy the code 
 	- register the crispy forms in settings.py  :  'crispy_forms',
+    - copy static folder files into the parent folder. 
 
 
+----
 
-"12/176 Ananthanadarkudy,
-NAGERCOIL, 
-Tamilnadu-629201
-State Code 33"	
+- product
+- price 
+- invoice_entry
+- invoice_preview 
 
-12/176 Ananthanadarkudy,
-NAGERCOIL, Tamilnadu-629201
+Customer 
+  Code, Name 
+  Address 
+  GST
+  Contact  
+Invoice 
+ Date
+ Number 
+Dispatched through  
+Invoice Items:
+ItemSpec,Qty,Price 
 
-GSTIN: 33EOTPK1667E1ZP
-Contact: 8300873957
-State Code 33"
+Prepare a data entry form in html for django code using below columns:
+1. Customer group box with below fields 
+	Code
+	Name 
+	Address 
+	GST
+	Contact  
+2. Invoice group box with below fields 
+	Date
+	Number 
+3. Dispatched through  field 
+4. Invoice items group box with below fields 
+   ItemSpec 
+   ItemCode
+   ItemDescription 
+   ItemMeshSize
+   ItemMeshDepth
+   ItemQuantity
+   ItemPrice

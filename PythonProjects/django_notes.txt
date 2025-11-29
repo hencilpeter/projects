@@ -1,0 +1,222 @@
+1. simple save, view, delete, clear, shutdown application 
+2. invoice app (
+
+invoice app part 1: https://www.youtube.com/watch?v=9XE0sf0XYuw
+https://www.youtube.com/watch?v=KU_taqbG00U ) 
+generate pdf file : https://www.youtube.com/watch?v=1x_ACMFzGYM
+https://www.youtube.com/@SkoloOnline  - other videos 
+https://skolo-online.medium.com/
+
+
+--
+https://www.youtube.com/watch?v=WMR4qdYFW-8
+
+Invoice Tutorial - Notes 
+
+getbootstrap.com ( no need to build css and 
+v5 
+------------------
+practice :
+1.(CRUD) https://www.youtube.com/watch?v=RB36bxe6Ti0  
+
+DJango - Quick Reference 
+------------------------
+D:\Dell_Inspiron_FullBK_20200606\Hencil\HencilData\Hencil\Sample Applications\python_samples\python_sample_project\
+
+1.  Env setup
+	(i) virutal environment 
+		py -m venv python_sample_project
+	(ii) activate virtual environment 
+		\python_sample_project\Scripts\activate
+	(iii) install django 
+		(python_sample_project) D:\Dell_Inspiron_FullBK_20200606\Hencil\HencilData\Hencil\Sample Applications\python_samples\python_sample_project>
+		pip install django
+    (iv) subst X: "path"
+
+2. Project/Application Setup 	
+(i) Create a project 
+	django-admin startproject tutorial1_blog
+(ii) create application 
+     python manage.py startapp blog 
+3. Run the server 
+		python manage.py runserver
+
+		Try the below:
+		http://127.0.0.1:8000/
+		http://127.0.0.1:8000/admin/
+
+4. Create Super user 
+	(i) create default database and tables : 
+	       python manage.py makemigrations
+	(ii) python manage.py migrate
+	(iii) create super user  : 
+	      python manage.py createsuperuser    
+		(give user name(email id )  and password ) 
+	     Username : jhpeter@gmail.com (user) 
+         Password: Test1234		
+4. Application/Project files:
+  (i)   APP::views.py: (all the views used in the app) 
+  (ii)  APP::urls.py   (all the urls used in the app) 
+  (iii) PROJ::urls.py ( main file to coordinate all the urls)
+  (iv) PROJ::views.py ( main file to coordinate all the views)
+  (v)  PROJ:: PROJ:templates:PROJ:All template html files   
+  
+----
+CRUD steps:
+1. First Step : up to adding html  
+   1. create the django env : django_env
+      - project : crud_proj
+      - application : crud_app 	  
+   2. create superuser (user/Test1234) 
+   3. edit crud_proj:settings.py and register the installed app by adding 'crud_app' in the list.
+   4. go to app views.py and add index function:
+       def index(request):
+	     return render(request, 'index.html', name='index') 
+   5. add new file urls.py in crud_app:
+      from django.urls import path 
+	  from . import views 
+	  
+	  urlpatterns = [
+	  path('', views.index, name = 'index'
+	  ]
+   6.proj: urls.py 
+    from django.urls import path, include 
+    urlpatterns = [
+	  path('', include('crud_app.urls'))
+	  ]
+  7. app : create "templates" folder -> add index.html 
+                 <h1>Django CRUD Tutorial </h1>
+				 
+2. Phase2: 
+  1. crud_app: models.py 
+    from django.db import models 
+	class Todo (models.model):
+	 name = models.CharField(max_length=100)
+	 def __str__(self):
+		return self.name 
+  2. crud_app: admin.py 
+      from django.contrib import admin 
+	  from models import Todo 
+	  
+	  #register  your models 
+	  admin.site.register(Todo) 
+	  refresh the path and login to admin and check the Todos. add some todos . 
+  3. crud_app: views.py 
+
+     from .models import Todo 
+      
+	  def index(request):
+	  todos = Todo.objects.all()
+	  return render(request, 'index.html', {'todos':todos})
+     	 
+  4. edit index.html 
+	{%for todo in todos %}
+	 <p> {{todo}}</p> 
+	{% endfor %} 
+	
+3. Phase3: Adding forms (14:22) 
+   1. crud_app: forms.py 
+     from django import forms 
+	 from django.forms import ModelForm 
+	 from .models import Todo 
+	 
+	 class TodoForm (forms.ModelForm):
+	   class  Meta:
+	      model = Todo 
+		  fields= ['name', ]
+		  
+	2. crud_app: views.py 
+	  import the redirect 
+	  from .forms improt TodoForm 
+	  
+	   def index(request):
+		todos = Todo.objects.all()
+		form = TodoForm()
+		if request.method == 'POST':
+		   form = TodoForm(request.POST)
+		   if form.is_valid():
+		      form.save():
+			  return redirect('index')
+		return render(request, 'index.html', {'todos':todos, 'form':form})
+		
+	3. index.html 
+	<h1>..</h1> 
+	<form method = "POST">
+	    {% csrf_token %}
+	    {{form.name}}
+		<input type = 'submit' value="Submit">
+	</form>
+     {{form.name}}	
+	 {%for todo in todos%}
+	 ...
+	 (23 mins) 
+Phase 4: Add Update and Delete   
+  i. add teh following in index.html 
+  
+  {%for todo in todos%}
+  <p>{{todo}}</p>
+<div style = "display: flex; align-items: center">
+    <p>{{todo}}</p>
+    <a href="{% url 'update' todo.id %}">Update</a>
+    <a href="">Delete</a>
+  </div>
+  {% endfor %}
+ 
+ ii. edit view.py and add the following 
+
+     def update(request, pk):
+	    todo = Todo.objects.get(id=pk) 
+		form = TodoForm(instance= todo) 
+		if request.method == 'POST':
+		     form = TodoForm(request.POST, instance=todo)
+			 if form.is_valid():
+				form.save():
+				return redirect('index')
+		return render(request, 'update.html', 
+		{form:form, 'todo':todo}
+		
+
+	 iii. go to urls.py 
+	 path('update/<int:pk>', views.update, name= 'update')
+	 
+		
+ iii. update.html 
+  
+  <form method='POST>
+   {% csrf_token %}
+   {{form.name}}
+   <input type = 'submit' value = 'Update'>
+</form>   
+
+(iv) delete function 
+
+	 
+def delete(request, pk):
+    todo = Todo.objects.get(id =pk) 
+	if request.method == 'POST':
+       todo.delete() 
+       return redirect('index')	   
+	return render(request, 'delete.html', {'todo':todo})
+	
+	
+(v)	delete.html 
+<p> Are you sure want to delete  <strong>"{{todo}}"</strong> </p>
+<a href="{% url 'index' %}" > Cancel </a>
+
+<form method= 'POST'>
+   {% csrf_token %}
+  <input type = 'submit' value="Confirm">
+</form>
+	
+(v) urls.py 
+ path('delete/<int:pk>', views.delete, name= 'delete')
+ 
+ (vi) index.html 
+ add th ebelow 
+ 
+ <a href="{% url 'delete' todo.id %}">Delete</a>
+ 
+ Phase5:  beautify 
+ 
+    base.html : 43.10 
+	
