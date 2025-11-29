@@ -327,77 +327,110 @@ def create_customer(request):
     return render(request, 'marania_invoice_app/customer.html', context)
 
 def invoice_save(request):
-    
-    #pdb.set_trace()
+
     if request.method == 'POST':
         try:
-            form = InvoiceForm(request.POST)  # Bind POST data to the form
-            if form.is_valid():                # Validate the data
-                invoice_number = form.cleaned_data['invoice_number']
-                invoice_instance  = form.save()                    # Save the form to the database
-                invoice_number_int = int(invoice_number)
+            # Check if invoice_id exists → UPDATE MODE
+            invoice_number = request.POST.get('invoice_number')
+            invoice_instance = Invoice.objects.filter(invoice_number=invoice_number).first()
+
+            if invoice_instance:
+                print("^^^UPDATE MODE^^^^")
+                #invoice_instance = Invoice.objects.get(id=invoice_id)
+                form = InvoiceForm(request.POST, instance=invoice_instance)
+            else:
+                print("^^^INSERT MODE^^^^")
+                form = InvoiceForm(request.POST)
+
+            # Validate form
+            if form.is_valid():
+
+                invoice_instance = form.save()   # Creates or updates
+
+                # --- SAVE CURRENT INVOICE NUMBER ---
+                invoice_number_int = int(form.cleaned_data['invoice_number'])
+
                 try:
-                # Lock row to prevent race conditions
-                    with transaction.atomic():      
+                    with transaction.atomic():
                         settings = CompanySettings.objects.select_for_update().get(id=1)
                         settings.current_invoice_number = invoice_number_int
-                        settings.save()     
+                        settings.save()
                 except CompanySettings.DoesNotExist:
-                    # Optionally handle missing row
                     print("###Exception raised while saving the invoice number")
                     pass
 
-                #invoice items 
-                item_spec_list = request.POST.getlist('item_spec[]')
-                item_code_list = request.POST.getlist('item_code[]')
-                item_description_list = request.POST.getlist('item_description[]')
-                item_mesh_size_list = request.POST.getlist('item_mesh_size[]')
-                item_mesh_depth_list = request.POST.getlist('item_mesh_depth[]')
-                item_quantity_list = request.POST.getlist('item_quantity[]')
-                item_price_list = request.POST.getlist('item_price[]')
-                item_gst_amount_list 	= request.POST.getlist('item_gst_amount[]')
-                item_total_with_gst_list = request.POST.getlist('item_total_with_gst[]')
-                item_hsn_code_list	= request.POST.getlist('item_hsn_code[]')
+                # ============================
+                #   PROCESS INVOICE ITEMS
+                # ============================
 
+                # Get item lists
+                item_spec_list             = request.POST.getlist('item_spec[]')
+                item_code_list             = request.POST.getlist('item_code[]')
+                item_description_list      = request.POST.getlist('item_description[]')
+                item_mesh_size_list        = request.POST.getlist('item_mesh_size[]')
+                item_mesh_depth_list       = request.POST.getlist('item_mesh_depth[]')
+                item_quantity_list         = request.POST.getlist('item_quantity[]')
+                item_price_list            = request.POST.getlist('item_price[]')
+                item_gst_amount_list       = request.POST.getlist('item_gst_amount[]')
+                item_total_with_gst_list   = request.POST.getlist('item_total_with_gst[]')
+                item_hsn_code_list         = request.POST.getlist('item_hsn_code[]')
 
+                # ============================
+                #     UPDATE MODE CLEANUP
+                # ============================
+                if invoice_instance:
+                    # Delete all old items before inserting new ones
+                    InvoiceItem.objects.filter(invoice=invoice_instance).delete()
 
+                # ============================
+                #     INSERT NEW ITEMS
+                # ============================
 
                 invoice_item_list = []
+
                 for index in range(len(item_code_list)):
                     if item_code_list[index].strip():
-                        invoice_item_list.append(InvoiceItem(invoice=invoice_instance,               # mandatory ForeignKey
-                                item_spec=item_spec_list[index],
-                                item_code=item_code_list[index],
-                                item_description=item_description_list[index],
-                                item_mesh_size=item_mesh_size_list[index],
-                                item_mesh_depth=item_mesh_depth_list[index],
-                                item_quantity=item_quantity_list[index],
-                                item_price=item_price_list[index],
-                                item_gst_amount=item_gst_amount_list[index],
-                                item_total_with_gst=item_total_with_gst_list[index],
-                                item_hsn_code=item_hsn_code_list[index],
-                                ))
 
-                if (len(item_code_list) > 0):
-                    InvoiceItem.objects.bulk_create(invoice_item_list)    # save the invoice items 
+                        invoice_item_list.append(
+                            InvoiceItem(
+                                invoice               = invoice_instance,
+                                item_spec             = item_spec_list[index],
+                                item_code             = item_code_list[index],
+                                item_description      = item_description_list[index],
+                                item_mesh_size        = item_mesh_size_list[index],
+                                item_mesh_depth       = item_mesh_depth_list[index],
+                                item_quantity         = item_quantity_list[index],
+                                item_price            = item_price_list[index],
+                                item_gst_amount       = item_gst_amount_list[index],
+                                item_total_with_gst   = item_total_with_gst_list[index],
+                                item_hsn_code         = item_hsn_code_list[index],
+                            )
+                        )
+
+                if invoice_item_list:
+                    InvoiceItem.objects.bulk_create(invoice_item_list)
+
             else:
-                print("&&&&&&&&&&&&&&FORM IS NOT VALID&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+                print("FORM IS NOT VALID")
                 print(form.errors)
-                
+
         except Exception as e:
-            print("Exception raised...@@@@@@@@@@@@@@@@@@@@@@@")
-            # Catch any exception while instantiating or saving the form
+            print("Exception raised...")
             print(f"Error: {e}")
             return HttpResponse(f"An error occurred: {e}")
-        
-                    
-        return redirect('invoice_entry')  # Redirect after save
-    else:
-        form = InvoiceForm()  # Empty form for GET request
 
-    Invoices = Invoice.objects.all()
-    context = {'invoice_form': forms.InvoiceForm() ,'invoices':Invoices}
+        return redirect('invoice_entry')
+
+    else:
+        form = InvoiceForm()
+
+    invoices = Invoice.objects.all()
+    context = {
+        'invoice_form': InvoiceForm(),
+        'invoices': invoices
+    }
     return render(request, 'marania_invoice_app/invoice_entry.html', context)
+
 
 def get_invoice_dictonaries(invoice_number):
 
