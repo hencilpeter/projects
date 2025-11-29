@@ -149,7 +149,8 @@ class InvoiceForm(forms.ModelForm):
 class InvoiceItemForm(forms.ModelForm):
     class Meta:
         model = InvoiceItem
-        fields = ['item_spec','item_code', 'item_description','item_mesh_size','item_mesh_depth', 'item_quantity', 'item_price']
+        fields = ['item_spec','item_code', 'item_description','item_mesh_size','item_mesh_depth', 'item_quantity', 'item_price',
+                  'item_gst_amount','item_total_with_gst','item_hsn_code']
 
         widgets = {
             'item_spec': forms.TextInput(attrs={
@@ -187,6 +188,22 @@ class InvoiceItemForm(forms.ModelForm):
                 'placeholder': 'Q.Price',
                 'step': '1',
                 'style': 'flex: 0.4;'
+            }),
+            'item_gst_amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'GST Amount',
+                'step': '0.01'
+            }),
+
+            'item_total_with_gst': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Total Price (with GST)',
+                'step': '0.01'
+            }),
+
+            'item_hsn_code': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'HSN Code'
             }),
         }
         

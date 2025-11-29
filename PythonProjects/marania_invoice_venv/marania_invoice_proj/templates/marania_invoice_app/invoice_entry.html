@@ -306,9 +306,9 @@ function loadInvoice(invoiceNumber) {
             document.getElementsByName('item_mesh_depth[]')[idx].value = item.item_mesh_depth;
             document.getElementsByName('item_quantity[]')[idx].value = item.item_quantity;
             document.getElementsByName('item_price[]')[idx].value = item.item_price;
-            document.getElementsByName('item_gst[]')[idx].value = item.gst;
-            document.getElementsByName('item_final_price[]')[idx].value = item.final_price;
-            document.getElementsByName('item_hsn[]')[idx].value = item.hsn;
+            document.getElementsByName('item_gst_amount[]')[idx].value = item.item_gst_amount;
+            document.getElementsByName('item_total_with_gst[]')[idx].value = item.item_total_with_gst;
+            document.getElementsByName('item_hsn_code[]')[idx].value = item.item_hsn_code;
         });
 
         // Open the invoice form collapse
@@ -463,9 +463,9 @@ document.addEventListener('DOMContentLoaded', function() {
         <input type="number" name="item_quantity[]" class="form-control form-control-sm" placeholder="Qty" style="flex:0.4;">
         <input type="number" name="item_price[]" step="1" class="form-control form-control-sm" placeholder="Q.Price" style="flex:0.4;">
         <div class="d-flex gap-1" style="flex:1.5;">
-          <input type="text" name="item_gst[]" class="form-control form-control-sm" placeholder="GST">
-          <input type="text" name="item_final_price[]" class="form-control form-control-sm" placeholder="Price+GST" style="width:90px;">
-          <input type="text" name="item_hsn[]" class="form-control form-control-sm" placeholder="HSN">
+          <input type="text" name="item_gst_amount[]" class="form-control form-control-sm" placeholder="GST">
+          <input type="text" name="item_total_with_gst[]" class="form-control form-control-sm" placeholder="Price+GST" style="width:90px;">
+          <input type="text" name="item_hsn_code[]" class="form-control form-control-sm" placeholder="HSN">
         </div>
         <div class="d-flex gap-1 justify-content-center" style="flex:0.4;">
           <button type="button" class="btn btn-outline-secondary btn-sm clear-item">Clear</button>
@@ -580,9 +580,9 @@ document.addEventListener('DOMContentLoaded', function() {
     gst_amount = (quantity * price ) * gst_percentage;
     total_amount = (quantity * price ) + gst_amount;
     console.log(`Price: ${price}`);
-    document.getElementsByName('item_gst[]')[index].value = gst_amount;
-    document.getElementsByName('item_final_price[]')[index].value = total_amount;
-    document.getElementsByName('item_hsn[]')[index].value = "5808";
+    document.getElementsByName('item_gst_amount[]')[index].value = gst_amount;
+    document.getElementsByName('item_total_with_gst[]')[index].value = total_amount;
+    document.getElementsByName('item_hsn_code[]')[index].value = "5808";
 
 })
 

@@ -355,6 +355,12 @@ def invoice_save(request):
                 item_mesh_depth_list = request.POST.getlist('item_mesh_depth[]')
                 item_quantity_list = request.POST.getlist('item_quantity[]')
                 item_price_list = request.POST.getlist('item_price[]')
+                item_gst_amount_list 	= request.POST.getlist('item_gst_amount[]')
+                item_total_with_gst_list = request.POST.getlist('item_total_with_gst[]')
+                item_hsn_code_list	= request.POST.getlist('item_hsn_code[]')
+
+
+
 
                 invoice_item_list = []
                 for index in range(len(item_code_list)):
@@ -366,7 +372,11 @@ def invoice_save(request):
                                 item_mesh_size=item_mesh_size_list[index],
                                 item_mesh_depth=item_mesh_depth_list[index],
                                 item_quantity=item_quantity_list[index],
-                                item_price=item_price_list[index],))
+                                item_price=item_price_list[index],
+                                item_gst_amount=item_gst_amount_list[index],
+                                item_total_with_gst=item_total_with_gst_list[index],
+                                item_hsn_code=item_hsn_code_list[index],
+                                ))
 
                 if (len(item_code_list) > 0):
                     InvoiceItem.objects.bulk_create(invoice_item_list)    # save the invoice items 
@@ -562,7 +572,7 @@ def get_invoice(request, invoice_number):
     invoice = Invoice.objects.get(invoice_number=invoice_number)
     items = InvoiceItem.objects.filter(invoice=invoice).values(
         'item_spec', 'item_code', 'item_description', 'item_mesh_size', 'item_mesh_depth',
-        'item_quantity', 'item_price' #, 'item_gst', 'item_final_price', 'item_hsn'
+        'item_quantity', 'item_price' , 'item_gst_amount', 'item_total_with_gst', 'item_hsn_code'
     )
     return JsonResponse({
         "invoice": {
