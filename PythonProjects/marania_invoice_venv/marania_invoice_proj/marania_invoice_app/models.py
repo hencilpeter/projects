@@ -156,7 +156,7 @@ class Product(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.code} - {self.name}"
+        return f"{self.code}-{self.name}"
 
 class PriceList(models.Model):
     product = models.ForeignKey(
@@ -184,7 +184,7 @@ class PriceList(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.code} - {self.customer_group} - {self.sequence_id}"
+        return f"{self.code}-{self.customer_group}-{self.sequence_id}"
     
 
 class CompanySettings(models.Model):

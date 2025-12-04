@@ -4,179 +4,277 @@
 {% block main %}
 
 <style>
-
-    /* Force minimal row height */
-.price-table td, 
-.price-table th {
-    padding: 1px 2px !important;   /* minimal padding */
-    height: 20px !important;       /* compact height */
-    line-height: 1 !important;
-    vertical-align: middle !important;
+.main-content {
+    padding: 15px;
+    padding-left: 350px !important;
+    width: 100%;
 }
 
-/* Inputs, selects, textareas */
+.price-table th, .price-table td {
+    padding: 4px 6px !important;
+    vertical-align: middle !important;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
 .price-table input,
-.price-table select,
-.price-table textarea {
-    height: 18px !important;       /* slightly smaller than td */
-    width: 50%;
-    padding: 0 1px !important;
-    margin: 0 !important;
-    line-height: 1 !important;
-    font-size: 12px !important;
-    box-sizing: border-box !important;  /* ensure padding doesn't add height */
+.price-table select {
+    width: 120px;
+    height: 26px;
+    font-size: 12px;
 }
 
-
-
-
-/* Optional: force nowrap to prevent auto height increase */
-.price-table td {
-    white-space: nowrap;
+.btn-xxs {
+    padding: 3px 6px;
+    font-size: 11px;
 }
 
-
-/* ====== Content Wrapper Left Margin ====== */
-.content-wrapper {
-    margin-left: 350px !important;  
-    padding: 20px;
+.price-box {
+    border: 1px solid #ddd;
+    background: #fafafa;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 18px;
 }
 
-/* ====== Table Styling ====== */
-.price-table-container {
+.table-wrap {
+    width: 100%;
     overflow-x: auto;
-    padding: 20px;
 }
 
-table.price-table th,
-table.price-table td {
-    vertical-align: middle !important;
-    padding: 2px 4px !important;  /* reduced padding for smaller cell height */
-    font-size: 12px !important;
-    line-height: 1 !important;
-}
-
-/* ====== Product Column Compact ====== */
-td.product-cell select,
-td select,
-td .form-select {
-    padding: 0 4px !important;   
-    height: 22px !important;       /* reduced height */
-    font-size: 12px !important;
-    line-height: 1 !important;
-}
-
-/* ====== Small Columns Styling ====== */
-.col-small {
-    width: 70px !important;
-    max-width: 70px !important;
-    white-space: nowrap;
-}
-
-.col-small input,
-.col-small select {
-    width: 100% !important;
-    padding: 0 4px !important;
-    font-size: 12px !important;
-    height: 22px !important;       /* reduced height */
-    line-height: 1 !important;
-}
-
-/* ====== Textarea Styling ====== */
-textarea.form-control {
-    min-height: 28px !important;   /* reduced height */
-    padding: 2px 4px !important;
-    font-size: 12px !important;
-    line-height: 1 !important;
-}
-
-/* ====== Button Styling ====== */
-#add-row {
-    margin-bottom: 10px;
+.filter-input, .filter-select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 2px 4px;
+    font-size: 12px;
 }
 </style>
 
-<div class="content-wrapper">
+<div class="main-content">
 
-<h3 class="mb-4">Add Price List</h3>
+    <!-- TOP BUTTON -->
+    <button id="btn-new-price" type="button" class="btn btn-primary mb-3">
+        + New Price List
+    </button>
 
-<form method="POST">
-    {% csrf_token %}
+    <!-- PRICE ENTRY SECTION -->
+    <div id="price-entry-area" class="price-box" style="display:none;">
+        <h5>Add Price Items</h5>
 
+        <form method="post">
+            {% csrf_token %}
+            {{ formset.management_form }}
 
-<!-- ADD ROW BUTTON -->
-<button type="button" class="btn btn-primary mb-2" id="add-row">
-    + Add New Row
-</button>
+            <button type="button" id="add-item-price" class="btn btn-secondary btn-xxs mb-2">
+                + Add Item Price
+            </button>
 
-<div class="price-table-container">
-    <table class="table table-bordered price-table">
-        <thead class="table-dark">
-            <tr>
-                <th>Product</th>
-                <th class="col-small">Seq</th>
-                <th class="col-small">Code</th>
-                <th class="col-small">Group</th>
-                <th class="col-small">Twine Code</th>
-                <th class="col-small">Mesh Start</th>
-                <th class="col-small">Mesh End</th>
-                <th class="col-small">Price</th>
-                <th>Active</th>
-                <th>Note</th>
-                <th>Delete</th>
-            </tr>
-        </thead>
-    
-        <tbody id="price-tbody">
-    {{ formset.management_form }}
+            <div class="table-wrap">
+                <table class="table table-bordered price-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Product</th>
+                            <th>Seq</th>
+                            <th>Price Code</th>
+                            <th>Customer Group</th>
+                            <th>Twine</th>
+                            <th>Mesh Start</th>
+                            <th>Mesh End</th>
+                            <th>Price</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
 
-    {% for form in formset %}
-    <tr class="price-row" style="height: 20px;">  <!-- force minimal row height -->
-        <td class="product-cell" style="padding: 1px 2px;">{{ form.product }}</td>
-        <td class="col-small" style="padding: 1px 2px;">{{ form.code }}</td>
-        <td class="col-small" style="padding: 1px 2px;">{{ form.customer_group }}</td>
-        <td class="col-small" style="padding: 1px 2px;">{{ form.sequence_id }}</td>
-        <td class="col-small" style="padding: 1px 2px;">{{ form.twine_code }}</td>
-        <td class="col-small" style="padding: 1px 2px;">{{ form.mesh_size_start }}</td>
-        <td class="col-small" style="padding: 1px 2px;">{{ form.mesh_size_end }}</td>
-        <td class="col-small" style="padding: 1px 2px;">{{ form.price }}</td>
-        <td class="text-center" style="padding: 1px 2px;">{{ form.is_active }}</td>
-        <td style="padding: 1px 2px;">{{ form.note }}</td>
-        <td class="text-center" style="padding: 1px 2px;">{{ form.DELETE }}</td>
-    </tr>
-    {% endfor %}
-</tbody>
+                    <tbody id="price-tbody">
+                        {% for form in formset %}
+                        <tr class="price-row">
+                            <td>{{ form.product }}</td>
+                            <td>{{ form.sequence_id }}</td>
+                            <td>{{ form.code }}</td>
+                            <td>{{ form.customer_group }}</td>
+                            <td>{{ form.twine_code }}</td>
+                            <td>{{ form.mesh_size_start }}</td>
+                            <td>{{ form.mesh_size_end }}</td>
+                            <td>{{ form.price }}</td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-warning btn-xxs clear-row">Clr</button>
+                                <button type="button" class="btn btn-danger btn-xxs delete-row">Del</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
 
+            <button type="submit" class="btn btn-success mt-2">Save Price</button>
+        </form>
+    </div>
 
+    <!-- SAVED PRICE LIST -->
+    <h5>Saved Price Details</h5>
+    <div class="table-wrap">
+        <table class="table table-striped table-bordered price-table">
+            <thead class="table-secondary">
+                <tr>
+                    <th>
+                        <select class="filter-select" data-col="0">
+                            <option value="">All Products</option>
+                            {% for item in filter_header.product_names %}
+                                <option value="{{ item }}">{{ item }}</option>
+                            {% endfor %}
 
-    </table>
+                        </select>
+                    </th>
+                    <th><input type="text" class="filter-input" placeholder="Seq"></th>
+                    <th><input type="text" class="filter-input" placeholder="Price Code"></th>
+                    <th>
+                        <select class="filter-select" data-col="3">
+                            <option value="">All Customer Groups</option>
+                            {% for item in filter_header.customer_groups %}
+                                <option value="{{ item }}">{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                    </th>
+                    <th>
+                        <select class="filter-select" data-col="4">
+                            <option value="">All Twines</option>
+                            {% for item in filter_header.twine_codes %}
+                                <option value="{{ item }}">{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                    </th>
+                    <th><input type="text" class="filter-input" placeholder="Mesh Start"></th>
+                    <th><input type="text" class="filter-input" placeholder="Mesh End"></th>
+                    <th><input type="text" class="filter-input" placeholder="Price"></th>
+                    <th>Load</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for p in saved_prices %}
+                <tr>
+                    <td>{{ p.product }}</td>
+                    <td>{{ p.sequence_id }}</td>
+                    <td>{{ p.code }}</td>
+                    <td>{{ p.customer_group }}</td>
+                    <td>{{ p.twine_code }}</td>
+                    <td>{{ p.mesh_size_start }}</td>
+                    <td>{{ p.mesh_size_end }}</td>
+                    <td>{{ p.price }}</td>
+                    <td class="text-center">
+                        <a class="btn btn-primary btn-xxs">Load</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center text-muted small">No saved records</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
 </div>
-
-<button type="submit" class="btn btn-success mt-3">Save Records</button>
-
-
-</form>
-</div>
-
-<!-- JS: Add New Row -->
 
 <script>
-document.getElementById("add-row").addEventListener("click", function () {
-    let tbody = document.getElementById("price-tbody");
-    let totalForms = document.getElementById("id_form-TOTAL_FORMS");
-    let count = parseInt(totalForms.value);
-    
-    let firstRow = tbody.querySelector(".price-row");
+/* Show/hide entry box */
+document.getElementById("btn-new-price").addEventListener("click", () => {
+    const box = document.getElementById("price-entry-area");
+    box.style.display = (box.style.display === "none") ? "block" : "none";
+});
 
-    // Clone first row HTML and replace IDs
-    let newRow = firstRow.outerHTML.replace(/form-0/g, `form-${count}`);
-    newRow = newRow.replace(/id_form-0/g, `id_form-${count}`);
+/* Add formset row */
+document.getElementById("add-item-price").addEventListener("click", () => {
+    const tbody = document.getElementById("price-tbody");
+    const totalForms = document.getElementById("id_form-TOTAL_FORMS");
+    let total = parseInt(totalForms.value);
 
-    // Append new row
-    tbody.insertAdjacentHTML("beforeend", newRow);
+    let lastRow = tbody.querySelector("tr.price-row:last-of-type");
+    if (!lastRow) return alert("No row available to clone.");
 
-    // Update management form count
-    totalForms.value = count + 1;
+    let newHTML = lastRow.outerHTML;
+    newHTML = newHTML.replace(new RegExp(`form-${total - 1}`, "g"), `form-${total}`);
+    newHTML = newHTML.replace(new RegExp(`id_form-${total - 1}`, "g"), `id_form-${total}`);
+
+    tbody.insertAdjacentHTML("beforeend", newHTML);
+    const newRow = tbody.querySelector("tr.price-row:last-of-type");
+
+    newRow.querySelectorAll("input, select").forEach(el => {
+        if (el.name.includes("sequence_id") || el.name.includes("DELETE")) return;
+        el.value = "";
+    });
+
+    const seq = newRow.querySelector("input[name*='sequence_id']");
+    if (seq) seq.value = total + 1;
+
+    totalForms.value = total + 1;
+});
+
+/* Delete row */
+document.addEventListener("click", e => {
+    if (e.target.classList.contains("delete-row")) {
+        const row = e.target.closest("tr.price-row");
+        const del = row.querySelector("input[name*='DELETE']");
+        if (del) del.checked = true;
+        row.style.display = "none";
+    }
+});
+
+/* Clear row */
+document.addEventListener("click", e => {
+    if (e.target.classList.contains("clear-row")) {
+        const row = e.target.closest("tr.price-row");
+        row.querySelectorAll("input, select").forEach(el => {
+            if (el.name.includes("sequence_id") || el.name.includes("DELETE")) return;
+            el.value = "";
+        });
+    }
+});
+
+/* Filter saved price list */
+document.addEventListener("DOMContentLoaded", function() {
+    const filterInputs = document.querySelectorAll(".filter-input");
+    const filterSelects = document.querySelectorAll(".filter-select");
+    const table = document.querySelector(".table-striped.price-table tbody");
+
+
+
+    function filterTable() {
+
+     //test code 
+     console.log("TEST VALUES");
+      filterSelects.forEach(select => {
+        const val = select.value.toLowerCase();
+        console.log(val);
+     });
+
+
+        const rows = table.querySelectorAll("tr");
+        rows.forEach(row => {
+            let show = true;
+
+            filterInputs.forEach((input, i) => {
+                const val = input.value.toLowerCase();
+                if (val && !row.cells[i].textContent.toLowerCase().includes(val)) show = false;
+            });
+
+            filterSelects.forEach(select => {
+
+                const val = select.value.toLowerCase();
+                //console.log(val);
+                
+                const colIndex = parseInt(select.dataset.col);
+                //const val2 = row.cells[colIndex].textContent.toLowerCase();
+                //console.log(val2);
+                if (val && row.cells[colIndex].textContent.toLowerCase() !== val) show = false;
+            });
+
+            row.style.display = show ? "" : "none";
+        });
+    }
+
+    filterInputs.forEach(input => input.addEventListener("keyup", filterTable));
+    filterSelects.forEach(select => select.addEventListener("change", filterTable));
 });
 </script>
 

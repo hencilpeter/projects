@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from . import forms
 from .forms import CustomerForm, InvoiceForm, CompanySettingsForm
-from .models import Customer, Configuration, Invoice,InvoiceItem, Transportation, PriceList, CompanySettings
+from .models import Customer, Configuration, Invoice,InvoiceItem, Transportation, PriceList, CompanySettings,Product
 from collections import defaultdict,OrderedDict
 #from singleton import singleton
 import pdb
@@ -629,6 +629,7 @@ def get_invoice(request, invoice_number):
         "items": list(items)
     })
 
+from django.db.models.functions import Lower, Trim
 
 def add_price_list(request):
     if request.method == "POST":
@@ -644,4 +645,18 @@ def add_price_list(request):
     else:
         formset = PriceListFormSet(queryset=PriceList.objects.none())
 
-    return render(request, "marania_invoice_app/add_price_list.html", {"formset": formset})
+    saved_prices = PriceList.objects.all()
+    products = Product.objects.all()
+    unique_product_names = {f"{p.code}-{p.name}" for p in products}
+    unique_twine_codes = {f"{p.code}" for p in products}
+    unique_customer_group = {f"{p.customer_group}" for p in saved_prices}
+    filter_header = {'product_names':unique_product_names,
+                     'customer_groups':unique_customer_group,
+                     'twine_codes':unique_twine_codes}
+    
+    unique_customer_group = PriceList
+
+   
+    return render(request, "marania_invoice_app/add_price_list.html", {"formset": formset, 
+                                                                        'saved_prices': saved_prices,
+                                                                        'filter_header':filter_header,})
