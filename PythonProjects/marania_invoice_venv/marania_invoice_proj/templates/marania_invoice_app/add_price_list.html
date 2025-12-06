@@ -63,9 +63,12 @@
             {% csrf_token %}
             {{ formset.management_form }}
 
-            <button type="button" id="add-item-price" class="btn btn-secondary btn-xxs mb-2">
+            <!-- <button type="button" id="add-item-price" class="btn btn-secondary btn-xxs mb-2">
                 + Add Item Price
-            </button>
+            </button> -->
+
+            <button type="button" id="add-item-price" class="btn btn-secondary btn-xxs mb-2">+ Add Item Price</button>
+            <button type="button" id="delete-price-list" class="btn btn-danger btn-xxs mb-2">Delete Price List</button>
 
             <div class="table-wrap">
                 <table class="table table-bordered price-table">
@@ -161,8 +164,8 @@
                     <td>{{ p.mesh_size_start }}</td>
                     <td>{{ p.mesh_size_end }}</td>
                     <td>{{ p.price }}</td>
-                    <td class="text-center">
-                        <a class="btn btn-primary btn-xxs">Load</a>
+                  <td class="text-center">
+                    <a href="javascript:void(0);" class="btn btn-primary btn-xxs load-price" data-price-code="{{ p.code }}">Load</a>
                     </td>
                 </tr>
                 {% empty %}
@@ -269,7 +272,6 @@ document.addEventListener("click", e => {
     }
 });
 
-
 /* CLEAR ROW */
 document.addEventListener("click", e => {
     if (e.target.classList.contains("clear-row")) {
@@ -321,6 +323,102 @@ document.addEventListener("DOMContentLoaded", function() {
         filterTable();
     });
 });
+
+/*
+document.addEventListener("click", function(e) {
+    if (e.target.classList.contains("load-price")) {
+        const savedRow = e.target.closest("tr");
+        const priceCode = savedRow.querySelector("td:nth-child(3)").textContent.trim();
+        const tbody = document.getElementById("price-tbody");
+        const totalForms = document.getElementById("id_form-TOTAL_FORMS");
+        let total = 0;
+
+        // Clear existing rows first
+        tbody.innerHTML = "";
+
+        // Loop over saved rows to load matching PriceCode
+        const savedRows = document.querySelectorAll(".table-striped.price-table tbody tr");
+        savedRows.forEach(row => {
+            const code = row.querySelector("td:nth-child(3)").textContent.trim();
+            if (code === priceCode) {
+                const template = document.getElementById("empty-row-template").querySelector("tr").outerHTML;
+                tbody.insertAdjacentHTML("beforeend", template);
+                const newRow = tbody.querySelector("tr.price-row:last-of-type");
+
+                const cells = row.querySelectorAll("td");
+                const inputs = newRow.querySelectorAll("input, select");
+                inputs.forEach((el, idx) => {
+                    if (el.classList.contains("seq-field")) {
+                        el.value = total + 1;
+                    } else {
+                        el.value = cells[idx].textContent.trim() || "";
+                    }
+                });
+                total++;
+            }
+        });
+
+        totalForms.value = total;
+        document.getElementById("price-entry-area").style.display = "block";
+    }
+});
+
+*/
+
+document.addEventListener("click", function(e) {
+    if (!e.target.classList.contains("load-price")) return;
+
+    const savedRow = e.target.closest("tr");
+    const priceCode = savedRow.querySelector("td:nth-child(3)").textContent.trim();
+    const tbody = document.getElementById("price-tbody");
+    const totalForms = document.getElementById("id_form-TOTAL_FORMS");
+
+    // Clear existing rows
+    tbody.innerHTML = "";
+    let total = 0;
+
+    // Get all saved rows
+    const savedRows = document.querySelectorAll(".table-striped.price-table tbody tr");
+
+    savedRows.forEach(row => {
+        const code = row.querySelector("td:nth-child(3)").textContent.trim();
+        if (code === priceCode) {
+            // Use empty template
+            let template = document.getElementById("empty-row-template").querySelector("tr").outerHTML;
+
+            // Replace form index placeholders
+            template = template.replace(/form-0/g, `form-${total}`);
+            template = template.replace(/id_form-0/g, `id_form-${total}`);
+
+            tbody.insertAdjacentHTML("beforeend", template);
+            const newRow = tbody.querySelector("tr.price-row:last-of-type");
+
+            const cells = row.querySelectorAll("td");
+            const inputs = newRow.querySelectorAll("input, select");
+
+            inputs.forEach((el, idx) => {
+                if (el.name.includes("sequence_id") || el.classList.contains("seq-field")) {
+                    el.value = total + 1; // increment sequence
+                } else {
+                    el.value = cells[idx].textContent.trim() || "";
+                }
+            });
+
+            total++;
+        }
+    });
+
+    totalForms.value = total; // update TOTAL_FORMS
+    document.getElementById("price-entry-area").style.display = "block";
+});
+
+
+document.getElementById("delete-price-list").addEventListener("click", () => {
+    const tbody = document.getElementById("price-tbody");
+    tbody.innerHTML = "";
+    document.getElementById("id_form-TOTAL_FORMS").value = 0;
+});
+
 </script>
 
 {% endblock %}
