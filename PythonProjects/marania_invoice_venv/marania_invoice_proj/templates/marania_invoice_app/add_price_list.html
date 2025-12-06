@@ -148,7 +148,9 @@
                     <th><input type="text" class="filter-input" placeholder="Mesh Start" data-col="5"></th>
                     <th><input type="text" class="filter-input" placeholder="Mesh End" data-col="6"></th>
                     <th><input type="text" class="filter-input" placeholder="Price" data-col="7"></th>
-                    <th>Load</th>
+                    <td class="text-center">
+                        <a class="btn btn-warning btn-xxs" id="clear-filters">Clear Filter</a>
+                    </td>
                 </tr>
             </thead>
 
@@ -233,42 +235,55 @@ document.addEventListener("click", e => {
     }
 });
 
-/* Filter saved price list */
-document.addEventListener("DOMContentLoaded", function() {
-    const filterInputs = document.querySelectorAll(".filter-input");
-    const filterSelects = document.querySelectorAll(".filter-select");
-    const table = document.querySelector(".table-striped.price-table tbody");
 
-    function filterTable() {
-        const rows = table.querySelectorAll("tr");
-        
-        rows.forEach(row => {
-            let show = true;
 
-            filterInputs.forEach((input, i) => {
-                const colIndex = Number(input.dataset.col);
-              
-                const val = input.value.trim().toLowerCase();
-                const cellVal = row.cells[colIndex].textContent.trim().toLowerCase();
-                if (val && !cellVal.includes(val)) {
-                    show = false;
-                }
-            });
-        
+function filterTable() {
+    if (!table) return; // safety check
 
-            filterSelects.forEach(select => {
-                const val = select.value.toLowerCase();
-                const colIndex = parseInt(select.dataset.col);
-                if (val && row.cells[colIndex].textContent.toLowerCase() !== val) show = false;
-            });
+    const rows = table.querySelectorAll("tr");
 
-            row.style.display = show ? "" : "none";
+    rows.forEach(row => {
+        let show = true;
+
+        filterInputs.forEach(input => {
+            const colIndex = Number(input.dataset.col);
+            const val = input.value.trim().toLowerCase();
+            const cellVal = row.cells[colIndex].textContent.trim().toLowerCase();
+            if (val && !cellVal.includes(val)) {
+                show = false;
+            }
         });
-    }
 
+        filterSelects.forEach(select => {
+            const val = select.value.trim().toLowerCase();
+            const colIndex = Number(select.dataset.col);
+            const cellVal = row.cells[colIndex].textContent.trim().toLowerCase();
+            if (val && cellVal !== val) show = false;
+        });
+
+        row.style.display = show ? "" : "none";
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    filterInputs = document.querySelectorAll(".filter-input");
+    filterSelects = document.querySelectorAll(".filter-select");
+    table = document.querySelector(".table-striped.price-table tbody");
+
+    // Input and select filters
     filterInputs.forEach(input => input.addEventListener("keyup", filterTable));
     filterSelects.forEach(select => select.addEventListener("change", filterTable));
+
+    // Clear filter button
+    const clearBtn = document.getElementById("clear-filters");
+    clearBtn.addEventListener("click", () => {
+        filterInputs.forEach(input => input.value = "");
+        filterSelects.forEach(select => select.selectedIndex = 0);
+        filterTable(); // call the common function
+    });
 });
+
+
 </script>
 
 {% endblock %}
