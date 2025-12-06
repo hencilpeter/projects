@@ -273,10 +273,12 @@ def invoice_entry(request):
         price_item_dict = {size_range:str(price_item.price)}
         if price_item.twine_code not in price_dict:
             price_dict[price_item.twine_code]={price_item.customer_group:[price_item_dict]}
+        elif price_item.customer_group not in price_dict[price_item.twine_code]:
+            price_dict[price_item.twine_code][price_item.customer_group] = [price_item_dict]
         else:
             price_dict[price_item.twine_code][price_item.customer_group].append(price_item_dict)
-    print("price list details ")
-    print(price_dict)
+
+    #print(price_dict)
 
     summary_data = invoice_summary()
     context = {'invoice_form': forms.InvoiceForm(initial={'invoice_number':get_next_invoice_number}) , 
