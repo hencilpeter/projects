@@ -3,7 +3,7 @@ from .models import Customer
 from .models import Invoice, InvoiceItem
 from .models import Transportation
 from .models import CompanySettings
-from .models import PriceList
+from .models import PriceCatalog
 
 from django.forms import inlineformset_factory
 from django.forms import modelformset_factory
@@ -298,7 +298,7 @@ InvoiceItemFormSet = inlineformset_factory(
 
 class PriceListForm(forms.ModelForm):
     class Meta:
-        model = PriceList
+        model = PriceCatalog
         fields = [
             "product",
             "code",
@@ -313,7 +313,7 @@ class PriceListForm(forms.ModelForm):
         ]
 
 PriceListFormSet = modelformset_factory(
-    PriceList,
+    PriceCatalog,
     form=PriceListForm,
     extra=1,          # at least one empty row
     can_delete=True   # optional delete checkbox

@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from . import forms
 from .forms import CustomerForm, InvoiceForm, CompanySettingsForm
-from .models import Customer, Configuration, Invoice,InvoiceItem, Transportation, PriceList, CompanySettings,Product
+from .models import Customer, Configuration, Invoice,InvoiceItem, Transportation, PriceCatalog, CompanySettings,Product
 from collections import defaultdict,OrderedDict
 #from singleton import singleton
 import pdb
@@ -268,7 +268,7 @@ def invoice_entry(request):
             transporter_dict[code].append(transporter_dict_temp)
     
     # price list details  
-    for price_item in PriceList.objects.all():
+    for price_item in PriceCatalog.objects.all():
         size_range = price_item.mesh_size_start+"-"+price_item.mesh_size_end
         price_item_dict = {size_range:str(price_item.price)}
         
@@ -653,9 +653,9 @@ def add_price_list(request):
             messages.error(request, "Please correct the errors and try again.")
 
     else:
-        formset = PriceListFormSet(queryset=PriceList.objects.none())
+        formset = PriceListFormSet(queryset=PriceCatalog.objects.none())
 
-    saved_prices = PriceList.objects.all()
+    saved_prices = PriceCatalog.objects.all()
     products = Product.objects.all()
     unique_product_names = {f"{p.code}-{p.name}" for p in products}
     unique_twine_codes = {f"{p.code}" for p in products}
@@ -664,7 +664,7 @@ def add_price_list(request):
                      'customer_groups':unique_customer_group,
                      'twine_codes':unique_twine_codes}
     
-    unique_customer_group = PriceList
+    unique_customer_group = PriceCatalog
 
    
     return render(request, "marania_invoice_app/add_price_list.html", {"formset": formset, 

@@ -158,7 +158,7 @@ class Product(models.Model):
     def __str__(self):
         return f"{self.code}-{self.name}"
 
-class PriceList(models.Model):
+class PriceCatalog(models.Model):
     product = models.ForeignKey(
         Product,
         related_name='items',      # allows product.items.all()
