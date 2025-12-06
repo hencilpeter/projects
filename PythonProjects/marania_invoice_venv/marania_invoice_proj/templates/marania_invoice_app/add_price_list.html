@@ -52,12 +52,10 @@
 
 <div class="main-content">
 
-    <!-- TOP BUTTON -->
     <button id="btn-new-price" type="button" class="btn btn-primary mb-3">
         + New Price List
     </button>
 
-    <!-- PRICE ENTRY SECTION -->
     <div id="price-entry-area" class="price-box" style="display:none;">
         <h5>Add Price Items</h5>
 
@@ -86,9 +84,9 @@
                     </thead>
 
                     <tbody id="price-tbody">
-                        <!-- START FORMSET ROWS -->
+                        <!-- Initially no rows visible -->
                         {% for form in formset %}
-                        <tr class="price-row">
+                        <tr class="price-row" style="display:none;">
                             <td>{{ form.product }}</td>
                             <td>{{ form.sequence_id }}</td>
                             <td>{{ form.code }}</td>
@@ -103,7 +101,6 @@
                             </td>
                         </tr>
                         {% endfor %}
-                        <!-- END FORMSET ROWS -->
                     </tbody>
                 </table>
             </div>
@@ -112,7 +109,7 @@
         </form>
     </div>
 
-    <!-- SAVED PRICE LIST -->
+    <!-- SAVED ITEMS -->
     <h5>Saved Price Details</h5>
     <div class="table-wrap">
         <table class="table table-striped table-bordered price-table">
@@ -169,53 +166,72 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="9" class="text-center text-muted small">No saved records</td>
-                </tr>
+                <tr><td colspan="9" class="text-center text-muted small">No saved records</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-
 </div>
 
-<script>
-/* Show/hide entry box */
-document.getElementById("btn-new-price").addEventListener("click", () => {
-    const box = document.getElementById("price-entry-area");
-    box.style.display = (box.style.display === "none") ? "block" : "none";
-});
-
-/* ADD ROW LOGIC – Updated as per your requirement */
-document.getElementById("add-item-price").addEventListener("click", () => {
-    const tbody = document.getElementById("price-tbody");
-    const totalForms = document.getElementById("id_form-TOTAL_FORMS");
-    let total = parseInt(totalForms.value);
-
-    /* CASE 1: No existing rows → create FIRST ROW */
-    if (total === 0) {
-        let firstRow = `
+<!-- EMPTY ROW TEMPLATE (HIDDEN) -->
+<table style="display:none;">
+    <tbody id="empty-row-template">
         <tr class="price-row">
-            <td><input type="text" name="form-0-product" class="form-control"></td>
-            <td><input type="number" name="form-0-sequence_id" class="form-control" value="1"></td>
-            <td><input type="text" name="form-0-code" class="form-control"></td>
-            <td><input type="text" name="form-0-customer_group" class="form-control"></td>
-            <td><input type="text" name="form-0-twine_code" class="form-control"></td>
-            <td><input type="text" name="form-0-mesh_size_start" class="form-control"></td>
-            <td><input type="text" name="form-0-mesh_size_end" class="form-control"></td>
-            <td><input type="text" name="form-0-price" class="form-control"></td>
+            <td>
+                <select name="" class="form-control">
+                    <option value="">Select Product</option>
+                    {% for item in filter_header.product_names %}
+                        <option value="{{ item }}">{{ item }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td><input type="number" name="" class="form-control seq-field" value="1"></td>
+            <td><input type="text" name="" class="form-control"></td>
+            <td><input type="text" name="" class="form-control"></td>
+            <td><input type="text" name="" class="form-control"></td>
+            <td><input type="text" name="" class="form-control"></td>
+            <td><input type="text" name="" class="form-control"></td>
+            <td><input type="text" name="" class="form-control"></td>
             <td class="text-center">
                 <button type="button" class="btn btn-warning btn-xxs clear-row">Clr</button>
                 <button type="button" class="btn btn-danger btn-xxs delete-row">Del</button>
             </td>
         </tr>
-        `;
-        tbody.insertAdjacentHTML("beforeend", firstRow);
+    </tbody>
+</table>
+
+<script>
+/* Show/hide price entry section */
+document.getElementById("btn-new-price").addEventListener("click", () => {
+    const box = document.getElementById("price-entry-area");
+    box.style.display = (box.style.display === "none") ? "block" : "none";
+});
+
+/* ADD ROW LOGIC */
+document.getElementById("add-item-price").addEventListener("click", () => {
+    const tbody = document.getElementById("price-tbody");
+    const totalForms = document.getElementById("id_form-TOTAL_FORMS");
+    let total = parseInt(totalForms.value);
+
+    /* CASE 0 — If initial hidden row exists → reveal it */
+    const hiddenRow = tbody.querySelector("tr.price-row[style*='display:none']");
+    if (hiddenRow) {
+        hiddenRow.style.display = "";
         totalForms.value = 1;
         return;
     }
 
-    /* CASE 2: Clone PREVIOUS ROW */
+    /* CASE 1 — If no rows, use EMPTY ROW TEMPLATE */
+    if (total === 0) {
+        const template = document.getElementById("empty-row-template").querySelector("tr").outerHTML;
+        tbody.insertAdjacentHTML("beforeend", template);
+        const firstRow = tbody.querySelector("tr.price-row:last-of-type");
+        firstRow.querySelector(".seq-field").value = 1;
+        totalForms.value = 1;
+        return;
+    }
+
+    /* CASE 2 — Clone last row */
     let lastRow = tbody.querySelector("tr.price-row:last-of-type");
     let newHTML = lastRow.outerHTML;
 
@@ -228,34 +244,33 @@ document.getElementById("add-item-price").addEventListener("click", () => {
     const prevInputs = lastRow.querySelectorAll("input, select");
     const newInputs = newRow.querySelectorAll("input, select");
 
-    /* Clone values except sequence_id and DELETE */
+    /* Copy values except sequence_id and DELETE */
     newInputs.forEach((el, index) => {
         let prevEl = prevInputs[index];
-
         if (el.name.includes("sequence_id")) return;
         if (el.name.includes("DELETE")) return;
-
         el.value = prevEl.value;
     });
 
     /* Increment sequence_id */
-    const seq = newRow.querySelector("input[name*='sequence_id']");
+    const seq = newRow.querySelector("input[name*='sequence_id'], .seq-field");
     if (seq) seq.value = total + 1;
 
     totalForms.value = total + 1;
 });
 
-/* Delete row */
+/* DELETE ROW */
 document.addEventListener("click", e => {
     if (e.target.classList.contains("delete-row")) {
         const row = e.target.closest("tr.price-row");
         const del = row.querySelector("input[name*='DELETE']");
-        if (del) del.checked = true;
-        row.style.display = "none";
+        if (del) del.checked = true;  // keep for Django formset deletion
+        row.remove(); // actually remove the row from DOM
     }
 });
 
-/* Clear row values */
+
+/* CLEAR ROW */
 document.addEventListener("click", e => {
     if (e.target.classList.contains("clear-row")) {
         const row = e.target.closest("tr.price-row");
@@ -269,7 +284,6 @@ document.addEventListener("click", e => {
 /* FILTER LOGIC */
 function filterTable() {
     if (!table) return;
-
     const rows = table.querySelectorAll("tr");
 
     rows.forEach(row => {
