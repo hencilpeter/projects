@@ -324,47 +324,6 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
-/*
-document.addEventListener("click", function(e) {
-    if (e.target.classList.contains("load-price")) {
-        const savedRow = e.target.closest("tr");
-        const priceCode = savedRow.querySelector("td:nth-child(3)").textContent.trim();
-        const tbody = document.getElementById("price-tbody");
-        const totalForms = document.getElementById("id_form-TOTAL_FORMS");
-        let total = 0;
-
-        // Clear existing rows first
-        tbody.innerHTML = "";
-
-        // Loop over saved rows to load matching PriceCode
-        const savedRows = document.querySelectorAll(".table-striped.price-table tbody tr");
-        savedRows.forEach(row => {
-            const code = row.querySelector("td:nth-child(3)").textContent.trim();
-            if (code === priceCode) {
-                const template = document.getElementById("empty-row-template").querySelector("tr").outerHTML;
-                tbody.insertAdjacentHTML("beforeend", template);
-                const newRow = tbody.querySelector("tr.price-row:last-of-type");
-
-                const cells = row.querySelectorAll("td");
-                const inputs = newRow.querySelectorAll("input, select");
-                inputs.forEach((el, idx) => {
-                    if (el.classList.contains("seq-field")) {
-                        el.value = total + 1;
-                    } else {
-                        el.value = cells[idx].textContent.trim() || "";
-                    }
-                });
-                total++;
-            }
-        });
-
-        totalForms.value = total;
-        document.getElementById("price-entry-area").style.display = "block";
-    }
-});
-
-*/
-
 document.addEventListener("click", function(e) {
     if (!e.target.classList.contains("load-price")) return;
 
