@@ -18,7 +18,8 @@ path('invoice_entry/get_invoice/<str:invoice_number>/', views.get_invoice, name=
 # price list 
  path("price-list/add/", views.add_price_list, name="add_price_list"),
  path("price-list/load/<str:price_code>", views.load_price_list, name="load_price_list"),
- 
+ path("price-list/save", views.save_price_list, name="save_price_list"),
+
 #path("settings/company", views.company_settings_view, name="company_settings"),
 
 

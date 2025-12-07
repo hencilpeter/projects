@@ -59,9 +59,10 @@
     <div id="price-entry-area" class="price-box" style="display:none;">
         <h5>Add Price Items</h5>
 
-        <form method="post">
+        <!-- <form method="post"> -->
+        <form id="price-form" method="post">
             {% csrf_token %}
-            {{ formset.management_form }}
+            {{ formset.management_form }} 
 
             <!-- <button type="button" id="add-item-price" class="btn btn-secondary btn-xxs mb-2">
                 + Add Item Price
@@ -181,20 +182,20 @@
     <tbody id="empty-row-template">
         <tr class="price-row">
             <td>
-                <select name="form-__prefix__-product" class="form-control">
+                <select name="product" class="form-control">
                     <option value="">Select Product</option>
                     {% for item in filter_header.product_names %}
                         <option value="{{ item }}">{{ item }}</option>
                     {% endfor %}
                 </select>
             </td>
-            <td><input type="number" name="form-__prefix__-sequence_id" class="form-control seq-field" value="1"></td>
-            <td><input type="text" name="form-__prefix__-code" class="form-control"></td>
-            <td><input type="text" name="form-__prefix__-customer_group" class="form-control"></td>
-            <td><input type="text" name="form-__prefix__-twine_code" class="form-control"></td>
-            <td><input type="text" name="form-__prefix__-mesh_size_start" class="form-control"></td>
-            <td><input type="text" name="form-__prefix__-mesh_size_end" class="form-control"></td>
-            <td><input type="text" name="form-__prefix__-price" class="form-control"></td>
+            <td><input type="number" name="sequence_id" class="form-control seq-field" value="1"></td>
+            <td><input type="text" name="code" class="form-control"></td>
+            <td><input type="text" name="customer_group" class="form-control"></td>
+            <td><input type="text" name="twine_code" class="form-control"></td>
+            <td><input type="text" name="mesh_size_start" class="form-control"></td>
+            <td><input type="text" name="mesh_size_end" class="form-control"></td>
+            <td><input type="text" name="price" class="form-control"></td>
             <td class="text-center">
                 <button type="button" class="btn btn-warning btn-xxs clear-row">Clr</button>
                 <button type="button" class="btn btn-danger btn-xxs delete-row">Del</button>
@@ -324,52 +325,52 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
-// document.addEventListener("click", function(e) {
-//     if (!e.target.classList.contains("load-price")) return;
+document.addEventListener("click", function(e) {
+    if (!e.target.classList.contains("load-price")) return;
 
-//     const savedRow = e.target.closest("tr");
-//     const priceCode = savedRow.querySelector("td:nth-child(3)").textContent.trim();
-//     const tbody = document.getElementById("price-tbody");
-//     const totalForms = document.getElementById("id_form-TOTAL_FORMS");
+    const savedRow = e.target.closest("tr");
+    const priceCode = savedRow.querySelector("td:nth-child(3)").textContent.trim();
+    const tbody = document.getElementById("price-tbody");
+    const totalForms = document.getElementById("id_form-TOTAL_FORMS");
 
-//     // Clear existing rows
-//     tbody.innerHTML = "";
-//     let total = 0;
+    // Clear existing rows
+    tbody.innerHTML = "";
+    let total = 0;
 
-//     // Get all saved rows
-//     const savedRows = document.querySelectorAll(".table-striped.price-table tbody tr");
+    // Get all saved rows
+    const savedRows = document.querySelectorAll(".table-striped.price-table tbody tr");
 
-//     savedRows.forEach(row => {
-//         const code = row.querySelector("td:nth-child(3)").textContent.trim();
-//         if (code === priceCode) {
-//             // Use empty template
-//             let template = document.getElementById("empty-row-template").querySelector("tr").outerHTML;
+    savedRows.forEach(row => {
+        const code = row.querySelector("td:nth-child(3)").textContent.trim();
+        if (code === priceCode) {
+            // Use empty template
+            let template = document.getElementById("empty-row-template").querySelector("tr").outerHTML;
 
-//             // Replace form index placeholders
-//             template = template.replace(/form-0/g, `form-${total}`);
-//             template = template.replace(/id_form-0/g, `id_form-${total}`);
+            // Replace form index placeholders
+            template = template.replace(/form-0/g, `form-${total}`);
+            template = template.replace(/id_form-0/g, `id_form-${total}`);
 
-//             tbody.insertAdjacentHTML("beforeend", template);
-//             const newRow = tbody.querySelector("tr.price-row:last-of-type");
+            tbody.insertAdjacentHTML("beforeend", template);
+            const newRow = tbody.querySelector("tr.price-row:last-of-type");
 
-//             const cells = row.querySelectorAll("td");
-//             const inputs = newRow.querySelectorAll("input, select");
+            const cells = row.querySelectorAll("td");
+            const inputs = newRow.querySelectorAll("input, select");
 
-//             inputs.forEach((el, idx) => {
-//                 if (el.name.includes("sequence_id") || el.classList.contains("seq-field")) {
-//                     el.value = total + 1; // increment sequence
-//                 } else {
-//                     el.value = cells[idx].textContent.trim() || "";
-//                 }
-//             });
+            inputs.forEach((el, idx) => {
+                if (el.name.includes("sequence_id") || el.classList.contains("seq-field")) {
+                    el.value = total + 1; // increment sequence
+                } else {
+                    el.value = cells[idx].textContent.trim() || "";
+                }
+            });
 
-//             total++;
-//         }
-//     });
+            total++;
+        }
+    });
 
-//     totalForms.value = total; // update TOTAL_FORMS
-//     document.getElementById("price-entry-area").style.display = "block";
-// });
+    totalForms.value = total; // update TOTAL_FORMS
+    document.getElementById("price-entry-area").style.display = "block";
+});
 
 // document.addEventListener("click", function(e) {
 //     if (!e.target.classList.contains("load-price")) return;
@@ -429,64 +430,104 @@ document.addEventListener("DOMContentLoaded", function() {
 // });
 
 
-document.addEventListener("click", function (e) {
-    if (!e.target.classList.contains("load-price")) return;
+// document.addEventListener("click", function (e) {
 
-    const priceCode = e.target.dataset.priceCode;
-    const tbody = document.getElementById("price-tbody");
-    const totalForms = document.getElementById("id_form-TOTAL_FORMS");
+//     if (!e.target.classList.contains("load-price")) return;
 
-    fetch(`/invoice/price-list/load/${priceCode}`)
-        .then(res => res.json())
-        .then(data => {
-            tbody.innerHTML = "";   // clear old rows
-            let total = 0;
-            data.items.forEach((item, idx) => {
-                // Create new row using template
-                const template = document
-                    .getElementById("empty-row-template")
-                    .querySelector("tr")
-                    .cloneNode(true);
+//     const priceCode = e.target.dataset.priceCode;
+//     const tbody = document.getElementById("price-tbody");
+//     const totalForms = document.getElementById("id_form-TOTAL_FORMS");
 
-                // update Django form index
-                template.innerHTML = template.innerHTML
-                    .replace(/form-0/g, `form-${idx}`)
-                    .replace(/id_form-0/g, `id_form-${idx}`);
+//     fetch(`/invoice/price-list/load/${priceCode}`)
+//         .then(res => res.json())
+//         .then(data => {
+//             tbody.innerHTML = "";   // clear old rows
+//             let total = 0;
+//             data.items.forEach((item, idx) => {
+//                 // Create new row using template
+//                 const template = document
+//                     .getElementById("empty-row-template")
+//                     .querySelector("tr")
+//                     .cloneNode(true);
 
-                const inputs = template.querySelectorAll("input, select");
+//                 // update Django form index
+//                 template.innerHTML = template.innerHTML
+//                     .replace(/form-0/g, `form-${idx}`)
+//                     .replace(/id_form-0/g, `id_form-${idx}`);
 
-                inputs.forEach(inp => {
+//                 const inputs = template.querySelectorAll("input, select");
+
+//                 inputs.forEach(inp => {
                    
-                    if (inp.name.includes("product"))
-                        inp.value = item.product;
-                    else if (inp.name.includes("sequence_id"))
-                        inp.value = item.sequence_id;
-                    else if (inp.name.includes("code"))
-                        inp.value = item.code;
-                    else if (inp.name.includes("customer_group"))
-                        inp.value = item.customer_group;
-                    else if (inp.name.includes("twine_code"))
-                        inp.value = item.twine_code;
-                    else if (inp.name.includes("mesh_size_start"))
-                        inp.value = item.mesh_size_start;
-                    else if (inp.name.includes("mesh_size_end"))
-                        inp.value = item.mesh_size_end;
-                    else if (inp.name.includes("price"))
-                        inp.value = item.price;
-                });
+//                     if (inp.name.includes("product"))
+//                         inp.value = item.product;
+//                     else if (inp.name.includes("sequence_id"))
+//                         inp.value = item.sequence_id;
+//                     else if (inp.name.includes("code"))
+//                         inp.value = item.code;
+//                     else if (inp.name.includes("customer_group"))
+//                         inp.value = item.customer_group;
+//                     else if (inp.name.includes("twine_code"))
+//                         inp.value = item.twine_code;
+//                     else if (inp.name.includes("mesh_size_start"))
+//                         inp.value = item.mesh_size_start;
+//                     else if (inp.name.includes("mesh_size_end"))
+//                         inp.value = item.mesh_size_end;
+//                     else if (inp.name.includes("price"))
+//                         inp.value = item.price;
+//                 });
 
-                tbody.appendChild(template);
-                total++;
-            });
+//                 tbody.appendChild(template);
+//                 total++;
+//             });
 
-            totalForms.value = total;
-            document.getElementById("price-entry-area").style.display = "block";
-        })
-        .catch(err => {
-            console.error("Price Load Error:", err);
-            alert("Failed to load price details.");
+//             totalForms.value = total;
+//             document.getElementById("price-entry-area").style.display = "block";
+//         })
+//         .catch(err => {
+//             console.error("Price Load Error:", err);
+//             alert("Failed to load price details.");
+//         });
+// });
+
+/* MANUAL PRICE LIST SUBMIT */
+document.getElementById("price-form").addEventListener("submit", function(e) {
+    e.preventDefault(); // stop normal submission
+
+    const rows = document.querySelectorAll("#price-tbody tr.price-row");
+
+    let priceItems = [];
+
+    rows.forEach(row => {
+        const item = {};
+
+        row.querySelectorAll("input, select").forEach(input => {
+            let name = input.name.replace(/form-\d+-/, ""); // clean formset prefix
+            item[name] = input.value;
         });
+
+        priceItems.push(item);
+    });
+
+    fetch("/invoice/price-list/save", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value
+        },
+        body: JSON.stringify({ items: priceItems })
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert("Price List Saved Successfully!");
+        console.log("Saved:", data);
+    })
+    .catch(err => {
+        console.error("Save Error:", err);
+        alert("Failed to save price list.");
+    });
 });
+
 
 
 document.getElementById("delete-price-list").addEventListener("click", () => {
