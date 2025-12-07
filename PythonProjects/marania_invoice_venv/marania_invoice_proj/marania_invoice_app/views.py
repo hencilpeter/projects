@@ -670,3 +670,26 @@ def add_price_list(request):
     return render(request, "marania_invoice_app/add_price_list.html", {"formset": formset, 
                                                                         'saved_prices': saved_prices,
                                                                         'filter_header':filter_header,})
+
+
+def load_price_list(request, price_code):
+    print(f"@@@@@@@@load price list called with parameter : {price_code}")
+    items = PriceCatalog.objects.filter(code=price_code).order_by("sequence_id")
+    print(items);
+    data = {
+        "items": [
+            {
+                "product":  f"{p.twine_code}-{p.product.name}",  # adjust if FK
+                "sequence_id": p.sequence_id,
+                "code": p.code,
+                "customer_group": p.customer_group,
+                "twine_code": p.twine_code,
+                "mesh_size_start": p.mesh_size_start,
+                "mesh_size_end": p.mesh_size_end,
+                "price": str(p.price)
+            }
+            for p in items
+        ]
+    }
+
+    return JsonResponse(data)
