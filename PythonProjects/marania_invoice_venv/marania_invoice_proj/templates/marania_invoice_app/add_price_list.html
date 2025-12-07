@@ -415,9 +415,10 @@ document.getElementById("price-form").addEventListener("submit", function(e) {
              action: clickedAction   // send the clicked button
          })
     })
-    .then(res => res.json())
+    .then(res => {res.json();})
     .then(data => {
         alert("Price List Saved Successfully!");
+        window.location.reload();
     })
     .catch(err => {
         console.error("Save Error:", err);

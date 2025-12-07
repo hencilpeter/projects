@@ -695,7 +695,6 @@ def load_price_list(request, price_code):
 
 
 
-
 def save_price_list(request):
     if request.method != "POST":
         return JsonResponse({"error": "Invalid method"}, status=405)
@@ -745,7 +744,7 @@ def save_price_list(request):
             ))
 
         PriceCatalog.objects.bulk_create(new_objs)
-        return JsonResponse({"status": "saved", "deleted_old": True, "count": len(new_objs)})
+        return JsonResponse({"status": "saved", "deleted_old": True, "count": len(new_objs)})       
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
