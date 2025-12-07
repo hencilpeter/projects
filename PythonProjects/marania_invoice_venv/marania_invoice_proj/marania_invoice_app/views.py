@@ -673,7 +673,6 @@ def add_price_list(request):
 
 
 def load_price_list(request, price_code):
-    print(f"@@@@@@@@load price list called with parameter : {price_code}")
     items = PriceCatalog.objects.filter(code=price_code).order_by("sequence_id")
     print(items);
     data = {
@@ -698,7 +697,6 @@ def load_price_list(request, price_code):
 
 
 def save_price_list(request):
-    
     if request.method != "POST":
         return JsonResponse({"error": "Invalid method"}, status=405)
    
@@ -712,22 +710,28 @@ def save_price_list(request):
         price_code = items[0].get("code")
         if not price_code:
             return JsonResponse({"error": "Price code missing"}, status=400)
-        
+       
+        # Convert to JSON string (optional)
+        action = data.get("action")
+
         # 2️⃣ DELETE ALL rows belonging to this price code
         PriceCatalog.objects.filter(code=price_code).delete()
+        # print(f"5.save price list called....{action}")
+        if action == "delete":
+            return JsonResponse({"status": "deleted"})
 
-        
-
+    
         # 3️⃣ INSERT NEW ROWS
         new_objs = []
         for item in items:
             twine_code = item.get("twine_code")
-            # Product.objects.get(code=twine_code)
-            
+            product_name = item.get("product")
+            product_code = product_name.split("-")[0]
+                        
             try:
-                product_obj = Product.objects.get(code=twine_code)
+                product_obj = Product.objects.get(code=product_code)
             except Product.DoesNotExist:
-                raise ValueError(f"Invalid product: {twine_code}")
+                raise ValueError(f"Invalid product: {product_code}")
 
             new_objs.append(PriceCatalog(
                 product=product_obj,
@@ -746,26 +750,4 @@ def save_price_list(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
-    # if request.method == "POST":
-    #     data = json.loads(request.body)
-    #     items = data.get("items", [])
-    #     print("$$$$$$$$$$$$received save price list : {0} ", data)
-        # for item in items:
-        #     obj_id = item.get("id")
-        #     if obj_id:
-        #         # UPDATE existing
-        #         obj = PriceCatalog.objects.get(id=obj_id)
-        #     else:
-        #         obj = PriceCatalog()
-
-        #     obj.product = item["product"]
-        #     obj.sequence_id = item["sequence_id"]
-        #     obj.code = item["code"]
-        #     obj.customer_group = item["customer_group"]
-        #     obj.twine_code = item["twine_code"]
-        #     obj.mesh_size_start = item["mesh_size_start"]
-        #     obj.mesh_size_end = item["mesh_size_end"]
-        #     obj.price = item["price"]
-        #     obj.save()
-
-        #return JsonResponse({"status": "ok"})
+   

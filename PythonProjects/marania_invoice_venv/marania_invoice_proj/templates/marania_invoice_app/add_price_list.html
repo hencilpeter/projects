@@ -109,7 +109,14 @@
                 </table>
             </div>
 
-            <button type="submit" class="btn btn-success mt-2">Save Price Catalog</button>
+            <!-- <button type="submit" class="btn btn-success mt-2">Save Price Catalog</button> -->
+             <button type="submit" name="action" value="save" class="btn btn-success mt-2">
+                    Save Price Catalog
+            </button>
+
+            <button type="submit" name="action" value="delete" class="btn btn-danger mt-2">
+                Delete Price Catalog
+            </button>
         </form>
     </div>
 
@@ -372,128 +379,17 @@ document.addEventListener("click", function(e) {
     document.getElementById("price-entry-area").style.display = "block";
 });
 
-// document.addEventListener("click", function(e) {
-//     if (!e.target.classList.contains("load-price")) return;
+let clickedAction = null;
 
-//     const priceCode = e.target.dataset.priceCode;
-
-//     // Fetch all price rows from backend
-//     fetch(`/invoice/price-list/load/${priceCode}/`)
-//         .then(response => response.json())
-//         .then(data => {
-//             const tbody = document.getElementById("price-tbody");
-//             const totalForms = document.getElementById("id_form-TOTAL_FORMS");
-
-//             tbody.innerHTML = "";  // clear old rows
-//             let total = 0;
-
-//             data.items.forEach((item, idx) => {
-//                 // Trigger row creation (your existing logic)
-//                 document.getElementById("add-item-price").click();
-
-//                 const row = tbody.querySelector("tr.price-row:last-of-type");
-//                 const inputs = row.querySelectorAll("input, select");
-
-//                 inputs.forEach(input => {
-//                     if (input.name.includes("product"))
-//                         input.value = item.product;
-
-//                     else if (input.name.includes("sequence_id"))
-//                         input.value = idx + 1;
-
-//                     else if (input.name.includes("code"))
-//                         input.value = item.code;
-
-//                     else if (input.name.includes("customer_group"))
-//                         input.value = item.customer_group;
-
-//                     else if (input.name.includes("twine_code"))
-//                         input.value = item.twine_code;
-
-//                     else if (input.name.includes("mesh_size_start"))
-//                         input.value = item.mesh_size_start;
-
-//                     else if (input.name.includes("mesh_size_end"))
-//                         input.value = item.mesh_size_end;
-
-//                     else if (input.name.includes("price"))
-//                         input.value = item.price;
-//                 });
-
-//                 total++;
-//             });
-
-//             totalForms.value = total;   // update formset count
-//             document.getElementById("price-entry-area").style.display = "block";
-//         })
-//         .catch(err => console.error("Price Load Error:", err));
-// });
-
-
-// document.addEventListener("click", function (e) {
-
-//     if (!e.target.classList.contains("load-price")) return;
-
-//     const priceCode = e.target.dataset.priceCode;
-//     const tbody = document.getElementById("price-tbody");
-//     const totalForms = document.getElementById("id_form-TOTAL_FORMS");
-
-//     fetch(`/invoice/price-list/load/${priceCode}`)
-//         .then(res => res.json())
-//         .then(data => {
-//             tbody.innerHTML = "";   // clear old rows
-//             let total = 0;
-//             data.items.forEach((item, idx) => {
-//                 // Create new row using template
-//                 const template = document
-//                     .getElementById("empty-row-template")
-//                     .querySelector("tr")
-//                     .cloneNode(true);
-
-//                 // update Django form index
-//                 template.innerHTML = template.innerHTML
-//                     .replace(/form-0/g, `form-${idx}`)
-//                     .replace(/id_form-0/g, `id_form-${idx}`);
-
-//                 const inputs = template.querySelectorAll("input, select");
-
-//                 inputs.forEach(inp => {
-                   
-//                     if (inp.name.includes("product"))
-//                         inp.value = item.product;
-//                     else if (inp.name.includes("sequence_id"))
-//                         inp.value = item.sequence_id;
-//                     else if (inp.name.includes("code"))
-//                         inp.value = item.code;
-//                     else if (inp.name.includes("customer_group"))
-//                         inp.value = item.customer_group;
-//                     else if (inp.name.includes("twine_code"))
-//                         inp.value = item.twine_code;
-//                     else if (inp.name.includes("mesh_size_start"))
-//                         inp.value = item.mesh_size_start;
-//                     else if (inp.name.includes("mesh_size_end"))
-//                         inp.value = item.mesh_size_end;
-//                     else if (inp.name.includes("price"))
-//                         inp.value = item.price;
-//                 });
-
-//                 tbody.appendChild(template);
-//                 total++;
-//             });
-
-//             totalForms.value = total;
-//             document.getElementById("price-entry-area").style.display = "block";
-//         })
-//         .catch(err => {
-//             console.error("Price Load Error:", err);
-//             alert("Failed to load price details.");
-//         });
-// });
+document.querySelectorAll("#price-form button[type=submit]").forEach(btn => {
+    btn.addEventListener("click", function() {
+        clickedAction = this.value;  // "save" or "delete"
+    });
+});
 
 /* MANUAL PRICE LIST SUBMIT */
 document.getElementById("price-form").addEventListener("submit", function(e) {
     e.preventDefault(); // stop normal submission
-
     const rows = document.querySelectorAll("#price-tbody tr.price-row");
 
     let priceItems = [];
@@ -515,12 +411,13 @@ document.getElementById("price-form").addEventListener("submit", function(e) {
             "Content-Type": "application/json",
             "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value
         },
-        body: JSON.stringify({ items: priceItems })
+        body: JSON.stringify({ items: priceItems,
+             action: clickedAction   // send the clicked button
+         })
     })
     .then(res => res.json())
     .then(data => {
         alert("Price List Saved Successfully!");
-        console.log("Saved:", data);
     })
     .catch(err => {
         console.error("Save Error:", err);
