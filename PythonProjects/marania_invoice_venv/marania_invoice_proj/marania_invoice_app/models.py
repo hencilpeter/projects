@@ -219,3 +219,32 @@ class CompanySettings(models.Model):
         verbose_name = "Company Setting"
         verbose_name_plural = "Company Settings"
     
+
+class CustomerPriceCatalog(models.Model):
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.CASCADE,
+        related_name='customer_items'
+    )
+
+    price_catalog = models.ForeignKey(
+        PriceCatalog,
+        on_delete=models.CASCADE,
+        related_name='price_catalog_items'
+    )
+
+    gst_included = models.BooleanField(default=False)
+
+    colour_extra_price = models.FloatField(default=0)
+
+    small_mesh_size_extra_price = models.FloatField(default=0)
+
+    remark = models.TextField(blank=True, null=True)
+
+    class Meta:
+        db_table = "customer_price_catalog"   # Explicit table name
+        verbose_name = "Customer Price Catalog"
+        verbose_name_plural = "Customer Price Catalogs"
+
+    def __str__(self):
+        return f"{self.customer}-{self.price_catalog}"

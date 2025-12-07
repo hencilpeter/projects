@@ -599,18 +599,6 @@ def company_settings_view(request):
     return render(request, "marania_invoice_app/company_settings_form.html", {"form": form})
   
 
-#   def company_settings(request):
-#     settings = CompanySettings.objects.first()  # Only one row
-#     form = CompanySettingsForm(request.POST or None, instance=settings)
-
-#     if request.method == "POST" and form.is_valid():
-#         form.save()
-#         return redirect("company_settings")
-
-#     return render(request, "company_settings.html", {"form": form})
-
-
-
 def get_invoice(request, invoice_number):
     # print("get invoice called!!!!!!")
     invoice = Invoice.objects.get(invoice_number=invoice_number)
