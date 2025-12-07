@@ -1,0 +1,152 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container my-4">
+    <h3>Customer Price Catalog</h3>
+
+    <!-- Add Catalog Form -->
+    <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#catalogForm">New Catalog</button>
+
+    <div class="collapse" id="catalogForm">
+      <form method="POST" id="catalog-form">
+        {% csrf_token %}
+        <div class="card p-4 mb-4 shadow-sm">
+
+          <!-- Catalog Row Container -->
+          <div id="catalog-rows">
+
+            <!-- Single Row Template -->
+            <div class="row mb-2 catalog-row">
+              <div class="col-md-2">
+                <select name="customer" class="form-select">
+                  <option value="">Select Customer</option>
+                  {% for c in customers %}<option value="{{ c.id }}">{{ c }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="col-md-2">
+                <select name="price_catalog" class="form-select">
+                  <option value="">Select Price Catalog</option>
+                  {% for p in price_catalogs %}<option value="{{ p.id }}">{{ p }}</option>{% endfor %}
+                </select>
+              </div>
+<div class="col-md-2 d-flex align-items-center">
+    <input type="checkbox" name="gst_included" id="gst_included" class="form-check-input me-2">
+    <label for="gst_included" class="mb-0">GST Included</label>
+</div>
+              <div class="col-md-2">
+                <input type="number" step="0.01" name="colour_extra_price" class="form-control" placeholder="Colour Extra">
+              </div>
+              <div class="col-md-2">
+                <input type="number" step="0.01" name="small_mesh_size_extra_price" class="form-control" placeholder="Small Mesh Extra">
+              </div>
+              <div class="col-md-2">
+                <input type="text" name="remark" class="form-control" placeholder="Remark">
+              </div>
+              
+            </div>
+
+          </div>
+
+          <!-- Add Catalog Button -->
+          <div class="mb-3">
+            <button type="button" id="add-catalog" class="btn btn-secondary">+ Add Catalog</button>
+          </div>
+
+          <div class="text-center">
+            <button type="submit" class="btn btn-success">Save Catalog</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <hr>
+
+    <!-- Catalog List -->
+    <h5>Saved Customer Price Catalogs</h5>
+    {% if catalogs %}
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover table-sm">
+        <thead class="table-dark">
+          <tr>
+            <th>Customer</th>
+            <th>Price Catalog</th>
+            <th>GST Included</th>
+            <th>Colour Extra Price</th>
+            <th>Small Mesh Extra Price</th>
+            <th>Remark</th>
+            <th>Load</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cat in catalogs %}
+          <tr>
+            <td>{{ cat.customer }}</td>
+            <td>{{ cat.price_catalog }}</td>
+            <td>{{ cat.gst_included }}</td>
+            <td>{{ cat.colour_extra_price }}</td>
+            <td>{{ cat.small_mesh_size_extra_price }}</td>
+            <td>{{ cat.remark }}</td>
+            <td>
+              <button class="btn btn-primary btn-sm load-catalog" data-id="{{ cat.id }}">Load</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <p class="text-muted">No catalogs found.</p>
+    {% endif %}
+  </div>
+</main>
+
+<script>
+const catalogContainer = document.getElementById("catalog-rows");
+
+// Add new catalog row
+document.getElementById("add-catalog").addEventListener("click", function() {
+  const firstRow = catalogContainer.querySelector(".catalog-row");
+  const newRow = firstRow.cloneNode(true);
+
+  // Clear values in cloned row
+  newRow.querySelectorAll("input").forEach(input => {
+    if (input.type === "checkbox") input.checked = false;
+    else input.value = "";
+  });
+  newRow.querySelectorAll("select").forEach(sel => sel.selectedIndex = 0);
+
+  catalogContainer.appendChild(newRow);
+});
+
+// Remove row
+catalogContainer.addEventListener("click", function(e) {
+  if (e.target.classList.contains("remove-row")) {
+    const rows = catalogContainer.querySelectorAll(".catalog-row");
+    if (rows.length > 1) e.target.closest(".catalog-row").remove();
+  }
+});
+
+// Load existing catalog
+document.addEventListener("click", function(e){
+    if(!e.target.classList.contains("load-catalog")) return;
+
+    const id = e.target.dataset.id;
+
+    fetch(`/customer-price-catalog/load/${id}/`)
+        .then(res => res.json())
+        .then(data => {
+            const rows = catalogContainer.querySelectorAll(".catalog-row");
+            // Populate first row
+            rows[0].querySelector('select[name="customer"]').value = data.customer;
+            rows[0].querySelector('select[name="price_catalog"]').value = data.price_catalog;
+            rows[0].querySelector('input[name="gst_included"]').checked = data.gst_included;
+            rows[0].querySelector('input[name="colour_extra_price"]').value = data.colour_extra_price;
+            rows[0].querySelector('input[name="small_mesh_size_extra_price"]').value = data.small_mesh_size_extra_price;
+            rows[0].querySelector('input[name="remark"]').value = data.remark;
+
+            new bootstrap.Collapse(document.getElementById("catalogForm"), {show:true});
+        });
+});
+</script>
+{% endblock %}

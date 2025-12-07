@@ -1,8 +1,8 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from . import forms
-from .forms import CustomerForm, InvoiceForm, CompanySettingsForm
-from .models import Customer, Configuration, Invoice,InvoiceItem, Transportation, PriceCatalog, CompanySettings,Product
+from .forms import CustomerForm, InvoiceForm, CompanySettingsForm, CustomerPriceCatalogForm
+from .models import Customer, Configuration, Invoice,InvoiceItem, Transportation, PriceCatalog, CompanySettings,Product, CustomerPriceCatalog
 from collections import defaultdict,OrderedDict
 #from singleton import singleton
 import pdb
@@ -738,3 +738,95 @@ def save_price_list(request):
         return JsonResponse({"error": str(e)}, status=500)
 
    
+# customer price catalog
+# def customer_price_catalog_list(request):
+#     if request.method == 'POST':
+#         form = CustomerPriceCatalogForm(request.POST)
+#         if form.is_valid():
+#             form.save()
+#             return redirect('customer_price_catalog_list')
+#     else:
+#         form = CustomerPriceCatalogForm()
+
+#     catalogs = CustomerPriceCatalog.objects.all().select_related('customer', 'price_catalog')
+    
+#     return render(request, 'marania_invoice_app/customer_price_catalog.html', {
+#         'form': form,
+#         'catalogs': catalogs,
+#     })
+
+# def load_customer_price_catalog(request, pk):
+#     catalog = get_object_or_404(CustomerPriceCatalog, pk=pk)
+#     data = {
+#         'customer': catalog.customer.id,
+#         'price_catalog': catalog.price_catalog.id,
+#         'gst_included': catalog.gst_included,
+#         'colour_extra_price': catalog.colour_extra_price,
+#         'small_mesh_size_extra_price': catalog.small_mesh_size_extra_price,
+#         'remark': catalog.remark,
+#     }
+#     return JsonResponse(data)
+
+
+
+def customer_price_catalog(request):
+    customers = Customer.objects.all()
+    price_catalogs = PriceCatalog.objects.all()
+    catalogs = CustomerPriceCatalog.objects.all()
+
+    if request.method == "POST":
+        # Count how many rows were submitted
+        rows = []
+        # Get all POST keys that match 'customer', 'price_catalog', etc.
+        keys = request.POST.keys()
+        num_rows = len([k for k in keys if k.startswith("customer")])
+
+        # Better: iterate until no more rows
+        idx = 0
+        while True:
+            customer_val = request.POST.getlist(f"customer")[idx] if request.POST.getlist("customer") else None
+            price_catalog_val = request.POST.getlist(f"price_catalog")[idx] if request.POST.getlist("price_catalog") else None
+            gst_included_val = request.POST.getlist(f"gst_included")[idx] if request.POST.getlist("gst_included") else None
+            colour_val = request.POST.getlist(f"colour_extra_price")[idx] if request.POST.getlist("colour_extra_price") else None
+            small_mesh_val = request.POST.getlist(f"small_mesh_size_extra_price")[idx] if request.POST.getlist("small_mesh_size_extra_price") else None
+            remark_val = request.POST.getlist(f"remark")[idx] if request.POST.getlist("remark") else None
+
+            if not customer_val or not price_catalog_val:
+                break
+
+            # Save each row
+            catalog_row = CustomerPriceCatalog(
+                customer_id=customer_val,
+                price_catalog_id=price_catalog_val,
+                gst_included=True if gst_included_val == "on" else False,
+                colour_extra_price=float(colour_val or 0),
+                small_mesh_size_extra_price=float(small_mesh_val or 0),
+                remark=remark_val
+            )
+            catalog_row.save()
+            idx += 1
+            if idx >= len(request.POST.getlist("customer")):
+                break
+
+        return redirect("customer_price_catalog")  # redirect to refresh
+
+    context = {
+        "form": {},  # can use a simple empty form for the template
+        "customers": customers,
+        "price_catalogs": price_catalogs,
+        "catalogs": catalogs
+    }
+    return render(request, "marania_invoice_app/customer_price_catalog.html", context)
+
+
+def load_customer_price_catalog(request, id):
+    catalog = CustomerPriceCatalog.objects.get(id=id)
+    data = {
+        "customer": catalog.customer.id,
+        "price_catalog": catalog.price_catalog.id,
+        "gst_included": catalog.gst_included,
+        "colour_extra_price": catalog.colour_extra_price,
+        "small_mesh_size_extra_price": catalog.small_mesh_size_extra_price,
+        "remark": catalog.remark
+    }
+    return JsonResponse(data)

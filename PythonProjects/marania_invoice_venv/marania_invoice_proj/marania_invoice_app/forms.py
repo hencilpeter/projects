@@ -4,6 +4,7 @@ from .models import Invoice, InvoiceItem
 from .models import Transportation
 from .models import CompanySettings
 from .models import PriceCatalog
+from .models import CustomerPriceCatalog
 
 from django.forms import inlineformset_factory
 from django.forms import modelformset_factory
@@ -318,3 +319,18 @@ PriceListFormSet = modelformset_factory(
     extra=1,          # at least one empty row
     can_delete=True   # optional delete checkbox
 )
+
+
+class CustomerPriceCatalogForm(forms.ModelForm):
+    class Meta:
+        model = CustomerPriceCatalog
+        fields = ['customer', 'price_catalog', 'gst_included', 'colour_extra_price', 'small_mesh_size_extra_price', 'remark']
+        widgets = {
+            'customer': forms.Select(attrs={'class': 'form-control form-control-sm'}),
+            'price_catalog': forms.Select(attrs={'class': 'form-control form-control-sm'}),
+            'gst_included': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'colour_extra_price': forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'step': '0.01'}),
+            'small_mesh_size_extra_price': forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'step': '0.01'}),
+            'remark': forms.Textarea(attrs={'class': 'form-control form-control-sm', 'rows': 2}),
+        }
+

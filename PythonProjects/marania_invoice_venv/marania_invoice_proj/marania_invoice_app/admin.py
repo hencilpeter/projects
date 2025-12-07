@@ -14,5 +14,6 @@ admin.site.register(InvoiceItem)
 admin.site.register(Transportation)
 admin.site.register(PriceCatalog)
 admin.site.register(CompanySettings)
+admin.site.register(CustomerPriceCatalog)
 
 

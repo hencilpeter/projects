@@ -15,10 +15,19 @@ path('invoice_entry/show_gst_calculator', views.show_gst_calculator, name='show_
 path('settings/company/', views.company_settings_view, name='company_settings'),
 path('invoice_entry/get_invoice/<str:invoice_number>/', views.get_invoice, name='get_invoice'),
 
-# price list 
+# price  catalog 
  path("price-list/add/", views.add_price_list, name="add_price_list"),
  path("price-list/load/<str:price_code>", views.load_price_list, name="load_price_list"),
  path("price-list/save", views.save_price_list, name="save_price_list"),
+
+# customer price catalog 
+# path('customer-price-catalog/', views.customer_price_catalog, name='customer_price_catalog'),
+# path('customer-price-catalog/save/', views.customer_price_catalog_save, name='customer_price_catalog_save'),
+# path('customer-price-catalog/load/<str:price_code>/', views.customer_price_catalog_load, name='customer_price_catalog_load'),
+# path('customer-price-catalog/delete/<str:price_code>/', views.customer_price_catalog_delete, name='customer_price_catalog_delete'),
+
+path('customer-price-catalog/', views.customer_price_catalog, name='customer_price_catalog'),
+path('customer-price-catalog/load/<int:id>/', views.load_customer_price_catalog, name='load_customer_price_catalog'),
 
 #path("settings/company", views.company_settings_view, name="company_settings"),
 
