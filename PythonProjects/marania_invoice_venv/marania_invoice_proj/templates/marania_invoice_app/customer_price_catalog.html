@@ -201,18 +201,42 @@ document.addEventListener("click", function(e){
         });
 });
 
-document.querySelectorAll('.column-filter').forEach(filter => {
-    filter.addEventListener('input', function () {
-        const colIndex = this.dataset.col;
-        const filterValue = this.value.toLowerCase();
-        const rows = document.querySelectorAll('#yourTableId tbody tr');
-
-        rows.forEach(row => {
-            const cell = row.children[colIndex].textContent.toLowerCase();
-            row.style.display = cell.includes(filterValue) ? "" : "none";
-        });
-    });
+document.querySelectorAll(".column-filter").forEach(filter => {
+    filter.addEventListener("input", filterTable);
+    filter.addEventListener("change", filterTable);
 });
+
+function filterTable() {
+    const rows = document.querySelectorAll("table tbody tr");
+
+    rows.forEach(row => {
+        let visible = true;
+
+        document.querySelectorAll(".column-filter").forEach(filter => {
+            const colIndex = filter.dataset.col;
+            const filterValue = filter.value.toLowerCase().trim();
+
+            if (filterValue !== "") {
+                const cellText = row.children[colIndex].textContent.toLowerCase().trim();
+
+                // For dropdown exact match + text contains match
+                if (filter.tagName === "SELECT") {
+                    if (cellText !== filterValue) {
+                        visible = false;
+                    }
+                } else {
+                    if (!cellText.includes(filterValue)) {
+                        visible = false;
+                    }
+                }
+            }
+        });
+
+        row.style.display = visible ? "" : "none";
+    });
+}
+
+
 
 
 </script>
