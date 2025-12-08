@@ -184,7 +184,7 @@ class PriceCatalog(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.code}-{self.customer_group}-{self.sequence_id}"
+        return f"{self.code}-{self.customer_group}"
     
 
 class CompanySettings(models.Model):

@@ -30,10 +30,10 @@
                   {% for p in price_catalogs %}<option value="{{ p.id }}">{{ p }}</option>{% endfor %}
                 </select>
               </div>
-<div class="col-md-2 d-flex align-items-center">
-    <input type="checkbox" name="gst_included" id="gst_included" class="form-check-input me-2">
-    <label for="gst_included" class="mb-0">GST Included</label>
-</div>
+                <div class="col-md-2 d-flex align-items-center">
+                    <input type="checkbox" name="gst_included" id="gst_included" class="form-check-input me-2">
+                    <label for="gst_included" class="mb-0">GST Included</label>
+                </div>
               <div class="col-md-2">
                 <input type="number" step="0.01" name="colour_extra_price" class="form-control" placeholder="Colour Extra">
               </div>
@@ -77,6 +77,58 @@
             <th>Remark</th>
             <th>Load</th>
           </tr>
+
+          <!-- Filter Row -->
+          <tr class="table-secondary">
+            <!-- 1️⃣ Customer Filter -->
+            <th>
+              <select class="form-select form-select-sm column-filter" data-col="0">
+                <option value="">All</option>
+                <!-- Add dynamically -->
+                {% for item in unique_customers %}
+                <option value="{{ item }}">{{ item }}</option>
+                {% endfor %}
+              </select>
+            </th>
+            
+            <!-- 2️⃣ Price Catalog Filter -->
+            <th>
+              <select class="form-select form-select-sm column-filter" data-col="1">
+                <option value="">All</option>
+                <!-- Add dynamically -->
+                {% for item in unique_item_code_customer %}
+                <option value="{{ item }}">{{ item }}</option>
+                {% endfor %}
+              </select>
+            </th>
+            
+            <!-- 3 GST Included Filter -->
+            <th>
+              <select class="form-select form-select-sm column-filter" data-col="2">
+                <option value="">All</option>
+                <!-- Add dynamically -->
+                {% for item in unique_gst_included %}
+                <option value="{{ item }}">{{ item }}</option>
+                {% endfor %}
+              </select>
+            </th>
+
+            <th><input type="text" class="form-control form-control-sm column-filter" data-col="3"></th>
+            <th><input type="text" class="form-control form-control-sm column-filter" data-col="4"></th>
+             <!-- 6 GST Included Filter -->
+            <th>
+              <select class="form-select form-select-sm column-filter" data-col="5">
+                <option value="">All</option>
+                <!-- Add dynamically -->
+                {% for item in unique_remarks %}
+                <option value="{{ item }}">{{ item }}</option>
+                {% endfor %}
+              </select>
+            </th>
+
+            <th></th>
+          </tr>
+          
         </thead>
         <tbody>
           {% for cat in catalogs %}
@@ -148,5 +200,20 @@ document.addEventListener("click", function(e){
             new bootstrap.Collapse(document.getElementById("catalogForm"), {show:true});
         });
 });
+
+document.querySelectorAll('.column-filter').forEach(filter => {
+    filter.addEventListener('input', function () {
+        const colIndex = this.dataset.col;
+        const filterValue = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#yourTableId tbody tr');
+
+        rows.forEach(row => {
+            const cell = row.children[colIndex].textContent.toLowerCase();
+            row.style.display = cell.includes(filterValue) ? "" : "none";
+        });
+    });
+});
+
+
 </script>
 {% endblock %}

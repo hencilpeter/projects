@@ -809,12 +809,21 @@ def customer_price_catalog(request):
                 break
 
         return redirect("customer_price_catalog")  # redirect to refresh
-
+    
+    unique_customers = list({str(c.customer) for c in catalogs})
+    unique_item_code_customer = list({str(c.price_catalog) for c in catalogs})
+    unique_gst_included = list({str(c.gst_included) for c in catalogs})
+    unique_remarks = list({str(c.remark) for c in catalogs})
+   
     context = {
         "form": {},  # can use a simple empty form for the template
         "customers": customers,
         "price_catalogs": price_catalogs,
-        "catalogs": catalogs
+        "catalogs": catalogs,
+        "unique_customers":unique_customers,
+        "unique_item_code_customer":unique_item_code_customer,
+        "unique_gst_included":unique_gst_included,
+        "unique_remarks":unique_remarks,
     }
     return render(request, "marania_invoice_app/customer_price_catalog.html", context)
 
