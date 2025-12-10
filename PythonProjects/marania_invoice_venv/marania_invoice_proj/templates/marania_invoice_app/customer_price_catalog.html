@@ -250,7 +250,15 @@ document.addEventListener("click", function(e){
             rows[0].querySelector('input[name="small_mesh_size_extra_price"]').value = data.small_mesh_size_extra_price;
             rows[0].querySelector('input[name="remark"]').value = data.remark;
 
-            new bootstrap.Collapse(document.getElementById("catalogForm"), {show:true});
+            // new bootstrap.Collapse(document.getElementById("catalogForm"), {show:true});
+
+            // Only show collapse if not already shown
+            const collapseEl = document.getElementById("catalogForm");
+            const bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, {toggle:false});
+            if (!collapseEl.classList.contains("show")) {
+                bsCollapse.show();
+            }
+
         });
 });
 

@@ -738,113 +738,11 @@ def save_price_list(request):
         return JsonResponse({"error": str(e)}, status=500)
 
    
-# customer price catalog
-# def customer_price_catalog_list(request):
-#     if request.method == 'POST':
-#         form = CustomerPriceCatalogForm(request.POST)
-#         if form.is_valid():
-#             form.save()
-#             return redirect('customer_price_catalog_list')
-#     else:
-#         form = CustomerPriceCatalogForm()
-
-#     catalogs = CustomerPriceCatalog.objects.all().select_related('customer', 'price_catalog')
-    
-#     return render(request, 'marania_invoice_app/customer_price_catalog.html', {
-#         'form': form,
-#         'catalogs': catalogs,
-#     })
-
-# def load_customer_price_catalog(request, pk):
-#     catalog = get_object_or_404(CustomerPriceCatalog, pk=pk)
-#     data = {
-#         'customer': catalog.customer.id,
-#         'price_catalog': catalog.price_catalog.id,
-#         'gst_included': catalog.gst_included,
-#         'colour_extra_price': catalog.colour_extra_price,
-#         'small_mesh_size_extra_price': catalog.small_mesh_size_extra_price,
-#         'remark': catalog.remark,
-#     }
-#     return JsonResponse(data)
-
-
-
-# def customer_price_catalog(request):
-#     customers = Customer.objects.all()
-#     price_catalogs = PriceCatalog.objects.all()
-#     catalogs = CustomerPriceCatalog.objects.all()
-
-#     if request.method == "POST":
-#         # Count how many rows were submitted
-#         rows = []
-#         # Get all POST keys that match 'customer', 'price_catalog', etc.
-#         keys = request.POST.keys()
-#         num_rows = len([k for k in keys if k.startswith("customer")])
-
-#         # Better: iterate until no more rows
-#         idx = 0
-#         while True:
-#             customer_val = request.POST.getlist(f"customer")[idx] if request.POST.getlist("customer") else None
-#             price_catalog_val = request.POST.getlist(f"price_catalog")[idx] if request.POST.getlist("price_catalog") else None
-#             gst_included_val = request.POST.getlist(f"gst_included")[idx] if request.POST.getlist("gst_included") else None
-#             colour_val = request.POST.getlist(f"colour_extra_price")[idx] if request.POST.getlist("colour_extra_price") else None
-#             small_mesh_val = request.POST.getlist(f"small_mesh_size_extra_price")[idx] if request.POST.getlist("small_mesh_size_extra_price") else None
-#             remark_val = request.POST.getlist(f"remark")[idx] if request.POST.getlist("remark") else None
-
-#             if not customer_val or not price_catalog_val:
-#                 break
-
-#             # Save each row
-#             catalog_row = CustomerPriceCatalog(
-#                 customer_id=customer_val,
-#                 price_catalog_id=price_catalog_val,
-#                 gst_included=True if gst_included_val == "on" else False,
-#                 colour_extra_price=float(colour_val or 0),
-#                 small_mesh_size_extra_price=float(small_mesh_val or 0),
-#                 remark=remark_val
-#             )
-
-#             action = request.POST.get("action")
-#             if action == "save":
-#                 catalog_row.save()
-#             else:
-#                 catalog_row.delete()
-
-#             idx += 1
-#             if idx >= len(request.POST.getlist("customer")):
-#                 break
-
-#         return redirect("customer_price_catalog")  # redirect to refresh
-    
-#     unique_customers = list({str(c.customer) for c in catalogs})
-#     unique_item_code_customer = list({str(c.price_catalog) for c in catalogs})
-#     unique_gst_included = list({str(c.gst_included) for c in catalogs})
-#     unique_remarks = list({str(c.remark) for c in catalogs})
-   
-#     context = {
-#         "form": {},  # can use a simple empty form for the template
-#         "customers": customers,
-#         "price_catalogs": price_catalogs,
-#         "catalogs": catalogs,
-#         "unique_customers":unique_customers,
-#         "unique_item_code_customer":unique_item_code_customer,
-#         "unique_gst_included":unique_gst_included,
-#         "unique_remarks":unique_remarks,
-#     }
-#     return render(request, "marania_invoice_app/customer_price_catalog.html", context)
-
-# def print_all_columns(queryset):
-#     for obj in queryset:
-#         print("---- ROW ----")
-#         for field in obj._meta.fields:
-#             print(f"{field.name}: {getattr(obj, field.name)}")
-#         print("----------------\n")
-
 def customer_price_catalog(request):
     customers = Customer.objects.all()
     price_catalogs = PriceCatalog.objects.all()
     catalogs = CustomerPriceCatalog.objects.all()
-    # print_all_columns(CustomerPriceCatalog.objects.all())
+    
     if request.method == "POST":
         action = request.POST.get("action")
         testids =  request.POST.getlist("id")
@@ -871,8 +769,10 @@ def customer_price_catalog(request):
 
             # SAVE ACTION
             try:
+                # update logic - get the existing object 
                 obj = CustomerPriceCatalog.objects.get(customer_id=cust, price_catalog_id=cat)
             except CustomerPriceCatalog.DoesNotExist:
+                # new entry - create new object
                 obj = CustomerPriceCatalog()
             
             obj.customer_id = cust
