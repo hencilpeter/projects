@@ -655,7 +655,7 @@ def add_price_list(request):
     unique_customer_group = PriceCatalog
 
    
-    return render(request, "marania_invoice_app/add_price_list.html", {"formset": formset, 
+    return render(request, "marania_invoice_app/price_catalog.html", {"formset": formset, 
                                                                         'saved_prices': saved_prices,
                                                                         'filter_header':filter_header,})
 
