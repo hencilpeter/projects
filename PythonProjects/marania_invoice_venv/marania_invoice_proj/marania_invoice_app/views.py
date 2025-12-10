@@ -775,15 +775,21 @@ def customer_price_catalog(request):
                 # new entry - create new object
                 obj = CustomerPriceCatalog()
             
+            print(gst_vals)
             obj.customer_id = cust
             obj.price_catalog_id = cat
-            obj.gst_included = True if gst_vals[idx] == "on" else False
+            obj.gst_included = True if (  idx < len(gst_vals)  and gst_vals[idx] == "on" ) else False
             obj.colour_extra_price = float(colour_vals[idx] or 0)
             obj.small_mesh_size_extra_price = float(mesh_vals[idx] or 0)
             obj.remark = remark_vals[idx]
             obj.save()
 
         return redirect("customer_price_catalog")
+
+    # if the remark is empty assign the "-" value. 
+    for c in catalogs:
+        if not c.remark or c.remark.strip() == "":
+            c.remark = "-"
 
     # UNIQUE FILTER LISTS
     unique_customers = list({str(c.customer) for c in catalogs})
