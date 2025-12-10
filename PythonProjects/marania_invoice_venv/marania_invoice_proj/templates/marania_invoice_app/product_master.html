@@ -201,7 +201,7 @@ document.addEventListener("click", function (e) {
 
   const id = e.target.dataset.id;
 
-  fetch(`/products/load/${id}/`)
+  fetch(`/invoice/products/load/${id}/`)
     .then(res => res.json())
     .then(data => {
       const row = productContainer.querySelector(".product-row");
