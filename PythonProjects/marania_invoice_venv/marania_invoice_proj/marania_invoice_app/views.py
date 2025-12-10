@@ -803,7 +803,13 @@ def customer_price_catalog(request):
                 small_mesh_size_extra_price=float(small_mesh_val or 0),
                 remark=remark_val
             )
-            catalog_row.save()
+
+            action = request.POST.get("action")
+            if action == "save":
+                catalog_row.save()
+            else:
+                catalog_row.delete()
+
             idx += 1
             if idx >= len(request.POST.getlist("customer")):
                 break
