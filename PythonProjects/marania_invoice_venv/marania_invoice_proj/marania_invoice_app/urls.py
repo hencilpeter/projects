@@ -26,8 +26,14 @@ path('invoice_entry/get_invoice/<str:invoice_number>/', views.get_invoice, name=
 # path('customer-price-catalog/load/<str:price_code>/', views.customer_price_catalog_load, name='customer_price_catalog_load'),
 # path('customer-price-catalog/delete/<str:price_code>/', views.customer_price_catalog_delete, name='customer_price_catalog_delete'),
 
+# customer price catalog
 path('customer-price-catalog/', views.customer_price_catalog, name='customer_price_catalog'),
 path('customer-price-catalog/load/<int:id>/', views.load_customer_price_catalog, name='load_customer_price_catalog'),
+
+# products
+path("products/", views.product_master, name="product_master"),
+path("products/load/<int:id>/", views.load_product, name="load_product"),
+
 
 #path("settings/company", views.company_settings_view, name="company_settings"),
 

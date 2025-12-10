@@ -818,3 +818,77 @@ def load_customer_price_catalog(request, id):
         "remark": catalog.remark
     }
     return JsonResponse(data)
+
+
+
+def product_master(request):
+    products = Product.objects.all()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        codes = request.POST.getlist("code")
+        names = request.POST.getlist("name")
+        display_names = request.POST.getlist("display_name")
+        hsn_codes = request.POST.getlist("hsn")
+        cgsts = request.POST.getlist("cgst")
+        sgsts = request.POST.getlist("sgst")
+        igsts = request.POST.getlist("igst")
+        descriptions = request.POST.getlist("description")
+
+        for idx in range(len(codes)):
+            code = codes[idx].strip()
+            name = names[idx].strip()
+
+            if not code or not name:
+                continue
+
+            # DELETE
+            if action == "delete":
+                Product.objects.filter(code=code).delete()
+                continue
+
+            # SAVE logic
+            try:
+                obj = Product.objects.get(code=code)
+            except Product.DoesNotExist:
+                obj = Product()
+
+            obj.code = code
+            obj.name = name
+            obj.display_name = display_names[idx]
+            obj.hsn = hsn_codes[idx]
+            obj.cgst = cgsts[idx] or 0
+            obj.sgst = sgsts[idx] or 0
+            obj.igst = igsts[idx] or 0
+            obj.description = descriptions[idx]
+
+            obj.save()
+
+        return redirect("product_master")
+
+    # Unique filter lists
+    unique_codes = sorted(list({p.code for p in products}))
+    unique_names = sorted(list({p.name for p in products}))
+    unique_hsn = sorted(list({p.hsn or "-" for p in products}))
+
+    return render(request, "marania_invoice_app/product_master.html", {
+        "products": products,
+        "unique_codes": unique_codes,
+        "unique_names": unique_names,
+        "unique_hsn": unique_hsn,
+    })
+
+
+def load_product(request, id):
+    p = Product.objects.get(id=id)
+    return JsonResponse({
+        "code": p.code,
+        "name": p.name,
+        "display_name": p.display_name,
+        "hsn": p.hsn,
+        "cgst": str(p.cgst),
+        "sgst": str(p.sgst),
+        "igst": str(p.igst),
+        "description": p.description,
+    })
