@@ -32,21 +32,7 @@ class Customer(models.Model):
         return f"{self.name} ({self.code})"
     
 
-
-    
-# class ProductPrice(models.Model):
-#     code = models.CharField(max_length=50, unique=True, null=False, blank=False)
-#     category = models.CharField(max_length=100, null=False, blank=False)
-#     meshsize_start = models.IntegerField(null=True, blank=True)
-#     meshsize_end = models.IntegerField(null=True, blank=True)
-#     price_per_kilogram = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
-#     remark = models.TextField(null=True, blank=True)
-
-#     created_at = models.DateTimeField(auto_now_add=True)
-#     updated_at = models.DateTimeField(auto_now=True)
-
-#     def __str__(self):
-#         return f"{self.code} - {self.category}"
+  
 
 class Configuration(models.Model):
     name = models.CharField(max_length=100, unique=True, null=False, blank=False)

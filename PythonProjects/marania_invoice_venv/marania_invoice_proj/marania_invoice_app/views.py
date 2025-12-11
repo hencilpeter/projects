@@ -56,6 +56,9 @@ from django.http import JsonResponse
 #from .models import Invoice, InvoiceItem
 from .forms import PriceListFormSet
 
+from django.db.models import Count
+from django.db.models.functions import TruncMonth
+
 # @singleton
 class Configurations:
     
@@ -227,13 +230,68 @@ def invoice_summary():
 #################################
 
 # Create your views here.
-#@login_required
-def dashboard(request):
-    config = Configurations()
-    print(config)
-    context = {'config':config.config}
-    return render(request, 'marania_invoice_app/dashboard.html', context)
+# #@login_required
+# def dashboard(request):
+#     config = Configurations()
+#     print(config)
+#     context = {'config':config.config}
+#     return render(request, 'marania_invoice_app/dashboard.html', context)
 
+def dashboard(request):
+
+    # -------- SUMMARY COUNTS --------
+    total_customers = Customer.objects.count()
+    total_products = Product.objects.count()
+    total_price_catalogs = PriceCatalog.objects.count()
+    total_invoices = Invoice.objects.count()
+
+    # -------- LATEST CUSTOMERS --------
+    latest_customers = Customer.objects.order_by("-created_at")[:5]
+
+    # -------- RECENT INVOICES --------
+    recent_invoices = Invoice.objects.order_by("-invoice_date")[:5]
+
+    # -------- INVOICE CHART: INVOICES PER MONTH --------
+    invoice_data = (
+        Invoice.objects
+        .annotate(month=TruncMonth("invoice_date"))
+        .values("month")
+        .annotate(count=Count("id"))
+        .order_by("month")
+    )
+
+    invoice_months = [d["month"].strftime("%b %Y") for d in invoice_data]
+    invoice_counts = [d["count"] for d in invoice_data]
+
+    # -------- PRICE CATALOG CHART: ITEMS PER CUSTOMER GROUP --------
+    price_group_data = (
+        PriceCatalog.objects
+        .values("customer_group")
+        .annotate(count=Count("id"))
+        .order_by("customer_group")
+    )
+
+    catalog_groups = [d["customer_group"] for d in price_group_data]
+    catalog_group_counts = [d["count"] for d in price_group_data]
+
+    # -------- CONTEXT FOR TEMPLATE --------
+    context = {
+        "total_customers": total_customers,
+        "total_products": total_products,
+        "total_price_catalogs": total_price_catalogs,
+        "total_invoices": total_invoices,
+
+        "latest_customers": latest_customers,
+        "recent_invoices": recent_invoices,
+
+        "invoice_months": invoice_months,
+        "invoice_counts": invoice_counts,
+
+        "catalog_groups": catalog_groups,
+        "catalog_group_counts": catalog_group_counts,
+    }
+
+    return render(request, "marania_invoice_app/dashboard.html", context)
 
 def customer(request):
     Customers = Customer.objects.all()
