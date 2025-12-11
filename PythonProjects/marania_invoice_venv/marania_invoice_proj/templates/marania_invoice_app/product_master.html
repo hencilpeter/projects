@@ -2,6 +2,14 @@
 {% load static %}
 
 {% block main %}
+
+<style>
+.product-row input {
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+}
+</style>
+
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
   <div class="container my-4">
 
@@ -14,53 +22,56 @@
     <div class="collapse" id="productForm">
       <form method="POST">
         {% csrf_token %}
-        <div class="card p-4 mb-4 shadow-sm">
+        <div class="card p-2 mb-4 shadow-sm">
 
           <div id="product-rows">
-            <!-- ROW TEMPLATE -->
-            <div class="row mb-2 product-row align-items-center">
 
-              <div class="col-md-2">
+            <!-- SINGLE-ROW TEMPLATE -->
+            <div class="product-row d-flex align-items-center mb-2" style="overflow-x:auto; white-space:nowrap;">
+
+              <div style="width:120px;" class="me-1">
                 <input type="text" name="code" class="form-control form-control-sm" placeholder="Code">
               </div>
 
-              <div class="col-md-2">
+              <div style="width:175px;" class="me-1">
                 <input type="text" name="name" class="form-control form-control-sm" placeholder="Name">
               </div>
 
-              <div class="col-md-2">
+              <div style="width:250px;" class="me-1">
                 <input type="text" name="display_name" class="form-control form-control-sm" placeholder="Display Name">
               </div>
 
-              <div class="col-md-1">
+              <div style="width:90px;" class="me-1">
                 <input type="text" name="hsn" class="form-control form-control-sm" placeholder="HSN">
               </div>
 
-              <div class="col-md-1">
+              <div style="width:90px;" class="me-1">
                 <input type="number" step="0.01" name="cgst" class="form-control form-control-sm" placeholder="CGST">
               </div>
 
-              <div class="col-md-1">
+              <div style="width:90px;" class="me-1">
                 <input type="number" step="0.01" name="sgst" class="form-control form-control-sm" placeholder="SGST">
               </div>
 
-              <div class="col-md-1">
+              <div style="width:90px;" class="me-1">
                 <input type="number" step="0.01" name="igst" class="form-control form-control-sm" placeholder="IGST">
               </div>
 
-              <div class="col-md-1">
+              <div style="width:200px;" class="me-2">
                 <input type="text" name="description" class="form-control form-control-sm" placeholder="Description">
               </div>
 
-              <div class="col-md-1 d-flex justify-content-end gap-1">
+              <!-- BUTTONS - ALWAYS RIGHT -->
+              <div class="ms-auto d-flex gap-2">
                 <button type="button" class="btn btn-warning btn-sm clear-row">Clear</button>
                 <button type="button" class="btn btn-danger btn-sm delete-row">Delete</button>
               </div>
 
             </div>
+
           </div>
 
-          <div class="mb-3">
+          <div class="mb-3 mt-2">
             <button type="button" id="add-product" class="btn btn-secondary">+ Add Product</button>
           </div>
 
@@ -78,7 +89,7 @@
     <h5>Saved Products</h5>
 
     {% if products %}
-    <div class="table-responsive">
+    <div class="table-responsive" style="max-height: 800px; overflow-y: auto;">
       <table class="table table-bordered table-hover table-sm">
         <thead class="table-dark">
           <tr>
@@ -99,7 +110,7 @@
               <select class="form-select form-select-sm column-filter" data-col="0">
                 <option value="">All</option>
                 {% for i in unique_codes %}
-                <option value="{{ i }}">{{ i }}</option>
+                  <option value="{{ i }}">{{ i }}</option>
                 {% endfor %}
               </select>
             </th>
@@ -108,17 +119,18 @@
               <select class="form-select form-select-sm column-filter" data-col="1">
                 <option value="">All</option>
                 {% for i in unique_names %}
-                <option value="{{ i }}">{{ i }}</option>
+                  <option value="{{ i }}">{{ i }}</option>
                 {% endfor %}
               </select>
             </th>
 
             <th><input type="text" class="form-control form-control-sm column-filter" data-col="2"></th>
+
             <th>
               <select class="form-select form-select-sm column-filter" data-col="3">
                 <option value="">All</option>
                 {% for i in unique_hsn %}
-                <option value="{{ i }}">{{ i }}</option>
+                  <option value="{{ i }}">{{ i }}</option>
                 {% endfor %}
               </select>
             </th>
@@ -131,7 +143,6 @@
             <th>
               <button type="button" id="clear-filters" class="btn btn-warning btn-sm">Clear</button>
             </th>
-
           </tr>
         </thead>
 
@@ -164,13 +175,13 @@
 </main>
 
 <script>
+// Select Product Rows Container
 const productContainer = document.getElementById("product-rows");
 
 // ADD ROW
 document.getElementById("add-product").addEventListener("click", function () {
   const firstRow = productContainer.querySelector(".product-row");
   const newRow = firstRow.cloneNode(true);
-
   newRow.querySelectorAll("input").forEach(i => i.value = "");
   productContainer.appendChild(newRow);
 });
@@ -195,7 +206,7 @@ document.addEventListener("click", e => {
   }
 });
 
-// LOAD PRODUCT DATA
+// LOAD PRODUCT data
 document.addEventListener("click", function (e) {
   if (!e.target.classList.contains("load-product")) return;
 
@@ -232,6 +243,7 @@ function filterTable() {
 
   rows.forEach(row => {
     let visible = true;
+
     document.querySelectorAll(".column-filter").forEach(filter => {
       const value = filter.value.toLowerCase().trim();
       const col = filter.dataset.col;
