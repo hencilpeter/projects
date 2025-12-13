@@ -18,30 +18,22 @@
         <div class="card p-4 mb-4 shadow-sm">
 
           <div id="material-rows">
-
-            <!-- Material Row -->
             <div class="row mb-2 material-row align-items-center">
-
               <div class="col-md-2">
                 <input type="text" name="code" class="form-control form-control-sm" placeholder="Code">
               </div>
-
               <div class="col-md-2">
                 <input type="text" name="name" class="form-control form-control-sm" placeholder="Name">
               </div>
-
               <div class="col-md-2">
                 <input type="text" name="displayname" class="form-control form-control-sm" placeholder="Display Name">
               </div>
-
               <div class="col-md-1">
                 <input type="number" step="0.01" name="price" class="form-control form-control-sm" placeholder="Price">
               </div>
-
               <div class="col-md-1">
                 <input type="number" step="0.01" name="gst" class="form-control form-control-sm" placeholder="GST %">
               </div>
-
               <div class="col-md-2">
                 <select name="supplier" class="form-select form-select-sm">
                   <option value="">Supplier</option>
@@ -50,12 +42,10 @@
                   {% endfor %}
                 </select>
               </div>
-
               <div class="col-md-2 d-flex justify-content-end gap-1">
                 <button type="button" class="btn btn-warning btn-sm clear-row">Clear</button>
                 <button type="button" class="btn btn-danger btn-sm delete-row">Delete</button>
               </div>
-
             </div>
           </div>
 
@@ -67,8 +57,13 @@
 
           <div class="text-center">
             <button type="submit" name="action" value="save" class="btn btn-success">
-              Save Materials
+              Save 
             </button>
+
+            <button type="submit" name="action" value="delete" class="btn btn-danger">
+              Delete 
+            </button>
+
           </div>
 
         </div>
@@ -77,21 +72,52 @@
 
     <hr>
 
-    <!-- Materials List -->
     <h5>Saved Materials</h5>
 
     {% if materials %}
     <div class="table-responsive">
-      <table class="table table-bordered table-hover table-sm">
+      <table class="table table-bordered table-hover table-sm" id="materials-table">
         <thead class="table-dark">
           <tr>
-            <th>Code</th>
-            <th>Name</th>
-            <th>Display Name</th>
-            <th>Price</th>
-            <th>GST %</th>
-            <th>Supplier</th>
-            <th>Action</th>
+            <th>
+              Code
+              <select class="form-select form-select-sm column-filter" data-col="0">
+                <option value="">All</option>
+              </select>
+            </th>
+            <th>
+              Name
+              <select class="form-select form-select-sm column-filter" data-col="1">
+                <option value="">All</option>
+              </select>
+            </th>
+            <th>
+              Display Name
+              <input type="text" class="form-control form-control-sm text-filter" data-col="2">
+            </th>
+            <th>
+              Price
+              <input type="text" class="form-control form-control-sm text-filter" data-col="3">
+            </th>
+            <th>
+              GST %
+              <input type="text" class="form-control form-control-sm text-filter" data-col="4">
+            </th>
+            <th>
+              Supplier
+              <select class="form-select form-select-sm column-filter" data-col="5">
+                <option value="">All</option>
+              </select>
+            </th>
+            <th>
+              Action
+              <div class="mt-1">
+                <button id="clear-filters" class="btn btn-warning btn-sm">
+                  Clear
+                </button>
+              </div>
+          </th>
+
           </tr>
         </thead>
         <tbody>
@@ -120,59 +146,43 @@
 </main>
 
 <script>
-const materialContainer = document.getElementById("material-rows");
+const table = document.getElementById("materials-table");
+const filters = document.querySelectorAll(".column-filter, .text-filter");
 
-/* ADD ROW */
-document.getElementById("add-material").addEventListener("click", () => {
-  const firstRow = materialContainer.querySelector(".material-row");
-  const newRow = firstRow.cloneNode(true);
-
-  newRow.querySelectorAll("input").forEach(i => i.value = "");
-  newRow.querySelectorAll("select").forEach(s => s.selectedIndex = 0);
-
-  materialContainer.appendChild(newRow);
+/* Populate dropdown filters */
+document.querySelectorAll(".column-filter").forEach(select => {
+  const col = select.dataset.col;
+  const values = [...new Set(
+    [...table.tBodies[0].rows].map(r => r.cells[col].innerText.trim())
+  )];
+  values.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    select.appendChild(opt);
+  });
 });
 
-/* CLEAR ROW */
-document.addEventListener("click", e => {
-  if (!e.target.classList.contains("clear-row")) return;
-  const row = e.target.closest(".material-row");
-  row.querySelectorAll("input").forEach(i => i.value = "");
-  row.querySelectorAll("select").forEach(s => s.selectedIndex = 0);
-});
+/* Apply filters */
+filters.forEach(f => f.addEventListener("input", filterTable));
 
-/* DELETE ROW */
-document.addEventListener("click", e => {
-  if (!e.target.classList.contains("delete-row")) return;
-  const rows = document.querySelectorAll(".material-row");
-  if (rows.length <= 1) {
-    alert("At least one row required");
-    return;
-  }
-  e.target.closest(".material-row").remove();
-});
-
-/* LOAD MATERIAL */
-document.addEventListener("click", e => {
-  if (!e.target.classList.contains("load-material")) return;
-
-  //fetch(`materials/load/${e.target.dataset.id}/`)
-  fetch(`load/${e.target.dataset.id}/`)
-    .then(res => res.json())
-    .then(data => {
-      const row = materialContainer.querySelector(".material-row");
-      row.querySelector('[name="code"]').value = data.code;
-      row.querySelector('[name="name"]').value = data.name;
-      row.querySelector('[name="displayname"]').value = data.displayname;
-      row.querySelector('[name="price"]').value = data.price;
-      row.querySelector('[name="gst"]').value = data.gst;
-      row.querySelector('[name="supplier"]').value = data.supplier;
-
-      const collapseEl = document.getElementById("materialForm");
-      const bs = bootstrap.Collapse.getInstance(collapseEl)
-               || new bootstrap.Collapse(collapseEl, {toggle:false});
-      if (!collapseEl.classList.contains("show")) bs.show();
+function filterTable() {
+  [...table.tBodies[0].rows].forEach(row => {
+    let visible = true;
+    filters.forEach(f => {
+      const col = f.dataset.col;
+      const cell = row.cells[col].innerText.toLowerCase();
+      const val = f.value.toLowerCase();
+      if (val && !cell.includes(val)) visible = false;
     });
+    row.style.display = visible ? "" : "none";
+  });
+}
+
+/* Clear filters */
+document.getElementById("clear-filters").addEventListener("click", () => {
+  filters.forEach(f => f.value = "");
+  filterTable();
 });
 </script>
 {% endblock %}
