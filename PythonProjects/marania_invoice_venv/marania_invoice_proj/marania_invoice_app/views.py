@@ -1029,7 +1029,8 @@ def materials_view(request):
 
     context = {
         "materials": Materials.objects.select_related("supplier"),
-        "suppliers": Parties.objects.all(),
+        "suppliers": Parties.objects.filter(roles__role__iexact="supplier").distinct(),
+        #Parties.objects.all(),
     }
     return render(request, "marania_invoice_app/materials.html", context)
 
