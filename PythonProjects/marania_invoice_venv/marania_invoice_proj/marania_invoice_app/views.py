@@ -512,17 +512,25 @@ from django.contrib import messages
 
 def create_customer(request):
     if request.method == 'POST':
+        action = request.POST.get("action")
+        print("@@@@action ...."+ action)
         code = request.POST.get("code").strip()
         try:
+            if action == "delete":
+               Parties.objects.filter(code=code).delete()
+               return redirect('customer')  # Redirect after delete
+
             # Try to get existing customer by code
             customer_instance = Parties.objects.get(code=code)
             form = CustomerForm(request.POST, instance=customer_instance)
+
         except Parties.DoesNotExist:
             # If customer doesn't exist, create new
             form = CustomerForm(request.POST)
         if form.is_valid():
             customer_obj = form.save()  # Save or update ManyToMany automatically
 
+            # delete the existing transportation details if any.     
             customer_obj.items.all().delete()
 
         #form = CustomerForm(request.POST)  # Bind POST data to the form
