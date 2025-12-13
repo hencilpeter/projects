@@ -5,6 +5,7 @@ from django.contrib import admin
 from .models import *
 
 admin.site.register(Parties)
+admin.site.register(PartyRole)
 admin.site.register(Product)
 #admin.site.register(ProductPrice)
 admin.site.register(Configuration)

@@ -15,25 +15,35 @@ def current_indian_financial_year():
 
 
 # Create your models here.
+class PartyRole(models.Model):
+    role = models.CharField(max_length=255, unique=True)
+
+    def __str__(self):
+        return self.role
+    
 class Parties(models.Model):
-    code = models.CharField(max_length=50, unique=True, null=False, blank=False)
-    name = models.CharField(max_length=255, null=False, blank=False)
+    code = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=255)
     gst = models.CharField(max_length=15, null=True, blank=True)
     phone = models.CharField(max_length=25, null=True, blank=True)
     email = models.EmailField(max_length=255, null=True, blank=True)
     address_bill_to = models.TextField(null=True, blank=True)
     address_ship_to = models.TextField(null=True, blank=True)
     is_within_state = models.BooleanField(default=True)
-    price_list_tag = models.CharField(max_length=50, null=True, blank=True)
+
+    # ✅ FIXED related_name
+    roles = models.ManyToManyField(
+        PartyRole,
+        related_name="parties"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     def __str__(self):
         return f"{self.name} ({self.code})"
     
-
-  
-
+   
 class Configuration(models.Model):
     name = models.CharField(max_length=100, unique=True, null=False, blank=False)
     value = models.CharField(max_length=255, null=True, blank=True)
@@ -234,3 +244,5 @@ class CustomerPriceCatalog(models.Model):
 
     def __str__(self):
         return f"{self.customer}-{self.price_catalog}"
+    
+

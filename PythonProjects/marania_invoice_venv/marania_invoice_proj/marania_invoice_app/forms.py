@@ -5,19 +5,24 @@ from .models import Transportation
 from .models import CompanySettings
 from .models import PriceCatalog
 from .models import CustomerPriceCatalog
+from .models import PartyRole
 
 from django.forms import inlineformset_factory
 from django.forms import modelformset_factory
 
 class CustomerForm(forms.ModelForm):
+    partyroles = forms.ModelMultipleChoiceField(
+        queryset=PartyRole.objects.all(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={'class': 'form-select'})
+    )
+
     class Meta:
         model = Parties
-        # Include all editable fields
         fields = [
             'code', 'name', 'gst', 'phone', 'email',
             'address_bill_to', 'address_ship_to', 'is_within_state',
-            'price_list_tag'
-            #, 'default_delivery_transport', 'default_delivery_location'
+            'partyroles'
         ]
         widgets = {
             'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Code'}),
@@ -25,13 +30,81 @@ class CustomerForm(forms.ModelForm):
             'gst': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'GST'}),
             'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Phone'}),
             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}),
-            'address_bill_to': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Billing address'}),
-            'address_ship_to': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Shipping address'}),
+            'address_bill_to': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'style': 'width: 400px;', 'placeholder': 'Billing address'}),
+            'address_ship_to': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'style': 'width: 400px;','placeholder': 'Shipping address'}),
             'is_within_state': forms.Select(attrs={'class': 'form-select'}, choices=[(True, 'Yes'), (False, 'No')]),
-            'price_list_tag': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Price List Tag'}),
-            # 'default_delivery_transport': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Delivery Transport'}),
-            # 'default_delivery_location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Delivery Location'}),
         }
+
+
+
+# class CustomerForm(forms.ModelForm):
+#     roles = forms.ModelMultipleChoiceField(
+#         queryset=PartyRole.objects.all(),
+#         widget=forms.CheckboxSelectMultiple(attrs={
+#             'class': 'form-check-input'
+#         }),
+#         required=True,
+#         label="Party Role"
+#     )
+
+#     class Meta:
+#         model = Parties
+#         fields = [
+#             'code', 'name', 'gst', 'phone', 'email',
+#             'address_bill_to', 'address_ship_to',
+#             'is_within_state', 'price_list_tag',
+#             'roles'
+#         ]
+
+#         widgets = {
+#             'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Code'}),
+#             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Name'}),
+#             'gst': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'GST'}),
+#             'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Phone'}),
+#             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}),
+#             'address_bill_to': forms.Textarea(attrs={
+#                 'class': 'form-control', 'rows': 2, 'placeholder': 'Billing address'
+#             }),
+#             'address_ship_to': forms.Textarea(attrs={
+#                 'class': 'form-control', 'rows': 2, 'placeholder': 'Shipping address'
+#             }),
+#             'is_within_state': forms.Select(
+#                 attrs={'class': 'form-select'},
+#                 choices=[(True, 'Yes'), (False, 'No')]
+#             ),
+#             'price_list_tag': forms.TextInput(
+#                 attrs={'class': 'form-control', 'placeholder': 'Price List Tag'}
+#             ),
+#         }
+
+#     def clean_roles(self):
+#         roles = self.cleaned_data.get("roles")
+#         if not roles:
+#             raise forms.ValidationError("At least one party role is required.")
+#         return roles
+    
+#     roles = forms.ModelMultipleChoiceField(
+#         queryset=PartyRole.objects.all(),
+#         widget=forms.CheckboxSelectMultiple,
+#         required=True,
+#         label="Party Role"
+#     )
+
+#     class Meta:
+#         model = Parties
+#         fields = [
+#             "code", "name", "gst", "phone", "email",
+#             "address_bill_to", "address_ship_to",
+#             "is_within_state", "price_list_tag", "roles"
+#         ]
+
+#     def clean_roles(self):
+#         roles = self.cleaned_data.get("roles")
+#         if not roles:
+#             raise forms.ValidationError("At least one role is required.")
+#         return roles
+    
+
 
 class InvoiceForm(forms.ModelForm):
     # Manually declare only fields that need datalist / custom placeholder

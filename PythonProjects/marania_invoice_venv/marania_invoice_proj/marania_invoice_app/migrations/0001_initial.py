@@ -34,7 +34,6 @@ class Migration(migrations.Migration):
                 ('address_bill_to', models.TextField(blank=True, null=True)),
                 ('address_ship_to', models.TextField(blank=True, null=True)),
                 ('is_within_state', models.BooleanField(default=True)),
-                ('price_list_tag', models.CharField(blank=True, max_length=50, null=True)),
                 ('default_delivery_transport', models.CharField(blank=True, max_length=100, null=True)),
                 ('default_delivery_location', models.CharField(blank=True, max_length=255, null=True)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),

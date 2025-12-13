@@ -2,7 +2,6 @@
 {% load static %}
 {% load crispy_forms_tags %}
 
-
 {% block main %}
 
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
@@ -19,7 +18,7 @@
   <div class="collapse" id="customerForm">
     <div class="card card-body mb-4">
 
-     <form method="POST"  action="{% url 'create_customer' %}">
+     <form method="POST" action="{% url 'create_customer' %}">
         {% csrf_token %}
         <div class="row g-3">
           <div class="col-md-3">
@@ -47,47 +46,51 @@
             {{ form.email }}
             {{ form.email.errors }}
           </div>
-          <div class="col-md-6">
-            {{ form.address_bill_to.label_tag }}
-            {{ form.address_bill_to }}
-            {{ form.address_bill_to.errors }}
-          </div>
-          <div class="col-md-6">
-            {{ form.address_ship_to.label_tag }}
-            {{ form.address_ship_to }}
-            {{ form.address_ship_to.errors }}
-          </div>
-          <div class="col-md-3">
+           <div class="col-md-3">
             {{ form.is_within_state.label_tag }}
             {{ form.is_within_state }}
             {{ form.is_within_state.errors }}
           </div>
-          <div class="col-md-3">
-            {{ form.price_list_tag.label_tag }}
-            {{ form.price_list_tag }}
-            {{ form.price_list_tag.errors }}
+          <div class="row g-3">
+          <!-- Billing Address -->
+          <div class="col-md-4">
+            {{ form.address_bill_to.label_tag }}
+            {{ form.address_bill_to }}
+            {{ form.address_bill_to.errors }}
           </div>
-          <!-- <div class="col-md-3">
-            {{ form.default_delivery_transport.label_tag }}
-            {{ form.default_delivery_transport }}
-            {{ form.default_delivery_transport.errors }}
+
+          <!-- Shipping Address -->
+          <div class="col-md-4">
+            {{ form.address_ship_to.label_tag }}
+            {{ form.address_ship_to }}
+            {{ form.address_ship_to.errors }}
           </div>
-          <div class="col-md-3">
-            {{ form.default_delivery_location.label_tag }}
-            {{ form.default_delivery_location }}
-            {{ form.default_delivery_location.errors }}
-          </div> -->
 
+          <!-- Party Roles -->
+          <div class="col-md-4">
+            <label class="form-label">Party Roles</label>
+            <div class="form-check">
+              {% for role in form.partyroles.field.queryset %}
+                <div class="form-check">
+                  <input type="checkbox" name="partyroles" value="{{ role.id }}" class="form-check-input" id="role_{{ role.id }}"
+                  {% if role in form.instance.partyroles.all %}checked{% endif %}>
+                  <label class="form-check-label" for="role_{{ role.id }}">{{ role.role }}</label>
+                </div>
+              {% endfor %}
+            </div>
+            {{ form.partyroles.errors }}
+          </div>
+        </div>
+        
+        </div>  
 
-          
-      </div>
-
-      <!-- Transportation Group -->
-      <div class="group-box mb-3">
-        <div class="group-title">Transportation Details</div>
-        <div id="item-container"></div>
-        <button type="button" id="add-item" class="btn btn-secondary btn-sm mt-2">+ Add Transport Details</button>
-      </div>
+        
+        <!-- Transportation Group -->
+        <div class="group-box mb-3">
+          <div class="group-title">Transportation Details</div>
+          <div id="item-container"></div>
+          <button type="button" id="add-item" class="btn btn-secondary btn-sm mt-2">+ Add Transport Details</button>
+        </div>
 
         <button type="submit" class="btn btn-success mt-3">Save Customer</button>
       </form>
@@ -108,8 +111,6 @@
           <th>Ship To</th>
           <th>Within State</th>
           <th>Price List</th>
-          <!-- <th>Transport</th>
-          <th>Delivery Location</th> -->
           <th>Created</th>
           <th>Updated</th>
         </tr>
@@ -126,8 +127,6 @@
           <td>{{ customer.address_ship_to }}</td>
           <td>{{ customer.is_within_state|yesno:"Yes,No" }}</td>
           <td>{{ customer.price_list_tag }}</td>
-          <!-- <td>{{ customer.default_delivery_transport }}</td>
-          <td>{{ customer.default_delivery_location }}</td> -->
           <td>{{ customer.created_at|date:"Y-m-d H:i" }}</td>
           <td>{{ customer.updated_at|date:"Y-m-d H:i" }}</td>
         </tr>
@@ -141,22 +140,18 @@
   </div>
 </div>
 
- </main> 
+</main>
 
- <script>
+<script>
   let rowIndex = -1;
 
-
   document.addEventListener('click', function(e) {
-  if (e.target.classList.contains('default-transport-checkbox')) {
-    const row = e.target.closest('.transport-row');
-    const hiddenInput = row.querySelector('.default-transport-hidden');
-
-    // Set value to 1 if checked, 0 if unchecked
-    hiddenInput.value = e.target.checked ? '1' : '1';
-  }
-});
-
+    if (e.target.classList.contains('default-transport-checkbox')) {
+      const row = e.target.closest('.transport-row');
+      const hiddenInput = row.querySelector('.default-transport-hidden');
+      hiddenInput.value = e.target.checked ? '1' : '1';
+    }
+  });
 
   const container = document.getElementById('item-container');
   document.getElementById('add-item').addEventListener('click', function() {
@@ -166,83 +161,51 @@
     row.dataset.index = rowIndex;
 
     row.innerHTML = `
-    <div class="d-flex align-items-center flex-wrap gap-2 w-100">
-  
-  <!-- Input fields: each takes equal space -->
-  <div class="d-flex gap-2 flex-fill">
-    <div class="flex-fill">
-      <input type="text" name="delivery_place[]" class="form-control form-control-sm" placeholder="Delivery Place">
-    </div>
-    
-    <div class="flex-fill">
-      <input type="text" name="transporter_name[]" class="form-control form-control-sm" placeholder="Transporter Name">
-    </div>
-
-    <div class="flex-fill">
-      <input type="text" name="transporter_gst[]" class="form-control form-control-sm" placeholder="Transporter GST">
-    </div>
-
-    <div class="flex-fill">
-      <input type="text" name="vehicle_name_number[]" class="form-control form-control-sm" placeholder="Vehicle Name & Number">
-    </div>
-    
-
-    <!-- Default transport radio button with label -->
-    <div class="d-flex align-items-center">
-    <label class="mb-0">
-                <!-- Radio button (same name for all rows) -->
-                <input type="radio" name="default_transport" value="${rowIndex}" class="form-check-input">
-                     Default Transport
-      </label>
-            </div>
-
-
-  </div>
-
-  <!-- Buttons: aligned next to inputs -->
-  <div class="d-flex gap-2 ms-2">
-    <button type="button" class="btn btn-outline-secondary btn-sm clear-item">Clear</button>
-    <button type="button" class="btn btn-outline-danger btn-sm delete-item">Del</button>
-  </div>
-
-</div>
-
+      <div class="d-flex align-items-center flex-wrap gap-2 w-100">
+        <div class="d-flex gap-2 flex-fill">
+          <div class="flex-fill">
+            <input type="text" name="delivery_place[]" class="form-control form-control-sm" placeholder="Delivery Place">
+          </div>
+          <div class="flex-fill">
+            <input type="text" name="transporter_name[]" class="form-control form-control-sm" placeholder="Transporter Name">
+          </div>
+          <div class="flex-fill">
+            <input type="text" name="transporter_gst[]" class="form-control form-control-sm" placeholder="Transporter GST">
+          </div>
+          <div class="flex-fill">
+            <input type="text" name="vehicle_name_number[]" class="form-control form-control-sm" placeholder="Vehicle Name & Number">
+          </div>
+          <div class="d-flex align-items-center">
+            <label class="mb-0">
+              <input type="radio" name="default_transport" value="${rowIndex}" class="form-check-input">
+              Default Transport
+            </label>
+          </div>
+        </div>
+        <div class="d-flex gap-2 ms-2">
+          <button type="button" class="btn btn-outline-secondary btn-sm clear-item">Clear</button>
+          <button type="button" class="btn btn-outline-danger btn-sm delete-item">Del</button>
+        </div>
+      </div>
     `;
 
-    document.addEventListener('DOMContentLoaded', function() {
-  const container = document.getElementById('transport-container');
-  const addButton = document.getElementById('add-transport');
-  const template = document.getElementById('transport-template').content;
-
-  // Add new transport row
-  addButton.addEventListener('click', function() {
-    const clone = document.importNode(template, true);
-    container.appendChild(clone);
-
-    const newRow = container.lastElementChild;
-  });
-
-});
-
- container.addEventListener('click', function(e){
-    if(e.target.classList.contains('delete-item')){
-      e.target.closest('.item-row').remove();
-    } else if(e.target.classList.contains('clear-item')){
-
-      //e.target.closest('.item-row').querySelectorAll('input').forEach(inp=>inp.value='');
-      const row = e.target.closest('.item-row');
-      row.querySelectorAll('input').forEach(inp => {
-      if (inp.type === 'radio') {
-        inp.checked = false;   // Clear radio button
-      } else {
-      inp.value = '';        // Clear text input
+    container.addEventListener('click', function(e){
+      if(e.target.classList.contains('delete-item')){
+        e.target.closest('.item-row').remove();
+      } else if(e.target.classList.contains('clear-item')){
+        const row = e.target.closest('.item-row');
+        row.querySelectorAll('input').forEach(inp => {
+          if (inp.type === 'radio') {
+            inp.checked = false;
+          } else {
+            inp.value = '';
+          }
+        });
       }
-  });
-
-    }
-  });
+    });
 
     container.appendChild(row);
   });
- </script>
+</script>
+
 {% endblock %}

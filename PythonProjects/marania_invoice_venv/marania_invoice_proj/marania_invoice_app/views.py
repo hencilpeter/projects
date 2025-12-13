@@ -274,10 +274,30 @@ def dashboard(request):
 
     return render(request, "marania_invoice_app/dashboard.html", context)
 
+# def customer(request):
+#     Customers = Parties.objects.all()
+#     context = {'form': forms.CustomerForm() ,'customers':Customers}
+#     return render(request, 'marania_invoice_app/customer.html', context)
+
 def customer(request):
-    Customers = Parties.objects.all()
-    context = {'form': forms.CustomerForm() ,'customers':Customers}
-    return render(request, 'marania_invoice_app/customer.html', context)
+    customers = Parties.objects.prefetch_related("roles").all()
+
+    if request.method == "POST":
+        form = forms.CustomerForm(request.POST)
+        if form.is_valid():
+            customer = form.save(commit=False)
+            customer.save()
+            form.save_m2m()  # IMPORTANT for ManyToMany
+            return redirect("customer")
+    else:
+        form = forms.CustomerForm()
+
+    context = {
+        "form": form,
+        "customers": customers,
+    }
+    return render(request, "marania_invoice_app/customer.html", context)
+
 
 def show_gst_calculator(request):
      return render(request, "marania_invoice_app/gst_calculator.html") 
@@ -293,7 +313,8 @@ def invoice_entry(request):
     for customer in Parties.objects.all():
         customer_dict[customer.code] = {'name':customer.name, 'gst':customer.gst, 'phone':customer.phone, 'email':customer.email, 
                                         'address_bill_to':customer.address_bill_to, 'address_ship_to':customer.address_ship_to,
-                                        'is_within_state':customer.is_within_state,'price_list_tag':customer.price_list_tag}
+                                        'is_within_state':customer.is_within_state
+                                        }
     
     # transportation details 
     for transporter in Transportation.objects.all():
