@@ -118,18 +118,6 @@ def get_invoices_dict():
    
 
 ########################################################-Helper Functions-############
-# def amount_in_words(amount):
-#     # Split rupees and paise
-#     rupees = int(amount)
-#     paise = int(round((amount - rupees) * 100))
-
-#     # Convert rupees and paise to words
-#     words = ""
-#     if rupees > 0:
-#         words += num2words(rupees, to='number').title() + " Rupees"
-#     if paise > 0:
-#         words += " and " + num2words(paise, to='number').title() + " Paise"
-#     return words
 def number_to_words(num):
     """
     Convert a number to words in Indian numbering system with Rupees and Paise.
@@ -229,13 +217,6 @@ def invoice_summary():
 
 #################################
 
-# Create your views here.
-# #@login_required
-# def dashboard(request):
-#     config = Configurations()
-#     print(config)
-#     context = {'config':config.config}
-#     return render(request, 'marania_invoice_app/dashboard.html', context)
 
 def dashboard(request):
 
