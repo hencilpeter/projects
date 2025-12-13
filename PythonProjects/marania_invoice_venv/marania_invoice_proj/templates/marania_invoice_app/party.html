@@ -20,6 +20,27 @@
     padding: 0.15rem 0.4rem;
     font-size: 0.75rem;
 }
+
+.filter-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 2px 4px;
+    font-size: 0.85rem;
+    margin-bottom: 2px;
+}
+
+.table-scroll {
+    max-height: 820px;      /* adjust height as needed */
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
+.table-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
 </style>
 
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
@@ -37,50 +58,33 @@
         <form method="POST" id="customer-form" action="{% url 'create_customer' %}">
           {% csrf_token %}
           <input type="hidden" name="customer_id" id="customer_id">
-
           <div class="row g-3">
             <div class="col-md-3">
-              {{ form.code.label_tag }}
-              {{ form.code }}
-              {{ form.code.errors }}
+              {{ form.code.label_tag }} {{ form.code }} {{ form.code.errors }}
             </div>
             <div class="col-md-4">
-              {{ form.name.label_tag }}
-              {{ form.name }}
-              {{ form.name.errors }}
+              {{ form.name.label_tag }} {{ form.name }} {{ form.name.errors }}
             </div>
             <div class="col-md-3">
-              {{ form.gst.label_tag }}
-              {{ form.gst }}
-              {{ form.gst.errors }}
+              {{ form.gst.label_tag }} {{ form.gst }} {{ form.gst.errors }}
             </div>
             <div class="col-md-2">
-              {{ form.phone.label_tag }}
-              {{ form.phone }}
-              {{ form.phone.errors }}
+              {{ form.phone.label_tag }} {{ form.phone }} {{ form.phone.errors }}
             </div>
             <div class="col-md-5">
-              {{ form.email.label_tag }}
-              {{ form.email }}
-              {{ form.email.errors }}
+              {{ form.email.label_tag }} {{ form.email }} {{ form.email.errors }}
             </div>
             <div class="col-md-3">
-              {{ form.is_within_state.label_tag }}
-              {{ form.is_within_state }}
-              {{ form.is_within_state.errors }}
+              {{ form.is_within_state.label_tag }} {{ form.is_within_state }} {{ form.is_within_state.errors }}
             </div>
           </div>
 
           <div class="row g-3 mt-2">
             <div class="col-md-4">
-              {{ form.address_bill_to.label_tag }}
-              {{ form.address_bill_to }}
-              {{ form.address_bill_to.errors }}
+              {{ form.address_bill_to.label_tag }} {{ form.address_bill_to }} {{ form.address_bill_to.errors }}
             </div>
             <div class="col-md-4">
-              {{ form.address_ship_to.label_tag }}
-              {{ form.address_ship_to }}
-              {{ form.address_ship_to.errors }}
+              {{ form.address_ship_to.label_tag }} {{ form.address_ship_to }} {{ form.address_ship_to.errors }}
             </div>
             <div class="col-md-4">
               <label class="form-label">Party Roles</label>
@@ -103,13 +107,13 @@
             <button type="button" id="add-item" class="btn btn-secondary btn-sm mt-2">+ Add Transport Details</button>
           </div>
 
-          <button type="submit" class="btn btn-success mt-3">Save Customer</button>
+          <button type="submit" class="btn btn-success mt-3">Save Party</button>
         </form>
       </div>
     </div>
 
     <!-- Customer List Table -->
-    <div class="table-responsive mt-4">
+    <div class="table-responsive mt-4 table-scroll">
       <table class="table table-striped table-bordered" id="customer-table">
         <thead class="table-dark">
           <tr>
@@ -124,6 +128,19 @@
             <th>Roles</th>
             <th>Action</th>
           </tr>
+          <!-- Filter row -->
+          <tr id="filter-row">
+            <th><select class="filter-input" id="filter-code"><option value="">All</option></select></th>
+            <th><select class="filter-input" id="filter-name"><option value="">All</option></select></th>
+            <th><input type="text" class="filter-input" placeholder="GST"></th>
+            <th><input type="text" class="filter-input" placeholder="Phone"></th>
+            <th><input type="text" class="filter-input" placeholder="Email"></th>
+            <th><input type="text" class="filter-input" placeholder="Bill To"></th>
+            <th><input type="text" class="filter-input" placeholder="Ship To"></th>
+            <th><select class="filter-input" id="filter-intrastate"><option value="">All</option><option value="Yes">Yes</option><option value="No">No</option></select></th>
+            <th><select class="filter-input" id="filter-roles"><option value="">All</option></select></th>
+            <th><button class="btn btn-warning btn-sm" id="clear-filters">Clear</button></th>
+          </tr>
         </thead>
         <tbody>
           {% for customer in customers %}
@@ -136,19 +153,13 @@
             <td>{{ customer.address_bill_to }}</td>
             <td>{{ customer.address_ship_to }}</td>
             <td>{{ customer.is_within_state|yesno:"Yes,No" }}</td>
-            <td>
-              {% for role in customer.roles.all %}
-                {{ role.role }}{% if not forloop.last %}, {% endif %}
-              {% empty %}-{% endfor %}
-            </td>
+            <td>{% for role in customer.roles.all %}{{ role.role }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</td>
             <td>
               <button class="btn btn-primary btn-sm load-customer" data-id="{{ customer.id }}">Edit</button>
             </td>
           </tr>
           {% empty %}
-            <tr>
-              <td colspan="10" class="text-center">No customers found.</td>
-            </tr>
+          <tr><td colspan="10" class="text-center">No customers found.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -192,7 +203,6 @@ addItemBtn.addEventListener('click', () => {
 container.addEventListener('click', e => {
   const row = e.target.closest('.item-row');
   if (!row) return;
-
   if (e.target.classList.contains('clear-item')) {
     row.querySelectorAll('input').forEach(inp => {
       if (inp.type === 'radio') inp.checked = false;
@@ -210,10 +220,7 @@ document.addEventListener('click', e => {
   fetch(`/invoice/customer/load/${id}/`)
     .then(res => res.json())
     .then(data => {
-      // set hidden customer_id
       form.querySelector('input[name="customer_id"]').value = data.id;
-
-      // populate form fields
       form.querySelector('input[name="code"]').value = data.code;
       form.querySelector('input[name="name"]').value = data.name;
       form.querySelector('input[name="gst"]').value = data.gst;
@@ -222,13 +229,10 @@ document.addEventListener('click', e => {
       form.querySelector('textarea[name="address_bill_to"]').value = data.address_bill_to;
       form.querySelector('textarea[name="address_ship_to"]').value = data.address_ship_to;
       form.querySelector('select[name="is_within_state"]').value = data.is_within_state ? 'True' : 'False';
-
-      // party roles
       form.querySelectorAll('input[name="partyroles"]').forEach(cb => {
         cb.checked = data.roles.includes(parseInt(cb.value));
       });
 
-      // transport details
       container.innerHTML = '';
       rowIndex = -1;
       data.transport_details.forEach((t, i) => {
@@ -242,11 +246,79 @@ document.addEventListener('click', e => {
         container.appendChild(row);
       });
 
-      // show collapse
       const collapseEl = document.getElementById("customerForm");
       const bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, {toggle:false});
       if (!collapseEl.classList.contains("show")) bsCollapse.show();
     });
+});
+
+// ===== Table Filters =====
+const table = document.getElementById('customer-table');
+const tbody = table.querySelector('tbody');
+
+function applyFilters() {
+  const codeFilter = document.getElementById('filter-code').value.toLowerCase();
+  const nameFilter = document.getElementById('filter-name').value.toLowerCase();
+  const intrastateFilter = document.getElementById('filter-intrastate').value;
+  const rolesFilter = document.getElementById('filter-roles').value.toLowerCase();
+
+  const inputs = Array.from(document.querySelectorAll('#filter-row input')).map(i => i.value.toLowerCase());
+
+  tbody.querySelectorAll('tr').forEach(row => {
+    const cells = row.querySelectorAll('td');
+    let show = true;
+
+    if (codeFilter && !cells[0].textContent.toLowerCase().includes(codeFilter)) show = false;
+    if (nameFilter && !cells[1].textContent.toLowerCase().includes(nameFilter)) show = false;
+    if (inputs[2] && !cells[2].textContent.toLowerCase().includes(inputs[2])) show = false;
+    if (inputs[3] && !cells[3].textContent.toLowerCase().includes(inputs[3])) show = false;
+    if (inputs[4] && !cells[4].textContent.toLowerCase().includes(inputs[4])) show = false;
+    if (inputs[5] && !cells[5].textContent.toLowerCase().includes(inputs[5])) show = false;
+    if (inputs[6] && !cells[6].textContent.toLowerCase().includes(inputs[6])) show = false;
+    if (intrastateFilter && cells[7].textContent !== intrastateFilter) show = false;
+    if (rolesFilter && !cells[8].textContent.toLowerCase().includes(rolesFilter)) show = false;
+
+    row.style.display = show ? '' : 'none';
+  });
+}
+
+// populate select filters dynamically
+function populateSelectFilters() {
+  const codes = new Set();
+  const names = new Set();
+  const roles = new Set();
+
+  tbody.querySelectorAll('tr').forEach(row => {
+    const cells = row.querySelectorAll('td');
+    if (cells.length < 9) return;
+    codes.add(cells[0].textContent);
+    names.add(cells[1].textContent);
+    cells[8].textContent.split(',').forEach(r => roles.add(r.trim()));
+  });
+
+  const codeSelect = document.getElementById('filter-code');
+  const nameSelect = document.getElementById('filter-name');
+  const rolesSelect = document.getElementById('filter-roles');
+
+  codes.forEach(c => codeSelect.innerHTML += `<option value="${c}">${c}</option>`);
+  names.forEach(n => nameSelect.innerHTML += `<option value="${n}">${n}</option>`);
+  roles.forEach(r => {
+    if(r) rolesSelect.innerHTML += `<option value="${r}">${r}</option>`;
+  });
+}
+
+populateSelectFilters();
+
+// Attach event listeners
+document.querySelectorAll('#filter-row input, #filter-row select').forEach(el => {
+  el.addEventListener('input', applyFilters);
+});
+
+// Clear button
+document.getElementById('clear-filters').addEventListener('click', () => {
+  document.querySelectorAll('#filter-row input').forEach(i => i.value = '');
+  document.querySelectorAll('#filter-row select').forEach(s => s.value = '');
+  applyFilters();
 });
 </script>
 {% endblock %}

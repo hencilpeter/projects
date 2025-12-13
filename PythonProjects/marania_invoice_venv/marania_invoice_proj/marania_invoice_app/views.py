@@ -338,7 +338,7 @@ def customer(request):
         "unique_roles": unique_roles,
     }
 
-    return render(request, "marania_invoice_app/customer.html", context)
+    return render(request, "marania_invoice_app/party.html", context)
 
 
 
@@ -557,7 +557,7 @@ def create_customer(request):
         form = CustomerForm()  # Empty form for GET request
 
     context = {'form': CustomerForm}
-    return render(request, 'marania_invoice_app/customer.html', context)
+    return render(request, 'marania_invoice_app/party.html', context)
 
 def invoice_save(request):
 
