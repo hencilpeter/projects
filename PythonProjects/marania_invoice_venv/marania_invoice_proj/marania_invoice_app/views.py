@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from . import forms
 from .forms import CustomerForm, InvoiceForm, CompanySettingsForm, CustomerPriceCatalogForm
-from .models import Customer, Configuration, Invoice,InvoiceItem, Transportation, PriceCatalog, CompanySettings,Product, CustomerPriceCatalog
+from .models import Parties, Configuration, Invoice,InvoiceItem, Transportation, PriceCatalog, CompanySettings,Product, CustomerPriceCatalog
 from collections import defaultdict,OrderedDict
 #from singleton import singleton
 import pdb
@@ -221,13 +221,13 @@ def invoice_summary():
 def dashboard(request):
 
     # -------- SUMMARY COUNTS --------
-    total_customers = Customer.objects.count()
+    total_customers = Parties.objects.count()
     total_products = Product.objects.count()
     total_price_catalogs = PriceCatalog.objects.count()
     total_invoices = Invoice.objects.count()
 
     # -------- LATEST CUSTOMERS --------
-    latest_customers = Customer.objects.order_by("-created_at")[:5]
+    latest_customers = Parties.objects.order_by("-created_at")[:5]
 
     # -------- RECENT INVOICES --------
     recent_invoices = Invoice.objects.order_by("-invoice_date")[:5]
@@ -275,7 +275,7 @@ def dashboard(request):
     return render(request, "marania_invoice_app/dashboard.html", context)
 
 def customer(request):
-    Customers = Customer.objects.all()
+    Customers = Parties.objects.all()
     context = {'form': forms.CustomerForm() ,'customers':Customers}
     return render(request, 'marania_invoice_app/customer.html', context)
 
@@ -284,13 +284,13 @@ def show_gst_calculator(request):
 
 def invoice_entry(request):
     Invoices = Invoice.objects.all().order_by('-invoice_number')
-    Customers = Customer.objects.all()
+    Customers = Parties.objects.all()
     customer_dict = defaultdict(lambda:-1)
     transporter_dict = defaultdict(lambda:-1)
     price_dict = defaultdict(lambda:-1)
     
     # customer details 
-    for customer in Customer.objects.all():
+    for customer in Parties.objects.all():
         customer_dict[customer.code] = {'name':customer.name, 'gst':customer.gst, 'phone':customer.phone, 'email':customer.email, 
                                         'address_bill_to':customer.address_bill_to, 'address_ship_to':customer.address_ship_to,
                                         'is_within_state':customer.is_within_state,'price_list_tag':customer.price_list_tag}
@@ -778,7 +778,7 @@ def save_price_list(request):
 
    
 def customer_price_catalog(request):
-    customers = Customer.objects.all()
+    customers = Parties.objects.all()
     price_catalogs = PriceCatalog.objects.all()
     catalogs = CustomerPriceCatalog.objects.all()
     

@@ -1,5 +1,5 @@
 from django import forms
-from .models import Customer
+from .models import Parties
 from .models import Invoice, InvoiceItem
 from .models import Transportation
 from .models import CompanySettings
@@ -11,7 +11,7 @@ from django.forms import modelformset_factory
 
 class CustomerForm(forms.ModelForm):
     class Meta:
-        model = Customer
+        model = Parties
         # Include all editable fields
         fields = [
             'code', 'name', 'gst', 'phone', 'email',

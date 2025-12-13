@@ -15,7 +15,7 @@ def current_indian_financial_year():
 
 
 # Create your models here.
-class Customer(models.Model):
+class Parties(models.Model):
     code = models.CharField(max_length=50, unique=True, null=False, blank=False)
     name = models.CharField(max_length=255, null=False, blank=False)
     gst = models.CharField(max_length=15, null=True, blank=True)
@@ -110,7 +110,7 @@ class InvoiceItem(models.Model):
 
 class Transportation(models.Model):
     customer = models.ForeignKey(
-        Customer,
+        Parties,
         related_name='items',      # allows customer.items.all()
         on_delete=models.CASCADE,  # deletes items if customer is deleted
         to_field='code'  # optional: link by customer_code instead of id
@@ -208,7 +208,7 @@ class CompanySettings(models.Model):
 
 class CustomerPriceCatalog(models.Model):
     customer = models.ForeignKey(
-        Customer,
+        Parties,
         on_delete=models.CASCADE,
         related_name='customer_items'
     )
