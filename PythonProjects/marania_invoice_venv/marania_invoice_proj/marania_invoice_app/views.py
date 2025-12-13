@@ -283,14 +283,12 @@ def customer(request):
     customers = Parties.objects.prefetch_related("roles").all()
 
     if request.method == "POST":
-        form = forms.CustomerForm(request.POST)
+        form = CustomerForm(request.POST)
         if form.is_valid():
-            customer = form.save(commit=False)
-            customer.save()
-            form.save_m2m()  # IMPORTANT for ManyToMany
-            return redirect("customer")
+            form.save()  # save method handles ManyToMany mapping
+            return redirect("customer")  # redirect to same page or any other
     else:
-        form = forms.CustomerForm()
+        form = CustomerForm()
 
     context = {
         "form": form,

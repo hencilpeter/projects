@@ -11,6 +11,7 @@ from django.forms import inlineformset_factory
 from django.forms import modelformset_factory
 
 class CustomerForm(forms.ModelForm):
+    # This field will be used in the form but mapped to roles
     partyroles = forms.ModelMultipleChoiceField(
         queryset=PartyRole.objects.all(),
         required=False,
@@ -30,10 +31,24 @@ class CustomerForm(forms.ModelForm):
             'gst': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'GST'}),
             'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Phone'}),
             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}),
-            'address_bill_to': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'style': 'width: 400px;', 'placeholder': 'Billing address'}),
-            'address_ship_to': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'style': 'width: 400px;','placeholder': 'Shipping address'}),
+            'address_bill_to': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'style': 'width:400px;', 'placeholder': 'Billing address'}),
+            'address_ship_to': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'style': 'width:400px;', 'placeholder': 'Shipping address'}),
             'is_within_state': forms.Select(attrs={'class': 'form-select'}, choices=[(True, 'Yes'), (False, 'No')]),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Prepopulate partyroles field with existing roles
+        if self.instance.pk:
+            self.fields['partyroles'].initial = self.instance.roles.all()
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if commit:
+            instance.save()
+        # Assign the selected partyroles to the model's roles ManyToMany
+        instance.roles.set(self.cleaned_data['partyroles'])
+        return instance
 
 
 

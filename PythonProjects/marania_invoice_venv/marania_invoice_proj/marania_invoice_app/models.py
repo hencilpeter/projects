@@ -16,32 +16,28 @@ def current_indian_financial_year():
 
 # Create your models here.
 class PartyRole(models.Model):
-    role = models.CharField(max_length=255, unique=True)
+    role = models.CharField(max_length=255)
 
     def __str__(self):
         return self.role
-    
+
+
 class Parties(models.Model):
     code = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=255)
-    gst = models.CharField(max_length=15, null=True, blank=True)
-    phone = models.CharField(max_length=25, null=True, blank=True)
-    email = models.EmailField(max_length=255, null=True, blank=True)
-    address_bill_to = models.TextField(null=True, blank=True)
-    address_ship_to = models.TextField(null=True, blank=True)
+    gst = models.CharField(max_length=20, blank=True, null=True)
+    phone = models.CharField(max_length=50, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    address_bill_to = models.TextField(blank=True, null=True)
+    address_ship_to = models.TextField(blank=True, null=True)
     is_within_state = models.BooleanField(default=True)
-
-    # ✅ FIXED related_name
-    roles = models.ManyToManyField(
-        PartyRole,
-        related_name="parties"
-    )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    roles = models.ManyToManyField('PartyRole', blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)   # automatically set on creation
+    updated_at = models.DateTimeField(auto_now=True)       # automatically set on update
 
     def __str__(self):
-        return f"{self.name} ({self.code})"
+        return self.name
     
    
 class Configuration(models.Model):
