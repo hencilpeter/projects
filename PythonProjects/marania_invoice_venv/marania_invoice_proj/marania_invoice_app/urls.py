@@ -40,6 +40,9 @@ path('customer-price-catalog/load/<int:id>/', views.load_customer_price_catalog,
 path("products/", views.product_master, name="product_master"),
 path("products/load/<int:id>/", views.load_product, name="load_product"),
 
+# materials 
+path("materials/", views.materials_view, name="materials"),
+path("materials/load/<int:pk>/", views.load_material, name="load_material"),
 
 #path("settings/company", views.company_settings_view, name="company_settings"),
 

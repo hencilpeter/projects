@@ -1,0 +1,178 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container my-4">
+    <h3>Materials Master</h3>
+
+    <!-- Manage Materials -->
+    <button class="btn btn-primary mb-3" type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#materialForm">
+      Manage Materials
+    </button>
+
+    <div class="collapse" id="materialForm">
+      <form method="POST" id="material-form">
+        {% csrf_token %}
+        <div class="card p-4 mb-4 shadow-sm">
+
+          <div id="material-rows">
+
+            <!-- Material Row -->
+            <div class="row mb-2 material-row align-items-center">
+
+              <div class="col-md-2">
+                <input type="text" name="code" class="form-control form-control-sm" placeholder="Code">
+              </div>
+
+              <div class="col-md-2">
+                <input type="text" name="name" class="form-control form-control-sm" placeholder="Name">
+              </div>
+
+              <div class="col-md-2">
+                <input type="text" name="displayname" class="form-control form-control-sm" placeholder="Display Name">
+              </div>
+
+              <div class="col-md-1">
+                <input type="number" step="0.01" name="price" class="form-control form-control-sm" placeholder="Price">
+              </div>
+
+              <div class="col-md-1">
+                <input type="number" step="0.01" name="gst" class="form-control form-control-sm" placeholder="GST %">
+              </div>
+
+              <div class="col-md-2">
+                <select name="supplier" class="form-select form-select-sm">
+                  <option value="">Supplier</option>
+                  {% for p in suppliers %}
+                    <option value="{{ p.id }}">{{ p }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="col-md-2 d-flex justify-content-end gap-1">
+                <button type="button" class="btn btn-warning btn-sm clear-row">Clear</button>
+                <button type="button" class="btn btn-danger btn-sm delete-row">Delete</button>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <button type="button" id="add-material" class="btn btn-secondary">
+              + Add Material
+            </button>
+          </div>
+
+          <div class="text-center">
+            <button type="submit" name="action" value="save" class="btn btn-success">
+              Save Materials
+            </button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <hr>
+
+    <!-- Materials List -->
+    <h5>Saved Materials</h5>
+
+    {% if materials %}
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover table-sm">
+        <thead class="table-dark">
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Display Name</th>
+            <th>Price</th>
+            <th>GST %</th>
+            <th>Supplier</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in materials %}
+          <tr>
+            <td>{{ m.code }}</td>
+            <td>{{ m.name }}</td>
+            <td>{{ m.displayname }}</td>
+            <td>{{ m.price }}</td>
+            <td>{{ m.gst }}</td>
+            <td>{{ m.supplier }}</td>
+            <td>
+              <button class="btn btn-primary btn-sm load-material" data-id="{{ m.id }}">
+                Edit
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <p class="text-muted">No materials found.</p>
+    {% endif %}
+  </div>
+</main>
+
+<script>
+const materialContainer = document.getElementById("material-rows");
+
+/* ADD ROW */
+document.getElementById("add-material").addEventListener("click", () => {
+  const firstRow = materialContainer.querySelector(".material-row");
+  const newRow = firstRow.cloneNode(true);
+
+  newRow.querySelectorAll("input").forEach(i => i.value = "");
+  newRow.querySelectorAll("select").forEach(s => s.selectedIndex = 0);
+
+  materialContainer.appendChild(newRow);
+});
+
+/* CLEAR ROW */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("clear-row")) return;
+  const row = e.target.closest(".material-row");
+  row.querySelectorAll("input").forEach(i => i.value = "");
+  row.querySelectorAll("select").forEach(s => s.selectedIndex = 0);
+});
+
+/* DELETE ROW */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("delete-row")) return;
+  const rows = document.querySelectorAll(".material-row");
+  if (rows.length <= 1) {
+    alert("At least one row required");
+    return;
+  }
+  e.target.closest(".material-row").remove();
+});
+
+/* LOAD MATERIAL */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("load-material")) return;
+
+  //fetch(`materials/load/${e.target.dataset.id}/`)
+  fetch(`load/${e.target.dataset.id}/`)
+    .then(res => res.json())
+    .then(data => {
+      const row = materialContainer.querySelector(".material-row");
+      row.querySelector('[name="code"]').value = data.code;
+      row.querySelector('[name="name"]').value = data.name;
+      row.querySelector('[name="displayname"]').value = data.displayname;
+      row.querySelector('[name="price"]').value = data.price;
+      row.querySelector('[name="gst"]').value = data.gst;
+      row.querySelector('[name="supplier"]').value = data.supplier;
+
+      const collapseEl = document.getElementById("materialForm");
+      const bs = bootstrap.Collapse.getInstance(collapseEl)
+               || new bootstrap.Collapse(collapseEl, {toggle:false});
+      if (!collapseEl.classList.contains("show")) bs.show();
+    });
+});
+</script>
+{% endblock %}

@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from . import forms
 from .forms import CustomerForm, InvoiceForm, CompanySettingsForm, CustomerPriceCatalogForm
 from .models import Parties, Configuration, Invoice,InvoiceItem, Transportation, PriceCatalog, CompanySettings,Product, CustomerPriceCatalog, PartyRole
+from .models import Materials
 from collections import defaultdict,OrderedDict
 #from singleton import singleton
 import pdb
@@ -996,4 +997,50 @@ def load_product(request, id):
         "sgst": str(p.sgst),
         "igst": str(p.igst),
         "description": p.description,
+    })
+
+
+def materials_view(request):
+
+    if request.method == "POST":
+        if request.POST.get("action") == "save":
+            rows = zip(
+                request.POST.getlist("code"),
+                request.POST.getlist("name"),
+                request.POST.getlist("displayname"),
+                request.POST.getlist("price"),
+                request.POST.getlist("gst"),
+                request.POST.getlist("supplier"),
+            )
+
+            for code, name, displayname, price, gst, supplier in rows:
+                if not code:
+                    continue
+                Materials.objects.update_or_create(
+                    code=code,
+                    defaults={
+                        "name": name,
+                        "displayname": displayname,
+                        "price": price or 0,
+                        "gst": gst or None,
+                        "supplier_id": supplier
+                    }
+                )
+
+    context = {
+        "materials": Materials.objects.select_related("supplier"),
+        "suppliers": Parties.objects.all(),
+    }
+    return render(request, "marania_invoice_app/materials.html", context)
+
+
+def load_material(request, pk):
+    m = Materials.objects.get(pk=pk)
+    return JsonResponse({
+        "code": m.code,
+        "name": m.name,
+        "displayname": m.displayname,
+        "price": m.price,
+        "gst": m.gst,
+        "supplier": m.supplier_id,
     })
