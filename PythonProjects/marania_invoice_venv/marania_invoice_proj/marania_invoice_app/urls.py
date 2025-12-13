@@ -7,6 +7,8 @@ path('customer',views.customer, name='customer'),
 path('invoice_entry', views.invoice_entry, name='invoice_entry'),
 
 path('customer/add/', views.create_customer, name='create_customer'),
+path('customer/load/<int:id>/', views.load_customer, name='load_customer'),
+
 path('invoice_entry/save', views.invoice_save, name='invoice_save'),
 path('invoice_entry/view/<str:invoice_number>', views.invoice_view, name='invoice_view'),
 path('invoice_entry/pdf/<str:invoice_number>/', views.invoice_pdf, name='invoice_pdf'),

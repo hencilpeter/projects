@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from . import forms
 from .forms import CustomerForm, InvoiceForm, CompanySettingsForm, CustomerPriceCatalogForm
-from .models import Parties, Configuration, Invoice,InvoiceItem, Transportation, PriceCatalog, CompanySettings,Product, CustomerPriceCatalog
+from .models import Parties, Configuration, Invoice,InvoiceItem, Transportation, PriceCatalog, CompanySettings,Product, CustomerPriceCatalog, PartyRole
 from collections import defaultdict,OrderedDict
 #from singleton import singleton
 import pdb
@@ -274,28 +274,65 @@ def dashboard(request):
 
     return render(request, "marania_invoice_app/dashboard.html", context)
 
-# def customer(request):
-#     Customers = Parties.objects.all()
-#     context = {'form': forms.CustomerForm() ,'customers':Customers}
-#     return render(request, 'marania_invoice_app/customer.html', context)
 
 def customer(request):
+    # Fetch all customers with related roles
     customers = Parties.objects.prefetch_related("roles").all()
 
+    # Handle form submission
     if request.method == "POST":
         form = CustomerForm(request.POST)
         if form.is_valid():
-            form.save()  # save method handles ManyToMany mapping
-            return redirect("customer")  # redirect to same page or any other
+            form.save()  # save ManyToMany automatically
+            return redirect("customer")
     else:
         form = CustomerForm()
+
+    # Prepare unique values for select filters
+    unique_codes = customers.values_list('code', flat=True).distinct()
+    unique_names = customers.values_list('name', flat=True).distinct()
+    unique_roles_qs = PartyRole.objects.filter(parties__in=customers).distinct()
+    unique_roles = [role.role for role in unique_roles_qs]
 
     context = {
         "form": form,
         "customers": customers,
+        "unique_codes": unique_codes,
+        "unique_names": unique_names,
+        "unique_roles": unique_roles,
     }
+
     return render(request, "marania_invoice_app/customer.html", context)
 
+def load_customer(request, id):
+    customer = Parties.objects.prefetch_related("roles", "items").get(id=id)
+    
+    roles_ids = list(customer.roles.values_list('id', flat=True))
+    
+    transport_data = []
+    for t in customer.items.all():  # use related_name 'items'
+        transport_data.append({
+            "delivery_place": t.delivery_place,
+            "transporter_name": t.transporter_name,
+            "transporter_gst": t.transporter_gst,
+            "vehicle_name_number": t.vehicle_name_number,
+            "is_default": t.is_default_transport,  # boolean
+        })
+    
+    data = {
+        "id": customer.id,
+        "code": customer.code,
+        "name": customer.name,
+        "gst": customer.gst,
+        "phone": customer.phone,
+        "email": customer.email,
+        "address_bill_to": customer.address_bill_to,
+        "address_ship_to": customer.address_ship_to,
+        "is_within_state": customer.is_within_state,
+        "roles": roles_ids,
+        "transport_details": transport_data,
+    }
+    return JsonResponse(data)
 
 def show_gst_calculator(request):
      return render(request, "marania_invoice_app/gst_calculator.html") 
