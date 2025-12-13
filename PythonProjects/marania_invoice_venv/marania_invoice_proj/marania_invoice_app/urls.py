@@ -3,20 +3,23 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-path('customer',views.customer, name='customer'),
-#path('customer',views.create_customer, name='customer'),
+# parties     
+path('parties',views.parties, name='parties'),
+path('parties/add/', views.create_party, name='create_party'),
+path('parties/load/<int:id>/', views.load_party, name='load_party'),
+
+
+# invoice 
 path('invoice_entry', views.invoice_entry, name='invoice_entry'),
-
-path('customer/add/', views.create_customer, name='create_customer'),
-path('customer/load/<int:id>/', views.load_customer, name='load_customer'),
-
 path('invoice_entry/save', views.invoice_save, name='invoice_save'),
 path('invoice_entry/view/<str:invoice_number>', views.invoice_view, name='invoice_view'),
 path('invoice_entry/pdf/<str:invoice_number>/', views.invoice_pdf, name='invoice_pdf'),
 path('invoice_entry/show_gst_calculator', views.show_gst_calculator, name='show_gst_calculator'),
-
-path('settings/company/', views.company_settings_view, name='company_settings'),
 path('invoice_entry/get_invoice/<str:invoice_number>/', views.get_invoice, name='get_invoice'),
+
+# company settings 
+path('settings/company/', views.company_settings_view, name='company_settings'),
+
 
 # price  catalog 
  path("price-list/add/", views.add_price_list, name="add_price_list"),

@@ -55,7 +55,7 @@
     <!-- Add/Edit Customer Form -->
     <div class="collapse" id="customerForm">
       <div class="card card-body mb-4">
-        <form method="POST" id="customer-form" action="{% url 'create_customer' %}">
+        <form method="POST" id="customer-form" action="{% url 'create_party' %}">
           {% csrf_token %}
           <input type="hidden" name="customer_id" id="customer_id">
           <div class="row g-3">
@@ -218,7 +218,7 @@ document.addEventListener('click', e => {
   if (!e.target.classList.contains('load-customer')) return;
   const id = e.target.dataset.id;
 
-  fetch(`/invoice/customer/load/${id}/`)
+  fetch(`/invoice/parties/load/${id}/`)
     .then(res => res.json())
     .then(data => {
       form.querySelector('input[name="customer_id"]').value = data.id;

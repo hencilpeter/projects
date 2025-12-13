@@ -276,54 +276,10 @@ def dashboard(request):
 
 
 
-def customer(request):
+def parties(request):
     customers = Parties.objects.prefetch_related("roles").all()
     form = CustomerForm()
-    print("existing customer.....111")
-    print(request.method)
-    # if request.method == "POST":
-    #     print("existing customer.....222")
-    #     customer_id = request.POST.get("customer_id")
-    #     if customer_id:
-    #         print("existing customer.....")
-    #         # Editing existing customer
-    #         customer_instance = Parties.objects.get(id=customer_id)
-    #         form = CustomerForm(request.POST, instance=customer_instance)
-    #     else:
-    #         # New customer
-    #         form = CustomerForm(request.POST)
-
-    #     if form.is_valid():
-    #         customer_obj = form.save()
-
-    #         # Update Party Roles
-    #         role_ids = request.POST.getlist('partyroles')
-    #         customer_obj.roles.set(role_ids)
-
-    #         # Update Transport Details
-    #         delivery_places = request.POST.getlist('delivery_place[]')
-    #         transporters = request.POST.getlist('transporter_name[]')
-    #         transport_gsts = request.POST.getlist('transporter_gst[]')
-    #         vehicle_names = request.POST.getlist('vehicle_name_number[]')
-    #         default_index = request.POST.get('default_transport')
-
-    #         # Clear existing transport records
-    #         customer_obj.transport_set.all().delete()
-
-    #         for i, place in enumerate(delivery_places):
-    #             is_default = str(i) == default_index
-    #             customer_obj.transport_set.create(
-    #                 delivery_place=place,
-    #                 transporter_name=transporters[i],
-    #                 transporter_gst=transport_gsts[i],
-    #                 vehicle_name_number=vehicle_names[i],
-    #                 is_default=is_default
-    #             )
-
-    #         return redirect("customer")
-    # else:
-    #     print("request.method ==POST failed...")
-
+   
     # Prepare unique values for select filters
     unique_codes = customers.values_list('code', flat=True).distinct()
     unique_names = customers.values_list('name', flat=True).distinct()
@@ -341,84 +297,7 @@ def customer(request):
     return render(request, "marania_invoice_app/party.html", context)
 
 
-
-# def customer(request):
-#     # Fetch all customers with related roles
-#     customers = Parties.objects.prefetch_related("roles").all()
-#     print("test1")
-#     if request.method == "POST":
-#         code = request.POST.get("code").strip()
-#         print("test2"+ code)
-#         try:
-#             # Try to get existing customer by code
-#             print("test3")
-#             customer_instance = Parties.objects.get(code=code)
-#             print("update customer....")
-#             form = CustomerForm(request.POST, instance=customer_instance)
-#         except Parties.DoesNotExist:
-#             print("test4")
-#             # If customer doesn't exist, create new
-#             print("new customer....")
-#             form = CustomerForm(request.POST)
-#         print("test5")
-#         if form.is_valid():
-#             customer_obj = form.save()  # Save or update ManyToMany automatically
-
-#             # Handle transport details (optional, if you have related form)
-#             # You can update Transportation objects here based on customer_obj
-#             print("test6")
-#             return redirect("customer")
-#     else:
-#         print("test7")
-#         form = CustomerForm()
-
-#     # Prepare unique values for select filters
-#     unique_codes = customers.values_list('code', flat=True).distinct()
-#     unique_names = customers.values_list('name', flat=True).distinct()
-#     unique_roles_qs = PartyRole.objects.filter(parties__in=customers).distinct()
-#     unique_roles = [role.role for role in unique_roles_qs]
-
-#     context = {
-#         "form": form,
-#         "customers": customers,
-#         "unique_codes": unique_codes,
-#         "unique_names": unique_names,
-#         "unique_roles": unique_roles,
-#     }
-
-#     return render(request, "marania_invoice_app/customer.html", context)
-
-
-# def customer(request):
-#     # Fetch all customers with related roles
-#     customers = Parties.objects.prefetch_related("roles").all()
-
-#     # Handle form submission
-#     if request.method == "POST":
-#         form = CustomerForm(request.POST)
-#         if form.is_valid():
-#             form.save()  # save ManyToMany automatically
-#             return redirect("customer")
-#     else:
-#         form = CustomerForm()
-
-#     # Prepare unique values for select filters
-#     unique_codes = customers.values_list('code', flat=True).distinct()
-#     unique_names = customers.values_list('name', flat=True).distinct()
-#     unique_roles_qs = PartyRole.objects.filter(parties__in=customers).distinct()
-#     unique_roles = [role.role for role in unique_roles_qs]
-
-#     context = {
-#         "form": form,
-#         "customers": customers,
-#         "unique_codes": unique_codes,
-#         "unique_names": unique_names,
-#         "unique_roles": unique_roles,
-#     }
-
-#     return render(request, "marania_invoice_app/customer.html", context)
-
-def load_customer(request, id):
+def load_party(request, id):
     customer = Parties.objects.prefetch_related("roles", "items").get(id=id)
     
     roles_ids = list(customer.roles.values_list('id', flat=True))
@@ -510,15 +389,14 @@ def invoice_entry(request):
 ############################-Functions-###################################
 from django.contrib import messages
 
-def create_customer(request):
+def create_party(request):
     if request.method == 'POST':
         action = request.POST.get("action")
-        print("@@@@action ...."+ action)
         code = request.POST.get("code").strip()
         try:
             if action == "delete":
                Parties.objects.filter(code=code).delete()
-               return redirect('customer')  # Redirect after delete
+               return redirect('parties')  # Redirect after delete
 
             # Try to get existing customer by code
             customer_instance = Parties.objects.get(code=code)
@@ -533,9 +411,6 @@ def create_customer(request):
             # delete the existing transportation details if any.     
             customer_obj.items.all().delete()
 
-        #form = CustomerForm(request.POST)  # Bind POST data to the form
-        #if form.is_valid():                # Validate the data
-        #    customer_instance = form.save()                    # Save the form to the database
             # save transportation details 
             delivery_place_list = request.POST.getlist('delivery_place[]')
             transporter_name_list = request.POST.getlist('transporter_name[]')
@@ -560,7 +435,7 @@ def create_customer(request):
             if (len(transporter_list) > 0):
                 Transportation.objects.bulk_create(transporter_list)    # save the transporter items     
 
-            return redirect('customer')  # Redirect after save
+            return redirect('parties')  # Redirect after save
     else:
         form = CustomerForm()  # Empty form for GET request
 
