@@ -4,11 +4,11 @@
 
 {% block main %}
 <style>
-  /* Reduce height and padding of transport inputs */
+/* Reduce height and padding of transport inputs */
 .item-row input.form-control-sm {
-    padding: 0.25rem 0.35rem;  /* smaller padding */
-    height: calc(1.5em + 0.5rem);  /* reduce height */
-    font-size: 0.85rem;  /* smaller font */
+    padding: 0.25rem 0.35rem;
+    height: calc(1.5em + 0.5rem);
+    font-size: 0.85rem;
 }
 
 .item-row label.mb-0 {
@@ -21,6 +21,7 @@
     font-size: 0.75rem;
 }
 </style>
+
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
   <div class="container my-5">
     <h2 class="mb-4">Parties</h2>
@@ -35,7 +36,6 @@
       <div class="card card-body mb-4">
         <form method="POST" id="customer-form" action="{% url 'create_customer' %}">
           {% csrf_token %}
-          <!-- Hidden input to store customer ID when editing -->
           <input type="hidden" name="customer_id" id="customer_id">
 
           <div class="row g-3">
@@ -72,21 +72,16 @@
           </div>
 
           <div class="row g-3 mt-2">
-            <!-- Billing Address -->
             <div class="col-md-4">
               {{ form.address_bill_to.label_tag }}
               {{ form.address_bill_to }}
               {{ form.address_bill_to.errors }}
             </div>
-
-            <!-- Shipping Address -->
             <div class="col-md-4">
               {{ form.address_ship_to.label_tag }}
               {{ form.address_ship_to }}
               {{ form.address_ship_to.errors }}
             </div>
-
-            <!-- Party Roles -->
             <div class="col-md-4">
               <label class="form-label">Party Roles</label>
               <div class="form-check">
@@ -144,9 +139,7 @@
             <td>
               {% for role in customer.roles.all %}
                 {{ role.role }}{% if not forloop.last %}, {% endif %}
-              {% empty %}
-                -
-              {% endfor %}
+              {% empty %}-{% endfor %}
             </td>
             <td>
               <button class="btn btn-primary btn-sm load-customer" data-id="{{ customer.id }}">Edit</button>
@@ -164,98 +157,96 @@
 </main>
 
 <script>
-  // --- Transport Details Logic ---
-  let rowIndex = -1;
-  const container = document.getElementById('item-container');
-  const addItemBtn = document.getElementById('add-item');
+let rowIndex = -1;
+const container = document.getElementById('item-container');
+const addItemBtn = document.getElementById('add-item');
+const form = document.getElementById('customer-form');
 
-  function createTransportRow(index) {
-    const row = document.createElement('div');
-    row.classList.add('item-row', 'row', 'mb-2'); // smaller margin-bottom
-    row.dataset.index = index;
-    row.innerHTML = `
-      <div class="d-flex align-items-center flex-wrap gap-2 w-80">
-        <div class="d-flex gap-2 flex-fill">
-          <input type="text" name="delivery_place[]" class="form-control form-control-sm" placeholder="Delivery Place">
-          <input type="text" name="transporter_name[]" class="form-control form-control-sm" placeholder="Transporter Name">
-          <input type="text" name="transporter_gst[]" class="form-control form-control-sm" placeholder="Transporter GST">
-          <input type="text" name="vehicle_name_number[]" class="form-control form-control-sm" placeholder="Vehicle Name & Number">
-          <label class="mb-0"><input type="radio" name="default_transport" value="${index}" class="form-check-input"> Default</label>
-        </div>
-        <div class="d-flex gap-2 ms-2">
-          <button type="button" class="btn btn-outline-secondary btn-sm clear-item">Clear</button>
-          <button type="button" class="btn btn-outline-danger btn-sm delete-item">Del</button>
-        </div>
+function createTransportRow(index) {
+  const row = document.createElement('div');
+  row.classList.add('item-row', 'row', 'mb-2');
+  row.dataset.index = index;
+  row.innerHTML = `
+    <div class="d-flex align-items-center flex-wrap gap-2 w-80">
+      <div class="d-flex gap-2 flex-fill">
+        <input type="text" name="delivery_place[]" class="form-control form-control-sm" placeholder="Delivery Place">
+        <input type="text" name="transporter_name[]" class="form-control form-control-sm" placeholder="Transporter Name">
+        <input type="text" name="transporter_gst[]" class="form-control form-control-sm" placeholder="Transporter GST">
+        <input type="text" name="vehicle_name_number[]" class="form-control form-control-sm" placeholder="Vehicle Name & Number">
+        <label class="mb-0"><input type="radio" name="default_transport" value="${index}" class="form-check-input"> Default</label>
       </div>
-    `;
-    return row;
+      <div class="d-flex gap-2 ms-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm clear-item">Clear</button>
+        <button type="button" class="btn btn-outline-danger btn-sm delete-item">Del</button>
+      </div>
+    </div>
+  `;
+  return row;
 }
 
-  addItemBtn.addEventListener('click', () => {
-    rowIndex++;
-    container.appendChild(createTransportRow(rowIndex));
-  });
-
-  container.addEventListener('click', e => {
-    const row = e.target.closest('.item-row');
-    if (!row) return;
-
-    if (e.target.classList.contains('clear-item')) {
-      row.querySelectorAll('input').forEach(inp => {
-        if (inp.type === 'radio') inp.checked = false;
-        else inp.value = '';
-      });
-    }
-    if (e.target.classList.contains('delete-item')) row.remove();
-  });
-
-  // --- Load/Edit Customer ---
-document.addEventListener('click', e => {
-    if (!e.target.classList.contains('load-customer')) return;
-    const id = e.target.dataset.id;
-
-    fetch(`/invoice/customer/load/${id}/`)
-      .then(res => res.json())
-      .then(data => {
-        const form = document.getElementById('customer-form');
-
-        // Populate basic fields
-        form.querySelector('input[name="code"]').value = data.code;
-        form.querySelector('input[name="name"]').value = data.name;
-        form.querySelector('input[name="gst"]').value = data.gst;
-        form.querySelector('input[name="phone"]').value = data.phone;
-        form.querySelector('input[name="email"]').value = data.email;
-        form.querySelector('textarea[name="address_bill_to"]').value = data.address_bill_to;
-        form.querySelector('textarea[name="address_ship_to"]').value = data.address_ship_to;
-        form.querySelector('select[name="is_within_state"]').value = data.is_within_state ? 'True' : 'False';
-
-        // Party roles
-        form.querySelectorAll('input[name="partyroles"]').forEach(cb => {
-            cb.checked = data.roles.includes(parseInt(cb.value));
-        });
-
-        // --- Clear existing transport rows ---
-        container.innerHTML = '';
-        rowIndex = -1;
-
-        // --- Populate transport details dynamically ---
-        data.transport_details.forEach(t => {
-            rowIndex++;
-            const row = createTransportRow(rowIndex);
-            row.querySelector('input[name="delivery_place[]"]').value = t.delivery_place;
-            row.querySelector('input[name="transporter_name[]"]').value = t.transporter_name;
-            row.querySelector('input[name="transporter_gst[]"]').value = t.transporter_gst;
-            row.querySelector('input[name="vehicle_name_number[]"]').value = t.vehicle_name_number;
-            if (t.is_default) row.querySelector('input[type="radio"]').checked = true;
-            container.appendChild(row);
-        });
-
-        // Show collapse
-        const collapseEl = document.getElementById("customerForm");
-        const bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, {toggle:false});
-        if (!collapseEl.classList.contains("show")) bsCollapse.show();
-      });
+addItemBtn.addEventListener('click', () => {
+  rowIndex++;
+  container.appendChild(createTransportRow(rowIndex));
 });
 
+container.addEventListener('click', e => {
+  const row = e.target.closest('.item-row');
+  if (!row) return;
+
+  if (e.target.classList.contains('clear-item')) {
+    row.querySelectorAll('input').forEach(inp => {
+      if (inp.type === 'radio') inp.checked = false;
+      else inp.value = '';
+    });
+  }
+  if (e.target.classList.contains('delete-item')) row.remove();
+});
+
+// Load/Edit Customer
+document.addEventListener('click', e => {
+  if (!e.target.classList.contains('load-customer')) return;
+  const id = e.target.dataset.id;
+
+  fetch(`/invoice/customer/load/${id}/`)
+    .then(res => res.json())
+    .then(data => {
+      // set hidden customer_id
+      form.querySelector('input[name="customer_id"]').value = data.id;
+
+      // populate form fields
+      form.querySelector('input[name="code"]').value = data.code;
+      form.querySelector('input[name="name"]').value = data.name;
+      form.querySelector('input[name="gst"]').value = data.gst;
+      form.querySelector('input[name="phone"]').value = data.phone;
+      form.querySelector('input[name="email"]').value = data.email;
+      form.querySelector('textarea[name="address_bill_to"]').value = data.address_bill_to;
+      form.querySelector('textarea[name="address_ship_to"]').value = data.address_ship_to;
+      form.querySelector('select[name="is_within_state"]').value = data.is_within_state ? 'True' : 'False';
+
+      // party roles
+      form.querySelectorAll('input[name="partyroles"]').forEach(cb => {
+        cb.checked = data.roles.includes(parseInt(cb.value));
+      });
+
+      // transport details
+      container.innerHTML = '';
+      rowIndex = -1;
+      data.transport_details.forEach((t, i) => {
+        rowIndex++;
+        const row = createTransportRow(rowIndex);
+        row.querySelector('input[name="delivery_place[]"]').value = t.delivery_place;
+        row.querySelector('input[name="transporter_name[]"]').value = t.transporter_name;
+        row.querySelector('input[name="transporter_gst[]"]').value = t.transporter_gst;
+        row.querySelector('input[name="vehicle_name_number[]"]').value = t.vehicle_name_number;
+        if (t.is_default) row.querySelector('input[type="radio"]').checked = true;
+        container.appendChild(row);
+      });
+
+      // show collapse
+      const collapseEl = document.getElementById("customerForm");
+      const bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, {toggle:false});
+      if (!collapseEl.classList.contains("show")) bsCollapse.show();
+    });
+});
 </script>
 {% endblock %}
