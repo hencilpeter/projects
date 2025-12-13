@@ -5,7 +5,6 @@
   <div class="container my-4">
     <h3>Materials Master</h3>
 
-    <!-- Manage Materials -->
     <button class="btn btn-primary mb-3" type="button"
             data-bs-toggle="collapse"
             data-bs-target="#materialForm">
@@ -56,14 +55,8 @@
           </div>
 
           <div class="text-center">
-            <button type="submit" name="action" value="save" class="btn btn-success">
-              Save 
-            </button>
-
-            <button type="submit" name="action" value="delete" class="btn btn-danger">
-              Delete 
-            </button>
-
+            <button type="submit" name="action" value="save" class="btn btn-success">Save</button>
+            <button type="submit" name="action" value="delete" class="btn btn-danger">Delete</button>
           </div>
 
         </div>
@@ -79,32 +72,26 @@
       <table class="table table-bordered table-hover table-sm" id="materials-table">
         <thead class="table-dark">
           <tr>
-            <th>
-              Code
+            <th>Code
               <select class="form-select form-select-sm column-filter" data-col="0">
                 <option value="">All</option>
               </select>
             </th>
-            <th>
-              Name
+            <th>Name
               <select class="form-select form-select-sm column-filter" data-col="1">
                 <option value="">All</option>
               </select>
             </th>
-            <th>
-              Display Name
+            <th>Display Name
               <input type="text" class="form-control form-control-sm text-filter" data-col="2">
             </th>
-            <th>
-              Price
+            <th>Price
               <input type="text" class="form-control form-control-sm text-filter" data-col="3">
             </th>
-            <th>
-              GST %
+            <th>GST %
               <input type="text" class="form-control form-control-sm text-filter" data-col="4">
             </th>
-            <th>
-              Supplier
+            <th>Supplier
               <select class="form-select form-select-sm column-filter" data-col="5">
                 <option value="">All</option>
               </select>
@@ -112,12 +99,11 @@
             <th>
               Action
               <div class="mt-1">
-                <button id="clear-filters" class="btn btn-warning btn-sm">
+                <button type="button" id="clear-filters" class="btn btn-warning btn-sm">
                   Clear
                 </button>
               </div>
-          </th>
-
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -130,7 +116,9 @@
             <td>{{ m.gst }}</td>
             <td>{{ m.supplier }}</td>
             <td>
-              <button class="btn btn-primary btn-sm load-material" data-id="{{ m.id }}">
+              <button type="button"
+                      class="btn btn-primary btn-sm load-material"
+                      data-id="{{ m.id }}">
                 Edit
               </button>
             </td>
@@ -139,17 +127,71 @@
         </tbody>
       </table>
     </div>
-    {% else %}
-      <p class="text-muted">No materials found.</p>
     {% endif %}
   </div>
 </main>
 
 <script>
+/* ================== COMMON ================== */
+const materialContainer = document.getElementById("material-rows");
+
+/* ================== ADD MATERIAL ================== */
+document.getElementById("add-material").addEventListener("click", () => {
+  const firstRow = materialContainer.querySelector(".material-row");
+  const newRow = firstRow.cloneNode(true);
+
+  newRow.querySelectorAll("input").forEach(i => i.value = "");
+  newRow.querySelectorAll("select").forEach(s => s.selectedIndex = 0);
+
+  materialContainer.appendChild(newRow);
+});
+
+/* ================== CLEAR ROW ================== */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("clear-row")) return;
+  const row = e.target.closest(".material-row");
+  row.querySelectorAll("input").forEach(i => i.value = "");
+  row.querySelectorAll("select").forEach(s => s.selectedIndex = 0);
+});
+
+/* ================== DELETE ROW ================== */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("delete-row")) return;
+  const rows = document.querySelectorAll(".material-row");
+  if (rows.length <= 1) {
+    alert("At least one row required");
+    return;
+  }
+  e.target.closest(".material-row").remove();
+});
+
+/* ================== LOAD MATERIAL ================== */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("load-material")) return;
+
+  fetch(`load/${e.target.dataset.id}/`)
+    .then(res => res.json())
+    .then(data => {
+      const row = materialContainer.querySelector(".material-row");
+
+      row.querySelector('[name="code"]').value = data.code;
+      row.querySelector('[name="name"]').value = data.name;
+      row.querySelector('[name="displayname"]').value = data.displayname;
+      row.querySelector('[name="price"]').value = data.price;
+      row.querySelector('[name="gst"]').value = data.gst;
+      row.querySelector('[name="supplier"]').value = data.supplier;
+
+      const collapseEl = document.getElementById("materialForm");
+      const bs = bootstrap.Collapse.getInstance(collapseEl)
+        || new bootstrap.Collapse(collapseEl, { toggle: false });
+      bs.show();
+    });
+});
+
+/* ================== TABLE FILTERS ================== */
 const table = document.getElementById("materials-table");
 const filters = document.querySelectorAll(".column-filter, .text-filter");
 
-/* Populate dropdown filters */
 document.querySelectorAll(".column-filter").forEach(select => {
   const col = select.dataset.col;
   const values = [...new Set(
@@ -163,26 +205,22 @@ document.querySelectorAll(".column-filter").forEach(select => {
   });
 });
 
-/* Apply filters */
-filters.forEach(f => f.addEventListener("input", filterTable));
-
-function filterTable() {
+filters.forEach(f => f.addEventListener("input", () => {
   [...table.tBodies[0].rows].forEach(row => {
-    let visible = true;
+    let show = true;
     filters.forEach(f => {
       const col = f.dataset.col;
-      const cell = row.cells[col].innerText.toLowerCase();
-      const val = f.value.toLowerCase();
-      if (val && !cell.includes(val)) visible = false;
+      if (f.value && !row.cells[col].innerText.toLowerCase().includes(f.value.toLowerCase())) {
+        show = false;
+      }
     });
-    row.style.display = visible ? "" : "none";
+    row.style.display = show ? "" : "none";
   });
-}
+}));
 
-/* Clear filters */
 document.getElementById("clear-filters").addEventListener("click", () => {
   filters.forEach(f => f.value = "");
-  filterTable();
+  filters[0].dispatchEvent(new Event("input"));
 });
 </script>
 {% endblock %}

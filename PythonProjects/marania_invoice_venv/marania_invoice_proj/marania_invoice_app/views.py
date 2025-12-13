@@ -1003,7 +1003,10 @@ def load_product(request, id):
 def materials_view(request):
 
     if request.method == "POST":
-        if request.POST.get("action") == "save":
+        action = request.POST.get("action")
+
+        # SAVE / UPDATE
+        if action == "save":
             rows = zip(
                 request.POST.getlist("code"),
                 request.POST.getlist("name"),
@@ -1016,6 +1019,7 @@ def materials_view(request):
             for code, name, displayname, price, gst, supplier in rows:
                 if not code:
                     continue
+
                 Materials.objects.update_or_create(
                     code=code,
                     defaults={
@@ -1023,15 +1027,25 @@ def materials_view(request):
                         "displayname": displayname,
                         "price": price or 0,
                         "gst": gst or None,
-                        "supplier_id": supplier
+                        "supplier_id": supplier or None,
                     }
                 )
 
+        # DELETE
+        elif action == "delete":
+            codes = request.POST.getlist("code")
+
+            for code in codes:
+                if code:
+                    Materials.objects.filter(code=code).delete()
+
     context = {
         "materials": Materials.objects.select_related("supplier"),
-        "suppliers": Parties.objects.filter(roles__role__iexact="supplier").distinct(),
-        #Parties.objects.all(),
+        "suppliers": Parties.objects.filter(
+            roles__role__iexact="supplier"
+        ).distinct(),
     }
+
     return render(request, "marania_invoice_app/materials.html", context)
 
 
