@@ -312,8 +312,14 @@ function loadInvoice(invoiceNumber) {
             document.getElementsByName('item_hsn_code[]')[idx].value = item.item_hsn_code;
         });
 
-        // Open the invoice form collapse
-        const invoiceForm = new bootstrap.Collapse(document.getElementById('customerForm'), { show: true });
+        // Only show collapse if not already shown
+          const collapseEl = document.getElementById("customerForm");
+          const bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, {toggle:false});
+          if (!collapseEl.classList.contains("show")) {
+              bsCollapse.show();
+          }
+
+
     })
     .catch(error => console.error('Error loading invoice:', error));
 }
