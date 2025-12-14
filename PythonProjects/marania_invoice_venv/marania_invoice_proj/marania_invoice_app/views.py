@@ -71,6 +71,8 @@ class Configurations:
         #self.config['SGST'] = configurations['SGST']
         #self.config['IGST'] = configurations['IGST']
 
+company_settings, created = CompanySettings.objects.get_or_create(id=1)
+
 #######################################################-Common Functions-#############
 def get_next_invoice_number():
     try:
@@ -96,11 +98,6 @@ def get_invoices_dict():
             invice_item_dict[invoice_item.invoice.invoice_number].append(invoice_item)
 
     for invoice in invoices:
-       
-        # for field in invoice._meta.fields:
-        #     print(field.name, getattr(invoice, field.name))
-#"ship_to_customer_address":invoice.ship_to_customer_address,
-
         invoice_dict[invoice.invoice_number]={
                     "invoice_date": invoice.invoice_date,
                     #bill to 
@@ -116,7 +113,53 @@ def get_invoices_dict():
                     "invoice_items":invice_item_dict[invoice.invoice_number]}
     
     return invoice_dict
-   
+
+def get_parties_dict():
+    parties_dict = defaultdict(dict)
+
+    parties = Parties.objects.prefetch_related('roles').all()
+
+    for party in parties:
+        parties_dict[party.code] = {
+            "name": party.name,
+            "gst": party.gst,
+            "phone": party.phone,
+            "email": party.email,
+            "address_bill_to": party.address_bill_to,
+            "address_ship_to": party.address_ship_to,
+            "is_within_state": party.is_within_state,
+            "roles": list(party.roles.values_list('role', flat=True)),
+            "created_at": party.created_at,
+            "updated_at": party.updated_at,
+        }
+        
+    return parties_dict
+
+def get_product_dict():
+    products_dict = defaultdict(dict)
+
+    products = Product.objects.select_related('material').all()
+
+    for product in products:
+        products_dict[product.code] = {
+            "name": product.name,
+            "display_name": product.display_name,
+            "hsn": product.hsn,
+
+            # Material reference
+            "material_code": product.material.code if product.material else None,
+            "material_name": product.material.name if product.material else None,
+
+            # Tax rates
+            "cgst": product.cgst,
+            "sgst": product.sgst,
+            "igst": product.igst,
+
+            "description": product.description,
+        }
+
+    return products_dict
+
 
 ########################################################-Helper Functions-############
 def number_to_words(num):
@@ -540,10 +583,15 @@ def invoice_save(request):
     }
     return render(request, 'marania_invoice_app/invoice_entry.html', context)
 
+def decimal_to_str(value):
+    return format(Decimal(str(value)).normalize(), 'f')
 
 def get_invoice_dictonaries(invoice_number):
-
+    # TODO - hencil current change 
     invoice_dict = get_invoices_dict()
+    partices_dict = get_parties_dict()
+    product_dict = get_product_dict()
+
      #company details 
     company_dict = {"logo_url": "/static/images/marania_eagle_logo.png",
                       "name": "MARANIA FILAMENTS", # TODO
@@ -581,23 +629,37 @@ def get_invoice_dictonaries(invoice_number):
         ]
     sub_total = 0
     total_quantity = 0
+    cgst = sgst = igst = 0 
+    # based on the customer decide cgst/sgst or igst 
+    customer_code = invoice_dict[invoice_number]["customer_code"]
+    is_within_state = partices_dict[customer_code]["is_within_state"]
+
+    cgst_rate = Decimal(company_settings.cgst)
+    sgst_rate = Decimal(company_settings.sgst)
+    igst_rate = Decimal(company_settings.igst)
+    gst_rate = cgst_rate + sgst_rate if is_within_state else igst_rate
+
+
     for invoice_item in invoice_items:
         amount = invoice_item.item_quantity * invoice_item.item_price 
         amount = Decimal(amount).quantize(Decimal("0.00"), rounding=ROUND_DOWN)
         sub_total += amount
         total_quantity += invoice_item.item_quantity
         description =  f"{invoice_item.item_description}" 
-        items.append({"packages": "1", "description": description,"hsn": "5608", "gst_rate": 5, "quantity": str(invoice_item.item_quantity) + " KGS", 
+        # based on the product decide the HSN
+        item_code = str(invoice_item.item_code)
+        hsn =  str(product_dict[invoice_item.item_code]["hsn"])
+        items.append({"packages": "1", "description": description,"hsn": hsn, "gst_rate": gst_rate, "quantity": str(invoice_item.item_quantity) + " KGS", 
                       "rate": invoice_item.item_price, "unit": "KGS", "amount": amount})
         
+       
+    if is_within_state :
+        cgst = Decimal(Decimal(sub_total) * Decimal(company_settings.cgst/100)).quantize(Decimal("0.00"), rounding=ROUND_DOWN)
+        sgst = Decimal(Decimal(sub_total) * Decimal(company_settings.sgst/100)).quantize(Decimal("0.00"), rounding=ROUND_DOWN)
+    else:
+        igst = Decimal(Decimal(sub_total) * Decimal(company_settings.igst/100)).quantize(Decimal("0.00"), rounding=ROUND_DOWN)
 
-    # taxes= [
-    #         {"hsn": "5608", "taxable_value": "47,667.19", "cgst_rate": 2.5, "cgst_amount": "1,191.68", "sgst_rate": 2.5, "sgst_amount": "1,191.68", "total_tax": "2,383.36"}
-    #     ]
-
-    cgst = Decimal(Decimal(sub_total) * Decimal(.025)).quantize(Decimal("0.00"), rounding=ROUND_DOWN)
-    sgst = Decimal(Decimal(sub_total) * Decimal(.025)).quantize(Decimal("0.00"), rounding=ROUND_DOWN)
-    total = sub_total + cgst + sgst
+    total = sub_total + cgst + sgst + igst
     rounded_total = round(total,2)
     round_off_amount = rounded_total - total
     tax_words =""
@@ -624,9 +686,10 @@ def get_invoice_dictonaries(invoice_number):
             "total_quantity":total_quantity,
             "cgst_amount": cgst,
             "sgst_amount": sgst,
-            "igst_rate":"5",
-            "sgst_rate":"2.5",
-            "cgst_rate":"2.5",
+            "igst_amount": igst,
+            "igst_rate": decimal_to_str(igst_rate),
+            "sgst_rate": decimal_to_str(sgst_rate),
+            "cgst_rate": decimal_to_str(cgst_rate),
             "round_off": round_off_amount,
             "total": rounded_total,
             "tax_words": "",

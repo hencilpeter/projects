@@ -221,26 +221,26 @@
         {% endfor %}
 	</tbody>
     <tr>
-        <th colspan="3" class="text-end">SUB TOTAL</th>
+        <th colspan="3" class="text-end"></th>
         <th class="text-end">{{ invoice.total_quantity }}</th>
         <th></th>
         <th class="text-end">{{ invoice.subtotal }}</th>
     </tr>
 
-    {% if igst_amount > 0 %}
-    <tr>
-        <td colspan="5" class="text-end"><b>IGST ({{ invoice.igst_rate }}%)</b></td>
-        <td class="text-end">{{ invoice.igst_amount }}</td>
-    </tr>
+    {% if invoice.igst_amount %}
+        <tr>
+            <td colspan="5" class="text-end"><b>IGST ({{ invoice.igst_rate }}%)</b></td>
+            <td class="text-end">{{ invoice.igst_amount }}</td>
+        </tr>
     {% else %}
-    <tr>
-        <td colspan="5" class="text-end"><b>CGST ({{ invoice.cgst_rate }}%)</b></td>
-        <td class="text-end">{{ invoice.cgst_amount }}</td>
-    </tr>
-    <tr>
-        <td colspan="5" class="text-end"><b>SGST ({{ invoice.sgst_rate }}%)</b></td>
-        <td class="text-end">{{ invoice.sgst_amount }}</td>
-    </tr>
+        <tr>
+            <td colspan="5" class="text-end"><b>CGST ({{ invoice.cgst_rate }}%)</b></td>
+            <td class="text-end">{{ invoice.cgst_amount }}</td>
+        </tr>
+        <tr>
+            <td colspan="5" class="text-end"><b>SGST ({{ invoice.sgst_rate }}%)</b></td>
+            <td class="text-end">{{ invoice.sgst_amount }}</td>
+        </tr>
     {% endif %}
 
     <tr>
