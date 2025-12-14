@@ -4,7 +4,8 @@
 {% block main %}
 
 <style>
-.product-row input {
+.product-row input,
+.product-row select {
     padding-left: 2px !important;
     padding-right: 2px !important;
 }
@@ -15,7 +16,8 @@
 
     <h3>Product Master</h3>
 
-    <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#productForm">
+    <button class="btn btn-primary mb-3" type="button"
+            data-bs-toggle="collapse" data-bs-target="#productForm">
       Manage Products
     </button>
 
@@ -26,7 +28,7 @@
 
           <div id="product-rows">
 
-            <!-- SINGLE-ROW TEMPLATE -->
+            <!-- SINGLE ROW TEMPLATE -->
             <div class="product-row d-flex align-items-center mb-2" style="overflow-x:auto; white-space:nowrap;">
 
               <div style="width:120px;" class="me-1">
@@ -45,34 +47,49 @@
                 <input type="text" name="hsn" class="form-control form-control-sm" placeholder="HSN">
               </div>
 
-              <div style="width:90px;" class="me-1">
-                <input type="number" step="0.01" name="cgst" class="form-control form-control-sm" placeholder="CGST">
+              <!-- ✅ MATERIAL COLUMN -->
+              <div style="width:200px;" class="me-1">
+                <select name="material" class="form-select form-select-sm">
+                  <option value="">-- Material --</option>
+                  {% for m in materials %}
+                    <option value="{{ m.id }}">{{ m.name }}</option>
+                  {% endfor %}
+                </select>
               </div>
 
               <div style="width:90px;" class="me-1">
-                <input type="number" step="0.01" name="sgst" class="form-control form-control-sm" placeholder="SGST">
+                <input type="number" step="0.01" name="cgst"
+                       class="form-control form-control-sm" placeholder="CGST">
               </div>
 
               <div style="width:90px;" class="me-1">
-                <input type="number" step="0.01" name="igst" class="form-control form-control-sm" placeholder="IGST">
+                <input type="number" step="0.01" name="sgst"
+                       class="form-control form-control-sm" placeholder="SGST">
+              </div>
+
+              <div style="width:90px;" class="me-1">
+                <input type="number" step="0.01" name="igst"
+                       class="form-control form-control-sm" placeholder="IGST">
               </div>
 
               <div style="width:200px;" class="me-2">
-                <input type="text" name="description" class="form-control form-control-sm" placeholder="Description">
+                <input type="text" name="description"
+                       class="form-control form-control-sm" placeholder="Description">
               </div>
 
-              <!-- BUTTONS - ALWAYS RIGHT -->
+              <!-- BUTTONS -->
               <div class="ms-auto d-flex gap-2">
                 <button type="button" class="btn btn-warning btn-sm clear-row">Clear</button>
                 <button type="button" class="btn btn-danger btn-sm delete-row">Delete</button>
               </div>
 
             </div>
-
           </div>
 
           <div class="mb-3 mt-2">
-            <button type="button" id="add-product" class="btn btn-secondary">+ Add Product</button>
+            <button type="button" id="add-product" class="btn btn-secondary">
+              + Add Product
+            </button>
           </div>
 
           <div class="text-center">
@@ -89,7 +106,7 @@
     <h5>Saved Products</h5>
 
     {% if products %}
-    <div class="table-responsive" style="max-height: 800px; overflow-y: auto;">
+    <div class="table-responsive" style="max-height:800px; overflow-y:auto;">
       <table class="table table-bordered table-hover table-sm">
         <thead class="table-dark">
           <tr>
@@ -97,6 +114,7 @@
             <th>Name</th>
             <th>Display Name</th>
             <th>HSN</th>
+            <th>Material</th>
             <th>CGST</th>
             <th>SGST</th>
             <th>IGST</th>
@@ -124,7 +142,7 @@
               </select>
             </th>
 
-            <th><input type="text" class="form-control form-control-sm column-filter" data-col="2"></th>
+            <th><input class="form-control form-control-sm column-filter" data-col="2"></th>
 
             <th>
               <select class="form-select form-select-sm column-filter" data-col="3">
@@ -135,13 +153,24 @@
               </select>
             </th>
 
-            <th><input type="text" class="form-control form-control-sm column-filter" data-col="4"></th>
-            <th><input type="text" class="form-control form-control-sm column-filter" data-col="5"></th>
-            <th><input type="text" class="form-control form-control-sm column-filter" data-col="6"></th>
-            <th><input type="text" class="form-control form-control-sm column-filter" data-col="7"></th>
+            <th>
+              <select class="form-select form-select-sm column-filter" data-col="4">
+                <option value="">All</option>
+                {% for i in unique_materials %}
+                  <option value="{{ i }}">{{ i }}</option>
+                {% endfor %}
+              </select>
+            </th>
+
+            <th><input class="form-control form-control-sm column-filter" data-col="5"></th>
+            <th><input class="form-control form-control-sm column-filter" data-col="6"></th>
+            <th><input class="form-control form-control-sm column-filter" data-col="7"></th>
+            <th><input class="form-control form-control-sm column-filter" data-col="8"></th>
 
             <th>
-              <button type="button" id="clear-filters" class="btn btn-warning btn-sm">Clear</button>
+              <button type="button" id="clear-filters" class="btn btn-warning btn-sm">
+                Clear
+              </button>
             </th>
           </tr>
         </thead>
@@ -153,12 +182,14 @@
             <td>{{ p.name }}</td>
             <td>{{ p.display_name }}</td>
             <td>{{ p.hsn }}</td>
+            <td>{{ p.material.name }}</td>
             <td>{{ p.cgst }}</td>
             <td>{{ p.sgst }}</td>
             <td>{{ p.igst }}</td>
             <td>{{ p.description }}</td>
             <td>
-              <button class="btn btn-primary btn-sm load-product" data-id="{{ p.id }}">Edit</button>
+              <button class="btn btn-primary btn-sm load-product"
+                      data-id="{{ p.id }}">Edit</button>
             </td>
           </tr>
           {% endfor %}
@@ -166,7 +197,6 @@
 
       </table>
     </div>
-
     {% else %}
       <p class="text-muted">No products found.</p>
     {% endif %}
@@ -175,22 +205,21 @@
 </main>
 
 <script>
-// Select Product Rows Container
-const productContainer = document.getElementById("product-rows");
-
 // ADD ROW
 document.getElementById("add-product").addEventListener("click", function () {
-  const firstRow = productContainer.querySelector(".product-row");
+  const container = document.getElementById("product-rows");
+  const firstRow = container.querySelector(".product-row");
   const newRow = firstRow.cloneNode(true);
   newRow.querySelectorAll("input").forEach(i => i.value = "");
-  productContainer.appendChild(newRow);
+  newRow.querySelectorAll("select").forEach(s => s.value = "");
+  container.appendChild(newRow);
 });
 
 // CLEAR ROW
 document.addEventListener("click", e => {
   if (e.target.classList.contains("clear-row")) {
     const row = e.target.closest(".product-row");
-    row.querySelectorAll("input").forEach(i => i.value = "");
+    row.querySelectorAll("input, select").forEach(el => el.value = "");
   }
 });
 
@@ -206,29 +235,32 @@ document.addEventListener("click", e => {
   }
 });
 
-// LOAD PRODUCT data
+// LOAD PRODUCT
 document.addEventListener("click", function (e) {
   if (!e.target.classList.contains("load-product")) return;
 
-  const id = e.target.dataset.id;
-
-  fetch(`/invoice/products/load/${id}/`)
+  fetch(`/invoice/products/load/${e.target.dataset.id}/`)
     .then(res => res.json())
     .then(data => {
-      const row = productContainer.querySelector(".product-row");
-      row.querySelector('input[name="code"]').value = data.code;
-      row.querySelector('input[name="name"]').value = data.name;
-      row.querySelector('input[name="display_name"]').value = data.display_name;
-      row.querySelector('input[name="hsn"]').value = data.hsn;
-      row.querySelector('input[name="cgst"]').value = data.cgst;
-      row.querySelector('input[name="sgst"]').value = data.sgst;
-      row.querySelector('input[name="igst"]').value = data.igst;
-      row.querySelector('input[name="description"]').value = data.description;
+      const row = document.querySelector(".product-row");
+      row.querySelector('[name="code"]').value = data.code;
+      row.querySelector('[name="name"]').value = data.name;
+      row.querySelector('[name="display_name"]').value = data.display_name;
+      row.querySelector('[name="hsn"]').value = data.hsn;
+      row.querySelector('[name="material"]').value = data.material;
+      row.querySelector('[name="cgst"]').value = data.cgst;
+      row.querySelector('[name="sgst"]').value = data.sgst;
+      row.querySelector('[name="igst"]').value = data.igst;
+      row.querySelector('[name="description"]').value = data.description;
 
-      const collapse = bootstrap.Collapse.getInstance(document.getElementById("productForm"))
-        || new bootstrap.Collapse(document.getElementById("productForm"), { toggle: false });
+      // Only show collapse if not already shown
+      const collapseEl = document.getElementById("productForm");
+      const bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, {toggle:false});
+      if (!collapseEl.classList.contains("show")) {
+      bsCollapse.show();
+      }
 
-      collapse.show();
+
     });
 });
 
@@ -239,33 +271,22 @@ document.querySelectorAll(".column-filter").forEach(f => {
 });
 
 function filterTable() {
-  const rows = document.querySelectorAll("tbody tr");
-
-  rows.forEach(row => {
+  document.querySelectorAll("tbody tr").forEach(row => {
     let visible = true;
-
     document.querySelectorAll(".column-filter").forEach(filter => {
-      const value = filter.value.toLowerCase().trim();
+      const val = filter.value.toLowerCase().trim();
       const col = filter.dataset.col;
-      const text = row.children[col].textContent.toLowerCase().trim();
-
-      if (value !== "") {
-        if (filter.tagName === "SELECT") {
-          if (text !== value) visible = false;
-        } else {
-          if (!text.includes(value)) visible = false;
-        }
-      }
+      const txt = row.children[col].textContent.toLowerCase().trim();
+      if (val && !txt.includes(val)) visible = false;
     });
-
     row.style.display = visible ? "" : "none";
   });
 }
 
-document.getElementById("clear-filters").addEventListener("click", function () {
+document.getElementById("clear-filters").onclick = () => {
   document.querySelectorAll(".column-filter").forEach(f => f.value = "");
   filterTable();
-});
+};
 </script>
 
 {% endblock %}

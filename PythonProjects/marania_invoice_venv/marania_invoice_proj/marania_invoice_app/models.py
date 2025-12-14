@@ -15,6 +15,9 @@ def current_indian_financial_year():
 
 
 # Create your models here.
+
+  
+
 class PartyRole(models.Model):
     role = models.CharField(max_length=255)
 
@@ -39,7 +42,37 @@ class Parties(models.Model):
     def __str__(self):
         return self.name
     
-   
+class Materials(models.Model):
+    code = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=255)
+    displayname = models.CharField(max_length=255, blank=True, null=True)
+
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00
+    )
+
+    gst = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        help_text="GST percentage (e.g. 9.00)"
+    )
+
+    supplier = models.ForeignKey(
+        Parties,
+        on_delete=models.PROTECT,
+        related_name='materials'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.code}-{self.name}"
+      
 class Configuration(models.Model):
     name = models.CharField(max_length=100, unique=True, null=False, blank=False)
     value = models.CharField(max_length=255, null=True, blank=True)
@@ -130,13 +163,20 @@ class Transportation(models.Model):
     def __str__(self):
         return f"{self.customer.name} - {self.delivery_place}-{self.transporter_name}-{self.is_default_transport}"
 
-
-
 class Product(models.Model):
     code = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=200)
     display_name = models.CharField(max_length=200, blank=True, null=True)
     hsn = models.CharField(max_length=20, blank=True, null=True)
+
+    # ✅ Reference Material here
+    material = models.ForeignKey(
+        Materials,
+        on_delete=models.PROTECT,
+        related_name='products',
+        null=True, # TODO temp 
+        blank=True # TODO temp 
+    )
 
     cgst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     sgst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
@@ -150,6 +190,7 @@ class Product(models.Model):
     def __str__(self):
         return f"{self.code}-{self.name}"
 
+ 
 class PriceCatalog(models.Model):
     product = models.ForeignKey(
         Product,
@@ -242,34 +283,6 @@ class CustomerPriceCatalog(models.Model):
         return f"{self.customer}-{self.price_catalog}"
     
 
-class Materials(models.Model):
-    code = models.CharField(max_length=50, unique=True)
-    name = models.CharField(max_length=255)
-    displayname = models.CharField(max_length=255, blank=True, null=True)
 
-    price = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=0.00
-    )
-
-    gst = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        blank=True,
-        null=True,
-        help_text="GST percentage (e.g. 9.00)"
-    )
-
-    supplier = models.ForeignKey(
-        Parties,
-        on_delete=models.PROTECT,
-        related_name='materials'
-    )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.code}-{self.name}"
     
+
