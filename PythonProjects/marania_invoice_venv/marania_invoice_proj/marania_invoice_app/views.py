@@ -745,41 +745,43 @@ def add_price_list(request):
             return redirect("add_price_list")
         else:
             messages.error(request, "Please correct the errors and try again.")
-
     else:
         formset = PriceListFormSet(queryset=PriceCatalog.objects.none())
 
     saved_prices = PriceCatalog.objects.all()
     products = Product.objects.all()
+
     unique_product_names = {f"{p.code}-{p.name}" for p in products}
-    unique_twine_codes = {f"{p.code}" for p in products}
-    unique_customer_group = {f"{p.customer_group}" for p in saved_prices}
-    filter_header = {'product_names':unique_product_names,
-                     'customer_groups':unique_customer_group,
-                     'twine_codes':unique_twine_codes}
-    
-    unique_customer_group = PriceCatalog
+    unique_customer_group = {p.customer_group for p in saved_prices}
 
-   
-    return render(request, "marania_invoice_app/price_catalog.html", {"formset": formset, 
-                                                                        'saved_prices': saved_prices,
-                                                                        'filter_header':filter_header,})
+    filter_header = {
+        'product_names': unique_product_names,
+        'customer_groups': unique_customer_group,
+    }
 
+    return render(
+        request,
+        "marania_invoice_app/price_catalog.html",
+        {
+            "formset": formset,
+            "saved_prices": saved_prices,
+            "filter_header": filter_header,
+        }
+    )
 
 def load_price_list(request, price_code):
     items = PriceCatalog.objects.filter(code=price_code).order_by("sequence_id")
-    print(items);
+
     data = {
         "items": [
             {
-                "product":  f"{p.twine_code}-{p.product.name}",  # adjust if FK
+                "product": f"{p.product.code}-{p.product.name}",
                 "sequence_id": p.sequence_id,
                 "code": p.code,
                 "customer_group": p.customer_group,
-                "twine_code": p.twine_code,
                 "mesh_size_start": p.mesh_size_start,
                 "mesh_size_end": p.mesh_size_end,
-                "price": str(p.price)
+                "price": str(p.price),
             }
             for p in items
         ]
@@ -787,63 +789,50 @@ def load_price_list(request, price_code):
 
     return JsonResponse(data)
 
-
-
 def save_price_list(request):
     if request.method != "POST":
         return JsonResponse({"error": "Invalid method"}, status=405)
-   
+
     try:
         data = json.loads(request.body)
         items = data.get("items", [])
         if not items:
             return JsonResponse({"error": "No items received"}, status=400)
 
-        # 1️⃣ Get the price code from first item
         price_code = items[0].get("code")
         if not price_code:
             return JsonResponse({"error": "Price code missing"}, status=400)
-       
-        # Convert to JSON string (optional)
+
         action = data.get("action")
 
-        # 2️⃣ DELETE ALL rows belonging to this price code
         PriceCatalog.objects.filter(code=price_code).delete()
-        # print(f"5.save price list called....{action}")
+
         if action == "delete":
             return JsonResponse({"status": "deleted"})
 
-    
-        # 3️⃣ INSERT NEW ROWS
         new_objs = []
         for item in items:
-            twine_code = item.get("twine_code")
             product_name = item.get("product")
             product_code = product_name.split("-")[0]
-                        
-            try:
-                product_obj = Product.objects.get(code=product_code)
-            except Product.DoesNotExist:
-                raise ValueError(f"Invalid product: {product_code}")
+
+            product_obj = Product.objects.get(code=product_code)
 
             new_objs.append(PriceCatalog(
                 product=product_obj,
                 sequence_id=item.get("sequence_id"),
                 code=item.get("code"),
                 customer_group=item.get("customer_group"),
-                twine_code=item.get("twine_code"),
                 mesh_size_start=item.get("mesh_size_start"),
                 mesh_size_end=item.get("mesh_size_end"),
                 price=item.get("price"),
             ))
 
         PriceCatalog.objects.bulk_create(new_objs)
-        return JsonResponse({"status": "saved", "deleted_old": True, "count": len(new_objs)})       
+        return JsonResponse({"status": "saved", "count": len(new_objs)})
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-
-   
+    
 def customer_price_catalog(request):
     customers = Parties.objects.all()
     price_catalogs = PriceCatalog.objects.all()

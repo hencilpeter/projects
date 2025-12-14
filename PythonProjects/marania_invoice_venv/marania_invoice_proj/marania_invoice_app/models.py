@@ -191,20 +191,22 @@ class Product(models.Model):
         return f"{self.code}-{self.name}"
 
  
+
 class PriceCatalog(models.Model):
     product = models.ForeignKey(
         Product,
-        related_name='items',      # allows product.items.all()
-        on_delete=models.CASCADE,  # deletes items if product is deleted
-        to_field='code'  # optional: link by product_code instead of id
-        )
+        related_name='items',
+        on_delete=models.CASCADE,
+        to_field='code'
+    )
     code = models.CharField(max_length=50)
     customer_group = models.CharField(max_length=100)
     sequence_id = models.PositiveIntegerField()
-    twine_code = models.CharField(max_length=50)
-    mesh_size_start = models.CharField(max_length=5) # models.DecimalField(max_digits=10, decimal_places=2)
-    mesh_size_end =   models.CharField(max_length=5) # models.DecimalField(max_digits=10, decimal_places=2)
+
+    mesh_size_start = models.CharField(max_length=5)
+    mesh_size_end = models.CharField(max_length=5)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+
     is_active = models.BooleanField(default=True)
     note = models.TextField(blank=True, null=True)
 
@@ -218,7 +220,7 @@ class PriceCatalog(models.Model):
 
     def __str__(self):
         return f"{self.code}-{self.customer_group}"
-    
+
 
 class CompanySettings(models.Model):
     # Ensure only one row exists

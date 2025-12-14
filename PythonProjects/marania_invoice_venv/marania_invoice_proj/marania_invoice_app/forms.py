@@ -393,7 +393,6 @@ class PriceListForm(forms.ModelForm):
             "code",
             "customer_group",
             "sequence_id",
-            "twine_code",
             "mesh_size_start",
             "mesh_size_end",
             "price",

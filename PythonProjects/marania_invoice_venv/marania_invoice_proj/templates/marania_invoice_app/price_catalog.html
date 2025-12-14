@@ -79,7 +79,6 @@
                             <th>Seq</th>
                             <th>Price Code</th>
                             <th>Customer Group</th>
-                            <th>Twine</th>
                             <th>Mesh Start</th>
                             <th>Mesh End</th>
                             <th>Price</th>
@@ -95,7 +94,6 @@
                             <td>{{ form.sequence_id }}</td>
                             <td>{{ form.code }}</td>
                             <td>{{ form.customer_group }}</td>
-                            <td>{{ form.twine_code }}</td>
                             <td>{{ form.mesh_size_start }}</td>
                             <td>{{ form.mesh_size_end }}</td>
                             <td>{{ form.price }}</td>
@@ -144,14 +142,6 @@
                             {% endfor %}
                         </select>
                     </th>
-                    <th>
-                        <select class="filter-select" data-col="4">
-                            <option value="">All Twines</option>
-                            {% for item in filter_header.twine_codes %}
-                                <option value="{{ item }}">{{ item }}</option>
-                            {% endfor %}
-                        </select>
-                    </th>
                     <th><input type="text" class="filter-input" placeholder="Mesh Start" data-col="5"></th>
                     <th><input type="text" class="filter-input" placeholder="Mesh End" data-col="6"></th>
                     <th><input type="text" class="filter-input" placeholder="Price" data-col="7"></th>
@@ -168,7 +158,6 @@
                     <td>{{ p.sequence_id }}</td>
                     <td>{{ p.code }}</td>
                     <td>{{ p.customer_group }}</td>
-                    <td>{{ p.twine_code }}</td>
                     <td>{{ p.mesh_size_start }}</td>
                     <td>{{ p.mesh_size_end }}</td>
                     <td>{{ p.price }}</td>
@@ -199,7 +188,6 @@
             <td><input type="number" name="sequence_id" class="form-control seq-field" value="1"></td>
             <td><input type="text" name="code" class="form-control"></td>
             <td><input type="text" name="customer_group" class="form-control"></td>
-            <td><input type="text" name="twine_code" class="form-control"></td>
             <td><input type="text" name="mesh_size_start" class="form-control"></td>
             <td><input type="text" name="mesh_size_end" class="form-control"></td>
             <td><input type="text" name="price" class="form-control"></td>
