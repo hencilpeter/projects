@@ -8,7 +8,6 @@ path('parties',views.parties, name='parties'),
 path('parties/add/', views.create_party, name='create_party'),
 path('parties/load/<int:id>/', views.load_party, name='load_party'),
 
-
 # invoice 
 path('invoice_entry', views.invoice_entry, name='invoice_entry'),
 path('invoice_entry/save', views.invoice_save, name='invoice_save'),
@@ -20,17 +19,10 @@ path('invoice_entry/get_invoice/<str:invoice_number>/', views.get_invoice, name=
 # company settings 
 path('settings/company/', views.company_settings_view, name='company_settings'),
 
-
 # price  catalog 
  path("price-list/add/", views.add_price_list, name="add_price_list"),
  path("price-list/load/<str:price_code>", views.load_price_list, name="load_price_list"),
  path("price-list/save", views.save_price_list, name="save_price_list"),
-
-# customer price catalog 
-# path('customer-price-catalog/', views.customer_price_catalog, name='customer_price_catalog'),
-# path('customer-price-catalog/save/', views.customer_price_catalog_save, name='customer_price_catalog_save'),
-# path('customer-price-catalog/load/<str:price_code>/', views.customer_price_catalog_load, name='customer_price_catalog_load'),
-# path('customer-price-catalog/delete/<str:price_code>/', views.customer_price_catalog_delete, name='customer_price_catalog_delete'),
 
 # customer price catalog
 path('customer-price-catalog/', views.customer_price_catalog, name='customer_price_catalog'),
@@ -44,7 +36,8 @@ path("products/load/<int:id>/", views.load_product, name="load_product"),
 path("materials/", views.materials_view, name="materials"),
 path("materials/load/<int:pk>/", views.load_material, name="load_material"),
 
-#path("settings/company", views.company_settings_view, name="company_settings"),
+# view customer price dictionary
+path("customer-price-dictionary/", views.customer_price_dictionary_view,  name="customer_price_dictionary"  ),
 
 
 # path('login',views.login, name='login'),

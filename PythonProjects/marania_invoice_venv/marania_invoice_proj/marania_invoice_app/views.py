@@ -160,6 +160,90 @@ def get_product_dict():
 
     return products_dict
 
+def print_dict(d, indent=0):
+    for key, value in d.items():
+        print(" " * indent + str(key) + ":")
+        if isinstance(value, dict):
+            print_dict(value, indent + 4)
+        else:
+            print(" " * (indent + 4) + str(value))
+
+
+# def get_customer_price_dictionary():
+
+#     customer_price_dict = defaultdict(lambda:-1)
+
+#     # [customercode][product_code]
+#     for customer_price_catalog in CustomerPriceCatalog.objects.all():
+#         # 1. initialize the dictionary entry 
+#         if customer_price_dict[customer_price_catalog.customer.code]  == -1 :
+#             customer_price_dict[customer_price_catalog.customer.code] = defaultdict(lambda:-1)
+
+#         # 2. initialize the product details 
+#         product_code = customer_price_catalog.price_catalog.product.code
+#         if customer_price_dict[customer_price_catalog.customer.code][product_code]  == -1 :
+#             customer_price_dict[customer_price_catalog.customer.code][product_code] = defaultdict(lambda:-1)
+
+#         # 3 populate the price details 
+#         price_code = customer_price_catalog.price_catalog.code
+#         price_dict = defaultdict(lambda:-1)
+#         price_item = {}
+#         for price_item in PriceCatalog.objects.filter(code=price_code):
+#             size_range = price_item.mesh_size_start+"-"+price_item.mesh_size_end
+#             price_item = {  "price":str(price_item.price),
+#                             "price_code":price_code,
+#                             "sequence_id":customer_price_catalog.price_catalog.sequence_id,
+#                             "customer_group": str(price_item.customer_group),
+#                             "colour_extra_price": customer_price_catalog.colour_extra_price,
+#                             "small_mesh_size_extra_price":customer_price_catalog.small_mesh_size_extra_price,
+#                             "gst_included":customer_price_catalog.gst_included
+#                         }
+            
+#             price_dict[size_range] = price_item
+
+#         customer_price_dict[customer_price_catalog.customer.code][product_code] = price_dict
+
+
+#     print_dict(d=customer_price_dict)
+#     return customer_price_dict
+
+
+def get_customer_price_dictionary():
+
+    customer_price_dict = defaultdict(lambda: -1)
+
+    # [customer_code][product_code][size_range] = price details
+    for customer_price_catalog in CustomerPriceCatalog.objects.all():
+
+        customer_code = customer_price_catalog.customer.code
+
+        if customer_price_dict[customer_code] == -1:
+            customer_price_dict[customer_code] = defaultdict(lambda: -1)
+
+        product_code = customer_price_catalog.price_catalog.product.code
+
+        if customer_price_dict[customer_code][product_code] == -1:
+            customer_price_dict[customer_code][product_code] = {}
+
+        price_code = customer_price_catalog.price_catalog.code
+
+        for price_item in PriceCatalog.objects.filter(code=price_code):
+            size_range = f"{price_item.mesh_size_start}-{price_item.mesh_size_end}"
+
+            customer_price_dict[customer_code][product_code][size_range] = {
+                "price": price_item.price,
+                "price_code": price_code,
+                "sequence_id": price_item.sequence_id,
+                "customer_group": price_item.customer_group,
+                "customer_name":customer_price_catalog.customer.name,
+                "colour_extra_price": customer_price_catalog.colour_extra_price,
+                "small_mesh_size_extra_price": customer_price_catalog.small_mesh_size_extra_price,
+                "gst_included": customer_price_catalog.gst_included,
+            }
+
+    # print_dict(d=customer_price_dict)
+    return customer_price_dict
+
 
 ########################################################-Helper Functions-############
 def number_to_words(num):
@@ -316,6 +400,8 @@ def dashboard(request):
         "catalog_group_counts": catalog_group_counts,
     }
 
+    #TODO - check customer price catalog
+    get_customer_price_dictionary()
     return render(request, "marania_invoice_app/dashboard.html", context)
 
 
@@ -411,6 +497,8 @@ def invoice_entry(request):
         #     price_dict[price_item.twine_code][price_item.code] = [price_item_dict]
         # else:
         #     price_dict[price_item.twine_code][price_item.code].append(price_item_dict)
+
+
 
     summary_data = invoice_summary()
     context = {'invoice_form': forms.InvoiceForm(initial={'invoice_number':get_next_invoice_number}) , 
@@ -1047,6 +1135,57 @@ def load_product(request, id):
         "igst": str(p.igst),
         "description": p.description,
     })
+
+
+def customer_price_dictionary_view(request):
+    price_dict = get_customer_price_dictionary()
+
+    rows = []
+
+    for customer_code, products in price_dict.items():
+        for product_code, sizes in products.items():
+            for size_range, details in sizes.items():
+                rows.append({
+                    "customer_code": customer_code,
+                    "customer_name": details.get("customer_name"),
+                     "customer_group": details.get("customer_group"),
+                    "product": product_code,
+                    "size_range": size_range,
+                    "price": details.get("price"),
+                    "price_code": details.get("price_code"),
+                    "sequence_id": details.get("sequence_id"),
+                    # "customer_group": details.get("customer_group"),
+                    "colour_extra_price": details.get("colour_extra_price"),
+                    "small_mesh_size_extra_price": details.get("small_mesh_size_extra_price"),
+                    "gst_included": details.get("gst_included"),
+                })
+
+    return render(
+        request,
+        "marania_invoice_app/view_customer_price_dictionary.html",
+        {"rows": rows}
+    )
+
+    # price_dict = get_customer_price_dictionary()
+
+    # rows = []
+
+    # for customer, products in price_dict.items():
+    #     for product, sizes in products.items():
+    #         for size_range, details in sizes.items():
+    #             rows.append({
+    #                 "customer": customer,
+    #                 "product": product,
+    #                 "size_range": size_range,
+    #                 **details
+    #             })
+
+    # return render(
+    #     request,
+    #     "marania_invoice_app/view_customer_price_dictionary.html",
+    #     {"rows": rows}
+    # )
+
 
 # def product_master(request):
 #     products = Product.objects.all()
