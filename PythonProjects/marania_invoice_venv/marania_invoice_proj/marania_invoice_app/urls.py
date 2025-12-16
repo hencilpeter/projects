@@ -38,6 +38,7 @@ path("materials/load/<int:pk>/", views.load_material, name="load_material"),
 
 # view customer price dictionary
 path("customer-price-dictionary/", views.customer_price_dictionary_view,  name="customer_price_dictionary"  ),
+path("customer-price-dictionary_invoice/", views.customer_price_dictionary_view_invoice,  name="customer_price_dictionary_invoice"),
 
 
 # path('login',views.login, name='login'),

@@ -325,6 +325,11 @@ function loadInvoice(invoiceNumber) {
 }
 
 
+function populateItemRow(){
+
+
+}
+
 function ReviewAndDeriveValues(){
   let errors = [];
 
@@ -453,7 +458,13 @@ function showGSTCalculator() {
 
 function showPriceList() {
     // Your tax calculation logic here
-    alert("Price List!");
+    //alert("Price List!");
+    //const url = `/invoice/invoice_entry/show_gst_calculator`;
+    const url = `/invoice/customer-price-dictionary_invoice`;
+    window.open(url, 'CalculatorPopup', 'width=1000,height=750,top=100,left=200,resizable=yes,scrollbars=yes');
+    
+
+
 }
 
 const customerData = JSON.parse('{{ customer_dict|escapejs }}');
