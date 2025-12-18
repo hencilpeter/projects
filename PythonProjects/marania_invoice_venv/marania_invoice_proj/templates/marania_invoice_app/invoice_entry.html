@@ -156,6 +156,14 @@
                 <div class="group-title">INVOICE ITEMS</div>
                 <div id="item-container"></div>
                 <button type="button" id="add-item" class="btn btn-secondary btn-sm mt-2">+ Add Another Item</button>
+                <!-- 🔥 NEW TOTALS PANEL -->
+                <div class="invoice-totals d-flex gap-4">
+                  <div><b>Qty:</b> <span id="total-qty">0</span></div>
+                  <div><b>Sub Total:</b> ₹ <span id="total-sub">0.00</span></div>
+                  <div><b>GST:</b> ₹ <span id="total-gst">0.00</span></div>
+                  <div><b>Grand Total:</b> ₹ <span id="grand-total">0.00</span></div>
+                </div>
+
               </div>
 
               <!-- Submit & Reset -->
@@ -694,6 +702,8 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
     getField('item_gst_amount[]').value = gst_amount.toFixed(2);
     getField('item_total_with_gst[]').value = total_amount.toFixed(2);
 
+    recalculateInvoiceTotals();
+
 });
 
     container.appendChild(row);
@@ -707,7 +717,36 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
     } else if(e.target.classList.contains('clear-item')){
       e.target.closest('.item-row').querySelectorAll('input').forEach(inp=>inp.value='');
     }
+    recalculateInvoiceTotals();
   });
+
+  function recalculateInvoiceTotals() {
+
+    let qtyEls = document.getElementsByName("item_quantity[]");
+    let priceEls = document.getElementsByName("item_price[]");
+    let gstEls = document.getElementsByName("item_gst_amount[]");
+
+    let totalQty = 0;
+    let subTotal = 0;
+    let totalGST = 0;
+
+    for (let i = 0; i < qtyEls.length; i++) {
+        let qty = Number(qtyEls[i].value) || 0;
+        let price = Number(priceEls[i].value) || 0;
+        let gst = Number(gstEls[i].value) || 0;
+
+        totalQty += qty;
+        subTotal += qty * price;
+        totalGST += gst;
+    }
+
+    document.getElementById("total-qty").innerText = totalQty;
+    document.getElementById("total-sub").innerText = subTotal.toFixed(2);
+    document.getElementById("total-gst").innerText = totalGST.toFixed(2);
+    document.getElementById("grand-total").innerText =
+        (subTotal + totalGST).toFixed(2);
+}
+
 </script>
 
 
