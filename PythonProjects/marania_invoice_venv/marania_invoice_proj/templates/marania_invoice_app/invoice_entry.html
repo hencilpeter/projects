@@ -325,124 +325,234 @@ function loadInvoice(invoiceNumber) {
 }
 
 
-function ReviewAndDeriveValues(){
-  let errors = [];
+// function ReviewAndDeriveValues(){
+//   let errors = [];
+
+//     // ------------------------------
+//     // Helper functions
+//     // ------------------------------
+//     const isEmpty = (v) => v === null || v.trim() === "";
+//     const isNumber = (v) => !isNaN(v) && v !== "";
+//     const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+//     const isValidDate = (v) => !isNaN(Date.parse(v));
+//     const isValidGST = (v) => /^[0-9A-Z]{15}$/.test(v);  // adjust if your GST format differs
+
+//     // ------------------------------
+//     // Validate Main Invoice Fields
+//     // ------------------------------
+//     let invoice_number = document.querySelector('input[name="invoice_number"]').value;
+//     if (isEmpty(invoice_number) || !isNumber(invoice_number)) {
+//         errors.push("Invoice Number must be a valid number.");
+//     }
+
+//     let invoice_date = document.querySelector('input[name="invoice_date"]').value;
+//     if (isEmpty(invoice_date) || !isValidDate(invoice_date)) {
+//         errors.push("Invoice Date is invalid.");
+//     }
+
+//     // ------------------------------
+//     // Validate Customer Fields
+//     // ------------------------------
+//     let customer_code = document.querySelector('input[name="customer_code"]').value;
+//     if (isEmpty(customer_code)) errors.push("Customer Code is required.");
+
+//     let customer_name = document.querySelector('input[name="customer_name"]').value;
+//     if (isEmpty(customer_name)) errors.push("Customer Name is required.");
+
+//     let customer_gst = document.querySelector('input[name="customer_gst"]').value;
+//     if (!isEmpty(customer_gst) && !isValidGST(customer_gst)) {
+//         errors.push("Customer GST format is invalid (must be 15 characters).");
+//     }
+
+//     let customer_email = document.querySelector('input[name="customer_email"]').value;
+//     if (!isEmpty(customer_email) && !isValidEmail(customer_email)) {
+//         errors.push("Customer Email is invalid.");
+//     }
+
+//     // ------------------------------
+//     // Validate Ship-To Fields
+//     // ------------------------------
+//     let shipEmail = document.querySelector('input[name="ship_to_customer_email"]').value;
+//     if (!isEmpty(shipEmail) && !isValidEmail(shipEmail)) {
+//         errors.push("Ship To Email is invalid.");
+//     }
+
+//     // ------------------------------
+//     // Validate Item Rows
+//     // ------------------------------
+//     let item_codes = document.getElementsByName("item_code[]");
+//     let item_qty = document.getElementsByName("item_quantity[]");
+//     let item_price = document.getElementsByName("item_price[]");
+//     let gst_amounts = document.getElementsByName("item_gst_amount[]");
+//     let totals_with_gst = document.getElementsByName("item_total_with_gst[]");
+//     let hsn_code = document.getElementsByName("item_hsn_code[]");
+
+
+//     for (let i = 0; i < item_codes.length; i++) {
+
+//         let code = item_codes[i].value.trim();
+//         let qty = item_qty[i].value.trim();
+//         let price = item_price[i].value.trim();
+//         let gst = gst_amounts[i].value.trim();
+//         let total = totals_with_gst[i].value.trim();
+
+//         if (isEmpty(code)) {
+//             errors.push(`Item row ${i + 1}: Item Code is required.`);
+//         }
+
+//         if (isEmpty(qty) || (!isEmpty(qty) && !isNumber(qty))) {
+//             errors.push(`Item row ${i + 1}: Quantity must be numeric.`);
+//         }
+
+//         if (isEmpty(price) || (!isEmpty(price) && !isNumber(price))) {
+//             errors.push(`Item row ${i + 1}: Price must be numeric.`);
+//         }
+
+//         //Derive the values 
+//         if ((!isEmpty(qty) && isNumber(qty)) && ((!isEmpty(price) && isNumber(price)))){
+//           // derive the GST amount (TODO: read from the system table) 
+//           gst_amounts[i].value = (qty * price ) * .05
+
+//           // derive the sub total 
+//           totals_with_gst[i].value = (qty * price ) * 1.05
+
+//         }
+
+//         if (!isEmpty(code)) {
+//           // derive the value - TODO read from table and decide
+//           hsn_code[i].value = 5808
+          
+//         }
+
+//     }
+
+//     // ------------------------------
+//     // Display Errors (if any)
+//     // ------------------------------
+//     if (errors.length > 0) {
+//         alert("Please correct the following:\n\n" + errors.join("\n"));
+//         return false;   // Stop form submission
+//     }
+
+//     return true; // All good
+// }
+
+function ReviewAndDeriveValues() {
+    let errors = [];
 
     // ------------------------------
-    // Helper functions
+    // Helpers
     // ------------------------------
     const isEmpty = (v) => v === null || v.trim() === "";
     const isNumber = (v) => !isNaN(v) && v !== "";
-    const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-    const isValidDate = (v) => !isNaN(Date.parse(v));
-    const isValidGST = (v) => /^[0-9A-Z]{15}$/.test(v);  // adjust if your GST format differs
 
     // ------------------------------
-    // Validate Main Invoice Fields
+    // Load Dictionaries
     // ------------------------------
-    let invoice_number = document.querySelector('input[name="invoice_number"]').value;
-    if (isEmpty(invoice_number) || !isNumber(invoice_number)) {
-        errors.push("Invoice Number must be a valid number.");
-    }
+    const product_dict = JSON.parse('{{ product_dict|escapejs }}');
+    const customer_dict = JSON.parse('{{ customer_dict|escapejs }}');
+    const customer_price_dict = JSON.parse('{{ customer_price_dict|escapejs }}');
 
-    let invoice_date = document.querySelector('input[name="invoice_date"]').value;
-    if (isEmpty(invoice_date) || !isValidDate(invoice_date)) {
-        errors.push("Invoice Date is invalid.");
-    }
+    const customerCodeInput = document.querySelector('input[name="customer_code"]').value;
 
     // ------------------------------
-    // Validate Customer Fields
-    // ------------------------------
-    let customer_code = document.querySelector('input[name="customer_code"]').value;
-    if (isEmpty(customer_code)) errors.push("Customer Code is required.");
-
-    let customer_name = document.querySelector('input[name="customer_name"]').value;
-    if (isEmpty(customer_name)) errors.push("Customer Name is required.");
-
-    let customer_gst = document.querySelector('input[name="customer_gst"]').value;
-    if (!isEmpty(customer_gst) && !isValidGST(customer_gst)) {
-        errors.push("Customer GST format is invalid (must be 15 characters).");
-    }
-
-    let customer_email = document.querySelector('input[name="customer_email"]').value;
-    if (!isEmpty(customer_email) && !isValidEmail(customer_email)) {
-        errors.push("Customer Email is invalid.");
-    }
-
-    // ------------------------------
-    // Validate Ship-To Fields
-    // ------------------------------
-    let shipEmail = document.querySelector('input[name="ship_to_customer_email"]').value;
-    if (!isEmpty(shipEmail) && !isValidEmail(shipEmail)) {
-        errors.push("Ship To Email is invalid.");
-    }
-
-    // ------------------------------
-    // Validate Item Rows
+    // Item Fields
     // ------------------------------
     let item_codes = document.getElementsByName("item_code[]");
     let item_qty = document.getElementsByName("item_quantity[]");
     let item_price = document.getElementsByName("item_price[]");
     let gst_amounts = document.getElementsByName("item_gst_amount[]");
     let totals_with_gst = document.getElementsByName("item_total_with_gst[]");
-    let hsn_code = document.getElementsByName("item_hsn_code[]");
+    let hsn_codes = document.getElementsByName("item_hsn_code[]");
+    let mesh_sizes = document.getElementsByName("item_mesh_size[]");
 
-
+    // ------------------------------
+    // Loop Items
+    // ------------------------------
     for (let i = 0; i < item_codes.length; i++) {
 
         let code = item_codes[i].value.trim();
-        let qty = item_qty[i].value.trim();
-        let price = item_price[i].value.trim();
-        let gst = gst_amounts[i].value.trim();
-        let total = totals_with_gst[i].value.trim();
+        let qty = Number(item_qty[i].value);
+        let price = Number(item_price[i].value);
+        let mesh_size = Number(mesh_sizes[i].value);
 
+        // ---------- Validations ----------
         if (isEmpty(code)) {
             errors.push(`Item row ${i + 1}: Item Code is required.`);
+            continue;
         }
 
-        if (isEmpty(qty) || (!isEmpty(qty) && !isNumber(qty))) {
+        if (!isNumber(qty) || qty <= 0) {
             errors.push(`Item row ${i + 1}: Quantity must be numeric.`);
+            continue;
         }
 
-        if (isEmpty(price) || (!isEmpty(price) && !isNumber(price))) {
+        // ---------- Populate HSN ----------
+        if (product_dict[code]) {
+            hsn_codes[i].value = product_dict[code].hsn;
+        }
+
+        // ---------- Auto Price if Empty ----------
+        if ((!price || price === 0) &&
+            customerCodeInput &&
+            customer_price_dict[customerCodeInput] &&
+            customer_price_dict[customerCodeInput][code]) {
+
+            const priceConfig = customer_price_dict[customerCodeInput][code];
+
+            Object.entries(priceConfig).forEach(([range, value]) => {
+                const [startStr, endStr] = range.split("-");
+                const start = Number(startStr);
+                const end = endStr === "999" ? Infinity : Number(endStr);
+
+                if (mesh_size >= start && mesh_size <= end) {
+                    price = Number(value.price) || 0;
+                    item_price[i].value = price;
+                }
+            });
+        }
+
+        if (!isNumber(price) || price <= 0) {
             errors.push(`Item row ${i + 1}: Price must be numeric.`);
+            continue;
         }
 
-        //Derive the values 
-        if ((!isEmpty(qty) && isNumber(qty)) && ((!isEmpty(price) && isNumber(price)))){
-          // derive the GST amount (TODO: read from the system table) 
-          gst_amounts[i].value = (qty * price ) * .05
+        // ---------- GST Calculation ----------
+        let gst_percentage = 0;
 
-          // derive the sub total 
-          totals_with_gst[i].value = (qty * price ) * 1.05
+        if (product_dict[code]) {
+            const is_within_state =
+                customer_dict[customerCodeInput]?.is_within_state;
 
+            if (is_within_state) {
+                gst_percentage =
+                    Number(product_dict[code].cgst) +
+                    Number(product_dict[code].sgst);
+            } else {
+                gst_percentage = Number(product_dict[code].igst);
+            }
         }
 
-        if (!isEmpty(code)) {
-          // derive the value - TODO read from table and decide
-          hsn_code[i].value = 5808
-          
-        }
+        // ---------- Amount Calculation ----------
+        let base_amount = qty * price;
+        let gst_amount = base_amount * gst_percentage / 100;
+        let total_amount = base_amount + gst_amount;
 
-        // if (!isEmpty(gst) && !isNumber(gst)) {
-        //     errors.push(`Item row ${i + 1}: GST Amount must be numeric.`);
-        // }
-
-        // if (!isEmpty(total) && !isNumber(total)) {
-        //     errors.push(`Item row ${i + 1}: Total With GST must be numeric.`);
-        // }
+        gst_amounts[i].value = gst_amount.toFixed(2);
+        totals_with_gst[i].value = total_amount.toFixed(2);
     }
 
     // ------------------------------
-    // Display Errors (if any)
+    // Errors
     // ------------------------------
     if (errors.length > 0) {
         alert("Please correct the following:\n\n" + errors.join("\n"));
-        return false;   // Stop form submission
+        return false;
     }
 
-    return true; // All good
+    return true;
 }
+
 
 function showGSTCalculator() {
     // Your tax calculation logic here    
@@ -797,11 +907,11 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
         }
     }
 
-    gst_amount = (quantity * price) * gst_percentage;
+    gst_amount = (quantity * price) * gst_percentage/100.0;
     total_amount = (quantity * price) + gst_amount;
 
-    getField('item_gst_amount[]').value = gst_amount;
-    getField('item_total_with_gst[]').value = total_amount;
+    getField('item_gst_amount[]').value = gst_amount.toFixed(2);
+    getField('item_total_with_gst[]').value = total_amount.toFixed(2);
 
 });
 
