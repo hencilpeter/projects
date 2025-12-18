@@ -325,11 +325,6 @@ function loadInvoice(invoiceNumber) {
 }
 
 
-function populateItemRow(){
-
-
-}
-
 function ReviewAndDeriveValues(){
   let errors = [];
 
@@ -457,9 +452,7 @@ function showGSTCalculator() {
 }
 
 function showPriceList() {
-    // Your tax calculation logic here
     //alert("Price List!");
-    //const url = `/invoice/invoice_entry/show_gst_calculator`;
     const url = `/invoice/customer-price-dictionary_invoice`;
     window.open(url, 'CalculatorPopup', 'width=1000,height=750,top=100,left=200,resizable=yes,scrollbars=yes');
     
@@ -610,117 +603,207 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
     `;
 
-      // Enable lost focus event
-  row.querySelector('.item-spec').addEventListener('blur', function () {
+//       // Enable lost focus event
+//   row.querySelector('.item-spec').addEventListener('blur', function () {
     
-    const index = row.dataset.index;  // reads data-index
-    console.log("Current index:", index)
-    const message = this.parentElement.querySelector('.spec-message');
-    current_item_spec = document.getElementsByName('item_spec[]')[index].value;
+//     const index = row.dataset.index;  // reads data-index
+//     console.log("Current index:", index)
+//     const message = this.parentElement.querySelector('.spec-message');
+//     current_item_spec = document.getElementsByName('item_spec[]')[index].value;
 
-      // Split the string by '/'
+//       // Split the string by '/'
+//     const parts = current_item_spec.split('/');
+
+//     quantity = 0;
+//     price = 0; 
+//     gst_percentage = 0;
+//     gst_amount = 0
+//     total_amount = 0
+
+//     const product_dict = JSON.parse('{{ product_dict|escapejs }}');
+
+//      if (parts.length > 0){
+//          if (product_dict[parts[0]] ){
+//             document.getElementsByName('item_code[]')[index].value = parts[0];
+//             document.getElementsByName('item_description[]')[index].value = product_dict[parts[0]]['display_name'];
+//             document.getElementsByName('item_hsn_code[]')[index].value = product_dict[parts[0]]['hsn'];
+//          }
+//       }
+
+//       if (parts.length >= 1){
+//         document.getElementsByName('item_mesh_size[]')[index].value = parts[1];
+//       }
+
+//       if (parts.length >= 2){
+//          document.getElementsByName('item_mesh_depth[]')[index].value = parts[2];
+//        }
+
+//      if (parts.length >= 3){
+//       document.getElementsByName('item_quantity[]')[index].value = parts[3];
+//       quantity = parts[3];
+//      }
+
+//      if (parts.length >= 4){
+//        document.getElementsByName('item_price[]')[index].value =  parts[4] ;
+//        price = parts[4] ;
+//      }
+
+//      //populate the customer price if the user does not enter 
+//      if ( document.getElementsByName('item_price[]')[index].value == "" ) 
+//      {
+//       const customer_price_dict = JSON.parse('{{ customer_price_dict|escapejs }}');
+//       const customerCodeInput = document.querySelector('input[name="customer_code"]').value;
+//       const item_code = document.getElementsByName('item_code[]')[index].value;
+
+//       //alert("user does not enter the price...")
+//       //document.getElementsByName('item_price[]')[index].value = 999
+
+//       if ( customerCodeInput != ""  && item_code != "") {
+//         const mesh_size = Number(document.getElementsByName('item_mesh_size[]')[index].value);
+//         if (customer_price_dict[customerCodeInput] && customer_price_dict[customerCodeInput][item_code])
+//         {
+//            temp_customer_price_dict =  customer_price_dict[customerCodeInput][item_code]
+//            console.log(temp_customer_price_dict)
+
+//             Object.entries(temp_customer_price_dict).forEach(([key, value]) => {
+//               console.log(key, value);
+//                // Split the key if needed
+//                const parts = key.split("-"); // ["15", "16"]
+//                const start = Number(parts[0]);
+//                const end = parts[1] == '999' ? Infinity: Number(parts[1]); 
+              
+//               if ( mesh_size >= start && (mesh_size <= end) ) {
+//                 const product_price = value["price"];
+//                 price = product_price; 
+//                 document.getElementsByName('item_price[]')[index].value = price;
+//                 console.log(`configured price selected : ${price}`);
+//               }
+
+//               });
+
+//         } 
+//       } 
+
+
+//      }
+
+//     product_code =  document.getElementsByName('item_code[]')[index].value
+//     if (product_dict[product_code] && quantity != 0 && price != 0)
+//     {
+//       const customerCodeInput = document.querySelector('input[name="customer_code"]').value;
+      
+//       const customer_dict = JSON.parse('{{ customer_dict|escapejs }}');
+//       is_within_state = customer_dict[customerCodeInput]["is_within_state"]
+//       if (is_within_state) 
+//         gst_percentage = Number(product_dict[product_code]["cgst"]) + Number(product_dict[product_code]["sgst"]);
+//       else 
+//         gst_percentage = Number(product_dict[product_code]["igst"]); 
+      
+//     }
+           
+//     console.log(gst_percentage)
+//     gst_amount = (quantity * price ) * gst_percentage;
+//     total_amount = (quantity * price ) + gst_amount;
+//     console.log(`Price: ${price}`);
+//     document.getElementsByName('item_gst_amount[]')[index].value = gst_amount;
+//     document.getElementsByName('item_total_with_gst[]')[index].value = total_amount;
+
+
+// })
+
+// Enable lost focus event
+row.querySelector('.item-spec').addEventListener('blur', function () {
+
+    const index = row.dataset.index;
+    console.log("Current index:", index);
+
+    // ---------- Helpers ----------
+    const getField = (name) => document.getElementsByName(name)[index];
+
+    // ---------- Initial Values ----------
+    let quantity = 0;
+    let price = 0;
+    let gst_percentage = 0;
+    let gst_amount = 0;
+    let total_amount = 0;
+
+    const product_dict = JSON.parse('{{ product_dict|escapejs }}');
+    const customer_dict = JSON.parse('{{ customer_dict|escapejs }}');
+    const customer_price_dict = JSON.parse('{{ customer_price_dict|escapejs }}');
+
+    const current_item_spec = getField('item_spec[]').value;
     const parts = current_item_spec.split('/');
 
-    quantity = 0;
-    price = 0; 
-    gst_percentage = 5/100;
-    gst_amount = 0
-    total_amount = 0
-    if (parts.length >= 5){
-      if ( (parts.length == 5) && (parts[0].startsWith("DK16") || parts[0].startsWith("DK20")))
-      {
-         document.getElementsByName('item_description[]')[index].value = "Mono Filament Fishnet"; 
-      }
-      else if (parts[0].startsWith("DK16") || parts[0].startsWith("DK20")) {
-              document.getElementsByName('item_description[]')[index].value = "Mono Filament Fishnet ( " + parts[5] + " )";
-          }  
+    // ---------- Populate Product Details ----------
+    if (parts.length > 0 && product_dict[parts[0]]) {
+        getField('item_code[]').value = parts[0];
+        getField('item_description[]').value = product_dict[parts[0]].display_name;
+        getField('item_hsn_code[]').value = product_dict[parts[0]].hsn;
     }
 
-    if (parts.length >= 4){
-      document.getElementsByName('item_price[]')[index].value =  parts[4] ;
-      price = parts[4] ;
+    if (parts.length >= 2) getField('item_mesh_size[]').value = parts[1];
+    if (parts.length >= 3) getField('item_mesh_depth[]').value = parts[2];
+
+    if (parts.length >= 4) {
+        quantity = Number(parts[3]) || 0;
+        getField('item_quantity[]').value = quantity;
     }
 
-    if (parts.length >= 3){
-     document.getElementsByName('item_quantity[]')[index].value = parts[3];
-     quantity = parts[3];
+    if (parts.length >= 5) {
+        price = Number(parts[4]) || 0;
+        getField('item_price[]').value = price;
+    }
+    // ---------- Auto Price from Customer Price Dictionary ----------
+    if (getField('item_price[]').value === "" || getField('item_price[]').value === "0") {
+        const customerCodeInput = document.querySelector('input[name="customer_code"]').value;
+        const item_code = getField('item_code[]').value;
+        const mesh_size = Number(getField('item_mesh_size[]').value);
+        if (customerCodeInput && item_code &&
+            customer_price_dict[customerCodeInput] &&
+            customer_price_dict[customerCodeInput][item_code]) {
+
+            const temp_customer_price_dict =
+                customer_price_dict[customerCodeInput][item_code];
+
+            Object.entries(temp_customer_price_dict).forEach(([key, value]) => {
+
+                const [startStr, endStr] = key.split("-");
+                const start = Number(startStr);
+                const end = endStr === '999' ? Infinity : Number(endStr);
+
+                if (mesh_size >= start && mesh_size <= end) {
+                    price = Number(value.price) || 0;
+                    getField('item_price[]').value = price;
+                    console.log(`configured price selected : ${price}`);
+                }
+            });
+        }
     }
 
-    if (parts.length >= 2){
-      document.getElementsByName('item_mesh_depth[]')[index].value = parts[2];
+    // ---------- GST Calculation ----------
+    const product_code = getField('item_code[]').value;
+
+    if (product_dict[product_code] && quantity > 0 && price > 0) {
+
+        const customerCodeInput = document.querySelector('input[name="customer_code"]').value;
+        const is_within_state = customer_dict[customerCodeInput].is_within_state;
+
+        if (is_within_state) {
+            gst_percentage =
+                Number(product_dict[product_code].cgst) +
+                Number(product_dict[product_code].sgst);
+        } else {
+            gst_percentage = Number(product_dict[product_code].igst);
+        }
     }
-     
-    if (parts.length >= 1){
-      document.getElementsByName('item_mesh_size[]')[index].value = parts[1];
-    }
 
-    if (parts.length >= 0){
-      document.getElementsByName('item_code[]')[index].value = parts[0];
-    }
+    gst_amount = (quantity * price) * gst_percentage;
+    total_amount = (quantity * price) + gst_amount;
 
-    // read price details 
-    if (document.getElementsByName('item_code[]')[index].value != "")
-    {
-      const price_dict = JSON.parse('{{ price_dict|escapejs }}');
-      const customerCodeInput = document.querySelector('input[name="customer_code"]').value;
-      const item_code = document.getElementsByName('item_code[]')[index].value;
-      const customerData = JSON.parse('{{ customer_dict|escapejs }}');
+    getField('item_gst_amount[]').value = gst_amount;
+    getField('item_total_with_gst[]').value = total_amount;
 
-      customerdata = customerData[customerCodeInput];
-      
-      console.log("item code is not empty.." + customerCodeInput);
-      console.log("item code" + item_code);
-      console.log("price_dict" + price_dict);
-
-      if (price_dict[item_code] &&  parts[4] == "")
-      {
-        // console.log("price dict has value fro the code");
-        // console.log("price dict for the item code : "+price_dict[item_code])
-        // console.log("customer data: "+JSON.stringify(customerdata.price_list_tag))
-        // console.log("price list tag : "+JSON.stringify(price_dict[item_code][customerdata.price_list_tag]))
-
-          if (price_dict[item_code][customerdata.price_list_tag]){
-            const mesh_size = Number(document.getElementsByName('item_mesh_size[]')[index].value);
-            customer_price_dict = price_dict[item_code][customerdata.price_list_tag];
-            
-            console.log("customer_price_dict Data:", JSON.stringify(customer_price_dict));
-            customer_price_dict.forEach(item => {
-              // Each item is an object with a single key
-              const key = Object.keys(item)[0];   // e.g. "15-16"
-              const value = Object.values(item)[0]; // e.g. "810.00"
-
-              // Split the key if needed
-              const parts = key.split("-"); // ["15", "16"]
-              const start = Number(parts[0]);
-              const end = parts[1] == '999' ? Infinity: Number(parts[1]); 
-              //Number(parts[1]);
-              const product_price = Number(value);
-              if ( mesh_size >= start && (mesh_size <= end) ) {
-                price = product_price; 
-                document.getElementsByName('item_price[]')[index].value = price;
-                console.log(`configured price selected : ${price}`);
-              }
-              else{
-                console.log(`price not configured for this item.`);
-              }
-
-              //console.log(`Start: ${start}, End: ${end}, Price: ${price}`);
-          });
-           
-          }
-      }
-      
-
-    }
-    
-    gst_amount = (quantity * price ) * gst_percentage;
-    total_amount = (quantity * price ) + gst_amount;
-    console.log(`Price: ${price}`);
-    document.getElementsByName('item_gst_amount[]')[index].value = gst_amount;
-    document.getElementsByName('item_total_with_gst[]')[index].value = total_amount;
-    document.getElementsByName('item_hsn_code[]')[index].value = "5808";
-
-})
+});
 
     container.appendChild(row);
   });

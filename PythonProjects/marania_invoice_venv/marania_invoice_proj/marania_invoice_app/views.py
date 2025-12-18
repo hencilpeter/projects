@@ -60,6 +60,11 @@ from .forms import PriceListFormSet
 from django.db.models import Count
 from django.db.models.functions import TruncMonth
 
+# Global cache
+_CUSTOMER_PRICE_DICT = None
+
+_PRODUCT_DICT = None
+
 # @singleton
 class Configurations:
     
@@ -136,6 +141,13 @@ def get_parties_dict():
     return parties_dict
 
 def get_product_dict():
+    global _PRODUCT_DICT
+
+    # ✅ Return cached dictionary if already initialized
+    if _PRODUCT_DICT is not None:
+        return _PRODUCT_DICT
+
+    # ✅ Build dictionary only once
     products_dict = defaultdict(dict)
 
     products = Product.objects.select_related('material').all()
@@ -151,14 +163,51 @@ def get_product_dict():
             "material_name": product.material.name if product.material else None,
 
             # Tax rates
-            "cgst": product.cgst,
-            "sgst": product.sgst,
-            "igst": product.igst,
+            "cgst": str(product.cgst),
+            "sgst": str(product.sgst),
+            "igst": str(product.igst),
 
             "description": product.description,
         }
 
-    return products_dict
+    # ✅ Cache globally
+    _PRODUCT_DICT = products_dict
+
+    return _PRODUCT_DICT
+
+def reset_global_dict():
+    global _PRODUCT_DICT
+    global _CUSTOMER_PRICE_DICT
+
+    _PRODUCT_DICT = None
+    _CUSTOMER_PRICE_DICT = None
+
+
+# def get_product_dict():
+    
+#     products_dict = defaultdict(dict)
+
+#     products = Product.objects.select_related('material').all()
+
+#     for product in products:
+#         products_dict[product.code] = {
+#             "name": product.name,
+#             "display_name": product.display_name,
+#             "hsn": product.hsn,
+
+#             # Material reference
+#             "material_code": product.material.code if product.material else None,
+#             "material_name": product.material.name if product.material else None,
+
+#             # Tax rates
+#             "cgst": product.cgst,
+#             "sgst": product.sgst,
+#             "igst": product.igst,
+
+#             "description": product.description,
+#         }
+
+#     return products_dict
 
 def print_dict(d, indent=0):
     for key, value in d.items():
@@ -170,7 +219,13 @@ def print_dict(d, indent=0):
 
 
 def get_customer_price_dictionary():
+    global _CUSTOMER_PRICE_DICT
 
+    # ✅ If already initialized, return cached object
+    if _CUSTOMER_PRICE_DICT is not None:
+        return _CUSTOMER_PRICE_DICT
+
+    # ✅ Initialize dictionary only once
     customer_price_dict = defaultdict(lambda: -1)
 
     # [customer_code][product_code][size_range] = price details
@@ -192,18 +247,55 @@ def get_customer_price_dictionary():
             size_range = f"{price_item.mesh_size_start}-{price_item.mesh_size_end}"
 
             customer_price_dict[customer_code][product_code][size_range] = {
-                "price": price_item.price,
+                "price": str(price_item.price),
                 "price_code": price_code,
                 "sequence_id": price_item.sequence_id,
                 "customer_group": price_item.customer_group,
-                "customer_name":customer_price_catalog.customer.name,
+                "customer_name": customer_price_catalog.customer.name,
                 "colour_extra_price": customer_price_catalog.colour_extra_price,
                 "small_mesh_size_extra_price": customer_price_catalog.small_mesh_size_extra_price,
                 "gst_included": customer_price_catalog.gst_included,
             }
 
-    # print_dict(d=customer_price_dict)
-    return customer_price_dict
+    # ✅ Cache it globally
+    _CUSTOMER_PRICE_DICT = customer_price_dict
+
+    return _CUSTOMER_PRICE_DICT
+
+# def get_customer_price_dictionary():
+
+#     customer_price_dict = defaultdict(lambda: -1)
+
+#     # [customer_code][product_code][size_range] = price details
+#     for customer_price_catalog in CustomerPriceCatalog.objects.all():
+
+#         customer_code = customer_price_catalog.customer.code
+
+#         if customer_price_dict[customer_code] == -1:
+#             customer_price_dict[customer_code] = defaultdict(lambda: -1)
+
+#         product_code = customer_price_catalog.price_catalog.product.code
+
+#         if customer_price_dict[customer_code][product_code] == -1:
+#             customer_price_dict[customer_code][product_code] = {}
+
+#         price_code = customer_price_catalog.price_catalog.code
+
+#         for price_item in PriceCatalog.objects.filter(code=price_code):
+#             size_range = f"{price_item.mesh_size_start}-{price_item.mesh_size_end}"
+
+#             customer_price_dict[customer_code][product_code][size_range] = {
+#                 "price": price_item.price,
+#                 "price_code": price_code,
+#                 "sequence_id": price_item.sequence_id,
+#                 "customer_group": price_item.customer_group,
+#                 "customer_name":customer_price_catalog.customer.name,
+#                 "colour_extra_price": customer_price_catalog.colour_extra_price,
+#                 "small_mesh_size_extra_price": customer_price_catalog.small_mesh_size_extra_price,
+#                 "gst_included": customer_price_catalog.gst_included,
+#             }
+
+#     return customer_price_dict
 
 
 ########################################################-Helper Functions-############
@@ -451,23 +543,38 @@ def invoice_entry(request):
         size_range = price_item.mesh_size_start+"-"+price_item.mesh_size_end
         price_item_dict = {size_range:str(price_item.price)}
         
-        # TOTO - below logic to be corrected for invoice 
+        # TODO - below logic to be corrected for invoice 
         # if price_item.twine_code not in price_dict:
         #     price_dict[price_item.twine_code]={price_item.code:[price_item_dict]}
         # elif price_item.code not in price_dict[price_item.twine_code]:
         #     price_dict[price_item.twine_code][price_item.code] = [price_item_dict]
         # else:
         #     price_dict[price_item.twine_code][price_item.code].append(price_item_dict)
+    
 
 
 
     summary_data = invoice_summary()
+    print("####PRODUCT DICT")
+    product_dict = get_product_dict()
+    customer_price_dict = get_customer_price_dictionary()
+    print("product dict.....")
+    print(product_dict)
+    print("customer price dict.....")
+    print(customer_price_dict)
     context = {'invoice_form': forms.InvoiceForm(initial={'invoice_number':get_next_invoice_number}) , 
                'invoices':Invoices, 'invoiceitems':summary_data,
                'customers':Customers, 'customer_dict': json.dumps(customer_dict),
-               'transporter_dict':json.dumps(transporter_dict), 'price_dict':json.dumps(price_dict)
+               'transporter_dict':json.dumps(transporter_dict), 
+               'price_dict':json.dumps(price_dict),
+               'customer_price_dict':json.dumps(customer_price_dict),
+               'product_dict':json.dumps(product_dict),
                }
-    
+    print("product dict.....")
+    print(_PRODUCT_DICT)
+    print("customer price dict.....")
+    print(_CUSTOMER_PRICE_DICT)
+    print("####PRODUCT DICT")
     return render(request, 'marania_invoice_app/invoice_entry.html', context)
 
       
@@ -932,6 +1039,10 @@ def save_price_list(request):
             ))
 
         PriceCatalog.objects.bulk_create(new_objs)
+
+        # reset the global cache
+        reset_global_dict()
+
         return JsonResponse({"status": "saved", "count": len(new_objs)})
 
     except Exception as e:
@@ -982,6 +1093,9 @@ def customer_price_catalog(request):
             obj.small_mesh_size_extra_price = float(mesh_vals[idx] or 0)
             obj.remark = remark_vals[idx]
             obj.save()
+
+            # reset global cache    
+            reset_global_dict()
 
         return redirect("customer_price_catalog")
 
@@ -1066,6 +1180,8 @@ def product_master(request):
                 obj.material_id = material_ids[idx]
 
             obj.save()
+            # reset the cache
+            reset_global_dict()
 
         return redirect("product_master")
 
@@ -1155,99 +1271,6 @@ def customer_price_dictionary_view_invoice(request):
         "marania_invoice_app/customer_price_dictionary.html",
         {"rows": rows}
     )
-
-    # price_dict = get_customer_price_dictionary()
-
-    # rows = []
-
-    # for customer, products in price_dict.items():
-    #     for product, sizes in products.items():
-    #         for size_range, details in sizes.items():
-    #             rows.append({
-    #                 "customer": customer,
-    #                 "product": product,
-    #                 "size_range": size_range,
-    #                 **details
-    #             })
-
-    # return render(
-    #     request,
-    #     "marania_invoice_app/view_customer_price_dictionary.html",
-    #     {"rows": rows}
-    # )
-
-
-# def product_master(request):
-#     products = Product.objects.all()
-
-#     if request.method == "POST":
-#         action = request.POST.get("action")
-
-#         codes = request.POST.getlist("code")
-#         names = request.POST.getlist("name")
-#         display_names = request.POST.getlist("display_name")
-#         hsn_codes = request.POST.getlist("hsn")
-#         cgsts = request.POST.getlist("cgst")
-#         sgsts = request.POST.getlist("sgst")
-#         igsts = request.POST.getlist("igst")
-#         descriptions = request.POST.getlist("description")
-
-#         for idx in range(len(codes)):
-#             code = codes[idx].strip()
-#             name = names[idx].strip()
-
-#             if not code or not name:
-#                 continue
-
-#             # DELETE
-#             if action == "delete":
-#                 Product.objects.filter(code=code).delete()
-#                 continue
-
-#             # SAVE logic
-#             try:
-#                 obj = Product.objects.get(code=code)
-#             except Product.DoesNotExist:
-#                 obj = Product()
-
-#             obj.code = code
-#             obj.name = name
-#             obj.display_name = display_names[idx]
-#             obj.hsn = hsn_codes[idx]
-#             obj.cgst = cgsts[idx] or 0
-#             obj.sgst = sgsts[idx] or 0
-#             obj.igst = igsts[idx] or 0
-#             obj.description = descriptions[idx]
-
-#             obj.save()
-
-#         return redirect("product_master")
-
-#     # Unique filter lists
-#     unique_codes = sorted(list({p.code for p in products}))
-#     unique_names = sorted(list({p.name for p in products}))
-#     unique_hsn = sorted(list({p.hsn or "-" for p in products}))
-
-#     return render(request, "marania_invoice_app/product_master.html", {
-#         "products": products,
-#         "unique_codes": unique_codes,
-#         "unique_names": unique_names,
-#         "unique_hsn": unique_hsn,
-#     })
-
-
-# def load_product(request, id):
-#     p = Product.objects.get(id=id)
-#     return JsonResponse({
-#         "code": p.code,
-#         "name": p.name,
-#         "display_name": p.display_name,
-#         "hsn": p.hsn,
-#         "cgst": str(p.cgst),
-#         "sgst": str(p.sgst),
-#         "igst": str(p.igst),
-#         "description": p.description,
-#     })
 
 
 def materials_view(request):
