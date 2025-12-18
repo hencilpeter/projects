@@ -518,7 +518,7 @@ def invoice_entry(request):
     Customers = Parties.objects.all()
     customer_dict = defaultdict(lambda:-1)
     transporter_dict = defaultdict(lambda:-1)
-    price_dict = defaultdict(lambda:-1)
+    # price_dict = defaultdict(lambda:-1)
     
     # customer details 
     for customer in Parties.objects.all():
@@ -539,9 +539,9 @@ def invoice_entry(request):
             transporter_dict[code].append(transporter_dict_temp)
     
     # price list details  
-    for price_item in PriceCatalog.objects.all():
-        size_range = price_item.mesh_size_start+"-"+price_item.mesh_size_end
-        price_item_dict = {size_range:str(price_item.price)}
+    # for price_item in PriceCatalog.objects.all():
+    #     size_range = price_item.mesh_size_start+"-"+price_item.mesh_size_end
+    #     price_item_dict = {size_range:str(price_item.price)}
         
         # TODO - below logic to be corrected for invoice 
         # if price_item.twine_code not in price_dict:
@@ -555,26 +555,17 @@ def invoice_entry(request):
 
 
     summary_data = invoice_summary()
-    print("####PRODUCT DICT")
     product_dict = get_product_dict()
     customer_price_dict = get_customer_price_dictionary()
-    print("product dict.....")
-    print(product_dict)
-    print("customer price dict.....")
-    print(customer_price_dict)
     context = {'invoice_form': forms.InvoiceForm(initial={'invoice_number':get_next_invoice_number}) , 
                'invoices':Invoices, 'invoiceitems':summary_data,
                'customers':Customers, 'customer_dict': json.dumps(customer_dict),
                'transporter_dict':json.dumps(transporter_dict), 
-               'price_dict':json.dumps(price_dict),
+               #'price_dict':json.dumps(price_dict),
                'customer_price_dict':json.dumps(customer_price_dict),
                'product_dict':json.dumps(product_dict),
                }
-    print("product dict.....")
-    print(_PRODUCT_DICT)
-    print("customer price dict.....")
-    print(_CUSTOMER_PRICE_DICT)
-    print("####PRODUCT DICT")
+
     return render(request, 'marania_invoice_app/invoice_entry.html', context)
 
       
@@ -853,6 +844,7 @@ def get_invoice_dictonaries(invoice_number):
     
     return company_dict, invoice, consignee_dict, buyer_dict, items
 
+from weasyprint import HTML,CSS
 
 def invoice_view(request, invoice_number):
     invoice_dict = get_invoices_dict()
@@ -860,45 +852,97 @@ def invoice_view(request, invoice_number):
         context = {}
         return  render(request, 'marania_invoice_app/invoice_view.html', context) 
 
-    invoice_data_dict = defaultdict(lambda:-1)
-    # print("Invoice Date ########################"+str(invoice_dict[invoice_number]["invoice_date"]))
-    #print(invoice_dict[invoice_number])
-
     company_dict, invoice, consignee_dict, buyer_dict, items = get_invoice_dictonaries(invoice_number)
     context = {"company":company_dict, "invoice":invoice, "consignee":consignee_dict, "buyer":buyer_dict, "items":items}
 
     return render(request, 'marania_invoice_app/invoice_view.html', context) 
 
 
-from weasyprint import HTML,CSS
 def invoice_pdf(request, invoice_number):
     company_dict, invoice, consignee_dict, buyer_dict, items = get_invoice_dictonaries(invoice_number)
-    context = {"company": company_dict, "invoice": invoice, "consignee": consignee_dict, "buyer": buyer_dict, "items": items}
-    
+    context = {
+        "company": company_dict,
+        "invoice": invoice,
+        "consignee": consignee_dict,
+        "buyer": buyer_dict,
+        "items": items
+    }
+
     template = get_template('marania_invoice_app/invoice_view.html')
     html_string = template.render(context)
-    
-    # CSS to remove margins
+
     css_string = """
         @page {
             size: A4;
-            margin: 0;
+            margin: 10mm;
         }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        /* --- FIX HEADER ALIGNMENT --- */
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .invoice-header-left,
+        .invoice-header-right {
+            width: 49%;
+        }
+
+        .invoice-box {
+            border: 1px solid #000;
+            padding: 8px;
         }
     """
-    
-    # Generate PDF with custom CSS
+
     html = HTML(string=html_string)
     css = CSS(string=css_string)
     pdf_file = html.write_pdf(stylesheets=[css])
-    
+
     response = HttpResponse(pdf_file, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="invoice_{invoice_number}.pdf"'
-    
+
     return response
+
+# def invoice_pdf(request, invoice_number):
+#     company_dict, invoice, consignee_dict, buyer_dict, items = get_invoice_dictonaries(invoice_number)
+#     context = {"company": company_dict, "invoice": invoice, "consignee": consignee_dict, "buyer": buyer_dict, "items": items}
+    
+#     template = get_template('marania_invoice_app/invoice_view.html')
+#     html_string = template.render(context)
+    
+#     # CSS to remove margins
+#     css_string = """
+#         @page {
+#             size: A4;
+#             margin: 0;
+#         }
+#         body {
+#             margin: 0;
+#             padding: 0;
+#         }
+#     """
+    
+#     # Generate PDF with custom CSS
+#     html = HTML(string=html_string)
+#     css = CSS(string=css_string)
+#     pdf_file = html.write_pdf(stylesheets=[css])
+    
+#     response = HttpResponse(pdf_file, content_type='application/pdf')
+#     response['Content-Disposition'] = f'attachment; filename="invoice_{invoice_number}.pdf"'
+    
+#     return response
 
     
 def company_settings_view(request):
