@@ -915,36 +915,7 @@ def invoice_pdf(request, invoice_number):
 
     return response
 
-# def invoice_pdf(request, invoice_number):
-#     company_dict, invoice, consignee_dict, buyer_dict, items = get_invoice_dictonaries(invoice_number)
-#     context = {"company": company_dict, "invoice": invoice, "consignee": consignee_dict, "buyer": buyer_dict, "items": items}
-    
-#     template = get_template('marania_invoice_app/invoice_view.html')
-#     html_string = template.render(context)
-    
-#     # CSS to remove margins
-#     css_string = """
-#         @page {
-#             size: A4;
-#             margin: 0;
-#         }
-#         body {
-#             margin: 0;
-#             padding: 0;
-#         }
-#     """
-    
-#     # Generate PDF with custom CSS
-#     html = HTML(string=html_string)
-#     css = CSS(string=css_string)
-#     pdf_file = html.write_pdf(stylesheets=[css])
-    
-#     response = HttpResponse(pdf_file, content_type='application/pdf')
-#     response['Content-Disposition'] = f'attachment; filename="invoice_{invoice_number}.pdf"'
-    
-#     return response
-
-    
+   
 def company_settings_view(request):
     settings, created = CompanySettings.objects.get_or_create(id=1)
 

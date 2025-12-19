@@ -7,7 +7,6 @@ from .models import *
 admin.site.register(Parties)
 admin.site.register(PartyRole)
 admin.site.register(Product)
-#admin.site.register(ProductPrice)
 admin.site.register(Configuration)
 admin.site.register(CustomerPriceMap)
 admin.site.register(Invoice)

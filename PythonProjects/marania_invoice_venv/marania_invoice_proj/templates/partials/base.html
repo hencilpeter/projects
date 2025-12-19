@@ -67,129 +67,387 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
     <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
       <div class="position-sticky pt-3">
         <ul class="nav flex-column">
+          <!-- 1. Dashboard -->
           <li class="nav-item">
             <a class="nav-link" href="{% url 'dashboard' %}">
               <span data-feather="home"></span>
               Dashboard
             </a>
           </li>
+          <!-- 2. Masters -->
           <li class="nav-item">
-           <a class="nav-link" href="{% url 'parties' %}">
-              <span data-feather="file"></span>
-              Parties
-            </a>
-          </li>
-          <li class="nav-item">
-           <a class="nav-link" href="{% url 'dashboard' %}">
-              <span data-feather="file"></span>
-              Product
-            </a>
-          </li>
-           <li class="nav-item">
-           <a class="nav-link" href="{% url 'materials' %}">
-              <span data-feather="file"></span>
-              Materials
-            </a>
-          </li>
-
-            <li class="nav-item">
             <div class="d-flex justify-content-between align-items-center mb-1">
               <span>
                 <span data-feather="layers"></span>
-                Invoice
+                Masters
               </span>
               <!-- Single toggle button -->
               <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
                       type="button" 
                       data-bs-toggle="collapse" 
-                      data-bs-target="#InvoiceSubmenu" 
+                      data-bs-target="#MastersSubmenu" 
                       aria-expanded="false" 
-                      aria-controls="InvoiceSubmenu">
+                      aria-controls="MastersSubmenu">
                 +
               </button>
             </div>
 
-            <div class="collapse" id="InvoiceSubmenu">
+            <div class="collapse" id="MastersSubmenu">
               <ul class="nav flex-column ms-4">
-                <li class="nav-item">
-                  <a class="nav-link" href="{% url 'invoice_entry' %}">
-                    <span data-feather="users"></span>
-                    New
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="{% url 'dashboard' %}">
-                    <span data-feather="package"></span>
-                    Update
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </li>
-
-
-
-          <li class="nav-item">
-            <div class="d-flex justify-content-between align-items-center mb-1">
-              <span>
-                <span data-feather="layers"></span>
-                Admin
-              </span>
-              <!-- Single toggle button -->
-              <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
-                      type="button" 
-                      data-bs-toggle="collapse" 
-                      data-bs-target="#adminSubmenu" 
-                      aria-expanded="false" 
-                      aria-controls="adminSubmenu">
-                +
-              </button>
-            </div>
-
-            <div class="collapse" id="adminSubmenu">
-              <ul class="nav flex-column ms-4">
+			  
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'parties' %}">
                     <span data-feather="users"></span>
-                    Parties
+                    Customers / Parties
                   </a>
                 </li>
+				
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'product_master' %}">
                     <span data-feather="package"></span>
-                    Product
+                    Products
                   </a>
                 </li>
-
-                 <li class="nav-item">
+				
+				        <li class="nav-item">
+                  <a class="nav-link" href="{% url 'materials' %}">
+                    <span data-feather="layers"></span>
+                    Materials
+                  </a>
+                </li>
+				
+				        <li class="nav-item">
                   <a class="nav-link" href="{% url 'add_price_list' %}">
-                    <span data-feather="package"></span>
+                    <span data-feather="tag"></span>
                     Price Catalog
                   </a>
                 </li>
-
-                
-                 <li class="nav-item">
-                  <a class="nav-link" href="{% url 'customer_price_catalog' %}">
-                    <span data-feather="package"></span>
-                    Customer Price Catalog
-                  </a>
-                </li>
-
-
-                 <li class="nav-item">
-                  <a class="nav-link" href="{% url 'customer_price_dictionary' %}">
-                    <span data-feather="package"></span>
-                    View Customer Price Catalog
-                  </a>
-                </li>
-
-
-
               </ul>
-            </div>
+             </div>
           </li>
 
+          <!-- 3. Pricing -->
+          <li class="nav-item">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span>
+                <span data-feather="tag"></span>
+                Pricing
+              </span>
+              <!-- Single toggle button -->
+              <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
+                      type="button" 
+                      data-bs-toggle="collapse" 
+                      data-bs-target="#PricingSubmenu" 
+                      aria-expanded="false" 
+                      aria-controls="PricingSubmenu">
+                +
+              </button>
+            </div>
+
+            <div class="collapse" id="PricingSubmenu">
+              <ul class="nav flex-column ms-4">
+			  
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'customer_price_catalog' %}">
+                    <span data-feather="dollar-sign"></span>
+                    Manage Customers Price
+                  </a>
+                </li>
+				
+				        <li class="nav-item">
+                  <a class="nav-link" href="{% url 'customer_price_dictionary' %}">
+                    <span data-feather="list"></span>
+                    View Customers Price
+                  </a>
+                </li>
+
+              </ul>
+             </div>
+          </li>
+
+           <!-- 4. Sales -->
+          <li class="nav-item">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span>
+                <span data-feather="dollar-sign"></span>
+                Sales
+              </span>
+              <!-- Single toggle button -->
+              <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
+                      type="button" 
+                      data-bs-toggle="collapse" 
+                      data-bs-target="#SalesSubmenu" 
+                      aria-expanded="false" 
+                      aria-controls="SalesSubmenu">
+                +
+              </button>
+            </div>
+
+            <div class="collapse" id="SalesSubmenu">
+              <ul class="nav flex-column ms-4">
+			  
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'dashboard' %}">
+                    <span data-feather="shopping-cart"></span>
+                    Sales Orders(TODO)
+                  </a>
+                </li>
+
+              </ul>
+             </div>
+          </li>
+
+
+
+           <!-- 5. Purchases -->
+          <li class="nav-item">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span>
+                <span data-feather="shopping-cart"></span>
+                Purchases
+              </span>
+              <!-- Single toggle button -->
+              <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
+                      type="button" 
+                      data-bs-toggle="collapse" 
+                      data-bs-target="#PurchaseSubmenu" 
+                      aria-expanded="false" 
+                      aria-controls="PurchaseSubmenu">
+                +
+              </button>
+            </div>
+
+            <div class="collapse" id="PurchaseSubmenu">
+              <ul class="nav flex-column ms-4">
+			  
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'dashboard' %}">
+                    <span data-feather="clipboard"></span>
+                    Purchase Entries(TODO)
+                  </a>
+                </li>
+
+              </ul>
+             </div>
+          </li>
+
+
+           <!-- 6. Inventory -->
+          <li class="nav-item">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span>
+                <span data-feather="box"></span>
+                Inventory
+              </span>
+              <!-- Single toggle button -->
+              <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
+                      type="button" 
+                      data-bs-toggle="collapse" 
+                      data-bs-target="#InventorySubmenu" 
+                      aria-expanded="false" 
+                      aria-controls="InventorySubmenu">
+                +
+              </button>
+            </div>
+
+            <div class="collapse" id="InventorySubmenu">
+              <ul class="nav flex-column ms-4">
+			  
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'dashboard' %}">
+                    <span data-feather="repeat"></span>
+                    Stock In / Out (TODO)
+                  </a>
+                </li>
+				
+				        <li class="nav-item">
+                  <a class="nav-link" href="{% url 'dashboard' %}">
+                    <span data-feather="sliders"></span>
+                    Stock Adjustment (TODO)
+                  </a>
+                </li>
+
+              </ul>
+             </div>
+          </li>
+
+          <!-- 7. Accounting -->
+          <li class="nav-item">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span>
+                <span data-feather="file"></span>
+                Accounting
+              </span>
+              <!-- Single toggle button -->
+              <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
+                      type="button" 
+                      data-bs-toggle="collapse" 
+                      data-bs-target="#AccountingSubmenu" 
+                      aria-expanded="false" 
+                      aria-controls="AccountingSubmenu">
+                +
+              </button>
+            </div>
+
+            <div class="collapse" id="AccountingSubmenu">
+              <ul class="nav flex-column ms-4">
+			  
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'invoice_entry' %}">
+                    <span data-feather="file"></span>
+                    Invoices
+                  </a>
+                </li>
+				
+				        <li class="nav-item">
+                  <a class="nav-link" href="{% url 'dashboard' %}">
+                    <span data-feather="bar-chart-2"></span>
+                    Profit & Loss (TODO)
+                  </a>
+                </li>
+
+              </ul>
+             </div>
+          </li>
+          
+           <!-- 8. Reports -->
+          <li class="nav-item">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span>
+                <span data-feather="pie-chart"></span>
+                Reports
+              </span>
+              <!-- Single toggle button -->
+              <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
+                      type="button" 
+                      data-bs-toggle="collapse" 
+                      data-bs-target="#ReportsSubmenu" 
+                      aria-expanded="false" 
+                      aria-controls="ReportsSubmenu">
+                +
+              </button>
+            </div>
+
+            <div class="collapse" id="ReportsSubmenu">
+              <ul class="nav flex-column ms-4">
+			  
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'dashboard' %}">
+                    <span data-feather="trending-up"></span>
+                    Sales Reports  (TODO)
+                  </a>
+                </li>
+				
+				        <li class="nav-item">
+                  <a class="nav-link" href="{% url 'dashboard' %}">
+                    <span data-feather="activity"></span>
+                    Purchase Reports (TODO)
+                  </a>
+                </li>
+
+              </ul>
+             </div>
+          </li>
+          
+          <!-- 9. Tools / Utilities -->
+          <li class="nav-item">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span>
+                <span data-feather="tool"></span>
+                Tools / Utilities
+              </span>
+              <!-- Single toggle button -->
+              <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
+                      type="button" 
+                      data-bs-toggle="collapse" 
+                      data-bs-target="#ToolsSubmenu" 
+                      aria-expanded="false" 
+                      aria-controls="ToolsSubmenu">
+                +
+              </button>
+            </div>
+
+            <div class="collapse" id="ToolsSubmenu">
+              <ul class="nav flex-column ms-4">
+			  
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'show_gst_calculator' %}">
+                    <span data-feather="percent"></span>
+                    GST Calculator 
+                  </a>
+                </li>
+				
+
+              </ul>
+             </div>
+          </li>
+
+          <!-- 10. Settings -->
+          <li class="nav-item">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span>
+                <span data-feather="settings"></span>
+               Settings
+              </span>
+              <!-- Single toggle button -->
+              <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
+                      type="button" 
+                      data-bs-toggle="collapse" 
+                      data-bs-target="#SettingsSubmenu" 
+                      aria-expanded="false" 
+                      aria-controls="SettingsSubmenu">
+                +
+              </button>
+            </div>
+
+            <div class="collapse" id="SettingsSubmenu">
+              <ul class="nav flex-column ms-4">
+			  
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'company_settings' %}">
+                    <span data-feather="settings"></span>
+                    Company Settings 
+                  </a>
+                </li>
+				
+
+              </ul>
+             </div>
+          </li>
+
+            <!-- 11. Account -->
+          <li class="nav-item">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span>
+                <span data-feather="user"></span>
+               Account
+              </span>
+              <!-- Single toggle button -->
+              <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
+                      type="button" 
+                      data-bs-toggle="collapse" 
+                      data-bs-target="#AccountSubmenu" 
+                      aria-expanded="false" 
+                      aria-controls="AccountSubmenu">
+                +
+              </button>
+            </div>
+
+            <div class="collapse" id="AccountSubmenu">
+              <ul class="nav flex-column ms-4">
+			  
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'dashboard' %}">
+                    <span data-feather="log-out"></span>
+                    Logout
+                  </a>
+                </li>
+				
+
+              </ul>
+             </div>
+          </li>
+		  
 
 <!-- JS to toggle + and – -->
 <script>
@@ -238,13 +496,13 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
   }
 </style>
 
-        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+        <!-- <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
           <span>Settings</span>
           <a class="link-secondary" href="#" aria-label="Add a new report">
             <span data-feather="plus-circle"></span>
           </a>
-        </h6>
-        <ul class="nav flex-column mb-2">
+        </h6> -->
+        <!-- <ul class="nav flex-column mb-2">
           <li class="nav-item">
             <a class="nav-link"  href="{% url 'company_settings' %}">
               <span data-feather="file-text"></span>
@@ -254,16 +512,10 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
           <li class="nav-item">
             <a class="nav-link" href="#">
               <span data-feather="file-text"></span>
-              SMTP
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#">
-              <span data-feather="file-text"></span>
               Logout
             </a>
           </li>
-        </ul>
+        </ul> -->
       </div>
     </nav>
 
