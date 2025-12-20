@@ -43,6 +43,12 @@
           font-size: 3.5rem;
         }
       }
+
+      /* Sidebar enhancements */
+      .parent-menu:hover { background-color: #e9f2ff; cursor: pointer; }
+      .nav-link:hover { background-color: #f1f5f9; border-radius: 4px; }
+      .collapse-icon { transition: transform 0.3s ease; }
+      .collapse.show .collapse-icon { transform: rotate(90deg); }
     </style>
   </head>
   <body>
@@ -54,12 +60,6 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
   <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
   </button>
-  <input class="form-control form-control-dark w-100" type="text" placeholder="Search" aria-label="Search">
-  <div class="navbar-nav">
-    <div class="nav-item text-nowrap">
-     TODO
-    </div>
-  </div>
 </header>
 
 <div class="container-fluid">
@@ -67,6 +67,7 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
     <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
       <div class="position-sticky pt-3">
         <ul class="nav flex-column">
+
           <!-- 1. Dashboard -->
           <li class="nav-item">
             <a class="nav-link" href="{% url 'dashboard' %}">
@@ -74,407 +75,357 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
               Dashboard
             </a>
           </li>
+
           <!-- 2. Masters -->
           <li class="nav-item">
-            <div class="d-flex justify-content-between align-items-center mb-1">
+            <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
                 <span data-feather="layers"></span>
                 Masters
               </span>
-              <!-- Single toggle button -->
               <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
                       type="button" 
                       data-bs-toggle="collapse" 
                       data-bs-target="#MastersSubmenu" 
                       aria-expanded="false" 
                       aria-controls="MastersSubmenu">
-                +
+                <span class="collapse-icon" data-feather="chevron-right"></span>
               </button>
             </div>
-
             <div class="collapse" id="MastersSubmenu">
               <ul class="nav flex-column ms-4">
-			  
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'parties' %}">
                     <span data-feather="users"></span>
                     Customers / Parties
                   </a>
                 </li>
-				
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'product_master' %}">
                     <span data-feather="package"></span>
                     Products
                   </a>
                 </li>
-				
-				        <li class="nav-item">
+                <li class="nav-item">
                   <a class="nav-link" href="{% url 'materials' %}">
                     <span data-feather="layers"></span>
                     Materials
                   </a>
                 </li>
-				
-				        <li class="nav-item">
+                <li class="nav-item">
                   <a class="nav-link" href="{% url 'add_price_list' %}">
                     <span data-feather="tag"></span>
                     Price Catalog
                   </a>
                 </li>
               </ul>
-             </div>
+            </div>
           </li>
 
           <!-- 3. Pricing -->
           <li class="nav-item">
-            <div class="d-flex justify-content-between align-items-center mb-1">
+            <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
                 <span data-feather="tag"></span>
                 Pricing
               </span>
-              <!-- Single toggle button -->
               <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
                       type="button" 
                       data-bs-toggle="collapse" 
                       data-bs-target="#PricingSubmenu" 
                       aria-expanded="false" 
                       aria-controls="PricingSubmenu">
-                +
+                <span class="collapse-icon" data-feather="chevron-right"></span>
               </button>
             </div>
-
             <div class="collapse" id="PricingSubmenu">
               <ul class="nav flex-column ms-4">
-			  
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'customer_price_catalog' %}">
                     <span data-feather="dollar-sign"></span>
                     Manage Customers Price
                   </a>
                 </li>
-				
-				        <li class="nav-item">
+                <li class="nav-item">
                   <a class="nav-link" href="{% url 'customer_price_dictionary' %}">
                     <span data-feather="list"></span>
                     View Customers Price
                   </a>
                 </li>
-
               </ul>
-             </div>
+            </div>
           </li>
 
-           <!-- 4. Sales -->
+          <!-- 4. Sales -->
           <li class="nav-item">
-            <div class="d-flex justify-content-between align-items-center mb-1">
+            <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
                 <span data-feather="dollar-sign"></span>
                 Sales
               </span>
-              <!-- Single toggle button -->
               <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
                       type="button" 
                       data-bs-toggle="collapse" 
                       data-bs-target="#SalesSubmenu" 
                       aria-expanded="false" 
                       aria-controls="SalesSubmenu">
-                +
+                <span class="collapse-icon" data-feather="chevron-right"></span>
               </button>
             </div>
-
             <div class="collapse" id="SalesSubmenu">
               <ul class="nav flex-column ms-4">
-			  
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'dashboard' %}">
                     <span data-feather="shopping-cart"></span>
                     Sales Orders(TODO)
                   </a>
                 </li>
-
               </ul>
-             </div>
+            </div>
           </li>
 
-
-
-           <!-- 5. Purchases -->
+          <!-- 5. Purchases -->
           <li class="nav-item">
-            <div class="d-flex justify-content-between align-items-center mb-1">
+            <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
                 <span data-feather="shopping-cart"></span>
                 Purchases
               </span>
-              <!-- Single toggle button -->
               <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
                       type="button" 
                       data-bs-toggle="collapse" 
                       data-bs-target="#PurchaseSubmenu" 
                       aria-expanded="false" 
                       aria-controls="PurchaseSubmenu">
-                +
+                <span class="collapse-icon" data-feather="chevron-right"></span>
               </button>
             </div>
-
             <div class="collapse" id="PurchaseSubmenu">
               <ul class="nav flex-column ms-4">
-			  
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'dashboard' %}">
                     <span data-feather="clipboard"></span>
                     Purchase Entries(TODO)
                   </a>
                 </li>
-
               </ul>
-             </div>
+            </div>
           </li>
 
-
-           <!-- 6. Inventory -->
+          <!-- 6. Inventory -->
           <li class="nav-item">
-            <div class="d-flex justify-content-between align-items-center mb-1">
+            <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
                 <span data-feather="box"></span>
                 Inventory
               </span>
-              <!-- Single toggle button -->
               <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
                       type="button" 
                       data-bs-toggle="collapse" 
                       data-bs-target="#InventorySubmenu" 
                       aria-expanded="false" 
                       aria-controls="InventorySubmenu">
-                +
+                <span class="collapse-icon" data-feather="chevron-right"></span>
               </button>
             </div>
-
             <div class="collapse" id="InventorySubmenu">
               <ul class="nav flex-column ms-4">
-			  
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'dashboard' %}">
                     <span data-feather="repeat"></span>
                     Stock In / Out (TODO)
                   </a>
                 </li>
-				
-				        <li class="nav-item">
+                <li class="nav-item">
                   <a class="nav-link" href="{% url 'dashboard' %}">
                     <span data-feather="sliders"></span>
                     Stock Adjustment (TODO)
                   </a>
                 </li>
-
               </ul>
-             </div>
+            </div>
           </li>
 
           <!-- 7. Accounting -->
           <li class="nav-item">
-            <div class="d-flex justify-content-between align-items-center mb-1">
+            <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
                 <span data-feather="file"></span>
                 Accounting
               </span>
-              <!-- Single toggle button -->
               <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
                       type="button" 
                       data-bs-toggle="collapse" 
                       data-bs-target="#AccountingSubmenu" 
                       aria-expanded="false" 
                       aria-controls="AccountingSubmenu">
-                +
+                <span class="collapse-icon" data-feather="chevron-right"></span>
               </button>
             </div>
-
             <div class="collapse" id="AccountingSubmenu">
               <ul class="nav flex-column ms-4">
-			  
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'invoice_entry' %}">
                     <span data-feather="file"></span>
                     Invoices
                   </a>
                 </li>
-				
-				        <li class="nav-item">
+                <li class="nav-item">
                   <a class="nav-link" href="{% url 'dashboard' %}">
                     <span data-feather="bar-chart-2"></span>
                     Profit & Loss (TODO)
                   </a>
                 </li>
-
               </ul>
-             </div>
+            </div>
           </li>
-          
-           <!-- 8. Reports -->
+
+          <!-- 8. Reports -->
           <li class="nav-item">
-            <div class="d-flex justify-content-between align-items-center mb-1">
+            <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
                 <span data-feather="pie-chart"></span>
                 Reports
               </span>
-              <!-- Single toggle button -->
               <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
                       type="button" 
                       data-bs-toggle="collapse" 
                       data-bs-target="#ReportsSubmenu" 
                       aria-expanded="false" 
                       aria-controls="ReportsSubmenu">
-                +
+                <span class="collapse-icon" data-feather="chevron-right"></span>
               </button>
             </div>
-
             <div class="collapse" id="ReportsSubmenu">
               <ul class="nav flex-column ms-4">
-			  
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'dashboard' %}">
                     <span data-feather="trending-up"></span>
                     Sales Reports  (TODO)
                   </a>
                 </li>
-				
-				        <li class="nav-item">
+                <li class="nav-item">
                   <a class="nav-link" href="{% url 'dashboard' %}">
                     <span data-feather="activity"></span>
                     Purchase Reports (TODO)
                   </a>
                 </li>
-
               </ul>
-             </div>
+            </div>
           </li>
-          
+
           <!-- 9. Tools / Utilities -->
           <li class="nav-item">
-            <div class="d-flex justify-content-between align-items-center mb-1">
+            <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
                 <span data-feather="tool"></span>
                 Tools / Utilities
               </span>
-              <!-- Single toggle button -->
               <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
                       type="button" 
                       data-bs-toggle="collapse" 
                       data-bs-target="#ToolsSubmenu" 
                       aria-expanded="false" 
                       aria-controls="ToolsSubmenu">
-                +
+                <span class="collapse-icon" data-feather="chevron-right"></span>
               </button>
             </div>
-
             <div class="collapse" id="ToolsSubmenu">
               <ul class="nav flex-column ms-4">
-			  
                 <li class="nav-item">
-                  <a class="nav-link" href="{% url 'show_gst_calculator' %}">
+                  <a class="nav-link" href="{% url 'show_gst_calculator_from_main_UI' %}">
                     <span data-feather="percent"></span>
                     GST Calculator 
                   </a>
                 </li>
-				
-
               </ul>
-             </div>
+            </div>
           </li>
 
           <!-- 10. Settings -->
           <li class="nav-item">
-            <div class="d-flex justify-content-between align-items-center mb-1">
+            <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
                 <span data-feather="settings"></span>
-               Settings
+                Settings
               </span>
-              <!-- Single toggle button -->
               <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
                       type="button" 
                       data-bs-toggle="collapse" 
                       data-bs-target="#SettingsSubmenu" 
                       aria-expanded="false" 
                       aria-controls="SettingsSubmenu">
-                +
+                <span class="collapse-icon" data-feather="chevron-right"></span>
               </button>
             </div>
-
             <div class="collapse" id="SettingsSubmenu">
               <ul class="nav flex-column ms-4">
-			  
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'company_settings' %}">
                     <span data-feather="settings"></span>
                     Company Settings 
                   </a>
                 </li>
-				
-
               </ul>
-             </div>
+            </div>
           </li>
 
-            <!-- 11. Account -->
+          <!-- 11. Account -->
           <li class="nav-item">
-            <div class="d-flex justify-content-between align-items-center mb-1">
+            <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
                 <span data-feather="user"></span>
-               Account
+                Account
               </span>
-              <!-- Single toggle button -->
               <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
                       type="button" 
                       data-bs-toggle="collapse" 
                       data-bs-target="#AccountSubmenu" 
                       aria-expanded="false" 
                       aria-controls="AccountSubmenu">
-                +
+                <span class="collapse-icon" data-feather="chevron-right"></span>
               </button>
             </div>
-
             <div class="collapse" id="AccountSubmenu">
               <ul class="nav flex-column ms-4">
-			  
                 <li class="nav-item">
-                  <a class="nav-link" href="{% url 'dashboard' %}">
+                  <a class="nav-link" href="{% url 'logout' %}">
                     <span data-feather="log-out"></span>
                     Logout
                   </a>
                 </li>
-				
-
               </ul>
-             </div>
+            </div>
           </li>
-		  
 
-<!-- JS to toggle + and – -->
+        </ul>
+
+<!-- JS to toggle chevron rotation -->
 <script>
   document.querySelectorAll('.collapse-btn').forEach(function(btn) {
     const targetId = btn.getAttribute('data-bs-target');
     const collapseEl = document.querySelector(targetId);
 
     collapseEl.addEventListener('show.bs.collapse', function () {
-      btn.textContent = '–';
+      btn.querySelector('.collapse-icon').setAttribute('data-feather','chevron-down');
+      feather.replace();
     });
 
     collapseEl.addEventListener('hide.bs.collapse', function () {
-      btn.textContent = '+';
+      btn.querySelector('.collapse-icon').setAttribute('data-feather','chevron-right');
+      feather.replace();
     });
   });
 
-
-   // Auto fade-out after 3 seconds
-    setTimeout(function () {
-        const alert = document.getElementById("auto-dismiss-alert");
-        if (alert) {
-            alert.classList.remove("show");
-            alert.classList.add("fade");
-            setTimeout(() => alert.remove(), 500); // remove after fade
-        }
-    }, 3000);
-    
+  // Auto fade-out after 3 seconds
+  setTimeout(function () {
+      const alert = document.getElementById("auto-dismiss-alert");
+      if (alert) {
+          alert.classList.remove("show");
+          alert.classList.add("fade");
+          setTimeout(() => alert.remove(), 500);
+      }
+  }, 3000);
 </script>
 
 <!-- CSS for smaller rounded button -->
@@ -496,26 +447,6 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
   }
 </style>
 
-        <!-- <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
-          <span>Settings</span>
-          <a class="link-secondary" href="#" aria-label="Add a new report">
-            <span data-feather="plus-circle"></span>
-          </a>
-        </h6> -->
-        <!-- <ul class="nav flex-column mb-2">
-          <li class="nav-item">
-            <a class="nav-link"  href="{% url 'company_settings' %}">
-              <span data-feather="file-text"></span>
-              Company
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#">
-              <span data-feather="file-text"></span>
-              Logout
-            </a>
-          </li>
-        </ul> -->
       </div>
     </nav>
 
@@ -524,16 +455,13 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
   </div>
 </div>
 
+<script src="{% static 'assets/js/bootstrap.bundle.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/feather-icons@4.28.0/dist/feather.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js" crossorigin="anonymous"></script>
+<script src="{% static 'assets/js/dashboard.js' %}"></script>
 
-      <!-- JS starts here  -->
-      <script src="{% static 'assets/js/bootstrap.bundle.min.js' %}"></script>
-
-      <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.28.0/dist/feather.min.js" integrity="sha384-uO3SXW5IuS1ZpFPKugNNWqTZRRglnUJK6UAZ/gxOX80nxEkN9NcGZTftn6RzhGWE" crossorigin="anonymous"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js" integrity="sha384-zNy6FEbO50N+Cg5wap8IKA4M/ZnLJgzc6w2NqACZaK0u0FXfOWRRJOnQtpZun8ha" crossorigin="anonymous"></script>
-      <script src="{% static 'assets/js/dashboard.js' %}"></script>
-
-      {% block scripts %}
-      {% endblock %}
-
+{% block scripts %}
+{% endblock %}
 
   </body>
 </html>

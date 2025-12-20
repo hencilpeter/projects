@@ -398,7 +398,7 @@ def invoice_summary():
 
 #################################
 
-
+@login_required
 def dashboard(request):
 
     # -------- SUMMARY COUNTS --------
@@ -513,6 +513,9 @@ def load_party(request, id):
 def show_gst_calculator(request):
      return render(request, "marania_invoice_app/gst_calculator.html") 
 
+def show_gst_calculator_from_main_UI(request):
+     return render(request, "marania_invoice_app/view_gst_calculator.html") 
+
 def invoice_entry(request):
     Invoices = Invoice.objects.all().order_by('-invoice_number')
     Customers = Parties.objects.all()
@@ -537,22 +540,6 @@ def invoice_entry(request):
             transporter_dict[code] = [transporter_dict_temp]
         else:
             transporter_dict[code].append(transporter_dict_temp)
-    
-    # price list details  
-    # for price_item in PriceCatalog.objects.all():
-    #     size_range = price_item.mesh_size_start+"-"+price_item.mesh_size_end
-    #     price_item_dict = {size_range:str(price_item.price)}
-        
-        # TODO - below logic to be corrected for invoice 
-        # if price_item.twine_code not in price_dict:
-        #     price_dict[price_item.twine_code]={price_item.code:[price_item_dict]}
-        # elif price_item.code not in price_dict[price_item.twine_code]:
-        #     price_dict[price_item.twine_code][price_item.code] = [price_item_dict]
-        # else:
-        #     price_dict[price_item.twine_code][price_item.code].append(price_item_dict)
-    
-
-
 
     summary_data = invoice_summary()
     product_dict = get_product_dict()
@@ -626,7 +613,6 @@ def create_party(request):
     return render(request, 'marania_invoice_app/party.html', context)
 
 def invoice_save(request):
-
     if request.method == 'POST':
         try:
             # Check if invoice_id exists → UPDATE MODE
@@ -634,11 +620,8 @@ def invoice_save(request):
             invoice_instance = Invoice.objects.filter(invoice_number=invoice_number).first()
 
             if invoice_instance:
-                print("^^^UPDATE MODE^^^^")
-                #invoice_instance = Invoice.objects.get(id=invoice_id)
                 form = InvoiceForm(request.POST, instance=invoice_instance)
             else:
-                print("^^^INSERT MODE^^^^")
                 form = InvoiceForm(request.POST)
 
             # Validate form
@@ -1062,7 +1045,8 @@ def save_price_list(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-    
+
+@login_required    
 def customer_price_catalog(request):
     customers = Parties.objects.all()
     price_catalogs = PriceCatalog.objects.all()
@@ -1147,7 +1131,7 @@ def load_customer_price_catalog(request, id):
     }
     return JsonResponse(data)
 
-
+@login_required
 def product_master(request):
     products = Product.objects.select_related("material").all()
     materials = Materials.objects.all()

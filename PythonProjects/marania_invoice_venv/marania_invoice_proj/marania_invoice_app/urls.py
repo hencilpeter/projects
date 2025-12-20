@@ -1,6 +1,7 @@
 
 from django.urls import path
 from . import views
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
 # parties     
@@ -39,6 +40,20 @@ path("materials/load/<int:pk>/", views.load_material, name="load_material"),
 # view customer price dictionary
 path("customer-price-dictionary/", views.customer_price_dictionary_view,  name="customer_price_dictionary"  ),
 path("customer-price-dictionary_invoice/", views.customer_price_dictionary_view_invoice,  name="customer_price_dictionary_invoice"),
+
+# view gst calcualtor from the main UI
+path('view_gst_calculator/', views.show_gst_calculator_from_main_UI, name='show_gst_calculator_from_main_UI'),
+
+ path('login/', auth_views.LoginView.as_view(template_name='marania_invoice_app/login.html'), name='login'),
+ #path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+ path('dashboard/', views.dashboard, name='dashboard'),
+
+
+# log out 
+ path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+
+
+
 
 
 # path('login',views.login, name='login'),

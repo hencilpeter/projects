@@ -332,6 +332,24 @@ function loadInvoice(invoiceNumber) {
     .catch(error => console.error('Error loading invoice:', error));
 }
 
+function getGSTPercentage(code, product_dict, customer_dict, customerCodeInput) {
+    let gst_percentage = 0;
+
+    if (product_dict[code]) {
+        const is_within_state =
+            customer_dict[customerCodeInput]?.is_within_state;
+
+        if (is_within_state) {
+            gst_percentage =
+                Number(product_dict[code].cgst) +
+                Number(product_dict[code].sgst);
+        } else {
+            gst_percentage = Number(product_dict[code].igst);
+        }
+    }
+
+    return gst_percentage;
+  }
 
 function ReviewAndDeriveValues() {
     let errors = [];
@@ -402,7 +420,20 @@ function ReviewAndDeriveValues() {
                 const end = endStr === "999" ? Infinity : Number(endStr);
 
                 if (mesh_size >= start && mesh_size <= end) {
-                    price = Number(value.price) || 0;
+                    if (value.gst_included) {
+                        const gst_percentage = getGSTPercentage(code,  product_dict,customer_dict, customerCodeInput );
+
+                        const gross_price = Number(value.price) || 0;
+                        console.log(gross_price)
+
+                        // Remove GST from inclusive price
+                        price = gst_percentage > 0  ? gross_price / (1 + gst_percentage / 100) : gross_price;
+                        console.log(price)
+
+                    } else {
+                        // GST not included, price remains as-is
+                        price = Number(value.price) || 0;
+                    }
                     item_price[i].value = price;
                 }
             });
@@ -413,29 +444,25 @@ function ReviewAndDeriveValues() {
             continue;
         }
 
-        // ---------- GST Calculation ----------
-        let gst_percentage = 0;
-
-        if (product_dict[code]) {
-            const is_within_state =
-                customer_dict[customerCodeInput]?.is_within_state;
-
-            if (is_within_state) {
-                gst_percentage =
-                    Number(product_dict[code].cgst) +
-                    Number(product_dict[code].sgst);
-            } else {
-                gst_percentage = Number(product_dict[code].igst);
-            }
-        }
+      const gst_percentage = Number( getGSTPercentage(code, product_dict, customer_dict, customerCodeInput)) || 0;
 
         // ---------- Amount Calculation ----------
-        let base_amount = qty * price;
-        let gst_amount = base_amount * gst_percentage / 100;
+        const quantity = Number(qty) || 0;
+        const unit_price = Number(price) || 0;
+
+        // Base amount (price is assumed GST-exclusive here)
+        let base_amount = quantity * unit_price;
+
+        // GST amount
+        let gst_amount = (base_amount * gst_percentage) / 100;
+
+        // Total amount
         let total_amount = base_amount + gst_amount;
 
+        // Assign values
         gst_amounts[i].value = gst_amount.toFixed(2);
         totals_with_gst[i].value = total_amount.toFixed(2);
+
     }
 
     // ------------------------------
@@ -445,7 +472,6 @@ function ReviewAndDeriveValues() {
         alert("Please correct the following:\n\n" + errors.join("\n"));
         return false;
     }
-
     return true;
 }
 
@@ -596,7 +622,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <input type="text" name="item_mesh_size[]" class="form-control form-control-sm" placeholder="MM" style="flex:0.3;">
         <input type="text" name="item_mesh_depth[]" class="form-control form-control-sm" placeholder="MD" style="flex:0.3;">
         <input type="number" name="item_quantity[]" class="form-control form-control-sm" placeholder="Qty" style="flex:0.4;">
-        <input type="number" name="item_price[]" step="1" class="form-control form-control-sm" placeholder="Q.Price" style="flex:0.4;">
+        <input type="number" name="item_price[]" step="0.01" class="form-control form-control-sm" placeholder="Q.Price" style="flex:0.4;">
         <div class="d-flex gap-1" style="flex:1.5;">
           <input type="text" name="item_gst_amount[]" class="form-control form-control-sm" placeholder="GST">
           <input type="text" name="item_total_with_gst[]" class="form-control form-control-sm" placeholder="Price+GST" style="width:90px;">
@@ -612,98 +638,116 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Enable lost focus event
 row.querySelector('.item-spec').addEventListener('blur', function () {
+    // ---------- Helpers (ROW-SCOPED) ----------
+    const getField = (selector) => row.querySelector(selector);
+    const toNumber = (v) => Number(v) || 0;
 
-    const index = row.dataset.index;
-    console.log("Current index:", index);
+    // ---------- Dictionaries ----------
+    const product_dict = JSON.parse('{{ product_dict|escapejs }}');
+    const customer_dict = JSON.parse('{{ customer_dict|escapejs }}');
+    const customer_price_dict = JSON.parse('{{ customer_price_dict|escapejs }}');
 
-    // ---------- Helpers ----------
-    const getField = (name) => document.getElementsByName(name)[index];
+    const customerCodeInput =
+        document.querySelector('input[name="customer_code"]')?.value || "";
 
     // ---------- Initial Values ----------
     let quantity = 0;
     let price = 0;
     let gst_percentage = 0;
-    let gst_amount = 0;
-    let total_amount = 0;
 
-    const product_dict = JSON.parse('{{ product_dict|escapejs }}');
-    const customer_dict = JSON.parse('{{ customer_dict|escapejs }}');
-    const customer_price_dict = JSON.parse('{{ customer_price_dict|escapejs }}');
+    // ---------- Parse Item Spec ----------
+    const specField = getField('[name="item_spec[]"]');
+    if (!specField) return; // safety
 
-    const current_item_spec = getField('item_spec[]').value;
+    const current_item_spec = specField.value || "";
     const parts = current_item_spec.split('/');
 
     // ---------- Populate Product Details ----------
     if (parts.length > 0 && product_dict[parts[0]]) {
-        getField('item_code[]').value = parts[0];
-        getField('item_description[]').value = product_dict[parts[0]].display_name;
-        getField('item_hsn_code[]').value = product_dict[parts[0]].hsn;
+        getField('[name="item_code[]"]').value = parts[0];
+        getField('[name="item_description[]"]').value =
+            product_dict[parts[0]].display_name;
+        getField('[name="item_hsn_code[]"]').value =
+            product_dict[parts[0]].hsn;
     }
 
-    if (parts.length >= 2) getField('item_mesh_size[]').value = parts[1];
-    if (parts.length >= 3) getField('item_mesh_depth[]').value = parts[2];
+    if (parts.length >= 2)
+        getField('[name="item_mesh_size[]"]').value = parts[1];
+
+    if (parts.length >= 3)
+        getField('[name="item_mesh_depth[]"]').value = parts[2];
 
     if (parts.length >= 4) {
-        quantity = Number(parts[3]) || 0;
-        getField('item_quantity[]').value = quantity;
+        quantity = toNumber(parts[3]);
+        getField('[name="item_quantity[]"]').value = quantity;
     }
 
     if (parts.length >= 5) {
-        price = Number(parts[4]) || 0;
-        getField('item_price[]').value = price;
+        price = toNumber(parts[4]);
+        getField('[name="item_price[]"]').value = price;
     }
+
+    const item_code = getField('[name="item_code[]"]')?.value || "";
+    const mesh_size = toNumber(getField('[name="item_mesh_size[]"]')?.value);
+
     // ---------- Auto Price from Customer Price Dictionary ----------
-    if (getField('item_price[]').value === "" || getField('item_price[]').value === "0") {
-        const customerCodeInput = document.querySelector('input[name="customer_code"]').value;
-        const item_code = getField('item_code[]').value;
-        const mesh_size = Number(getField('item_mesh_size[]').value);
-        if (customerCodeInput && item_code &&
-            customer_price_dict[customerCodeInput] &&
-            customer_price_dict[customerCodeInput][item_code]) {
+    if ((!price || price === 0) &&
+        customerCodeInput &&
+        item_code &&
+        customer_price_dict[customerCodeInput] &&
+        customer_price_dict[customerCodeInput][item_code]) {
 
-            const temp_customer_price_dict =
-                customer_price_dict[customerCodeInput][item_code];
+        const priceConfig = customer_price_dict[customerCodeInput][item_code];
 
-            Object.entries(temp_customer_price_dict).forEach(([key, value]) => {
+        Object.entries(priceConfig).forEach(([range, value]) => {
 
-                const [startStr, endStr] = key.split("-");
-                const start = Number(startStr);
-                const end = endStr === '999' ? Infinity : Number(endStr);
+            const [startStr, endStr] = range.split("-");
+            const start = Number(startStr);
+            const end = endStr === "999" ? Infinity : Number(endStr);
 
-                if (mesh_size >= start && mesh_size <= end) {
-                    price = Number(value.price) || 0;
-                    getField('item_price[]').value = price;
-                    console.log(`configured price selected : ${price}`);
+            if (mesh_size >= start && mesh_size <= end) {
+
+                const configured_price = toNumber(value.price);
+
+                if (value.gst_included) {
+                    gst_percentage = getGSTPercentage(
+                        item_code,
+                        product_dict,
+                        customer_dict,
+                        customerCodeInput
+                    );
+
+                    // Remove GST from inclusive price
+                    price = gst_percentage > 0
+                        ? configured_price / (1 + gst_percentage / 100)
+                        : configured_price;
+                } else {
+                    price = configured_price;
                 }
-            });
-        }
+
+                getField('[name="item_price[]"]').value = price.toFixed(2);
+            }
+        });
     }
 
-    // ---------- GST Calculation ----------
-    const product_code = getField('item_code[]').value;
+    // ---------- GST Percentage ----------
+    gst_percentage = getGSTPercentage(
+        item_code,
+        product_dict,
+        customer_dict,
+        customerCodeInput
+    ) || 0;
 
-    if (product_dict[product_code] && quantity > 0 && price > 0) {
+    // ---------- Amount Calculation ----------
+    const base_amount = quantity * price;
+    const gst_amount = (base_amount * gst_percentage) / 100;
+    const total_amount = base_amount + gst_amount;
 
-        const customerCodeInput = document.querySelector('input[name="customer_code"]').value;
-        const is_within_state = customer_dict[customerCodeInput].is_within_state;
-
-        if (is_within_state) {
-            gst_percentage =
-                Number(product_dict[product_code].cgst) +
-                Number(product_dict[product_code].sgst);
-        } else {
-            gst_percentage = Number(product_dict[product_code].igst);
-        }
-    }
-
-    gst_amount = (quantity * price) * gst_percentage/100.0;
-    total_amount = (quantity * price) + gst_amount;
-
-    getField('item_gst_amount[]').value = gst_amount.toFixed(2);
-    getField('item_total_with_gst[]').value = total_amount.toFixed(2);
+    // ---------- Assign Values ----------
+    getField('[name="item_gst_amount[]"]').value = gst_amount.toFixed(2);
+    getField('[name="item_total_with_gst[]"]').value = total_amount.toFixed(2);
 
     recalculateInvoiceTotals();
-
 });
 
     container.appendChild(row);
