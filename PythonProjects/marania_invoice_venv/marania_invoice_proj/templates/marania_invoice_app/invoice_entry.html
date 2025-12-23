@@ -626,9 +626,9 @@ document.addEventListener('DOMContentLoaded', function() {
   <input type="text" name="item_mesh_size[]" class="form-control form-control-sm" placeholder="MM" style="flex: 0 0 55px;">
   <input type="text" name="item_mesh_depth[]" class="form-control form-control-sm" placeholder="MD" style="flex: 0 0 55px;">
   <input type="number" name="item_quantity[]" class="form-control form-control-sm" placeholder="Qty" style="flex: 0 0 60px;">
-  <input type="number" name="item_price[]" step="0.01" class="form-control form-control-sm" placeholder="Q.Price" style="flex: 0 0 80px;">
+  <input type="number" name="item_price[]" step="0.01" class="form-control form-control-sm" placeholder="Q.Price" style="flex: 0 0 75px;">
   <input type="text" name="item_colour[]" class="form-control form-control-sm" placeholder="Colour" style="flex:  0 0 70px;">
-  <input type="text" name="item_hsn_code[]" class="form-control form-control-sm" placeholder="HSN" style="flex: 0 0 70px;">
+  <input type="text" name="item_hsn_code[]" class="form-control form-control-sm" placeholder="HSN" style="flex: 0 0 50px;">
 
   <div class="d-flex gap-1" style="flex: 0 0 80px;">
     <button type="button" class="btn btn-outline-secondary btn-sm clear-item">Clr</button>
@@ -670,13 +670,13 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
     const parts = current_item_spec.split('/');
 
     // ---------- Populate Product Details ----------
-    if (parts.length > 0 && product_dict[parts[0]]) {
-        getField('[name="item_code[]"]').value = parts[0];
-        getField('[name="item_description[]"]').value =
-            product_dict[parts[0]].display_name;
-        getField('[name="item_hsn_code[]"]').value =
-            product_dict[parts[0]].hsn;
-    }
+    // if (parts.length > 0 && product_dict[parts[0]]) {
+    //     getField('[name="item_code[]"]').value = parts[0];
+    //     getField('[name="item_description[]"]').value =
+    //         product_dict[parts[0]].display_name;
+    //     getField('[name="item_hsn_code[]"]').value =
+    //         product_dict[parts[0]].hsn;
+    // }
 
     if (parts.length >= 2)
         getField('[name="item_mesh_size[]"]').value = parts[1];
@@ -700,6 +700,21 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
 
     const item_code = getField('[name="item_code[]"]')?.value || "";
     const mesh_size = toNumber(getField('[name="item_mesh_size[]"]')?.value);
+    const mesh_depth = getField('[name="item_mesh_depth[]"]')?.value || "";
+    const colour = getField('[name="item_colour[]"]')?.value || "";
+
+    if (parts.length > 0 && product_dict[parts[0]]) {
+        let spec = "-"+mesh_size + "MM/" + mesh_depth + "MD"
+        if (colour != "")
+        spec = spec + "/" + colour
+
+        getField('[name="item_code[]"]').value = parts[0];
+        getField('[name="item_description[]"]').value =
+            product_dict[parts[0]].display_name + spec;
+        getField('[name="item_hsn_code[]"]').value =
+            product_dict[parts[0]].hsn;
+    }
+
 
     // ---------- Auto Price from Customer Price Dictionary ----------
     if ((!price || price === 0) &&
