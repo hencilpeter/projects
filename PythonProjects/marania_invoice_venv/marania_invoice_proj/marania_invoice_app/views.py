@@ -900,7 +900,7 @@ def invoice_pdf(request, invoice_number):
     pdf_file = html.write_pdf(stylesheets=[css])
 
     response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="invoice_{invoice_number}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="Marania_Invoice_{invoice_number}.pdf"'
 
     return response
 
