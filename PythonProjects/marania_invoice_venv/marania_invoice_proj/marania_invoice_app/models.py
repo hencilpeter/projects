@@ -137,11 +137,13 @@ class InvoiceItem(models.Model):
     item_mesh_depth = models.CharField(max_length=20, blank=True, null=True)
     item_quantity = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     item_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    
+    item_colour = models.CharField(max_length=100, blank=True, null=True)
+    item_hsn_code = models.CharField(max_length=10, blank=True, null=True)
+
     #derived values
     item_gst_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     item_total_with_gst = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    item_hsn_code = models.CharField(max_length=10, blank=True, null=True)
+    
 
 
     def __str__(self):

@@ -26,4 +26,6 @@ urlpatterns = [
     path('', invoice_views.dashboard, name='dashboard'),
     path('invoice/',include('marania_invoice_app.urls')),
 
+     
+
 ]

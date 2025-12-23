@@ -1,0 +1,24 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container mt-4">
+    <h4>Import All Data</h4>
+    <p class="text-muted">
+      Upload a backup ZIP file containing JSON or CSV files for each table.
+    </p>
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label for="backup_zip" class="form-label">Select Backup ZIP File</label>
+        <input class="form-control w-auto" type="file" id="backup_zip" name="backup_zip" accept=".zip" required>
+      </div>
+
+      <button class="btn btn-primary">Import All</button>
+      <a href="{% url 'dashboard' %}" class="btn btn-secondary ms-2">Cancel</a>
+    </form>
+  </div>
+</main>
+{% endblock %}

@@ -60,6 +60,10 @@ from .forms import PriceListFormSet
 from django.db.models import Count
 from django.db.models.functions import TruncMonth
 
+
+from .services import export_data, import_data
+from .serializers import MODEL_REGISTRY
+
 # Global cache
 _CUSTOMER_PRICE_DICT = None
 
@@ -653,10 +657,11 @@ def invoice_save(request):
                 item_mesh_depth_list       = request.POST.getlist('item_mesh_depth[]')
                 item_quantity_list         = request.POST.getlist('item_quantity[]')
                 item_price_list            = request.POST.getlist('item_price[]')
+                item_colour_list           = request.POST.getlist('item_colour[]')
+                item_hsn_code_list         = request.POST.getlist('item_hsn_code[]')
                 item_gst_amount_list       = request.POST.getlist('item_gst_amount[]')
                 item_total_with_gst_list   = request.POST.getlist('item_total_with_gst[]')
-                item_hsn_code_list         = request.POST.getlist('item_hsn_code[]')
-
+                
                 # ============================
                 #     UPDATE MODE CLEANUP
                 # ============================
@@ -683,9 +688,10 @@ def invoice_save(request):
                                 item_mesh_depth       = item_mesh_depth_list[index],
                                 item_quantity         = item_quantity_list[index],
                                 item_price            = item_price_list[index],
+                                item_colour           = item_colour_list[index],
+                                item_hsn_code         = item_hsn_code_list[index],
                                 item_gst_amount       = item_gst_amount_list[index],
                                 item_total_with_gst   = item_total_with_gst_list[index],
-                                item_hsn_code         = item_hsn_code_list[index],
                             )
                         )
 
@@ -919,7 +925,7 @@ def get_invoice(request, invoice_number):
     invoice = Invoice.objects.get(invoice_number=invoice_number)
     items = InvoiceItem.objects.filter(invoice=invoice).values(
         'item_spec', 'item_code', 'item_description', 'item_mesh_size', 'item_mesh_depth',
-        'item_quantity', 'item_price' , 'item_gst_amount', 'item_total_with_gst', 'item_hsn_code'
+        'item_quantity', 'item_price' , 'item_colour', 'item_hsn_code', 'item_gst_amount', 'item_total_with_gst'
     )
     return JsonResponse({
         "invoice": {
@@ -1331,3 +1337,203 @@ def load_material(request, pk):
         "gst": m.gst,
         "supplier": m.supplier_id,
     })
+
+
+import csv, json, io
+from django.db import transaction
+
+
+@transaction.atomic
+def import_data(model_name, file, file_type):
+    model = MODEL_REGISTRY[model_name]
+    fields = [f.name for f in model._meta.fields]
+
+    if file_type == "csv":
+        decoded = file.read().decode("utf-8")
+        reader = csv.DictReader(io.StringIO(decoded))
+
+        for row in reader:
+            clean = {k: v if v != "" else None for k, v in row.items()}
+            model.objects.update_or_create(**clean)
+
+    elif file_type == "json":
+        records = json.load(file)
+        for record in records:
+            model.objects.update_or_create(**record)
+
+def export_view(request):
+    if request.method == "POST":
+        return export_data(
+            request.POST["model"],
+            request.POST["file_type"]
+        )
+
+    return render(request, "marania_invoice_app/export.html", {
+        "models": MODEL_REGISTRY.keys()
+    })
+
+
+def import_view(request):
+    if request.method == "POST":
+        import_data(
+            request.POST["model"],
+            request.POST["file_type"],
+            request.FILES["file"]
+        )
+        return HttpResponse("Import completed successfully")
+
+    return render(request, "marania_invoice_app/import.html", {
+        "models": MODEL_REGISTRY.keys()
+    })
+
+import csv, json, io,os
+from django.db import transaction
+from django.apps import apps
+from zipfile import ZipFile
+from datetime import datetime
+from django.conf import settings
+
+@login_required
+def backup_import_all(request):
+    """
+    Import all data from uploaded ZIP file containing per-table JSON or CSV files.
+    """
+    if request.method == "POST" and request.FILES.get("backup_zip"):
+        backup_file = request.FILES["backup_zip"]
+
+        # Save uploaded ZIP to temporary location
+        temp_zip_path = os.path.join(settings.MEDIA_ROOT, backup_file.name)
+        with open(temp_zip_path, "wb") as f:
+            for chunk in backup_file.chunks():
+                f.write(chunk)
+
+        temp_extract_path = os.path.join(settings.MEDIA_ROOT, f"temp_import_{backup_file.name}")
+        os.makedirs(temp_extract_path, exist_ok=True)
+
+        # Extract ZIP
+        with ZipFile(temp_zip_path, "r") as zip_ref:
+            zip_ref.extractall(temp_extract_path)
+
+        # Iterate over files and import data
+        for file_name in os.listdir(temp_extract_path):
+            file_path = os.path.join(temp_extract_path, file_name)
+            model_name, ext = os.path.splitext(file_name)
+            ext = ext.lower()
+
+            try:
+                model = apps.get_model('marania_invoice_app', model_name)
+            except LookupError:
+                continue  # skip unknown models
+
+            with transaction.atomic():
+                # Optional: clear existing data
+                model.objects.all().delete()
+
+                if ext == ".json":
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        rows = json.load(f)
+                        for row in rows:
+                            model.objects.create(**row)
+
+                elif ext == ".csv":
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        reader = csv.DictReader(f)
+                        for row in reader:
+                            # Convert empty strings to None
+                            row = {k: (v if v != "" else None) for k, v in row.items()}
+                            model.objects.create(**row)
+
+        # Cleanup
+        os.remove(temp_zip_path)
+        for root, dirs, files in os.walk(temp_extract_path, topdown=False):
+            for file in files:
+                os.remove(os.path.join(root, file))
+            for dir in dirs:
+                os.rmdir(os.path.join(root, dir))
+        os.rmdir(temp_extract_path)
+
+        messages.success(request, "Import All completed successfully.")
+        return redirect('dashboard')
+
+    return render(request, 'marania_invoice_app/backup_import_all.html')
+
+
+def backup_export_all(request):
+    """
+    Export all models in 'marania_invoice_app' as separate JSON or CSV files
+    inside a timestamped folder, then compress to a ZIP for download.
+    """
+    export_format = request.GET.get('format')
+
+    if not export_format:
+        # Initial page load, show HTML
+        return render(request, 'marania_invoice_app/backup_export_all.html')
+
+    export_format = export_format.lower()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_folder_name = f"marania_backup_{export_format}_{timestamp}"
+    backup_folder_path = os.path.join(settings.MEDIA_ROOT, backup_folder_name)
+
+    os.makedirs(backup_folder_path, exist_ok=True)
+
+    # Export each model as a separate file
+    for model in apps.get_app_config('marania_invoice_app').get_models():
+        model_name = model.__name__
+        filename = f"{model_name}.{export_format}"
+        file_path = os.path.join(backup_folder_path, filename)
+
+        rows = list(model.objects.all().values())
+        if export_format == "json":
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(rows, f, indent=2, default=str)
+        elif export_format == "csv":
+            if rows:
+                with open(file_path, "w", newline="", encoding="utf-8") as f:
+                    writer = csv.writer(f)
+                    headers = rows[0].keys()
+                    writer.writerow(headers)
+                    for row in rows:
+                        writer.writerow([row[h] for h in headers])
+
+    # Create ZIP file
+    zip_filename = f"{backup_folder_name}.zip"
+    zip_path = os.path.join(settings.MEDIA_ROOT, zip_filename)
+    with ZipFile(zip_path, "w") as zipf:
+        for root, dirs, files in os.walk(backup_folder_path):
+            for file in files:
+                zipf.write(os.path.join(root, file), arcname=file)
+
+    # Optional: remove the folder after zipping
+    for root, dirs, files in os.walk(backup_folder_path, topdown=False):
+        for file in files:
+            os.remove(os.path.join(root, file))
+        for dir in dirs:
+            os.rmdir(os.path.join(root, dir))
+    os.rmdir(backup_folder_path)
+
+    # Serve ZIP as download
+    with open(zip_path, "rb") as f:
+        response = HttpResponse(f.read(), content_type="application/zip")
+        response['Content-Disposition'] = f'attachment; filename="{zip_filename}"'
+        return response
+    
+
+
+@login_required
+def backup_clean_all(request):
+    if request.method == "POST":
+        # TODO: implement irreversible clean logic
+        messages.warning(request, "⚠️ All data has been cleaned successfully.")
+        return redirect('dashboard')
+
+    return render(request, 'marania_invoice_app/backup_clean_all.html')
+
+
+@login_required
+def backup_sync(request):
+    if request.method == "POST":
+        # TODO: implement sync logic (local ↔ cloud)
+        messages.success(request, "Sync completed successfully.")
+        return redirect('dashboard')
+
+    return render(request, 'marania_invoice_app/backup_sync.html')

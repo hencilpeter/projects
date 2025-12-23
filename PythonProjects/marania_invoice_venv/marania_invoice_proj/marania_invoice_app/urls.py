@@ -49,9 +49,19 @@ path('view_gst_calculator/', views.show_gst_calculator_from_main_UI, name='show_
  path('dashboard/', views.dashboard, name='dashboard'),
 
 
+# backup 
+path("export/", views.export_view, name="backup_export"),
+path("import/", views.import_view, name="backup_import"),
+path('import-all/', views.backup_import_all, name='backup_import_all'),
+path('export-all/', views.backup_export_all, name='backup_export_all'),
+path('clean-all/', views.backup_clean_all, name='backup_clean_all'),
+path('sync/', views.backup_sync, name='backup_sync'),
+
 # log out 
  path('logout/', auth_views.LogoutView.as_view(), name='logout'),
 
+
+]
 
 
 
@@ -62,5 +72,3 @@ path('view_gst_calculator/', views.show_gst_calculator_from_main_UI, name='show_
 # path('invoices',views.invoices, name='invoices'),
 # path('products',views.products, name='products'),
 # path('clients',views.clients, name='clients'),
-]
-

@@ -1,0 +1,23 @@
+{% extends "partials/base.html" %}
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+<div class="container mt-4">
+  <h4 class="text-danger">Clean All Data</h4>
+
+  <div class="alert alert-danger">
+    <strong>Warning!</strong><br>
+    This action will permanently delete <b>ALL DATA</b>.
+    This cannot be undone.
+  </div>
+
+  <form method="post"
+        onsubmit="return confirm('This action is irreversible. Continue?');">
+    {% csrf_token %}
+    <button class="btn btn-danger">
+      Clean All
+    </button>
+    <a href="{% url 'dashboard' %}" class="btn btn-secondary ms-2">Cancel</a>
+  </form>
+</div>
+</main>
+{% endblock %}

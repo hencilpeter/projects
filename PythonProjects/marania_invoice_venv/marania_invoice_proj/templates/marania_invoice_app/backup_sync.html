@@ -1,0 +1,19 @@
+{% extends "partials/base.html" %}
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+<div class="container mt-4">
+  <h4>Sync Data</h4>
+  <p class="text-muted">
+    Synchronize local data with the configured remote source.
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+    <button class="btn btn-info">
+      Sync Now
+    </button>
+    <a href="{% url 'dashboard' %}" class="btn btn-secondary ms-2">Cancel</a>
+  </form>
+</div>
+</main>
+{% endblock %}

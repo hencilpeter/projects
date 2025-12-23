@@ -370,7 +370,123 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
             </div>
           </li>
 
-          <!-- 11. Account -->
+
+          <!-- 11. Backup -->
+          <li class="nav-item">
+            <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
+              <span>
+                <span data-feather="archive"></span>
+                Backup
+              </span>
+              <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#BackupSubmenu"
+                      aria-expanded="false"
+                      aria-controls="BackupSubmenu">
+                <span class="collapse-icon" data-feather="chevron-right"></span>
+              </button>
+            </div>
+
+            <div class="collapse" id="BackupSubmenu">
+              <ul class="nav flex-column ms-4">
+
+                <!-- Existing Import (NO CHANGE) -->
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'backup_import' %}">
+                    <span data-feather="upload"></span>
+                    Import
+                  </a>
+                </li>
+
+                <!-- Existing Export (NO CHANGE) -->
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'backup_export' %}">
+                    <span data-feather="download"></span>
+                    Export
+                  </a>
+                </li>
+
+                <hr class="my-2">
+
+                <!-- Import All -->
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'backup_import_all' %}">
+                    <span data-feather="upload-cloud"></span>
+                    Import All
+                  </a>
+                </li>
+
+                <!-- Export All -->
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'backup_export_all' %}">
+                    <span data-feather="download-cloud"></span>
+                    Export All
+                  </a>
+                </li>
+
+                <!-- Clean All (Danger) -->
+                <li class="nav-item">
+                  <a class="nav-link text-danger"
+                    href="{% url 'backup_clean_all' %}"
+                    onclick="return confirm('⚠️ This will permanently delete ALL data. Continue?');">
+                    <span data-feather="trash-2"></span>
+                    Clean All
+                  </a>
+                </li>
+
+                <!-- Sync -->
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'backup_sync' %}">
+                    <span data-feather="refresh-cw"></span>
+                    Sync
+                  </a>
+                </li>
+
+              </ul>
+            </div>
+          </li>
+
+          
+          <!-- 11. Backup
+          <li class="nav-item">
+            <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
+              <span>
+                <span data-feather="hard-drive"></span>
+                Backup
+              </span>
+              <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
+                      type="button" 
+                      data-bs-toggle="collapse" 
+                      data-bs-target="#BackupSubmenu" 
+                      aria-expanded="false" 
+                      aria-controls="BackupSubmenu">
+                <span class="collapse-icon" data-feather="chevron-right"></span>
+              </button>
+            </div>
+            <div class="collapse" id="BackupSubmenu">
+              <ul class="nav flex-column ms-4">
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'backup_import' %}">
+                    <span data-feather="settings"></span>
+                    Import
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div class="collapse" id="BackupSubmenu">
+              <ul class="nav flex-column ms-4">
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'backup_export' %}">
+                    <span data-feather="settings"></span>
+                    Export
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </li> -->
+
+          <!-- 12. Account -->
           <li class="nav-item">
             <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>

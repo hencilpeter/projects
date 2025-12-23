@@ -155,7 +155,7 @@
               <div class="group-box mb-3">
                 <div class="group-title">INVOICE ITEMS</div>
                 <div id="item-container"></div>
-                <button type="button" id="add-item" class="btn btn-secondary btn-sm mt-2">+ Add Another Item</button>
+                <button type="button" id="add-item" class="btn btn-secondary btn-sm mt-2">+ Add Item</button>
                 <!-- 🔥 NEW TOTALS PANEL -->
                 <div class="invoice-totals d-flex gap-4">
                   <div><b>Qty:</b> <span id="total-qty">0</span></div>
@@ -315,9 +315,11 @@ function loadInvoice(invoiceNumber) {
             document.getElementsByName('item_mesh_depth[]')[idx].value = item.item_mesh_depth;
             document.getElementsByName('item_quantity[]')[idx].value = item.item_quantity;
             document.getElementsByName('item_price[]')[idx].value = item.item_price;
+            document.getElementsByName('item_colour[]')[idx].value = item.item_colour;
+            document.getElementsByName('item_hsn_code[]')[idx].value = item.item_hsn_code;
             document.getElementsByName('item_gst_amount[]')[idx].value = item.item_gst_amount;
             document.getElementsByName('item_total_with_gst[]')[idx].value = item.item_total_with_gst;
-            document.getElementsByName('item_hsn_code[]')[idx].value = item.item_hsn_code;
+            
         });
 
         // Only show collapse if not already shown
@@ -612,29 +614,34 @@ document.addEventListener('DOMContentLoaded', function() {
     row.dataset.index = rowIndex;
 
     row.innerHTML = `
-      <div class="d-flex align-items-center flex-wrap gap-1 w-100">
-        <div class="d-flex align-items-center" style="flex:1.6;position:relative;">
-          <input type="text" name="item_spec[]" class="form-control form-control-sm item-spec" placeholder="Specification">
-          <small class="text-success ms-1 spec-message" style="display:none;">✓ Spec entered</small>
-        </div>
-        <input type="text" name="item_code[]" class="form-control form-control-sm" placeholder="Code" style="flex:0.3;">
-        <input type="text" name="item_description[]" class="form-control form-control-sm" placeholder="Description" style="flex:1.5;">
-        <input type="text" name="item_mesh_size[]" class="form-control form-control-sm" placeholder="MM" style="flex:0.3;">
-        <input type="text" name="item_mesh_depth[]" class="form-control form-control-sm" placeholder="MD" style="flex:0.3;">
-        <input type="number" name="item_quantity[]" class="form-control form-control-sm" placeholder="Qty" style="flex:0.4;">
-        <input type="number" name="item_price[]" step="0.01" class="form-control form-control-sm" placeholder="Q.Price" style="flex:0.4;">
-        <div class="d-flex gap-1" style="flex:1.5;">
-          <input type="text" name="item_gst_amount[]" class="form-control form-control-sm" placeholder="GST">
-          <input type="text" name="item_total_with_gst[]" class="form-control form-control-sm" placeholder="Price+GST" style="width:90px;">
-          <input type="text" name="item_hsn_code[]" class="form-control form-control-sm" placeholder="HSN">
-        </div>
-        <div class="d-flex gap-1 justify-content-center" style="flex:0.4;">
-          <button type="button" class="btn btn-outline-secondary btn-sm clear-item">Clear</button>
-          <button type="button" class="btn btn-outline-danger btn-sm delete-item">Del</button>
-        </div>
-      </div>
-    `;
+<div class="d-flex align-items-center flex-nowrap gap-1 w-100">
 
+  <div class="d-flex align-items-center position-relative" style="flex: 1.6;">
+    <input type="text" name="item_spec[]" class="form-control form-control-sm item-spec" placeholder="Specification">
+    <small class="text-success ms-1 spec-message" style="display:none;">✓</small>
+  </div>
+
+  <input type="text" name="item_code[]" class="form-control form-control-sm" placeholder="Code" style="flex: 0 0 70px;">
+  <input type="text" name="item_description[]" class="form-control form-control-sm" placeholder="Description" style="flex: 1.5;">
+  <input type="text" name="item_mesh_size[]" class="form-control form-control-sm" placeholder="MM" style="flex: 0 0 55px;">
+  <input type="text" name="item_mesh_depth[]" class="form-control form-control-sm" placeholder="MD" style="flex: 0 0 55px;">
+  <input type="number" name="item_quantity[]" class="form-control form-control-sm" placeholder="Qty" style="flex: 0 0 60px;">
+  <input type="number" name="item_price[]" step="0.01" class="form-control form-control-sm" placeholder="Q.Price" style="flex: 0 0 80px;">
+  <input type="text" name="item_colour[]" class="form-control form-control-sm" placeholder="Colour" style="flex:  0 0 70px;">
+  <input type="text" name="item_hsn_code[]" class="form-control form-control-sm" placeholder="HSN" style="flex: 0 0 70px;">
+
+  <div class="d-flex gap-1" style="flex: 0 0 80px;">
+    <button type="button" class="btn btn-outline-secondary btn-sm clear-item">Clr</button>
+    <button type="button" class="btn btn-outline-danger btn-sm delete-item">Del</button>
+  </div>
+
+  <div class="d-flex gap-1" style="flex: 0 0 170px;">
+    <input type="text" name="item_gst_amount[]" class="form-control form-control-sm" placeholder="GST" readonly>
+    <input type="text" name="item_total_with_gst[]" class="form-control form-control-sm" placeholder="Sub Total" readonly>
+  </div>
+
+</div>
+`;
 
 // Enable lost focus event
 row.querySelector('.item-spec').addEventListener('blur', function () {
@@ -685,6 +692,10 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
     if (parts.length >= 5) {
         price = toNumber(parts[4]);
         getField('[name="item_price[]"]').value = price;
+    }
+
+    if (parts.length >= 6) {
+        getField('[name="item_colour[]"]').value = parts[5];
     }
 
     const item_code = getField('[name="item_code[]"]')?.value || "";
