@@ -40,7 +40,7 @@ class Parties(models.Model):
     updated_at = models.DateTimeField(auto_now=True)       # automatically set on update
 
     def __str__(self):
-        return self.name
+        return f"{self.code}-{self.name}"
     
 class Materials(models.Model):
     code = models.CharField(max_length=50, unique=True)
@@ -154,8 +154,9 @@ class Transportation(models.Model):
         Parties,
         related_name='items',      # allows customer.items.all()
         on_delete=models.CASCADE,  # deletes items if customer is deleted
-        to_field='code'  # optional: link by customer_code instead of id
-        )
+        to_field='code',           # link by Parties.code instead of id
+        #db_column="customer_code", # valid DB column name
+    )
     delivery_place  = models.CharField(max_length=50, blank=True, null=True)
     transporter_name = models.CharField(max_length=100, null=True, blank=True)
     transporter_gst = models.CharField(max_length=30, null=True, blank=True)
@@ -164,6 +165,7 @@ class Transportation(models.Model):
 
     def __str__(self):
         return f"{self.customer.name} - {self.delivery_place}-{self.transporter_name}-{self.is_default_transport}"
+
 
 class Product(models.Model):
     code = models.CharField(max_length=50, unique=True)

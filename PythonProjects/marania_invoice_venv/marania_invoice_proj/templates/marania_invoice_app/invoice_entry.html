@@ -153,7 +153,7 @@
 
               <!-- Invoice Items Group -->
               <div class="group-box mb-3">
-                <div class="group-title">INVOICE ITEMS</div>
+                <div class="group-title">INVOICE ITEMS ( Code/MM/MD/Qty/Price/Colour )</div>
                 <div id="item-container"></div>
                 <button type="button" id="add-item" class="btn btn-secondary btn-sm mt-2">+ Add Item</button>
                 <!-- 🔥 NEW TOTALS PANEL -->
@@ -322,6 +322,8 @@ function loadInvoice(invoiceNumber) {
             
         });
 
+        
+
         // Only show collapse if not already shown
           const collapseEl = document.getElementById("customerForm");
           const bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, {toggle:false});
@@ -329,7 +331,7 @@ function loadInvoice(invoiceNumber) {
               bsCollapse.show();
           }
 
-
+  recalculateInvoiceTotals();
     })
     .catch(error => console.error('Error loading invoice:', error));
 }
@@ -625,7 +627,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <input type="text" name="item_description[]" class="form-control form-control-sm" placeholder="Description" style="flex: 2;">
   <input type="text" name="item_mesh_size[]" class="form-control form-control-sm" placeholder="MM" style="flex: 0 0 55px;">
   <input type="text" name="item_mesh_depth[]" class="form-control form-control-sm" placeholder="MD" style="flex: 0 0 55px;">
-  <input type="number" name="item_quantity[]" class="form-control form-control-sm" placeholder="Qty" style="flex: 0 0 60px;">
+  <input type="number" name="item_quantity[]" step="0.01" class="form-control form-control-sm" placeholder="Qty" style="flex: 0 0 60px;">
   <input type="number" name="item_price[]" step="0.01" class="form-control form-control-sm" placeholder="Q.Price" style="flex: 0 0 75px;">
   <input type="text" name="item_colour[]" class="form-control form-control-sm" placeholder="Colour" style="flex:  0 0 70px;">
   <input type="text" name="item_hsn_code[]" class="form-control form-control-sm" placeholder="HSN" style="flex: 0 0 50px;">

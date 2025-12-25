@@ -1,68 +1,65 @@
+# Django core
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
-from . import forms
-from .forms import CustomerForm, InvoiceForm, CompanySettingsForm, CustomerPriceCatalogForm
-from .models import Parties, Configuration, Invoice,InvoiceItem, Transportation, PriceCatalog, CompanySettings,Product, CustomerPriceCatalog, PartyRole
-from .models import Materials
-from collections import defaultdict,OrderedDict
-#from singleton import singleton
-import pdb
-import json
-from django.utils.html import escapejs
-#from num2words import num2words
-from django.http import HttpResponse
+from django.contrib import messages
+from django.template.loader import render_to_string, get_template
 from django.template import TemplateDoesNotExist
-
-from decimal import Decimal, ROUND_DOWN
-import pdfkit
-#from weasyprint import HTML
-from django.template.loader import render_to_string
-
-from django.http import HttpResponse
-from django.template.loader import render_to_string
-#from xhtml2pdf import pisa
-import io
-
-
-from django.http import HttpResponse
-from django.template.loader import render_to_string
-#from weasyprint import HTML, CSS
-
-from django.http import HttpResponse
-from django.template.loader import render_to_string
-#from xhtml2pdf import pisa
-import io
-
-
-import imgkit
-from PIL import Image
-from django.http import HttpResponse
-from django.template.loader import render_to_string
-import io
-
-import pdfkit
-from django.http import HttpResponse
-from django.template.loader import render_to_string
-
-
-from django.http import HttpResponse
-from django.template.loader import get_template
-from xhtml2pdf import pisa
-from io import BytesIO
-
 from django.db import transaction
+from django.conf import settings
+from django.apps import apps
 
-
-from django.http import JsonResponse
-#from .models import Invoice, InvoiceItem
-from .forms import PriceListFormSet
-
+# Django ORM utilities
 from django.db.models import Count
-from django.db.models.functions import TruncMonth
+from django.db.models.functions import TruncMonth, Lower, Trim
 
+# Forms
+from . import forms
+from .forms import (
+    CustomerForm,
+    InvoiceForm,
+    CompanySettingsForm,
+    CustomerPriceCatalogForm,
+    PriceListFormSet,
+)
 
-from .services import export_data, import_data
+# Models
+from .models import (
+    Parties,
+    PartyRole,
+    Configuration,
+    Invoice,
+    InvoiceItem,
+    Transportation,
+    PriceCatalog,
+    CompanySettings,
+    Product,
+    CustomerPriceCatalog,
+    Materials,
+)
+
+# Services & serializers
+from .services import export_data
 from .serializers import MODEL_REGISTRY
+
+# Utilities
+from collections import defaultdict, OrderedDict
+from decimal import Decimal, ROUND_DOWN
+import json
+import csv
+import io
+import os
+from datetime import datetime
+from zipfile import ZipFile
+
+# PDF generation
+# from weasyprint import HTML, CSS
+# from xhtml2pdf import pisa
+
+# Image / PDF helpers (used)
+import pdfkit
+import imgkit
+# from PIL import Image
 
 # Global cache
 _CUSTOMER_PRICE_DICT = None
@@ -1339,27 +1336,105 @@ def load_material(request, pk):
     })
 
 
-import csv, json, io
+import csv
+import io
+import json
 from django.db import transaction
+from django.db.models import BooleanField
+
+AUTO_FIELDS = {"id", "created_at", "updated_at"}
+
+import csv
+import io
+import json
+from django.db import transaction
+from django.db.models import BooleanField
+
+
+import csv
+import io
+import json
+from django.db import transaction
+from django.db.models import BooleanField
 
 
 @transaction.atomic
-def import_data(model_name, file, file_type):
+def import_data(model_name, file_type, file):
     model = MODEL_REGISTRY[model_name]
-    fields = [f.name for f in model._meta.fields]
 
+    AUTO_FIELDS = {"id", "created_at", "updated_at"}
+    UNIQUE_KEY = "code"  # explicitly use 'code' as lookup
+
+    IMPORT_STRATEGY = getattr(model, "IMPORT_STRATEGY", "update_or_create")
+    UNIQUE_KEYS = getattr(model, "IMPORT_UNIQUE_KEYS", None)
+
+    model_fields = {
+        f.name: f
+        for f in model._meta.fields
+        if f.name not in AUTO_FIELDS
+    }
+
+    def normalize(record):
+        clean = {}
+        for key, value in record.items():
+            key = key.strip()
+            if key not in model_fields:
+                continue
+
+            field = model_fields[key]
+
+            if value in ("", None):
+                clean[key] = None
+            elif isinstance(field, BooleanField):
+                clean[key] = str(value).strip().upper() in ("TRUE", "1", "YES")
+            else:
+                clean[key] = str(value).strip()
+        return clean
+
+    def save(record):
+        #print(f'save called witih record {record}')
+        clean = normalize(record)
+        if UNIQUE_KEY not in clean:
+            raise ValueError(f"Missing unique key '{UNIQUE_KEY}' in row: {record}")
+
+        lookup = {UNIQUE_KEY: clean.pop(UNIQUE_KEY)}
+        obj, created = model.objects.update_or_create(
+            **lookup,
+            defaults=clean
+        )
+        #print(f"{'Created' if created else 'Updated'}: {lookup[UNIQUE_KEY]}")  # debug log
+
+    # ---------- CSV ----------
     if file_type == "csv":
-        decoded = file.read().decode("utf-8")
+        raw = file.read()
+        # print(f'raw file {raw}')
+        decoded = None
+        for enc in ("utf-8-sig", "utf-16", "cp1252", "latin1"):
+            try:
+                decoded = raw.decode(enc)
+                #print(f'decoded {decoded}')
+                break
+            except UnicodeDecodeError:
+                continue
+        if decoded is None:
+            raise ValueError("Unable to decode CSV file")
+
         reader = csv.DictReader(io.StringIO(decoded))
-
         for row in reader:
-            clean = {k: v if v != "" else None for k, v in row.items()}
-            model.objects.update_or_create(**clean)
+            #print(f'row {row}')
+            save(row)
+        #print("call done...")
 
+    # ---------- JSON ----------
     elif file_type == "json":
         records = json.load(file)
         for record in records:
-            model.objects.update_or_create(**record)
+            save(record)
+
+    else:
+        raise ValueError("Unsupported file type")
+
+
 
 def export_view(request):
     if request.method == "POST":
