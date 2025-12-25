@@ -64,7 +64,9 @@ class Materials(models.Model):
     supplier = models.ForeignKey(
         Parties,
         on_delete=models.PROTECT,
-        related_name='materials'
+        related_name='materials',
+        #to_field='code',
+        #to_field='code'
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -155,7 +157,6 @@ class Transportation(models.Model):
         related_name='items',      # allows customer.items.all()
         on_delete=models.CASCADE,  # deletes items if customer is deleted
         to_field='code',           # link by Parties.code instead of id
-        #db_column="customer_code", # valid DB column name
     )
     delivery_place  = models.CharField(max_length=50, blank=True, null=True)
     transporter_name = models.CharField(max_length=100, null=True, blank=True)
@@ -178,6 +179,7 @@ class Product(models.Model):
         Materials,
         on_delete=models.PROTECT,
         related_name='products',
+        # to_field='code',
         null=True, # TODO temp 
         blank=True # TODO temp 
     )

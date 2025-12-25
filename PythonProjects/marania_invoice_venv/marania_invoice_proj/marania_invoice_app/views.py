@@ -40,7 +40,7 @@ from .models import (
 
 # Services & serializers
 from .services import export_data
-from .serializers import MODEL_REGISTRY
+from .serializers import MODEL_REGISTRY, UNIQUE_KEY_MODEL
 
 # Utilities
 from collections import defaultdict, OrderedDict
@@ -1340,23 +1340,108 @@ import csv
 import io
 import json
 from django.db import transaction
-from django.db.models import BooleanField
+from django.db.models import BooleanField, ForeignKey
 
 AUTO_FIELDS = {"id", "created_at", "updated_at"}
 
-import csv
-import io
-import json
-from django.db import transaction
-from django.db.models import BooleanField
+@transaction.atomic
+def import_data_no_unique_key(model_name, file_type, file):
+    model = MODEL_REGISTRY[model_name]
 
+    AUTO_FIELDS = {"id", "created_at", "updated_at"}
 
-import csv
-import io
-import json
-from django.db import transaction
-from django.db.models import BooleanField
+    model_fields = {
+        f.name: f
+        for f in model._meta.fields
+        if f.name not in AUTO_FIELDS
+    }
 
+    fk_fields = {
+        f.name: f
+        for f in model._meta.fields
+        if isinstance(f, ForeignKey)
+    }
+
+    def normalize(record):
+        clean = {}
+
+        for key, value in record.items():
+            key = key.strip()
+            value = value.strip() if isinstance(value, str) else value
+
+            if value in ("", None):
+                continue
+
+            # ---------- ForeignKey via *_id ----------
+            if key.endswith("_id") and key[:-3] in fk_fields:
+                clean[key] = value
+                continue
+
+            # ---------- ForeignKey via field name ----------
+            if key in fk_fields:
+                fk = fk_fields[key]
+                rel_model = fk.remote_field.model
+                rel_field = fk.target_field.name  # e.g. "code"
+                if rel_field =="id": # TODO- fix the issue later
+                    rel_field = "code"
+                value = value.split("-", 1)[0]
+
+                try:
+                    #clean[key] = rel_model.objects.get( **{rel_field: value}).first()
+                    related_obj = rel_model.objects.filter(**{rel_field: value}).first()
+                    clean[key] = related_obj
+                except rel_model.DoesNotExist:
+                    raise ValueError(
+                        f"Invalid FK value '{value}' for {key}.{rel_field}"
+                    )
+                continue
+
+            # ---------- Normal fields ----------
+            if key not in model_fields:
+                continue
+
+            field = model_fields[key]
+
+            if isinstance(field, BooleanField):
+                clean[key] = str(value).upper() in ("TRUE", "1", "YES")
+            else:
+                clean[key] = value
+
+        return clean
+
+    def save(record):
+        clean = normalize(record)
+        model.objects.create(**clean)
+
+    # ---------- CSV ----------
+    if file_type == "csv":
+        raw = file.read()
+        decoded = None
+        for enc in ("utf-8-sig", "utf-16", "cp1252", "latin1"):
+            try:
+                decoded = raw.decode(enc)
+                break
+            except UnicodeDecodeError:
+                continue
+        if decoded is None:
+            raise ValueError("Unable to decode CSV file")
+
+        reader = csv.DictReader(io.StringIO(decoded))
+        model.objects.all().delete()
+        for row in reader:
+            save(row)
+
+    # ---------- JSON ----------
+    elif file_type == "json":
+        records = json.load(file)
+        model.objects.all().delete()
+        for record in records:
+            save(record)
+
+    else:
+        raise ValueError("Unsupported file type")
+    
+from django.db import models
 
 @transaction.atomic
 def import_data(model_name, file_type, file):
@@ -1364,6 +1449,9 @@ def import_data(model_name, file_type, file):
 
     AUTO_FIELDS = {"id", "created_at", "updated_at"}
     UNIQUE_KEY = "code"  # explicitly use 'code' as lookup
+    if model_name == 'Invoice':
+        UNIQUE_KEY = "invoice_number"
+
 
     IMPORT_STRATEGY = getattr(model, "IMPORT_STRATEGY", "update_or_create")
     UNIQUE_KEYS = getattr(model, "IMPORT_UNIQUE_KEYS", None)
@@ -1374,25 +1462,75 @@ def import_data(model_name, file_type, file):
         if f.name not in AUTO_FIELDS
     }
 
+
     def normalize(record):
         clean = {}
+        fk_fields = {
+            f.name: f
+            for f in model._meta.fields
+            if isinstance(f, ForeignKey)
+            }
+        
         for key, value in record.items():
             key = key.strip()
+            if value in ("", None):
+                continue
+            # ---------- ForeignKey handling first ----------
+            if key in fk_fields:
+                fk = fk_fields[key]
+                rel_model = fk.remote_field.model
+                rel_field = fk.target_field.name  # e.g. "code"
+                if rel_field == "id": #TODO - temp fix 
+                    rel_field = 'code' 
+                # elif model_name == 'Invoice':
+                #     rel_field = "invoice_number"
+                
+
+                # Extract code from CSV like "LINGF-LINGESWARI FILAMENTS"
+                if  str(value) != "":
+                    code_value = str(value).split("-", 1)[0].strip()
+                else:
+                    code_value =""
+
+                try:
+                    if code_value == "":
+                        clean[key] = ""    
+                    else:
+                        clean[key] = rel_model.objects.get(**{rel_field: code_value})
+                except rel_model.DoesNotExist:
+                    raise ValueError(f"Invalid FK value '{value}' for {key}.{rel_field}")
+                continue
+
+            # ---------- Skip non-model fields ----------
             if key not in model_fields:
                 continue
 
             field = model_fields[key]
 
-            if value in ("", None):
-                clean[key] = None
-            elif isinstance(field, BooleanField):
+            if isinstance(field, BooleanField):
                 clean[key] = str(value).strip().upper() in ("TRUE", "1", "YES")
+              # ---------- Handle DateField ----------
+            elif isinstance(field, models.DateField):
+                if isinstance(value, str):
+                    # Convert MM/DD/YYYY or YYYY-MM-DD to date object
+                    try:
+                        if "/" in value:  # MM/DD/YYYY
+                            value = datetime.strptime(value, "%m/%d/%Y").date()
+                        else:  # assume ISO YYYY-MM-DD
+                            value = datetime.strptime(value, "%Y-%m-%d").date()
+                    except Exception as e:
+                        raise ValueError(f"Invalid date format for {key}: {value}") from e
+
+                    clean[key] = value
+
             else:
                 clean[key] = str(value).strip()
+
         return clean
 
     def save(record):
         #print(f'save called witih record {record}')
+      
         clean = normalize(record)
         if UNIQUE_KEY not in clean:
             raise ValueError(f"Missing unique key '{UNIQUE_KEY}' in row: {record}")
@@ -1450,12 +1588,14 @@ def export_view(request):
 
 def import_view(request):
     if request.method == "POST":
-        import_data(
-            request.POST["model"],
-            request.POST["file_type"],
-            request.FILES["file"]
-        )
-        return HttpResponse("Import completed successfully")
+        UNIQUE_KEY = UNIQUE_KEY_MODEL[request.POST["model"]]
+        # import_data(request.POST["model"], request.POST["file_type"], request.FILES["file"])
+        # return render(request, "marania_invoice_app/import.html", { "models": MODEL_REGISTRY.keys()    })
+    
+        if UNIQUE_KEY == "":
+            import_data_no_unique_key(request.POST["model"], request.POST["file_type"], request.FILES["file"])
+        else:
+            import_data(request.POST["model"], request.POST["file_type"], request.FILES["file"])
 
     return render(request, "marania_invoice_app/import.html", {
         "models": MODEL_REGISTRY.keys()

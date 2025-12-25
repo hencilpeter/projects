@@ -13,3 +13,17 @@ MODEL_REGISTRY = {
     "Configuration": Configuration,
     "CompanySettings": CompanySettings,
 }
+
+UNIQUE_KEY_MODEL = {
+    "PartyRole": "",
+    "Parties": "code",
+    "Materials": "code",
+    "Product": "code",
+    "PriceCatalog": "",
+    "CustomerPriceCatalog": "",
+    "Invoice": "invoice_number",
+    "InvoiceItem": "",
+    "Transportation": "",
+    "Configuration": "",
+    "CompanySettings": "",
+}
