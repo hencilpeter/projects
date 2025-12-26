@@ -77,13 +77,13 @@ class Configurations:
         #self.config['SGST'] = configurations['SGST']
         #self.config['IGST'] = configurations['IGST']
 
-company_settings, created = CompanySettings.objects.get_or_create(id=1)
+company_settings, created = None, None # CompanySettings.objects.get_or_create(id=1)
 
 #######################################################-Common Functions-#############
 def get_next_invoice_number():
     try:
         # Get the single CompanySettings row
-        settings = CompanySettings.objects.get(id=1)
+        settings = None # CompanySettings.objects.get(id=1)
         # Format: PREFIX + current invoice number
         next_invoice = f"{settings.current_invoice_number+1}"
         return next_invoice
@@ -481,13 +481,15 @@ def parties(request):
     return render(request, "marania_invoice_app/party.html", context)
 
 
-def load_party(request, id):
-    customer = Parties.objects.prefetch_related("roles", "items").get(id=id)
+def load_party(request, code):
+    #customer = Parties.objects.prefetch_related("roles", "items").get(code=code)
+    customer = Parties.objects.get(code=code)
+ 
     
     roles_ids = list(customer.roles.values_list('id', flat=True))
-    
+
     transport_data = []
-    for t in customer.items.all():  # use related_name 'items'
+    for t in customer.transportations.all():  # use related_name 'items'
         transport_data.append({
             "delivery_place": t.delivery_place,
             "transporter_name": t.transporter_name,
@@ -497,7 +499,7 @@ def load_party(request, id):
         })
     
     data = {
-        "id": customer.id,
+        #"id": customer.id,
         "code": customer.code,
         "name": customer.name,
         "gst": customer.gst,
@@ -509,6 +511,7 @@ def load_party(request, id):
         "roles": roles_ids,
         "transport_details": transport_data,
     }
+    print(data)
     return JsonResponse(data)
 
 def show_gst_calculator(request):
@@ -724,10 +727,10 @@ def get_invoice_dictonaries(invoice_number):
     invoice_dict = get_invoices_dict()
     partices_dict = get_parties_dict()
     product_dict = get_product_dict()
-
-     #company details 
+    # Hencil - current 
+    #company details 
     company_dict = {"logo_url": "/static/images/marania_eagle_logo.png",
-                      "name": "MARANIA FILAMENTS", # TODO
+                    "name": "MARANIA FILAMENTS", # TODO
                     "address": "5/118a, Elavuvillai, Kilaattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari", # TODO
                     "gstin": "33AGAPJ9143P1Z4",
                     "state_name": "Tamil Nadu",
@@ -1589,8 +1592,6 @@ def export_view(request):
 def import_view(request):
     if request.method == "POST":
         UNIQUE_KEY = UNIQUE_KEY_MODEL[request.POST["model"]]
-        # import_data(request.POST["model"], request.POST["file_type"], request.FILES["file"])
-        # return render(request, "marania_invoice_app/import.html", { "models": MODEL_REGISTRY.keys()    })
     
         if UNIQUE_KEY == "":
             import_data_no_unique_key(request.POST["model"], request.POST["file_type"], request.FILES["file"])

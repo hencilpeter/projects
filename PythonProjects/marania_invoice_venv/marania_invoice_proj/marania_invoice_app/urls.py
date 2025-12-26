@@ -7,7 +7,7 @@ urlpatterns = [
 # parties     
 path('parties',views.parties, name='parties'),
 path('parties/add/', views.create_party, name='create_party'),
-path('parties/load/<int:id>/', views.load_party, name='load_party'),
+path('parties/load/<str:code>/', views.load_party, name='load_party'),
 
 # invoice 
 path('invoice_entry', views.invoice_entry, name='invoice_entry'),

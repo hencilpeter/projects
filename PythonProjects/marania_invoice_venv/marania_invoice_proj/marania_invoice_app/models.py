@@ -26,7 +26,7 @@ class PartyRole(models.Model):
 
 
 class Parties(models.Model):
-    code = models.CharField(max_length=50, unique=True)
+    code = models.CharField(max_length=50, unique=True, primary_key=True)
     name = models.CharField(max_length=255)
     gst = models.CharField(max_length=20, blank=True, null=True)
     phone = models.CharField(max_length=50, blank=True, null=True)
@@ -62,12 +62,19 @@ class Materials(models.Model):
     )
 
     supplier = models.ForeignKey(
-        Parties,
-        on_delete=models.PROTECT,
-        related_name='materials',
-        #to_field='code',
-        #to_field='code'
-    )
+                            Parties,
+                            to_field='code',
+                            on_delete=models.DO_NOTHING,
+                            related_name='materials',
+                            db_constraint=False,   # ⭐ KEY LINE
+                        )
+    
+    # supplier = models.ForeignKey(
+    #     Parties,
+    #     on_delete=models.PROTECT,
+    #     related_name='materials',
+    #     # to_field='code',
+    # )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -154,9 +161,11 @@ class InvoiceItem(models.Model):
 class Transportation(models.Model):
     customer = models.ForeignKey(
         Parties,
-        related_name='items',      # allows customer.items.all()
-        on_delete=models.CASCADE,  # deletes items if customer is deleted
-        to_field='code',           # link by Parties.code instead of id
+        related_name='transportations',      # allows customer.items.all()
+        on_delete=models.DO_NOTHING,
+        db_constraint=False
+        #on_delete=models.CASCADE,  # deletes items if customer is deleted
+        #to_field='code',           # link by Parties.code instead of id
     )
     delivery_place  = models.CharField(max_length=50, blank=True, null=True)
     transporter_name = models.CharField(max_length=100, null=True, blank=True)
@@ -202,8 +211,7 @@ class PriceCatalog(models.Model):
     product = models.ForeignKey(
         Product,
         related_name='items',
-        on_delete=models.CASCADE,
-        to_field='code'
+        on_delete=models.DO_NOTHING,
     )
     code = models.CharField(max_length=50)
     customer_group = models.CharField(max_length=100)
@@ -241,7 +249,7 @@ class CompanySettings(models.Model):
     cgst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     sgst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
 
-    finance_year = models.CharField(max_length=20, default=current_indian_financial_year())
+    finance_year = models.CharField(max_length=20, default=current_indian_financial_year)
 
     # Company information
     company_title = models.CharField(max_length=255)
@@ -250,6 +258,13 @@ class CompanySettings(models.Model):
     # Optional: contact info
     company_phone = models.CharField(max_length=50, blank=True, null=True)
     company_email = models.EmailField(blank=True, null=True)
+
+    # bank account
+    # bank_account_name  = models.CharField(max_length=50, blank=True, null=True)
+    # bank_name  = models.CharField(max_length=25, blank=True, null=True)
+    # bank_account_number = models.CharField(max_length=50, blank=True, null=True)
+    # bank_branch = models.CharField(max_length=50, blank=True, null=True)
+    # bank_ifsc  = models.CharField(max_length=50, blank=True, null=True)
 
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -263,16 +278,19 @@ class CompanySettings(models.Model):
 
 class CustomerPriceCatalog(models.Model):
     customer = models.ForeignKey(
-        Parties,
-        on_delete=models.CASCADE,
-        related_name='customer_items'
-    )
+         Parties,
+         #to_field='code',
+         on_delete=models.DO_NOTHING,
+         related_name='customer_items',
+         db_constraint=False,
+     )
 
-    price_catalog = models.ForeignKey(
-        PriceCatalog,
-        on_delete=models.CASCADE,
-        related_name='price_catalog_items'
-    )
+    price_catalog =  models.ForeignKey(
+         PriceCatalog,
+         on_delete=models.DO_NOTHING,
+         related_name='price_catalog_items',
+         db_constraint=False,
+     )
 
     gst_included = models.BooleanField(default=False)
 
@@ -282,10 +300,10 @@ class CustomerPriceCatalog(models.Model):
 
     remark = models.TextField(blank=True, null=True)
 
-    class Meta:
-        db_table = "customer_price_catalog"   # Explicit table name
-        verbose_name = "Customer Price Catalog"
-        verbose_name_plural = "Customer Price Catalogs"
+    # class Meta:
+    #     db_table = "customer_price_catalog"   # Explicit table name
+    #     verbose_name = "Customer Price Catalog"
+    #     verbose_name_plural = "Customer Price Catalogs"
 
     def __str__(self):
         return f"{self.customer}-{self.price_catalog}"
