@@ -142,13 +142,24 @@
 
 
               <!-- Row 6: Dispatched Through -->
-               <div class="row mb-3">
+               <!-- <div class="row mb-3">
                 <div class="col-md-12">
                   {{ invoice_form.dispatched_through }}
                   <datalist id="dispatched_through_list"></datalist>
                 </div>
+                </div> -->
+               <div class="row mb-3">
+                  <div class="col-md-6">
+                    {{ invoice_form.dispatched_through }}
+                    <datalist id="dispatched_through_list"></datalist>
+                  </div>
+                   <div class="col-md-3">
+                    {{ invoice_form.vehicle_name_number }}
+                  </div>
+                  <div class="col-md-3">
+                    {{ invoice_form.transporter_gst }}
+                  </div>
                 </div>
-
 
 
               <!-- Invoice Items Group -->
@@ -297,7 +308,11 @@ function loadInvoice(invoiceNumber) {
         document.querySelector('input[name="ship_to_customer_contact"]').value = data.invoice.ship_to_customer_contact;
         document.querySelector('input[name="ship_to_customer_email"]').value = data.invoice.ship_to_customer_email;
 
+        // transportation
         document.querySelector('input[name="dispatched_through"]').value = data.invoice.dispatched_through;
+        document.querySelector('input[name="vehicle_name_number"]').value = data.invoice.vehicle_name_number;
+        document.querySelector('input[name="transporter_gst"]').value = data.invoice.transporter_gst;
+
 
         // Clear existing invoice items
         const container = document.getElementById('item-container');
@@ -546,6 +561,75 @@ document.addEventListener('DOMContentLoaded', function() {
 
   });
 
+//Transportation Deails - Default value population logic 
+let currentTransporters = []; // 👈 global / outer scope
+
+function populateTransportFields(transporter) {
+  document.querySelector('input[name="transporter_gst"]').value =
+    transporter.transporter_gst || '';
+
+  document.querySelector('input[name="vehicle_name_number"]').value =
+    transporter.vehicle_name_number || '';
+}
+
+function clearTransportFields() {
+  document.querySelector('input[name="transporter_gst"]').value = '';
+  document.querySelector('input[name="vehicle_name_number"]').value = '';
+}
+
+
+
+const dispatchedInput = document.querySelector(  'input[name="dispatched_through"]');
+dispatchedInput.addEventListener('input', function (e) {
+ if (!e.target.matches('input[name="dispatched_through"]')) return;
+  const value = e.target.value;
+  const options = document.querySelectorAll('#dispatched_through_list option');
+
+  let selectedIndex = -1;
+
+  options.forEach((opt, idx) => {
+    if (opt.value === value) {
+      selectedIndex = idx;
+    }
+  });
+
+  if (selectedIndex === -1) {
+    clearTransportFields();
+    return;
+  }
+
+  const transporter = currentTransporters[selectedIndex];
+  populateTransportFields(transporter);
+  
+});
+
+  // populate transportation details 
+  function populateTransportationDetails(customer_code){
+      // populate dispatched through control 
+      const transporter_dict = JSON.parse('{{ transporter_dict|escapejs }}');
+      const dispatched_through = document.getElementById('dispatched_through');
+      const datalist = document.getElementById('dispatched_through_list');
+
+      datalist.innerHTML = '';
+      currentTransporters = [];
+      console.log("cleared current transporters")
+      if (transporter_dict[customer_code]) {
+        transporter_dict[customer_code].forEach((item, index) => {
+        //currentIndex = currentIndex + 1;
+        const option = document.createElement('option');
+        option.value = `${item.transporter_name} ( ${item.delivery_place} ) ` ; //item.transporter_name;
+        option.dataset.index = index;   // 👈 store index  
+        datalist.appendChild(option);
+        currentTransporters.push(item);
+        if ( item.is_default_transport ) {
+               document.querySelector('input[name="dispatched_through"]').value = option.value;
+               populateTransportFields(item); 
+        }
+      });          
+      }
+
+  }
+
   const customerCodeInput = document.querySelector('input[name="customer_code"]');
   customerCodeInput.addEventListener('blur', function() {
     const code = this.value.toUpperCase().trim();
@@ -569,33 +653,13 @@ document.addEventListener('DOMContentLoaded', function() {
       document.querySelector('input[name="ship_to_customer_contact"]').value = customerData[code].phone;
       document.querySelector('input[name="ship_to_customer_email"]').value = customerData[code].email;
 
-      //document.querySelector('textarea[name="ship_to_customer_address"]').value = customerData[code].address_ship_to;
-
       // populate dispatched through control 
-      const transporter_dict = JSON.parse('{{ transporter_dict|escapejs }}');
-      const dispatched_through = document.getElementById('dispatched_through');
-      const datalist = document.getElementById('dispatched_through_list');
-
-      datalist.innerHTML = '';
-      let defaultValue = '';
-      if (transporter_dict[code]) {
-        currentIndex = -1 ;
-        defaultIndex = -1;
-        transporter_dict[code].forEach(item => {
-        currentIndex = currentIndex + 1;
-        const option = document.createElement('option');
-        option.value = `${item.transporter_name} ( ${item.delivery_place} ) ` ; //item.transporter_name;
-
-        datalist.appendChild(option);
-        if ( item.is_default_transport ) {
-               defaultValue = option.value;
-        }
-      });
-      document.querySelector('input[name="dispatched_through"]').value = defaultValue;
-      }
+      populateTransportationDetails(code);
 
     }
   });
+
+
 
   // Invoice Items JS
   let rowIndex = -1;

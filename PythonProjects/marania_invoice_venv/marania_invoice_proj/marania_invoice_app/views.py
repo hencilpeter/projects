@@ -965,6 +965,8 @@ def get_invoice(request, invoice_number):
             "ship_to_customer_contact": invoice.ship_to_customer_contact,
             "ship_to_customer_email": invoice.ship_to_customer_email,
             "dispatched_through": invoice.dispatched_through,
+            "vehicle_name_number":invoice.vehicle_name_number,
+            "transporter_gst": invoice.transporter_gst,
         },
         "items": list(items)
     })

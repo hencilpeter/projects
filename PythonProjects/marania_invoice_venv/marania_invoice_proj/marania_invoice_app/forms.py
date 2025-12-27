@@ -98,9 +98,30 @@ class InvoiceForm(forms.ModelForm):
             'class': 'form-control form-control-sm',
             'placeholder': 'Dispatched Through',
             'list': 'dispatched_through_list',  # links to datalist id in HTML
-        })
+        }),
+        required=False,
+    )
+
+    vehicle_name_number = forms.CharField(
+        label='Vehicle Namd & Number',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control form-control-sm',
+            'placeholder': 'Vehicle Name & Number',
+            'list': 'vehicle_name_number_list',  # links to datalist id in HTML
+        }),
+        required=False,
     )
     
+    transporter_gst = forms.CharField(
+        label='Transporter GST',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control form-control-sm',
+            'placeholder': 'Transporter GST',
+            'list': 'transporter_gst_list',  # links to datalist id in HTML
+        }),
+        required=False,
+    )
+
     
     class Meta:
         model = Invoice
@@ -119,7 +140,9 @@ class InvoiceForm(forms.ModelForm):
             'ship_to_customer_address',
             'ship_to_customer_contact',
             'ship_to_customer_email',
-            'dispatched_through'
+            'dispatched_through',
+            'vehicle_name_number',
+            'transporter_gst'
         ]
 
         widgets = {

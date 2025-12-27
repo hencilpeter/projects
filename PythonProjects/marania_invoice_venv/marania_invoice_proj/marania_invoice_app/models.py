@@ -255,6 +255,8 @@ class Invoice(models.Model):
     ship_to_customer_email = models.EmailField(null=True, blank=True)
 
     dispatched_through = models.CharField(max_length=100, null=True, blank=True)
+    vehicle_name_number = models.CharField(max_length=100, null=True, blank=True)
+    transporter_gst = models.CharField(max_length=100, null=True, blank=True)
     
 
     def __str__(self):
