@@ -156,7 +156,7 @@
             <td>{{ customer.is_within_state|yesno:"Yes,No" }}</td>
             <td>{% for role in customer.roles.all %}{{ role.role }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</td>
             <td>
-              <button class="btn btn-primary btn-sm load-customer" data-id="{{ customer.id }}">Edit</button>
+              <button class="btn btn-primary btn-sm load-customer" data-id="{{ customer.code }}">Edit</button>
             </td>
           </tr>
           {% empty %}
@@ -216,12 +216,11 @@ container.addEventListener('click', e => {
 // Load/Edit Customer
 document.addEventListener('click', e => {
   if (!e.target.classList.contains('load-customer')) return;
-  const id = e.target.dataset.id;
-
-  fetch(`/invoice/parties/load/${id}/`)
+  const code = e.target.dataset.id;
+  fetch(`/invoice/parties/load/${code}/`)
     .then(res => res.json())
     .then(data => {
-      form.querySelector('input[name="customer_id"]').value = data.id;
+      //form.querySelector('input[name="customer_id"]').value = data.id;
       form.querySelector('input[name="code"]').value = data.code;
       form.querySelector('input[name="name"]').value = data.name;
       form.querySelector('input[name="gst"]').value = data.gst;
