@@ -34,7 +34,7 @@ class Parties(models.Model):
     address_bill_to = models.TextField(blank=True, null=True)
     address_ship_to = models.TextField(blank=True, null=True)
     is_within_state = models.BooleanField(default=True)
-    roles = models.ManyToManyField('PartyRole', blank=True)
+    roles = models.ManyToManyField('PartyRole', blank=True, db_constraint=False)
     
     created_at = models.DateTimeField(auto_now_add=True)   # automatically set on creation
     updated_at = models.DateTimeField(auto_now=True)       # automatically set on update
@@ -68,13 +68,6 @@ class Materials(models.Model):
                             related_name='materials',
                             db_constraint=False,   # ⭐ KEY LINE
                         )
-    
-    # supplier = models.ForeignKey(
-    #     Parties,
-    #     on_delete=models.PROTECT,
-    #     related_name='materials',
-    #     # to_field='code',
-    # )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -161,12 +154,12 @@ class InvoiceItem(models.Model):
 class Transportation(models.Model):
     customer = models.ForeignKey(
         Parties,
-        related_name='transportations',      # allows customer.items.all()
+        to_field='code',           # link to Parties.code
+        related_name='transportations',
         on_delete=models.DO_NOTHING,
-        db_constraint=False
-        #on_delete=models.CASCADE,  # deletes items if customer is deleted
-        #to_field='code',           # link by Parties.code instead of id
-    )
+        db_constraint=True,        # keep constraint
+        null=True,                 # optional
+        blank=True,)
     delivery_place  = models.CharField(max_length=50, blank=True, null=True)
     transporter_name = models.CharField(max_length=100, null=True, blank=True)
     transporter_gst = models.CharField(max_length=30, null=True, blank=True)

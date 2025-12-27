@@ -11,7 +11,7 @@ from django.forms import inlineformset_factory
 from django.forms import modelformset_factory
 
 class CustomerForm(forms.ModelForm):
-    # This field will be used in the form but mapped to roles
+    # Use a separate field for selecting roles in the form
     partyroles = forms.ModelMultipleChoiceField(
         queryset=PartyRole.objects.all(),
         required=False,
@@ -43,82 +43,14 @@ class CustomerForm(forms.ModelForm):
             self.fields['partyroles'].initial = self.instance.roles.all()
 
     def save(self, commit=True):
+        # Save the Parties instance first
         instance = super().save(commit=False)
         if commit:
             instance.save()
-        # Assign the selected partyroles to the model's roles ManyToMany
+        # Save ManyToMany field
         instance.roles.set(self.cleaned_data['partyroles'])
+       
         return instance
-
-
-
-# class CustomerForm(forms.ModelForm):
-#     roles = forms.ModelMultipleChoiceField(
-#         queryset=PartyRole.objects.all(),
-#         widget=forms.CheckboxSelectMultiple(attrs={
-#             'class': 'form-check-input'
-#         }),
-#         required=True,
-#         label="Party Role"
-#     )
-
-#     class Meta:
-#         model = Parties
-#         fields = [
-#             'code', 'name', 'gst', 'phone', 'email',
-#             'address_bill_to', 'address_ship_to',
-#             'is_within_state', 'price_list_tag',
-#             'roles'
-#         ]
-
-#         widgets = {
-#             'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Code'}),
-#             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Name'}),
-#             'gst': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'GST'}),
-#             'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Phone'}),
-#             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}),
-#             'address_bill_to': forms.Textarea(attrs={
-#                 'class': 'form-control', 'rows': 2, 'placeholder': 'Billing address'
-#             }),
-#             'address_ship_to': forms.Textarea(attrs={
-#                 'class': 'form-control', 'rows': 2, 'placeholder': 'Shipping address'
-#             }),
-#             'is_within_state': forms.Select(
-#                 attrs={'class': 'form-select'},
-#                 choices=[(True, 'Yes'), (False, 'No')]
-#             ),
-#             'price_list_tag': forms.TextInput(
-#                 attrs={'class': 'form-control', 'placeholder': 'Price List Tag'}
-#             ),
-#         }
-
-#     def clean_roles(self):
-#         roles = self.cleaned_data.get("roles")
-#         if not roles:
-#             raise forms.ValidationError("At least one party role is required.")
-#         return roles
-    
-#     roles = forms.ModelMultipleChoiceField(
-#         queryset=PartyRole.objects.all(),
-#         widget=forms.CheckboxSelectMultiple,
-#         required=True,
-#         label="Party Role"
-#     )
-
-#     class Meta:
-#         model = Parties
-#         fields = [
-#             "code", "name", "gst", "phone", "email",
-#             "address_bill_to", "address_ship_to",
-#             "is_within_state", "price_list_tag", "roles"
-#         ]
-
-#     def clean_roles(self):
-#         roles = self.cleaned_data.get("roles")
-#         if not roles:
-#             raise forms.ValidationError("At least one role is required.")
-#         return roles
-    
 
 
 class InvoiceForm(forms.ModelForm):

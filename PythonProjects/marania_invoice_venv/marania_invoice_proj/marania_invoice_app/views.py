@@ -562,59 +562,76 @@ def invoice_entry(request):
       
 ############################-Functions-###################################
 from django.contrib import messages
+from django.db import IntegrityError
+
 
 def create_party(request):
     if request.method == 'POST':
         action = request.POST.get("action")
-        code = request.POST.get("code").strip()
+        code = request.POST.get("code", "").strip()
+
         try:
             if action == "delete":
-               Parties.objects.filter(code=code).delete()
-               return redirect('parties')  # Redirect after delete
+                Parties.objects.filter(code=code).delete()
+                messages.success(request, f"Party {code} deleted successfully.")
+                return redirect('parties')
 
-            # Try to get existing customer by code
+            # Try to get existing party
             customer_instance = Parties.objects.get(code=code)
             form = CustomerForm(request.POST, instance=customer_instance)
 
         except Parties.DoesNotExist:
-            # If customer doesn't exist, create new
+            # Create new party
             form = CustomerForm(request.POST)
+
         if form.is_valid():
-            customer_obj = form.save()  # Save or update ManyToMany automatically
+            # Save party and roles (ManyToMany handled in form.save())
+            customer_obj = form.save()
 
-            # delete the existing transportation details if any.     
-            customer_obj.items.all().delete()
+            # Delete existing Transportation entries
+            customer_obj.transportations.all().delete()
 
-            # save transportation details 
+            # Prepare new Transportation objects
             delivery_place_list = request.POST.getlist('delivery_place[]')
             transporter_name_list = request.POST.getlist('transporter_name[]')
             transporter_gst_list = request.POST.getlist('transporter_gst[]')
             vehicle_name_number_list = request.POST.getlist('vehicle_name_number[]')
             default_transport_index = request.POST.get('default_transport')
+
             transporter_list = []
 
-            for index in range(len(delivery_place_list)):
-                if delivery_place_list[index].strip():
-                    # Only mark as True if checkbox was checked
+            for index, place in enumerate(delivery_place_list):
+                if place.strip():
                     is_default = (str(index) == default_transport_index)
+                    transporter_list.append(Transportation(
+                        customer_id=customer_obj.code,  # crucial for to_field='code'
+                        delivery_place=place.strip(),
+                        transporter_name=transporter_name_list[index].strip(),
+                        transporter_gst=transporter_gst_list[index].strip(),
+                        vehicle_name_number=vehicle_name_number_list[index].strip(),
+                        is_default_transport=is_default,
+                    ))
 
-                    transporter_list.append(Transportation(customer=customer_obj,               
-                            delivery_place=delivery_place_list[index],
-                            transporter_name=transporter_name_list[index],
-                            transporter_gst=transporter_gst_list[index],
-                            vehicle_name_number=vehicle_name_number_list[index],
-                            is_default_transport=is_default,
-                            ))
-                    
-            if (len(transporter_list) > 0):
-                Transportation.objects.bulk_create(transporter_list)    # save the transporter items     
+            # Bulk create Transportation safely
+            if transporter_list:
+                try:
+                    Transportation.objects.bulk_create(transporter_list)
+                except IntegrityError as e:
+                    messages.error(request, f"Failed to save transportations: {str(e)}")
+                    return render(request, 'marania_invoice_app/party.html', {'form': form})
 
-            return redirect('parties')  # Redirect after save
+            messages.success(request, f"Party {customer_obj.code} saved successfully.")
+            return redirect('parties')
+
+        else:
+            messages.error(request, "Please correct the errors below.")
+
     else:
-        form = CustomerForm()  # Empty form for GET request
+        form = CustomerForm()
 
-    context = {'form': CustomerForm}
+    context = {'form': form}
     return render(request, 'marania_invoice_app/party.html', context)
+
 
 def invoice_save(request):
     if request.method == 'POST':
