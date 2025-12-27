@@ -183,6 +183,10 @@ def reset_global_dict():
     _PRODUCT_DICT = None
     _CUSTOMER_PRICE_DICT = None
 
+def get_first_part(value):
+    if not value:
+        return ""
+    return value.split("-", 1)[0]
 
 # def get_product_dict():
     
@@ -1199,7 +1203,7 @@ def product_master(request):
 
             # ✅ MATERIAL SAVE
             if material_ids[idx]:
-                obj.material_id = material_ids[idx]
+                obj.material = Materials.objects.get(id=material_ids[idx])
 
             obj.save()
             # reset the cache
@@ -1223,12 +1227,20 @@ def product_master(request):
 
 def load_product(request, id):
     p = Product.objects.get(id=id)
+    material_id = ""
+    try:
+        material_code = get_first_part(str(p.material))
+        material = Materials.objects.filter(code=material_code).first()
+        material_id =  material.id
+    except Materials.DoesNotExist:
+        material_id = None
+
     return JsonResponse({
         "code": p.code,
         "name": p.name,
         "display_name": p.display_name,
         "hsn": p.hsn,
-        "material": p.material_id,   # ✅ NEW
+        "material": material_id,
         "cgst": str(p.cgst),
         "sgst": str(p.sgst),
         "igst": str(p.igst),

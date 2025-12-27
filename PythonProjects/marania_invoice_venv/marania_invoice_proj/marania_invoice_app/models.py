@@ -15,9 +15,7 @@ def current_indian_financial_year():
 
 
 # Create your models here.
-
   
-
 class PartyRole(models.Model):
     role = models.CharField(max_length=255)
 
@@ -41,7 +39,26 @@ class Parties(models.Model):
 
     def __str__(self):
         return f"{self.code}-{self.name}"
-    
+
+
+class Transportation(models.Model):
+    customer = models.ForeignKey(
+        Parties,
+        to_field='code',           # link to Parties.code
+        related_name='transportations',
+        on_delete=models.DO_NOTHING,
+        db_constraint=True,        # keep constraint
+        null=True,                 # optional
+        blank=True,)
+    delivery_place  = models.CharField(max_length=50, blank=True, null=True)
+    transporter_name = models.CharField(max_length=100, null=True, blank=True)
+    transporter_gst = models.CharField(max_length=30, null=True, blank=True)
+    vehicle_name_number = models.CharField(max_length=100, blank=True, null=True)
+    is_default_transport = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.customer.name} - {self.delivery_place}-{self.transporter_name}-{self.is_default_transport}"
+
 class Materials(models.Model):
     code = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=255)
@@ -74,7 +91,93 @@ class Materials(models.Model):
 
     def __str__(self):
         return f"{self.code}-{self.name}"
-      
+        
+###################################################
+    
+class Product(models.Model):
+    code = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=200)
+    display_name = models.CharField(max_length=200, blank=True, null=True)
+    hsn = models.CharField(max_length=20, blank=True, null=True)
+
+    # ✅ Reference Material here
+    material = models.ForeignKey(
+        Materials,
+        to_field='code',
+        on_delete=models.DO_NOTHING,
+        related_name='products',
+        db_constraint=False,   # ⭐ KEY LINE
+        null=True, 
+        blank=True, 
+    )
+
+    cgst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    sgst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    igst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+
+    description = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.code}-{self.name}"
+
+
+class PriceCatalog(models.Model):
+    product = models.ForeignKey(
+        Product,
+        related_name='items',
+        on_delete=models.DO_NOTHING,
+    )
+    code = models.CharField(max_length=50)
+    customer_group = models.CharField(max_length=100)
+    sequence_id = models.PositiveIntegerField()
+
+    mesh_size_start = models.CharField(max_length=5)
+    mesh_size_end = models.CharField(max_length=5)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    is_active = models.BooleanField(default=True)
+    note = models.TextField(blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Price List"
+        verbose_name_plural = "Price Lists"
+        ordering = ["sequence_id"]
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.code}-{self.customer_group}"
+    
+
+class CustomerPriceCatalog(models.Model):
+    customer = models.ForeignKey(
+         Parties,
+         #to_field='code',
+         on_delete=models.DO_NOTHING,
+         related_name='customer_items',
+         db_constraint=False,
+     )
+
+    price_catalog =  models.ForeignKey(
+         PriceCatalog,
+         on_delete=models.DO_NOTHING,
+         related_name='price_catalog_items',
+         db_constraint=False,
+     )
+
+    gst_included = models.BooleanField(default=False)
+    colour_extra_price = models.FloatField(default=0)
+    small_mesh_size_extra_price = models.FloatField(default=0)
+    remark = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.customer}-{self.price_catalog}"
+    
+
 class Configuration(models.Model):
     name = models.CharField(max_length=100, unique=True, null=False, blank=False)
     value = models.CharField(max_length=255, null=True, blank=True)
@@ -151,82 +254,6 @@ class InvoiceItem(models.Model):
     def __str__(self):
         return f"{self.invoice.invoice_number or ''}({self.invoice.invoice_date})-{self.invoice.customer_name or ''} -{self.item_description or ''} - {self.item_quantity or ''}"
 
-class Transportation(models.Model):
-    customer = models.ForeignKey(
-        Parties,
-        to_field='code',           # link to Parties.code
-        related_name='transportations',
-        on_delete=models.DO_NOTHING,
-        db_constraint=True,        # keep constraint
-        null=True,                 # optional
-        blank=True,)
-    delivery_place  = models.CharField(max_length=50, blank=True, null=True)
-    transporter_name = models.CharField(max_length=100, null=True, blank=True)
-    transporter_gst = models.CharField(max_length=30, null=True, blank=True)
-    vehicle_name_number = models.CharField(max_length=100, blank=True, null=True)
-    is_default_transport = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"{self.customer.name} - {self.delivery_place}-{self.transporter_name}-{self.is_default_transport}"
-
-
-class Product(models.Model):
-    code = models.CharField(max_length=50, unique=True)
-    name = models.CharField(max_length=200)
-    display_name = models.CharField(max_length=200, blank=True, null=True)
-    hsn = models.CharField(max_length=20, blank=True, null=True)
-
-    # ✅ Reference Material here
-    material = models.ForeignKey(
-        Materials,
-        on_delete=models.PROTECT,
-        related_name='products',
-        # to_field='code',
-        null=True, # TODO temp 
-        blank=True # TODO temp 
-    )
-
-    cgst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    sgst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    igst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-
-    description = models.TextField(blank=True, null=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.code}-{self.name}"
-
- 
-
-class PriceCatalog(models.Model):
-    product = models.ForeignKey(
-        Product,
-        related_name='items',
-        on_delete=models.DO_NOTHING,
-    )
-    code = models.CharField(max_length=50)
-    customer_group = models.CharField(max_length=100)
-    sequence_id = models.PositiveIntegerField()
-
-    mesh_size_start = models.CharField(max_length=5)
-    mesh_size_end = models.CharField(max_length=5)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-
-    is_active = models.BooleanField(default=True)
-    note = models.TextField(blank=True, null=True)
-
-    class Meta:
-        verbose_name = "Price List"
-        verbose_name_plural = "Price Lists"
-        ordering = ["sequence_id"]
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.code}-{self.customer_group}"
 
 
 class CompanySettings(models.Model):
@@ -269,37 +296,7 @@ class CompanySettings(models.Model):
         verbose_name_plural = "Company Settings"
     
 
-class CustomerPriceCatalog(models.Model):
-    customer = models.ForeignKey(
-         Parties,
-         #to_field='code',
-         on_delete=models.DO_NOTHING,
-         related_name='customer_items',
-         db_constraint=False,
-     )
 
-    price_catalog =  models.ForeignKey(
-         PriceCatalog,
-         on_delete=models.DO_NOTHING,
-         related_name='price_catalog_items',
-         db_constraint=False,
-     )
-
-    gst_included = models.BooleanField(default=False)
-
-    colour_extra_price = models.FloatField(default=0)
-
-    small_mesh_size_extra_price = models.FloatField(default=0)
-
-    remark = models.TextField(blank=True, null=True)
-
-    # class Meta:
-    #     db_table = "customer_price_catalog"   # Explicit table name
-    #     verbose_name = "Customer Price Catalog"
-    #     verbose_name_plural = "Customer Price Catalogs"
-
-    def __str__(self):
-        return f"{self.customer}-{self.price_catalog}"
     
 
 
