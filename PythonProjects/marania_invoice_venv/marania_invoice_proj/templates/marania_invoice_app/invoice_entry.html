@@ -481,17 +481,13 @@ function ReviewAndDeriveValues() {
 function showGSTCalculator() {
     // Your tax calculation logic here    
     const url = `/invoice/invoice_entry/show_gst_calculator`;
-    window.open(url, 'CalculatorPopup', 'width=1000,height=750,top=100,left=200,resizable=yes,scrollbars=yes');
-    
+    window.open(url, 'CalculatorPopup', 'width=1000,height=750,top=100,left=200,resizable=yes,scrollbars=yes');   
 }
 
 function showPriceList() {
     //alert("Price List!");
     const url = `/invoice/customer-price-dictionary_invoice`;
     window.open(url, 'CalculatorPopup', 'width=1000,height=750,top=100,left=200,resizable=yes,scrollbars=yes');
-    
-
-
 }
 
 const customerData = JSON.parse('{{ customer_dict|escapejs }}');
@@ -601,9 +597,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-
-
-
   // Invoice Items JS
   let rowIndex = -1;
   const container = document.getElementById('item-container');
@@ -663,11 +656,17 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
     let gst_percentage = 0;
 
     // ---------- Parse Item Spec ----------
-    const specField = getField('[name="item_spec[]"]');
+    //let specField = getField('[name="item_spec[]"]');//.toUpperCase();
+    //let specField = temp.toUpperCase();
+    const value = getField('[name="item_spec[]"]')?.value || '';
+    const specField = value.toUpperCase();
+    
     if (!specField) return; // safety
 
-    const current_item_spec = specField.value || "";
+    //const current_item_spec = specField.value || "";
+    const current_item_spec = specField || "";
     const parts = current_item_spec.split('/');
+    
 
     // ---------- Populate Product Details ----------
     // if (parts.length > 0 && product_dict[parts[0]]) {
@@ -698,7 +697,7 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
         getField('[name="item_colour[]"]').value = parts[5];
     }
 
-    const item_code = getField('[name="item_code[]"]')?.value || "";
+    
     const mesh_size = toNumber(getField('[name="item_mesh_size[]"]')?.value);
     const mesh_depth = getField('[name="item_mesh_depth[]"]')?.value || "";
     const colour = getField('[name="item_colour[]"]')?.value || "";
@@ -707,17 +706,17 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
         let spec = "-"+mesh_size + "MM/" + mesh_depth + "MD"
         if (colour != "")
         spec = spec + "/" + colour
-
         getField('[name="item_code[]"]').value = parts[0];
         getField('[name="item_description[]"]').value =
             product_dict[parts[0]].display_name + spec;
         getField('[name="item_hsn_code[]"]').value =
             product_dict[parts[0]].hsn;
     }
+    const item_code = getField('[name="item_code[]"]')?.value || "";
 
 
     // ---------- Auto Price from Customer Price Dictionary ----------
-    if ((!price || price === 0) &&
+    if ((price === 0) &&
         customerCodeInput &&
         item_code &&
         customer_price_dict[customerCodeInput] &&
@@ -764,6 +763,9 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
         customerCodeInput
     ) || 0;
 
+    // colour extra 
+    // small mesh size extra 
+    
     // ---------- Amount Calculation ----------
     const base_amount = quantity * price;
     const gst_amount = (base_amount * gst_percentage) / 100;

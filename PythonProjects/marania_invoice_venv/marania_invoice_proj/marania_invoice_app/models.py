@@ -216,7 +216,7 @@ class CompanySettings(models.Model):
         verbose_name = "Company Setting"
         verbose_name_plural = "Company Settings"
     
-    
+
 ###################################################
  # TODO - List 
  # 1.    CustomerPriceCatalog - price_catalog may need to be removed. 
@@ -281,8 +281,6 @@ class InvoiceItem(models.Model):
     item_gst_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     item_total_with_gst = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     
-
-
     def __str__(self):
         return f"{self.invoice.invoice_number or ''}({self.invoice.invoice_date})-{self.invoice.customer_name or ''} -{self.item_description or ''} - {self.item_quantity or ''}"
 

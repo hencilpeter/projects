@@ -77,13 +77,13 @@ class Configurations:
         #self.config['SGST'] = configurations['SGST']
         #self.config['IGST'] = configurations['IGST']
 
-company_settings, created = None, None # CompanySettings.objects.get_or_create(id=1)
+company_settings, created = CompanySettings.objects.get_or_create(id=1)
 
 #######################################################-Common Functions-#############
 def get_next_invoice_number():
     try:
         # Get the single CompanySettings row
-        settings = None # CompanySettings.objects.get(id=1)
+        settings = CompanySettings.objects.get(id=1)
         # Format: PREFIX + current invoice number
         next_invoice = f"{settings.current_invoice_number+1}"
         return next_invoice
