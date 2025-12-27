@@ -1076,7 +1076,12 @@ def save_price_list(request):
 @login_required    
 def customer_price_catalog(request):
     customers = Parties.objects.all()
-    price_catalogs = PriceCatalog.objects.all()
+    unique_price_catalogs = list({ pc.code +"-"+pc.customer_group   for pc in PriceCatalog.objects.all()})
+    price_catalogs = []
+    for unique_price_catalog in unique_price_catalogs:
+        price_code = get_first_part(unique_price_catalog)
+        price_catalogs.append(PriceCatalog.objects.filter(code=price_code).first())
+    
     catalogs = CustomerPriceCatalog.objects.all()
     
     if request.method == "POST":
@@ -1092,28 +1097,30 @@ def customer_price_catalog(request):
 
         for idx in range(len(customer_vals)):
             row_id = ids[idx].strip() if idx < len(ids) else ""
-            cust = customer_vals[idx]
-            cat = catalog_vals[idx]
-
+            customer_code = customer_vals[idx]
+            price_code = catalog_vals[idx]
+            
             # Skip blank rows
-            if not cust or not cat:
+            if not customer_code or not customer_vals:
                 continue
 
             if action == "delete":
-                CustomerPriceCatalog.objects.filter(customer_id=cust,price_catalog_id = cat).delete()
+                CustomerPriceCatalog.objects.filter(customer__code=customer_code,price_code = price_code).delete()
                 continue
 
             # SAVE ACTION
             try:
                 # update logic - get the existing object 
-                obj = CustomerPriceCatalog.objects.get(customer_id=cust, price_catalog_id=cat)
+                obj = CustomerPriceCatalog.objects.get(customer__code=customer_code, price_code=price_code)
             except CustomerPriceCatalog.DoesNotExist:
                 # new entry - create new object
                 obj = CustomerPriceCatalog()
             
-            print(gst_vals)
-            obj.customer_id = cust
-            obj.price_catalog_id = cat
+            price_catalog_object = PriceCatalog.objects.filter(code=price_code).first()
+            customer_object = Parties.objects.filter(code=customer_code).first()
+            obj.customer = customer_object
+            obj.price_catalog = price_catalog_object
+            obj.price_code = price_code
             obj.gst_included = True if (  idx < len(gst_vals)  and gst_vals[idx] == "on" ) else False
             obj.colour_extra_price = float(colour_vals[idx] or 0)
             obj.small_mesh_size_extra_price = float(mesh_vals[idx] or 0)
@@ -1148,9 +1155,12 @@ def customer_price_catalog(request):
 
 def load_customer_price_catalog(request, id):
     catalog = CustomerPriceCatalog.objects.get(id=id)
+    price_code = get_first_part(str(catalog.price_catalog))
+    price_catalog_object = PriceCatalog.objects.filter(code=price_code).first()
+
     data = {
-        "customer": catalog.customer.id,
-        "price_catalog": catalog.price_catalog.id,
+        "customer": catalog.customer.code,
+        "price_catalog": price_catalog_object.code, 
         "gst_included": catalog.gst_included,
         "colour_extra_price": catalog.colour_extra_price,
         "small_mesh_size_extra_price": catalog.small_mesh_size_extra_price,

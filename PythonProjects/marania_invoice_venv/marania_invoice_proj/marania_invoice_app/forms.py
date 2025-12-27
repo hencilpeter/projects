@@ -259,6 +259,7 @@ class TransportationForm(forms.ModelForm):
         }
 
 class CompanySettingsForm(forms.ModelForm):
+
     class Meta:
         model = CompanySettings
         fields = [
@@ -272,6 +273,12 @@ class CompanySettingsForm(forms.ModelForm):
             "company_address",
             "company_phone",
             "company_email",
+            "bank_account_name",
+            "bank_name",
+            "bank_account_number",
+            "bank_branch",
+            "bank_ifsc",
+
         ]
 
         labels = {
@@ -285,6 +292,11 @@ class CompanySettingsForm(forms.ModelForm):
             "company_address": "Company Address",
             "company_phone": "Contact Number",
             "company_email": "Email Address",
+            "bank_account_name":"Account Holder Name",
+            "bank_name":"Bank Name",
+            "bank_account_number":"Account Number",
+            "bank_branch": "Bank Branch Name",
+            "bank_ifsc": "Branch IFSC",
         }
 
         widgets = {
@@ -303,6 +315,12 @@ class CompanySettingsForm(forms.ModelForm):
             "sgst": forms.NumberInput(attrs={"class": "form-control"}),
             "company_phone": forms.TextInput(attrs={"class": "form-control"}),
             "company_email": forms.EmailInput(attrs={"class": "form-control"}),
+            "bank_account_name":forms.TextInput(attrs={"class": "form-control"}),
+            "bank_name":forms.TextInput(attrs={"class": "form-control"}),
+            "bank_account_number":forms.TextInput(attrs={"class": "form-control"}),
+            "bank_branch": forms.TextInput(attrs={"class": "form-control"}),
+            "bank_ifsc": forms.TextInput(attrs={"class": "form-control"}),
+
         }
 
 

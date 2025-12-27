@@ -23,7 +23,7 @@
                     <select name="customer" class="form-select form-select-sm">
                         <option value="">Customer</option>
                         {% for c in customers %}
-                            <option value="{{ c.id }}">{{ c }}</option>
+                            <option value="{{ c.code }}">{{ c }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -32,7 +32,7 @@
                     <select name="price_catalog" class="form-select form-select-sm">
                         <option value="">Price Catalog</option>
                         {% for p in price_catalogs %}
-                            <option value="{{ p.id }}">{{ p }}</option>
+                            <option value="{{ p.code }}">{{ p }}</option>
                         {% endfor %}
                     </select>
                 </div>

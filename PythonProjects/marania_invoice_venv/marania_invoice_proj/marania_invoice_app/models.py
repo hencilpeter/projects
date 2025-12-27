@@ -92,8 +92,7 @@ class Materials(models.Model):
     def __str__(self):
         return f"{self.code}-{self.name}"
         
-###################################################
-    
+
 class Product(models.Model):
     code = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=200)
@@ -122,18 +121,23 @@ class Product(models.Model):
 
     def __str__(self):
         return f"{self.code}-{self.name}"
-
+    
 
 class PriceCatalog(models.Model):
     product = models.ForeignKey(
         Product,
-        related_name='items',
+        to_field="code",
         on_delete=models.DO_NOTHING,
+        related_name='pricecatalogs',
+        db_constraint=False,   # ⭐ KEY LINE
+        null=True, 
+        blank=True, 
     )
+
+    sequence_id = models.PositiveIntegerField()
     code = models.CharField(max_length=50)
     customer_group = models.CharField(max_length=100)
-    sequence_id = models.PositiveIntegerField()
-
+    
     mesh_size_start = models.CharField(max_length=5)
     mesh_size_end = models.CharField(max_length=5)
     price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -141,22 +145,16 @@ class PriceCatalog(models.Model):
     is_active = models.BooleanField(default=True)
     note = models.TextField(blank=True, null=True)
 
-    class Meta:
-        verbose_name = "Price List"
-        verbose_name_plural = "Price Lists"
-        ordering = ["sequence_id"]
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.code}-{self.customer_group}"
     
-
 class CustomerPriceCatalog(models.Model):
     customer = models.ForeignKey(
          Parties,
-         #to_field='code',
+         to_field='code',
          on_delete=models.DO_NOTHING,
          related_name='customer_items',
          db_constraint=False,
@@ -164,10 +162,12 @@ class CustomerPriceCatalog(models.Model):
 
     price_catalog =  models.ForeignKey(
          PriceCatalog,
+         #to_field="id",
          on_delete=models.DO_NOTHING,
          related_name='price_catalog_items',
          db_constraint=False,
      )
+    price_code  = models.TextField(blank=True, null=True)
 
     gst_included = models.BooleanField(default=False)
     colour_extra_price = models.FloatField(default=0)
@@ -176,6 +176,50 @@ class CustomerPriceCatalog(models.Model):
 
     def __str__(self):
         return f"{self.customer}-{self.price_catalog}"
+
+class CompanySettings(models.Model):
+    # Ensure only one row exists
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+
+    # Invoice running number
+    current_invoice_number = models.PositiveIntegerField(default=1)
+    invoice_prefix = models.CharField(max_length=20, default="INV")
+
+    # GST values
+    igst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    cgst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    sgst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+
+    finance_year = models.CharField(max_length=20, default=current_indian_financial_year)
+
+    # Company information
+    company_title = models.CharField(max_length=255)
+    company_address = models.TextField()
+
+    # Optional: contact info
+    company_phone = models.CharField(max_length=50, blank=True, null=True)
+    company_email = models.EmailField(blank=True, null=True)
+
+    # bank account
+    bank_account_name  = models.CharField(max_length=50, blank=True, null=True)
+    bank_name  = models.CharField(max_length=25, blank=True, null=True)
+    bank_account_number = models.CharField(max_length=50, blank=True, null=True)
+    bank_branch = models.CharField(max_length=50, blank=True, null=True)
+    bank_ifsc  = models.CharField(max_length=50, blank=True, null=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return "Company Settings"
+
+    class Meta:
+        verbose_name = "Company Setting"
+        verbose_name_plural = "Company Settings"
+    
+    
+###################################################
+ # TODO - List 
+ # 1.    CustomerPriceCatalog - price_catalog may need to be removed. 
     
 
 class Configuration(models.Model):
@@ -190,18 +234,6 @@ class Configuration(models.Model):
     def __str__(self):
         return f"{self.name}: {self.value}"
     
-
-class CustomerPriceMap(models.Model):
-    #customer_id = models.ForeignKey('Customer', on_delete=models.CASCADE, related_name='id')
-    #product_id = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='id')
-    #price_id = models.ForeignKey('ProductPrice', on_delete=models.CASCADE, related_name='id')
-    remark = models.TextField(null=True, blank=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.customer.name} - {self.product.code}: {self.price}"
     
 
 class Invoice(models.Model):
@@ -256,45 +288,7 @@ class InvoiceItem(models.Model):
 
 
 
-class CompanySettings(models.Model):
-    # Ensure only one row exists
-    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
 
-    # Invoice running number
-    current_invoice_number = models.PositiveIntegerField(default=1)
-    invoice_prefix = models.CharField(max_length=20, default="INV")
-
-    # GST values
-    igst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    cgst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    sgst = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-
-    finance_year = models.CharField(max_length=20, default=current_indian_financial_year)
-
-    # Company information
-    company_title = models.CharField(max_length=255)
-    company_address = models.TextField()
-
-    # Optional: contact info
-    company_phone = models.CharField(max_length=50, blank=True, null=True)
-    company_email = models.EmailField(blank=True, null=True)
-
-    # bank account
-    # bank_account_name  = models.CharField(max_length=50, blank=True, null=True)
-    # bank_name  = models.CharField(max_length=25, blank=True, null=True)
-    # bank_account_number = models.CharField(max_length=50, blank=True, null=True)
-    # bank_branch = models.CharField(max_length=50, blank=True, null=True)
-    # bank_ifsc  = models.CharField(max_length=50, blank=True, null=True)
-
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return "Company Settings"
-
-    class Meta:
-        verbose_name = "Company Setting"
-        verbose_name_plural = "Company Settings"
-    
 
 
     
