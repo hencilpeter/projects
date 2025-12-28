@@ -116,7 +116,7 @@ def get_invoices_dict():
                     "ship_to_customer_contact":invoice.ship_to_customer_contact,"ship_to_customer_email":invoice.ship_to_customer_email,
 
                     "dispatched_through":invoice.dispatched_through,
-                    "vehicle_no":invoice.vehicle_name_number,
+                    "vehicle_no": "" if invoice.vehicle_name_number == "" or invoice.vehicle_name_number == None else  invoice.vehicle_name_number,
                     "invoice_items":invice_item_dict[invoice.invoice_number]}
     
     return invoice_dict
