@@ -725,25 +725,25 @@ def get_invoice_dictonaries(invoice_number):
     # Hencil - current 
     #company details 
     company_dict = {"logo_url": "/static/images/marania_eagle_logo.png",
-                    "name": "MARANIA FILAMENTS", # TODO
-                    "address": "5/118a, Elavuvillai, Kilaattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari", # TODO
-                    "gstin": "33AGAPJ9143P1Z4",
-                    "state_name": "Tamil Nadu",
-                    "state_code": "33",
-                    "contact": "94898 58997,94877 86997",
-                    "bank_account_name": "MARANIA FILAMENTS",
-                    "bank_name": "ICICI ",
-                    "bank_account_no": "250105500252",
-                    "bank_branch": "VETTURNIMADAM,NAGERCOIL",
-                    "bank_ifsc": "ICIC0002501",
+                    "name": company_settings.company_title, 
+                    "address": company_settings.company_address,# "5/118a, Elavuvillai, Kinattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari", # TODO
+                    "gstin": company_settings.company_gst,
+                    "state_name": company_settings.company_state,
+                    "state_code": company_settings.company_state_code,
+                    "contact": company_settings.company_phone, 
+                    "bank_account_name": company_settings.bank_account_name, 
+                    "bank_name": company_settings.bank_account_name,
+                    "bank_account_no": company_settings.bank_account_number, 
+                    "bank_branch": company_settings.bank_branch,
+                    "bank_ifsc":  company_settings.bank_ifsc,  
                     }
     consignee_dict= {
             "name": invoice_dict[invoice_number]["ship_to_customer_name"],
             "address": invoice_dict[invoice_number]["ship_to_customer_address"],
             "gstin": invoice_dict[invoice_number]["ship_to_customer_gst"],
             "contact":invoice_dict[invoice_number]["ship_to_customer_contact"],
-            "state_name": "Tamil Nadu",
-            "state_code": "33"
+            # "state_name": "Tamil Nadu",
+            # "state_code": "33"
         }
     
     buyer_dict= {
@@ -751,8 +751,8 @@ def get_invoice_dictonaries(invoice_number):
             "address": invoice_dict[invoice_number]["customer_address"],
             "gstin": invoice_dict[invoice_number]["customer_gst"],
             "contact":invoice_dict[invoice_number]["customer_contact"],
-            "state_name": "Tamil Nadu",
-            "state_code": "33"
+            # "state_name": "Tamil Nadu",
+            # "state_code": "33"
         }
     invoice_items = invoice_dict[invoice_number]["invoice_items"]
     items= [

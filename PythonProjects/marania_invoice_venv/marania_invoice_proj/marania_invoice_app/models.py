@@ -195,6 +195,10 @@ class CompanySettings(models.Model):
     # Company information
     company_title = models.CharField(max_length=255)
     company_address = models.TextField()
+    company_gst = models.CharField(max_length=50, blank=True, null=True)
+    company_state = models.CharField(max_length=50, blank=True, null=True)
+    company_state_code = models.CharField(max_length=50, blank=True, null=True)
+
 
     # Optional: contact info
     company_phone = models.CharField(max_length=50, blank=True, null=True)
