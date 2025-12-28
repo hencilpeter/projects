@@ -1,0 +1,236 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block main %}
+
+<style>
+    body {
+        background: #f4f6f9;
+    }
+
+    .card {
+        border-radius: 16px;
+    }
+
+    .header-title {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+
+    .summary-box {
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+
+    /* BAR CHART */
+    .bar-chart-container {
+        height: 350px;
+        position: relative;
+    }
+
+    /* PIE CHART – FIXED SIZE */
+    .pie-chart-container {
+        width: 320px;
+        height: 320px;
+        margin: 0 auto;
+        position: relative;
+    }
+</style>
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+
+<div class="container py-4">
+
+    <div class="text-center mb-4">
+        <h1 class="header-title">Marania Filaments – Dashboard</h1>
+        <p class="text-muted">Business Overview & Insights</p>
+    </div>
+
+    <!-- SUMMARY CARDS -->
+    <div class="row g-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3 text-center">
+                <h6>Total Customers</h6>
+                <div class="summary-box">{{ total_customers }}</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3 text-center">
+                <h6>Total Products</h6>
+                <div class="summary-box">{{ total_products }}</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3 text-center">
+                <h6>Total Price Catalogs</h6>
+                <div class="summary-box">{{ total_price_catalogs }}</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3 text-center">
+                <h6>Total Invoices</h6>
+                <div class="summary-box">{{ total_invoices }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="row mt-5 g-4">
+
+        <!-- BAR CHART -->
+        <div class="col-md-6">
+            <div class="card shadow-sm p-4">
+                <h5 class="mb-3">Invoices by Month</h5>
+                <div class="bar-chart-container">
+                    <canvas id="invoiceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- PIE CHART -->
+        <div class="col-md-6">
+            <div class="card shadow-sm p-4 text-center">
+                <h5 class="mb-3">Products per Catalog Group</h5>
+                <div class="pie-chart-container">
+                    <canvas id="catalogChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- TABLES -->
+    <div class="row mt-5 g-4">
+
+        <div class="col-md-6">
+            <div class="card shadow-sm p-4">
+                <h5 class="mb-3">Latest Customers</h5>
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Code</th>
+                                <th>Name</th>
+                                <th>Phone</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in latest_customers %}
+                            <tr>
+                                <td>{{ c.code }}</td>
+                                <td>{{ c.name }}</td>
+                                <td>{{ c.phone }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">No data</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm p-4">
+                <h5 class="mb-3">Recent Invoices</h5>
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Inv #</th>
+                                <th>Date</th>
+                                <th>Customer</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in recent_invoices %}
+                            <tr>
+                                <td>{{ i.invoice_number }}</td>
+                                <td>{{ i.invoice_date }}</td>
+                                <td>{{ i.customer_name }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">No data</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+</main>
+
+<!-- JSON DATA (SAFE) -->
+{{ invoice_months|json_script:"invoice-months" }}
+{{ invoice_counts|json_script:"invoice-counts" }}
+{{ catalog_groups|json_script:"catalog-groups" }}
+{{ catalog_group_counts|json_script:"catalog-group-counts" }}
+
+<!-- CHART.JS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const invoiceLabels = JSON.parse(
+        document.getElementById('invoice-months').textContent
+    );
+    const invoiceValues = JSON.parse(
+        document.getElementById('invoice-counts').textContent
+    );
+
+    const catalogLabels = JSON.parse(
+        document.getElementById('catalog-groups').textContent
+    );
+    const catalogValues = JSON.parse(
+        document.getElementById('catalog-group-counts').textContent
+    );
+
+    /* BAR CHART */
+    new Chart(document.getElementById('invoiceChart'), {
+        type: 'bar',
+        data: {
+            labels: invoiceLabels,
+            datasets: [{
+                label: 'Invoices',
+                data: invoiceValues,
+                backgroundColor: 'rgba(54,162,235,0.7)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    /* PIE CHART */
+    new Chart(document.getElementById('catalogChart'), {
+        type: 'pie',
+        data: {
+            labels: catalogLabels,
+            datasets: [{
+                data: catalogValues
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+</script>
+
+{% endblock %}
