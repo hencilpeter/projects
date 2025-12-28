@@ -718,12 +718,10 @@ def decimal_to_str(value):
     return format(Decimal(str(value)).normalize(), 'f')
 
 def get_invoice_dictonaries(invoice_number):
-    # TODO - hencil current change 
     invoice_dict = get_invoices_dict()
     partices_dict = get_parties_dict()
     product_dict = get_product_dict()
-    # Hencil - current 
-    #company details 
+
     company_dict = {"logo_url": "/static/images/marania_eagle_logo.png",
                     "name": company_settings.company_title, 
                     "address": company_settings.company_address,# "5/118a, Elavuvillai, Kinattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari", # TODO
