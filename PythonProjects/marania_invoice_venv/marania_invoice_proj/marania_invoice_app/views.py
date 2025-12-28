@@ -896,7 +896,14 @@ def invoice_pdf(request, invoice_number):
     pdf_file = html.write_pdf(stylesheets=[css])
 
     response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="Marania_Invoice_{invoice_number}.pdf"'
+    customer_name = buyer_dict["name"]
+    
+    customer_name = (customer_name.strip().replace(" ", "_").replace(".", ""))
+    invoice_date = invoice["date"]
+    invoice_date  = (invoice_date.strip().replace("-", "").replace(".", ""))
+    invoice_title = f"Marania_Invoice_{invoice_number}_{customer_name}_{invoice_date}.pdf" 
+
+    response['Content-Disposition'] = f'attachment; filename="{invoice_title}"'
 
     return response
 
