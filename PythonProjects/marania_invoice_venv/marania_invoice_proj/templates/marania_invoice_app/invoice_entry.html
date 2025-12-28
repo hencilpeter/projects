@@ -396,6 +396,7 @@ function ReviewAndDeriveValues() {
     let totals_with_gst = document.getElementsByName("item_total_with_gst[]");
     let hsn_codes = document.getElementsByName("item_hsn_code[]");
     let mesh_sizes = document.getElementsByName("item_mesh_size[]");
+    let colours = document.getElementsByName("item_colour[]");
 
     // ------------------------------
     // Loop Items
@@ -406,6 +407,7 @@ function ReviewAndDeriveValues() {
         let qty = Number(item_qty[i].value);
         let price = Number(item_price[i].value);
         let mesh_size = Number(mesh_sizes[i].value);
+        let colour = colours[i].value.trim();
 
         // ---------- Validations ----------
         if (isEmpty(code)) {
@@ -437,21 +439,29 @@ function ReviewAndDeriveValues() {
                 const end = endStr === "999" ? Infinity : Number(endStr);
 
                 if (mesh_size >= start && mesh_size <= end) {
+                        let colour_price = 0;
+                        if (colour!="" && colour.toUpperCase() != "WHITE"){
+                             colour_price =  value.colour_extra_price;
+                        }
+
                     if (value.gst_included) {
                         const gst_percentage = getGSTPercentage(code,  product_dict,customer_dict, customerCodeInput );
 
-                        const gross_price = Number(value.price) || 0;
-                        console.log(gross_price)
+                        let gross_price = Number(value.price) || 0;
 
                         // Remove GST from inclusive price
                         price = gst_percentage > 0  ? gross_price / (1 + gst_percentage / 100) : gross_price;
-                        console.log(price)
-
+                        // add colour price if exist 
+                        price += colour_price;
                     } else {
                         // GST not included, price remains as-is
                         price = Number(value.price) || 0;
+                        // add colour price if exist 
+                        price = price+ colour_price;
+
                     }
                     item_price[i].value = price;
+                    
                 }
             });
         }
@@ -612,7 +622,6 @@ dispatchedInput.addEventListener('input', function (e) {
 
       datalist.innerHTML = '';
       currentTransporters = [];
-      console.log("cleared current transporters")
       if (transporter_dict[customer_code]) {
         transporter_dict[customer_code].forEach((item, index) => {
         //currentIndex = currentIndex + 1;
@@ -733,13 +742,6 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
     
 
     // ---------- Populate Product Details ----------
-    // if (parts.length > 0 && product_dict[parts[0]]) {
-    //     getField('[name="item_code[]"]').value = parts[0];
-    //     getField('[name="item_description[]"]').value =
-    //         product_dict[parts[0]].display_name;
-    //     getField('[name="item_hsn_code[]"]').value =
-    //         product_dict[parts[0]].hsn;
-    // }
 
     if (parts.length >= 2)
         getField('[name="item_mesh_size[]"]').value = parts[1];
@@ -797,7 +799,11 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
             if (mesh_size >= start && mesh_size <= end) {
 
                 const configured_price = toNumber(value.price);
-
+                let colour_price = 0;
+                if (colour!="" && colour.toUpperCase() != "WHITE"){
+                    colour_price =  value.colour_extra_price;
+                }
+                  
                 if (value.gst_included) {
                     gst_percentage = getGSTPercentage(
                         item_code,
@@ -813,7 +819,7 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
                 } else {
                     price = configured_price;
                 }
-
+                price = price + colour_price
                 getField('[name="item_price[]"]').value = price.toFixed(2);
             }
         });

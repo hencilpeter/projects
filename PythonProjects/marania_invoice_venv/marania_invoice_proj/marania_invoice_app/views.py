@@ -780,8 +780,11 @@ def get_invoice_dictonaries(invoice_number):
         # based on the product decide the HSN
         item_code = str(invoice_item.item_code)
         hsn =  str(product_dict[invoice_item.item_code]["hsn"])
-        items.append({"packages": "1", "description": description,"hsn": hsn, "gst_rate": gst_rate, "quantity": str(invoice_item.item_quantity) + " KGS", 
+        # items.append({"packages": "1", "description": description,"hsn": hsn, "gst_rate": gst_rate, "quantity": str(invoice_item.item_quantity) + " KGS", 
+        #               "rate": invoice_item.item_price, "unit": "KGS", "amount": amount})
+        items.append({"packages": "1", "description": description,"hsn": hsn, "gst_rate": gst_rate, "quantity": str(invoice_item.item_quantity) , 
                       "rate": invoice_item.item_price, "unit": "KGS", "amount": amount})
+        
         
        
     if is_within_state :
@@ -800,6 +803,7 @@ def get_invoice_dictonaries(invoice_number):
     invoice= {
             "invoice_no": invoice_number,
             "date": invoice_date.strftime("%d-%m-%Y"),
+            "financial_year": company_settings.finance_year,
             "delivery_note": "",
             "payment_terms": "",
             "reference_no": "",

@@ -82,10 +82,9 @@
 <body>
 
 <!-- ===== HEADER ===== -->
-<div class="text-center" style="margin-bottom:15px;">
+<div style="text-align:center; margin-bottom:15px;">
     <h4><b>TAX INVOICE</b></h4>
 </div>
-
 <!-- ===== COMPANY + INVOICE / BANK ===== -->
 <table class="table table-bordered mb-3">
     <tr>
@@ -101,7 +100,7 @@
 
         <td width="45%" rowspan="2">
             <div class="rounded-box invoice-box">
-                <b>Invoice No:</b> {{ invoice.invoice_no }}<br>
+                <b>Invoice No:</b> {{ invoice.financial_year }}/{{ invoice.invoice_no }}<br>
                 <b>Date:</b> {{ invoice.date }}<br>
                 <b>Vehicle No:</b> {{ invoice.vehicle_no }}<br>
                 <b>Dispatched through:</b> {{ invoice.dispatched_through }}<br>
@@ -168,7 +167,7 @@
             <th>S.No</th>
             <th>Description</th>
             <th>HSN</th>
-            <th class="text-end">Qty</th>
+            <th class="text-end">Qty (KGS) </th>
             <th class="text-end">Rate</th>
             <th class="text-end">Amount</th>
         </tr>
