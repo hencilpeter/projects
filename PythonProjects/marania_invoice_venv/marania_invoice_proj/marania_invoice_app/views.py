@@ -116,6 +116,7 @@ def get_invoices_dict():
                     "ship_to_customer_contact":invoice.ship_to_customer_contact,"ship_to_customer_email":invoice.ship_to_customer_email,
 
                     "dispatched_through":invoice.dispatched_through,
+                    "vehicle_no":invoice.vehicle_name_number,
                     "invoice_items":invice_item_dict[invoice.invoice_number]}
     
     return invoice_dict
@@ -515,7 +516,6 @@ def load_party(request, code):
         "roles": roles_ids,
         "transport_details": transport_data,
     }
-    print(data)
     return JsonResponse(data)
 
 def show_gst_calculator(request):
@@ -822,6 +822,7 @@ def get_invoice_dictonaries(invoice_number):
     tax_words =""
     amount_words = number_to_words(Decimal(rounded_total))
     invoice_date = invoice_dict[invoice_number]["invoice_date"]
+    
     invoice= {
             "invoice_no": invoice_number,
             "date": invoice_date.strftime("%d-%m-%Y"),
@@ -836,7 +837,7 @@ def get_invoice_dictonaries(invoice_number):
             "dispatch_mode": "",
             "destination": "",
             "lr_no": "",
-            "vehicle_no": "",
+            "vehicle_no": invoice_dict[invoice_number]["vehicle_no"],
             "terms_delivery": "",
             "dispatched_through":invoice_dict[invoice_number]["dispatched_through"],
             "subtotal": sub_total ,
