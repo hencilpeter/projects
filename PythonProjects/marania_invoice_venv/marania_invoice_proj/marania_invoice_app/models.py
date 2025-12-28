@@ -207,6 +207,10 @@ class CompanySettings(models.Model):
     bank_branch = models.CharField(max_length=50, blank=True, null=True)
     bank_ifsc  = models.CharField(max_length=50, blank=True, null=True)
 
+    small_mesh_size_charge = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    colour_charge = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    
+
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):

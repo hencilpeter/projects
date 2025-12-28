@@ -189,32 +189,6 @@ def get_first_part(value):
         return ""
     return value.split("-", 1)[0]
 
-# def get_product_dict():
-    
-#     products_dict = defaultdict(dict)
-
-#     products = Product.objects.select_related('material').all()
-
-#     for product in products:
-#         products_dict[product.code] = {
-#             "name": product.name,
-#             "display_name": product.display_name,
-#             "hsn": product.hsn,
-
-#             # Material reference
-#             "material_code": product.material.code if product.material else None,
-#             "material_name": product.material.name if product.material else None,
-
-#             # Tax rates
-#             "cgst": product.cgst,
-#             "sgst": product.sgst,
-#             "igst": product.igst,
-
-#             "description": product.description,
-#         }
-
-#     return products_dict
-
 def print_dict(d, indent=0):
     for key, value in d.items():
         print(" " * indent + str(key) + ":")
