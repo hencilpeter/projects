@@ -197,6 +197,29 @@ def print_dict(d, indent=0):
         else:
             print(" " * (indent + 4) + str(value))
 
+def get_product_code_from_price_code(price_code):
+    price_catalog = (
+        PriceCatalog.objects
+        .filter(code=price_code, is_active=True)
+        .select_related("product")
+        .first()
+    )
+    if price_catalog and price_catalog.product:
+        return price_catalog.product.code
+
+    return ""
+
+def get_price_catalog_object_from_price_code(price_code):
+    price_catalog = (
+        PriceCatalog.objects
+        .filter(code=price_code, is_active=True)
+        .select_related("product")
+        .first()
+    )
+   
+    return price_catalog
+
+
 
 def get_customer_price_dictionary():
     global _CUSTOMER_PRICE_DICT
@@ -216,12 +239,15 @@ def get_customer_price_dictionary():
         if customer_price_dict[customer_code] == -1:
             customer_price_dict[customer_code] = defaultdict(lambda: -1)
 
-        product_code = customer_price_catalog.price_catalog.product.code
-
+        price_code = customer_price_catalog.price_code
+        product_code = get_product_code_from_price_code(price_code=price_code)
+        if price_code == "":
+            print("##########price code empty")
+            continue
+        
         if customer_price_dict[customer_code][product_code] == -1:
             customer_price_dict[customer_code][product_code] = {}
-
-        price_code = customer_price_catalog.price_catalog.code
+     
 
         for price_item in PriceCatalog.objects.filter(code=price_code):
             size_range = f"{price_item.mesh_size_start}-{price_item.mesh_size_end}"
@@ -526,7 +552,10 @@ def invoice_entry(request):
     summary_data = invoice_summary()
     product_dict = get_product_dict()
     customer_price_dict = get_customer_price_dictionary()
-    context = {'invoice_form': forms.InvoiceForm(initial={'invoice_number':get_next_invoice_number}) , 
+    next_invoice_number = get_next_invoice_number()
+    formatted_number = f"{int(next_invoice_number):04d}"
+    invoice_number =  company_settings.invoice_prefix + "-" + formatted_number + "-" + company_settings.finance_year
+    context = {'invoice_form': forms.InvoiceForm(initial={'invoice_number':invoice_number}) , 
                'invoices':Invoices, 'invoiceitems':summary_data,
                'customers':Customers, 'customer_dict': json.dumps(customer_dict),
                'transporter_dict':json.dumps(transporter_dict), 
@@ -617,11 +646,12 @@ def invoice_save(request):
             # Check if invoice_id exists → UPDATE MODE
             invoice_number = request.POST.get('invoice_number')
             invoice_instance = Invoice.objects.filter(invoice_number=invoice_number).first()
-
+            is_new_invoice = False
             if invoice_instance:
                 form = InvoiceForm(request.POST, instance=invoice_instance)
             else:
                 form = InvoiceForm(request.POST)
+                is_new_invoice = True
 
             # Validate form
             if form.is_valid():
@@ -629,13 +659,14 @@ def invoice_save(request):
                 invoice_instance = form.save()   # Creates or updates
 
                 # --- SAVE CURRENT INVOICE NUMBER ---
-                invoice_number_int = int(form.cleaned_data['invoice_number'])
+                # invoice_number_int =  get_next_invoice_number() #int(form.cleaned_data['invoice_number'])
 
                 try:
                     with transaction.atomic():
-                        settings = CompanySettings.objects.select_for_update().get(id=1)
-                        settings.current_invoice_number = invoice_number_int
-                        settings.save()
+                        if is_new_invoice:
+                            settings = CompanySettings.objects.select_for_update().get(id=1)
+                            settings.current_invoice_number += 1
+                            settings.save()
                 except CompanySettings.DoesNotExist:
                     print("###Exception raised while saving the invoice number")
                     pass
@@ -724,7 +755,7 @@ def get_invoice_dictonaries(invoice_number):
 
     company_dict = {"logo_url": "/static/images/marania_eagle_logo.png",
                     "name": company_settings.company_title, 
-                    "address": company_settings.company_address,# "5/118a, Elavuvillai, Kinattu Villai, Kallu Kuttom, Killiyoor, Kanniyakumari", # TODO
+                    "address": company_settings.company_address,
                     "gstin": company_settings.company_gst,
                     "state_name": company_settings.company_state,
                     "state_code": company_settings.company_state_code,
@@ -975,10 +1006,12 @@ def add_price_list(request):
 
     unique_product_names = {f"{p.code}-{p.name}" for p in products}
     unique_customer_group = {p.customer_group for p in saved_prices}
+    unique_price_codes =  {price.code for price in saved_prices}
 
     filter_header = {
         'product_names': unique_product_names,
         'customer_groups': unique_customer_group,
+        'price_codes':unique_price_codes,
     }
 
     return render(
@@ -1122,10 +1155,18 @@ def customer_price_catalog(request):
     for c in catalogs:
         if not c.remark or c.remark.strip() == "":
             c.remark = "-"
+        #TODO: final usage of price catalog - below code introduced for a hot fix. 
+        # need to remove. and customer_price_catalog.html file to be modified.     
+        c.price_catalog  = get_price_catalog_object_from_price_code(c.price_code)
 
     # UNIQUE FILTER LISTS
     unique_customers = list({str(c.customer) for c in catalogs})
-    unique_item_code_customer = list({str(c.price_catalog) for c in catalogs})
+    #unique_item_code_customer = list() #TODO list({str(c.price_catalog) for c in catalogs})
+    unique_item_code_customer = []
+    for c in catalogs:
+        price_catalog_object =  get_price_catalog_object_from_price_code(c.price_code)
+        unique_item_code_customer.append(str(price_catalog_object))
+
     unique_gst_included = list({str(c.gst_included) for c in catalogs})
     unique_remarks = list({str(c.remark) for c in catalogs})
 
@@ -1141,8 +1182,8 @@ def customer_price_catalog(request):
 
 def load_customer_price_catalog(request, id):
     catalog = CustomerPriceCatalog.objects.get(id=id)
-    price_code = get_first_part(str(catalog.price_catalog))
-    price_catalog_object = PriceCatalog.objects.filter(code=price_code).first()
+    #price_code = get_first_part(str(catalog.price_catalog))
+    price_catalog_object = PriceCatalog.objects.filter(code=catalog.price_code).first()
 
     data = {
         "customer": catalog.customer.code,

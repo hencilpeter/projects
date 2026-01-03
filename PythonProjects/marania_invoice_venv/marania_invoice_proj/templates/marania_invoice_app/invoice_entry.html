@@ -348,6 +348,9 @@ function loadInvoice(invoiceNumber) {
     })
     .catch(error => console.error('Error loading invoice:', error));
 }
+function truncateTo2Decimals(price) {
+  return Math.trunc(price * 100) / 100;
+}
 
 function getGSTPercentage(code, product_dict, customer_dict, customerCodeInput) {
     let gst_percentage = 0;
@@ -451,15 +454,13 @@ function ReviewAndDeriveValues() {
 
                         // Remove GST from inclusive price
                         price = gst_percentage > 0  ? gross_price / (1 + gst_percentage / 100) : gross_price;
-                        // add colour price if exist 
-                        price += colour_price;
-                    } else {
+                       } else {
                         // GST not included, price remains as-is
                         price = Number(value.price) || 0;
-                        // add colour price if exist 
-                        price = price+ colour_price;
-
                     }
+                    // add colour price if exist 
+                    price = price + colour_price;
+                    price = truncateTo2Decimals(price);
                     item_price[i].value = price;
                     
                 }
@@ -479,16 +480,19 @@ function ReviewAndDeriveValues() {
 
         // Base amount (price is assumed GST-exclusive here)
         let base_amount = quantity * unit_price;
+        base_amount = truncateTo2Decimals(base_amount);
 
         // GST amount
         let gst_amount = (base_amount * gst_percentage) / 100;
+        gst_amount = truncateTo2Decimals(gst_amount);
 
         // Total amount
         let total_amount = base_amount + gst_amount;
+        total_amount = truncateTo2Decimals(total_amount);
 
         // Assign values
-        gst_amounts[i].value = gst_amount.toFixed(2);
-        totals_with_gst[i].value = total_amount.toFixed(2);
+        gst_amounts[i].value = gst_amount;//.toFixed(2);
+        totals_with_gst[i].value = total_amount;//.toFixed(2);
 
     }
 
@@ -729,8 +733,6 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
     let gst_percentage = 0;
 
     // ---------- Parse Item Spec ----------
-    //let specField = getField('[name="item_spec[]"]');//.toUpperCase();
-    //let specField = temp.toUpperCase();
     const value = getField('[name="item_spec[]"]')?.value || '';
     const specField = value.toUpperCase();
     
@@ -797,8 +799,7 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
             const end = endStr === "999" ? Infinity : Number(endStr);
 
             if (mesh_size >= start && mesh_size <= end) {
-
-                const configured_price = toNumber(value.price);
+                 const configured_price = toNumber(value.price);
                 let colour_price = 0;
                 if (colour!="" && colour.toUpperCase() != "WHITE"){
                     colour_price =  value.colour_extra_price;
@@ -820,6 +821,7 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
                     price = configured_price;
                 }
                 price = price + colour_price
+                price = truncateTo2Decimals(price);
                 getField('[name="item_price[]"]').value = price.toFixed(2);
             }
         });
@@ -837,13 +839,18 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
     // small mesh size extra 
     
     // ---------- Amount Calculation ----------
-    const base_amount = quantity * price;
-    const gst_amount = (base_amount * gst_percentage) / 100;
-    const total_amount = base_amount + gst_amount;
+    let base_amount = quantity * price;
+    base_amount = truncateTo2Decimals(base_amount);
+
+    let gst_amount = (base_amount * gst_percentage) / 100;
+    gst_amount = truncateTo2Decimals(gst_amount);
+
+    let total_amount = base_amount + gst_amount;
+    total_amount = truncateTo2Decimals(total_amount);
 
     // ---------- Assign Values ----------
-    getField('[name="item_gst_amount[]"]').value = gst_amount.toFixed(2);
-    getField('[name="item_total_with_gst[]"]').value = total_amount.toFixed(2);
+    getField('[name="item_gst_amount[]"]').value = gst_amount;//.toFixed(2);
+    getField('[name="item_total_with_gst[]"]').value = total_amount;//.toFixed(2);
 
     recalculateInvoiceTotals();
 });
@@ -885,8 +892,7 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
     document.getElementById("total-qty").innerText = totalQty;
     document.getElementById("total-sub").innerText = subTotal.toFixed(2);
     document.getElementById("total-gst").innerText = totalGST.toFixed(2);
-    document.getElementById("grand-total").innerText =
-        (subTotal + totalGST).toFixed(2);
+    document.getElementById("grand-total").innerText =   (subTotal + totalGST).toFixed(2);
 }
 
 </script>

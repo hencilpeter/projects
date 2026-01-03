@@ -133,7 +133,15 @@
                         </select>
                     </th>
                     <th><input type="text" class="filter-input" placeholder="Seq" data-col="1"></th>
-                    <th><input type="text" class="filter-input" placeholder="Price Code" data-col="2"></th>
+                    <!-- <th>       <input type="text" class="filter-input" placeholder="Price Code" data-col="2"> -->
+                    <th>
+                        <select class="filter-select" data-col="2">
+                            <option value="">All Price Code</option>
+                            {% for item in filter_header.price_codes %}
+                                <option value="{{ item }}">{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                    </th>
                     <th>
                         <select class="filter-select" data-col="3">
                             <option value="">All Customer Groups</option>

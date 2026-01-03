@@ -100,7 +100,7 @@
 
         <td width="45%" rowspan="2">
             <div class="rounded-box invoice-box">
-                <b>Invoice No:</b> {{ invoice.financial_year }}/{{ invoice.invoice_no }}<br>
+                <b>Invoice No:</b> {{ invoice.invoice_no }}<br>
                 <b>Date:</b> {{ invoice.date }}<br>
                 <b>Vehicle No:</b> {{ invoice.vehicle_no }}<br>
                 <b>Dispatched through:</b> {{ invoice.dispatched_through }}<br>
@@ -184,6 +184,22 @@
             <td class="text-end">{{ item.amount }}</td>
         </tr>
         {% endfor %}
+       
+        {% if items|length < 14 %}
+        {% for _ in "1234567890123" %}
+            {% if forloop.counter > items|length %}
+            <tr>
+                <td>&nbsp;</td>
+                <td></td>
+                <td></td>
+                <td class="text-end"></td>
+                <td class="text-end"></td>
+                <td class="text-end"></td>
+            </tr>
+            {% endif %}
+        {% endfor %}
+        {% endif %}
+
     </tbody>
 
     <tr>

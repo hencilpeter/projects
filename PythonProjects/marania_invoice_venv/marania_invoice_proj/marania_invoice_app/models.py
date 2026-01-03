@@ -151,6 +151,7 @@ class PriceCatalog(models.Model):
     def __str__(self):
         return f"{self.code}-{self.customer_group}"
     
+    
 class CustomerPriceCatalog(models.Model):
     customer = models.ForeignKey(
          Parties,
@@ -175,7 +176,11 @@ class CustomerPriceCatalog(models.Model):
     remark = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.customer}-{self.price_catalog}"
+        # return f"{self.customer}-{self.price_catalog}"
+        try:
+            return f"{self.customer} - {self.price_catalog}"
+        except Exception:
+            return f"CustomerPriceCatalog(id={self.id})"
 
 class CompanySettings(models.Model):
     # Ensure only one row exists
