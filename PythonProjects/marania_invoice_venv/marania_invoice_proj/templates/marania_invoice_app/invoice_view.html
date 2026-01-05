@@ -76,6 +76,10 @@
         .signature td {
             border: none !important;
         }
+
+        .half-line {
+            line-height: 1.5;   /* normal is ~1.6 */
+        }
     </style>
 </head>
 
@@ -99,22 +103,19 @@
         </td>
 
         <td width="45%" rowspan="2">
-            <div class="rounded-box invoice-box">
-                <b>Invoice No:</b> {{ invoice.invoice_no }}<br>
-                <b>Date:</b> {{ invoice.date }}<br>
-                <b>Vehicle No:</b> {{ invoice.vehicle_no }}<br>
-                <b>Dispatched through:</b> {{ invoice.dispatched_through }}<br>
-                <b>Delivery Terms:</b> {{ invoice.delivery_terms }}
+            <div class="rounded-box invoice-box  half-line">
+                Invoice No:<b> {{ invoice.invoice_no }}</b><br>
+                Date:<b> {{ invoice.date }}</b><br>
+                Vehicle No:<b> {{ invoice.vehicle_no }}</b><br>
+                Order Number:<b></b><br>
+                <br>
+                Delivery Note: </b><br>
+                Dispatch Doc No:</b><br>
+                Dispatched through:<b>{{ invoice.dispatched_through }}</b><br>
+                Destination : </b><br>
+                Delivery Terms:</b> {{ invoice.delivery_terms }}</b>
             </div>
 
-            <div class="rounded-box">
-                <b>Company Bank Details</b><br>
-                <b>Account Name:</b> {{ company.bank_account_name }}<br>
-                <b>Bank:</b> {{ company.bank_name }}<br>
-                <b>A/c Number:</b> {{ company.bank_account_no }}<br>
-                <b>Branch:</b> {{ company.bank_branch }}<br>
-                <b>IFSC:</b> {{ company.bank_ifsc }}
-            </div>
         </td>
     </tr>
 
@@ -237,14 +238,41 @@
 </table>
 
 <!-- ===== AMOUNT IN WORDS ===== -->
-<table class="table table-bordered">
+<!-- <table class="table table-bordered">
     <tr>
         <td width="70%">
-            <b>Amount in Words:</b><br>
+            <b>Amount in Words:</b> <b>E. & O.E</b>
+            <br>
             {{ invoice.amount_words }}
         </td>
         <td width="30%" class="text-end">
             <b>E. & O.E</b>
+        </td>
+    </tr>
+</table> -->
+
+<table class="table table-bordered">
+    <tr>
+        <td width="60%">
+            <div style="display: flex; justify-content: space-between;">
+                <b>Amount in Words:</b>
+                <b>E. & O.E</b>
+            </div>
+            <br>
+            {{ invoice.amount_words }}
+        </td>
+
+        <td width="40%" class="text-center">
+            <!-- <b>E. & O.E</b> -->
+              <!-- class="rounded-box" -->
+              <div>
+                <b><u>Company Bank Details</u></b><br>
+                <b>Account Name:</b> {{ company.bank_account_name }}<br>
+                <b>Bank:</b> {{ company.bank_name }}<br>
+                <b>A/c Number:</b> {{ company.bank_account_no }}<br>
+                <b>Branch:</b> {{ company.bank_branch }}<br>
+                <b>IFSC:</b> {{ company.bank_ifsc }}
+            </div>
         </td>
     </tr>
 </table>

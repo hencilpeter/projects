@@ -13,6 +13,12 @@ from django.apps import apps
 from django.db.models import Count
 from django.db.models.functions import TruncMonth, Lower, Trim
 
+
+from weasyprint import HTML,CSS
+from .config import REPORT_CONFIG
+from .services import get_report_queryset, serialize_report_data
+
+
 # Forms
 from . import forms
 from .forms import (
@@ -862,7 +868,7 @@ def get_invoice_dictonaries(invoice_number):
     
     return company_dict, invoice, consignee_dict, buyer_dict, items
 
-from weasyprint import HTML,CSS
+
 
 def invoice_view(request, invoice_number):
     invoice_dict = get_invoices_dict()
@@ -1819,3 +1825,62 @@ def backup_sync(request):
         return redirect('dashboard')
 
     return render(request, 'marania_invoice_app/backup_sync.html')
+
+
+# report functions 
+def report_page(request):
+    report_key = request.GET.get("report", "invoice")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+
+    config = REPORT_CONFIG[report_key]
+    qs = get_report_queryset(report_key, start_date, end_date)
+    rows = serialize_report_data(report_key, qs)
+
+    return render(request, "marania_invoice_app/report_page.html", {
+        "reports": REPORT_CONFIG,
+        "current_report": report_key,
+        "columns": [label for _, label in config["columns"]],
+        "rows": rows,
+        "start_date": start_date,
+        "end_date": end_date,
+    })
+
+
+def report_csv(request):
+    report_key = request.GET.get("report")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+
+    qs = get_report_queryset(report_key, start_date, end_date)
+    rows = serialize_report_data(report_key, qs)
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{report_key}.csv"'
+
+    writer = csv.writer(response)
+    if rows:
+        writer.writerow(rows[0].keys())
+        for row in rows:
+            writer.writerow(row.values())
+
+    return response
+
+
+def report_pdf(request):
+    report_key = request.GET.get("report")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+
+    qs = get_report_queryset(report_key, start_date, end_date)
+    rows = serialize_report_data(report_key, qs)
+
+    html = render(request, "marania_invoice_app/report_table.html", {
+        "rows": rows
+    }).content.decode("utf-8")
+
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{report_key}.pdf"'
+    HTML(string=html).write_pdf(response)
+    return response
+

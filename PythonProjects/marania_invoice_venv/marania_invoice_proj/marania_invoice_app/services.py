@@ -2,7 +2,8 @@ import csv, json,io
 from django.http import HttpResponse
 from django.db import transaction
 from .serializers import MODEL_REGISTRY
-
+from django.db.models import F
+from .config import REPORT_CONFIG
 
 @transaction.atomic
 def export_data(model_name, file_type):
@@ -53,3 +54,38 @@ def import_data(model_name, file, file_type):
         records = json.load(file)
         for record in records:
             model.objects.update_or_create(**record)
+
+
+
+# report functions 
+
+
+def get_report_queryset(report_key, start_date, end_date):
+    config = REPORT_CONFIG[report_key]
+    model = config["model"]
+    date_field = config["date_field"]
+
+    qs = model.objects.all()
+
+    if start_date and end_date:
+        qs = qs.filter(**{
+            f"{date_field}__range": [start_date, end_date]
+        })
+
+    return qs
+
+
+def serialize_report_data(report_key, queryset):
+    config = REPORT_CONFIG[report_key]
+    rows = []
+
+    for obj in queryset:
+        row = {}
+        for field, label in config["columns"]:
+            value = obj
+            for part in field.split("__"):
+                value = getattr(value, part, "")
+            row[label] = value
+        rows.append(row)
+
+    return rows

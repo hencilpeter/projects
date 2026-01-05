@@ -1,0 +1,52 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+<form method="get" class="row g-2 mb-3">
+  <div class="col-md-3">
+    <select name="report" class="form-select">
+      {% for key in reports %}
+        <option value="{{ key }}" {% if key == current_report %}selected{% endif %}>
+          {{ key|title }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-md-3">
+    <input type="date" name="start_date" value="{{ start_date }}" class="form-control">
+  </div>
+
+  <div class="col-md-3">
+    <input type="date" name="end_date" value="{{ end_date }}" class="form-control">
+  </div>
+
+  <div class="col-md-3">
+    <button class="btn btn-primary">Apply</button>
+    <a href="{% url 'report_csv' %}?{{ request.GET.urlencode }}" class="btn btn-success">CSV</a>
+    <a href="{% url 'report_pdf' %}?{{ request.GET.urlencode }}" class="btn btn-danger">PDF</a>
+  </div>
+</form>
+
+<table class="table table-bordered table-sm">
+  <thead class="table-dark">
+    <tr>
+      {% for col in columns %}
+        <th>{{ col }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+      <tr>
+        {% for value in row.values %}
+          <td>{{ value }}</td>
+        {% endfor %}
+      </tr>
+    {% empty %}
+      <tr><td colspan="20" class="text-center">No records</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</main>
+{% endblock %}

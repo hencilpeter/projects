@@ -1,0 +1,19 @@
+<h3>Report</h3>
+<table border="1" cellspacing="0" cellpadding="5" width="100%">
+  <thead>
+    <tr>
+      {% for key in rows.0.keys %}
+        <th>{{ key }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+      <tr>
+        {% for val in row.values %}
+          <td>{{ val }}</td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>

@@ -60,6 +60,10 @@ path('sync/', views.backup_sync, name='backup_sync'),
 # log out 
  path('logout/', auth_views.LogoutView.as_view(), name='logout'),
 
+# reports 
+path("reports",  views.report_page, name="report_page"),
+path("reports/csv/",  views.report_csv, name="report_csv"),
+path("reports/pdf/",  views.report_pdf, name="report_pdf"),
 
 ]
 

@@ -174,11 +174,14 @@ class CustomerPriceCatalog(models.Model):
     colour_extra_price = models.FloatField(default=0)
     small_mesh_size_extra_price = models.FloatField(default=0)
     remark = models.TextField(blank=True, null=True)
-
+      
     def __str__(self):
         # return f"{self.customer}-{self.price_catalog}"
         try:
-            return f"{self.customer} - {self.price_catalog}"
+            print(self.price_code)
+            price_catalog_object = PriceCatalog.objects.filter(code=self.price_code).first()
+            #return f"{self.customer} - {self.price_catalog}"
+            return f"{self.customer} - {price_catalog_object.code}-{price_catalog_object.customer_group}"
         except Exception:
             return f"CustomerPriceCatalog(id={self.id})"
 
