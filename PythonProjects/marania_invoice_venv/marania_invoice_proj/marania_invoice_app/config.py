@@ -16,7 +16,9 @@ REPORT_CONFIG = {
         "model": InvoiceItem,
         "date_field": "invoice__invoice_date",
         "columns": [
+            ("invoice__invoice_date", "Invoice Date"),
             ("invoice__invoice_number", "Invoice No"),
+            ("invoice__customer_name","Customer"),
             ("item_description", "Description"),
             ("item_quantity", "Qty"),
             ("item_price", "Price"),
