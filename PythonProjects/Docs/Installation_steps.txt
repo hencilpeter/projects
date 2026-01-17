@@ -1,0 +1,21 @@
+-------------
+installation steps 
+1. django 
+pip install Django==4.2.*
+2. weasyprint
+pip install weasyprint==67.0
+3. crispy  forms 
+pip install django-crispy-forms==2.5
+4.widget-tweaks
+pip install django-widget-tweaks==1.5.1
+5. whitenoise
+pip install whitenoise==6.11.0
+6.waitress
+pip install waitress==3.0.2
+--------------------
+tasks - 2026/1/17 
+-----------------
+1. app enhancements - first deployment on mac os
+2. app enhancements - 2.1 payments module (need proper logic, order/sales, purchase, expense 
+3. verify the orders with Jenita and prioritize 
+4. 

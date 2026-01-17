@@ -21,20 +21,20 @@ if exist build rmdir /s /q build
 mkdir build
 
 REM Copy project files
-xcopy /E /I /Y your_project build\your_project
-xcopy /E /I /Y your_app build\your_app
+xcopy /E /I /Y marania_invoice_proj build\marania_invoice_app
+xcopy /E /I /Y marania_invoice_app build\marania_invoice_app
 copy manage.py build\
 copy requirements.txt build\
 copy db.sqlite3 build\  REM (Only if SQLite)
 
 REM Exclude unnecessary files
-rmdir /s /q build\venv
-rmdir /s /q build\__pycache__
+REM rmdir /s /q build\venv
+REM rmdir /s /q build\__pycache__
 
 REM Zip build folder
-powershell Compress-Archive -Path build\* -DestinationPath django_build.zip -Force
+powershell Compress-Archive -Path build\* -DestinationPath marania_automation.zip -Force
 
 echo ================================
-echo Build completed: django_build.zip
+echo Build completed: marania_automation.zip
 echo ================================
 pause

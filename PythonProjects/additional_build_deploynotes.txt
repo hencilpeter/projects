@@ -1,0 +1,57 @@
+▶ Make executable (Mac)
+chmod +x deploy_mac.sh
+
+⚠️ macOS IMPORTANT NOTES (WeasyPrint)
+
+Your project uses:
+
+weasyprint
+
+cairo
+
+pango
+
+libffi
+
+On macOS you must install system libraries first:
+
+brew install cairo pango libffi gdk-pixbuf
+
+
+Otherwise PDF generation will fail.
+
+✅ What NOT to deploy
+
+❌ Do NOT copy:
+
+Lib/
+
+Scripts/
+
+Include/
+
+*.exe
+
+*.pyd
+
+❌ Do NOT commit virtual environment to Git
+
+📌 Strong recommendations
+
+Add .gitignore
+
+venv/
+__pycache__/
+*.sqlite3
+.env
+
+
+Move DB to:
+
+PostgreSQL for production (you already have psycopg2)
+
+Use:
+
+DEBUG=False
+
+.env for secrets

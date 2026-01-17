@@ -1,25 +1,45 @@
+# =======================
 # Django core
-from django.shortcuts import render, redirect, get_object_or_404
+# =======================
+from django.shortcuts import render, redirect 
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.template.loader import render_to_string, get_template
+from django.template.loader import get_template 
 from django.template import TemplateDoesNotExist
-from django.db import transaction
 from django.conf import settings
 from django.apps import apps
+from django.db import transaction, models, IntegrityError
 
+# =======================
 # Django ORM utilities
-from django.db.models import Count
-from django.db.models.functions import TruncMonth, Lower, Trim
+# =======================
+from django.db.models import (
+    Count,
+    BooleanField,
+    ForeignKey,
+)
 
+from django.db.models.functions import TruncMonth # , Lower, Trim
 
-from weasyprint import HTML,CSS
+# =======================
+# Third-party libraries
+# =======================
+from weasyprint import HTML, CSS
+
+# =======================
+# App config & services
+# =======================
 from .config import REPORT_CONFIG
-from .services import get_report_queryset, serialize_report_data
+from .services import (
+    get_report_queryset,
+    serialize_report_data,
+    export_data,
+)
 
-
+# =======================
 # Forms
+# =======================
 from . import forms
 from .forms import (
     CustomerForm,
@@ -29,7 +49,9 @@ from .forms import (
     PriceListFormSet,
 )
 
+# =======================
 # Models
+# =======================
 from .models import (
     Parties,
     PartyRole,
@@ -44,33 +66,32 @@ from .models import (
     Materials,
 )
 
-# Services & serializers
-from .services import export_data
+# =======================
+# Serializers
+# =======================
 from .serializers import MODEL_REGISTRY, UNIQUE_KEY_MODEL
 
+# =======================
 # Utilities
+# =======================
 from collections import defaultdict, OrderedDict
 from decimal import Decimal, ROUND_DOWN
-import json
-import csv
-import io
-import os
 from datetime import datetime
 from zipfile import ZipFile
+import csv
+import json
+import io
+import os
 
-# PDF generation
-# from weasyprint import HTML, CSS
-# from xhtml2pdf import pisa
 
-# Image / PDF helpers (used)
-import pdfkit
-import imgkit
-# from PIL import Image
+AUTO_FIELDS = {"id", "created_at", "updated_at"}
+
 
 # Global cache
 _CUSTOMER_PRICE_DICT = None
 
 _PRODUCT_DICT = None
+
 
 # @singleton
 class Configurations:
@@ -574,8 +595,6 @@ def invoice_entry(request):
 
       
 ############################-Functions-###################################
-from django.contrib import messages
-from django.db import IntegrityError
 
 
 def create_party(request):
@@ -992,7 +1011,7 @@ def get_invoice(request, invoice_number):
         "items": list(items)
     })
 
-from django.db.models.functions import Lower, Trim
+
 
 def add_price_list(request):
     if request.method == "POST":
@@ -1411,13 +1430,6 @@ def load_material(request, pk):
     })
 
 
-import csv
-import io
-import json
-from django.db import transaction
-from django.db.models import BooleanField, ForeignKey
-
-AUTO_FIELDS = {"id", "created_at", "updated_at"}
 
 @transaction.atomic
 def import_data_no_unique_key(model_name, file_type, file):
@@ -1516,7 +1528,7 @@ def import_data_no_unique_key(model_name, file_type, file):
     else:
         raise ValueError("Unsupported file type")
     
-from django.db import models
+
 
 @transaction.atomic
 def import_data(model_name, file_type, file):
@@ -1674,12 +1686,7 @@ def import_view(request):
         "models": MODEL_REGISTRY.keys()
     })
 
-import csv, json, io,os
-from django.db import transaction
-from django.apps import apps
-from zipfile import ZipFile
-from datetime import datetime
-from django.conf import settings
+
 
 @login_required
 def backup_import_all(request):

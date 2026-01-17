@@ -16,16 +16,18 @@ from .urls import default_url_fetcher
 
 class PrintInfo(argparse.Action):
     def __call__(*_, **__):
+        # TODO: ignore check at block-level when available.
+        # https://github.com/astral-sh/ruff/issues/3711
         uname = platform.uname()
-        print('System:', uname.system)
-        print('Machine:', uname.machine)
-        print('Version:', uname.version)
-        print('Release:', uname.release)
-        print()
-        print('WeasyPrint version:', __version__)
-        print('Python version:', sys.version.split()[0])
-        print('Pydyf version:', pydyf.__version__)
-        print('Pango version:', pango.pango_version())
+        print('System:', uname.system)  # noqa: T201
+        print('Machine:', uname.machine)  # noqa: T201
+        print('Version:', uname.version)  # noqa: T201
+        print('Release:', uname.release)  # noqa: T201
+        print()  # noqa: T201
+        print('WeasyPrint version:', __version__)  # noqa: T201
+        print('Python version:', sys.version.split()[0])  # noqa: T201
+        print('Pydyf version:', pydyf.__version__)  # noqa: T201
+        print('Pango version:', pango.pango_version())  # noqa: T201
         sys.exit()
 
 
@@ -138,7 +140,10 @@ PARSER.add_argument(
     help='print system information and exit')
 PARSER.add_argument(
     '-t', '--timeout', type=int,
-    help='Set timeout in seconds for HTTP requests')
+    help='set timeout in seconds for HTTP requests')
+PARSER.add_argument(
+    '--allowed-protocols', dest='allowed_protocols',
+    help='only authorize comma-separated list of protocols for fetching URLs')
 PARSER.set_defaults(**DEFAULT_OPTIONS)
 
 
@@ -169,6 +174,10 @@ def main(argv=None, stdout=None, stdin=None, HTML=HTML):  # noqa: N803
     url_fetcher = default_url_fetcher
     if args.timeout is not None:
         url_fetcher = partial(default_url_fetcher, timeout=args.timeout)
+    if args.allowed_protocols is not None:
+        protocols = {
+            protocol.strip().lower() for protocol in args.allowed_protocols.split(',')}
+        url_fetcher = partial(url_fetcher, allowed_protocols=protocols)
 
     options = {
         key: value for key, value in vars(args).items() if key in DEFAULT_OPTIONS}
