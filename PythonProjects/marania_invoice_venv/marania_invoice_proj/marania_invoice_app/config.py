@@ -9,6 +9,14 @@ REPORT_CONFIG = {
             ("invoice_number", "Invoice No"),
             ("customer_name", "Customer"),
             ("customer_gst", "GST"),
+            ("quantity_total","Quantity Total"),
+            ("subtotal","subtotal"),
+            ("cgst_amount","CGST Amount"),
+            ("sgst_amount","SGST Amount"),
+            ("igst_amount","IGST Amount"),
+            ("round_off","round_off"),
+            ("gross_total","Gross Total"),
+            ("remark","Remarks"),
         ],
     },
 
@@ -27,3 +35,22 @@ REPORT_CONFIG = {
         ],
     },
 }
+
+
+DERIVED_REPORT_CONFIG = {
+    "sales":{
+        "columns": [("Date","Date"),
+                    ("Particulars","Particulars"),	
+                    ("Voucher_No","Voucher_No"),	
+                    ("GSTIN/UIN","GSTIN/UIN"),
+                    ("Gross_Total","Gross_Total"),	
+                    ("GST","GST"),
+                    ("CGST","CGST"),	
+                    ("SGST","SGST"),
+                    ("ROUND_OFF","ROUND_OFF"),
+                    ],
+    }
+}
+
+
+	

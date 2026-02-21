@@ -75,7 +75,7 @@ from .serializers import MODEL_REGISTRY, UNIQUE_KEY_MODEL
 # Utilities
 # =======================
 from collections import defaultdict, OrderedDict
-from decimal import Decimal, ROUND_DOWN
+from decimal import Decimal, ROUND_DOWN,ROUND_HALF_UP
 from datetime import datetime
 from zipfile import ZipFile
 import csv
@@ -83,6 +83,9 @@ import json
 import io
 import os
 
+# Excel sheets
+from .models import ExcelSheet
+from django.views.decorators.csrf import csrf_exempt
 
 AUTO_FIELDS = {"id", "created_at", "updated_at"}
 
@@ -107,6 +110,11 @@ class Configurations:
 company_settings, created = CompanySettings.objects.get_or_create(id=1)
 
 #######################################################-Common Functions-#############
+def round_half_up(value, decimals=0):
+    value = Decimal(str(value))
+    rounding_format = '1.' + '0' * decimals
+    return value.quantize(Decimal(rounding_format), rounding=ROUND_HALF_UP)
+
 def get_next_invoice_number():
     try:
         # Get the single CompanySettings row
@@ -143,8 +151,10 @@ def get_invoices_dict():
                     "ship_to_customer_contact":invoice.ship_to_customer_contact,"ship_to_customer_email":invoice.ship_to_customer_email,
 
                     "dispatched_through":invoice.dispatched_through,
+                    "destination":invoice.destination,
                     "vehicle_no": "" if invoice.vehicle_name_number == "" or invoice.vehicle_name_number == None else  invoice.vehicle_name_number,
-                    "invoice_items":invice_item_dict[invoice.invoice_number]}
+                    "invoice_items":invice_item_dict[invoice.invoice_number],
+                    "remark":invoice.remark}
     
     return invoice_dict
 
@@ -447,16 +457,40 @@ def dashboard(request):
     recent_invoices = Invoice.objects.order_by("-invoice_date")[:5]
 
     # -------- INVOICE CHART: INVOICES PER MONTH --------
+    # invoice_data = (
+    #     Invoice.objects
+    #     .annotate(month=TruncMonth("invoice_date"))
+    #     .values("month")
+    #     .annotate(count=Count("id"))
+    #     .order_by("month")
+    # )
+    from django.db.models import Count, Sum
+    from django.db.models.functions import TruncMonth, Coalesce
+    from decimal import Decimal
     invoice_data = (
-        Invoice.objects
-        .annotate(month=TruncMonth("invoice_date"))
-        .values("month")
-        .annotate(count=Count("id"))
-        .order_by("month")
+    Invoice.objects
+    .annotate(month=TruncMonth("invoice_date"))
+    .values("month")
+    .annotate(
+        invoice_count=Count("id", distinct=True),
+        total_gst_amount=Coalesce(
+            Sum("items__item_gst_amount"),
+            Decimal("0.00")
+        ),
+        total_amount_with_gst=Coalesce(
+            Sum("items__item_total_with_gst"),
+            Decimal("0.00")
+        ),
     )
+    .order_by("month")
+)
 
+    print(invoice_data)
     invoice_months = [d["month"].strftime("%b %Y") for d in invoice_data]
-    invoice_counts = [d["count"] for d in invoice_data]
+    #invoice_counts = [d["count"] for d in invoice_data]
+    invoice_counts = [d["invoice_count"] for d in invoice_data]
+    total_gst_amount = [d["total_gst_amount"] for d in invoice_data]
+    total_amount_with_gst = [d["total_amount_with_gst"] for d in invoice_data]
 
     # -------- PRICE CATALOG CHART: ITEMS PER CUSTOMER GROUP --------
     price_group_data = (
@@ -481,6 +515,8 @@ def dashboard(request):
 
         "invoice_months": invoice_months,
         "invoice_counts": invoice_counts,
+        "total_gst_amount": total_gst_amount,
+        "total_amount_with_gst":total_amount_with_gst,
 
         "catalog_groups": catalog_groups,
         "catalog_group_counts": catalog_group_counts,
@@ -663,6 +699,7 @@ def create_party(request):
 
     context = {'form': form}
     return render(request, 'marania_invoice_app/party.html', context)
+
 
 
 def invoice_save(request):
@@ -848,7 +885,8 @@ def get_invoice_dictonaries(invoice_number):
         igst = Decimal(Decimal(sub_total) * Decimal(company_settings.igst/100)).quantize(Decimal("0.00"), rounding=ROUND_DOWN)
 
     total = sub_total + cgst + sgst + igst
-    rounded_total = round(total,2)
+    # rounded_total = round(total,2)
+    rounded_total = round_half_up(total).quantize(Decimal('0.00'))
     round_off_amount = rounded_total - total
     tax_words =""
     amount_words = number_to_words(Decimal(rounded_total))
@@ -867,7 +905,7 @@ def get_invoice_dictonaries(invoice_number):
             "dispatch_doc": "",
             "delivery_date": "",
             "dispatch_mode": "",
-            "destination": "",
+            "destination": invoice_dict[invoice_number]["destination"],
             "lr_no": "",
             "vehicle_no": invoice_dict[invoice_number]["vehicle_no"],
             "terms_delivery": "",
@@ -1005,8 +1043,10 @@ def get_invoice(request, invoice_number):
             "ship_to_customer_contact": invoice.ship_to_customer_contact,
             "ship_to_customer_email": invoice.ship_to_customer_email,
             "dispatched_through": invoice.dispatched_through,
+            "destination": invoice.destination,
             "vehicle_name_number":invoice.vehicle_name_number,
             "transporter_gst": invoice.transporter_gst,
+            "remark":invoice.remark
         },
         "items": list(items)
     })
@@ -1891,3 +1931,18 @@ def report_pdf(request):
     HTML(string=html).write_pdf(response)
     return response
 
+
+def sheet_sales_view(request):
+    sheet, _ = ExcelSheet.objects.get_or_create(name="Invoice Sheet")
+    return render(request, 'marania_invoice_app/sheet_sales.html', {
+        'sheet_data': json.dumps(sheet.data)
+    })
+
+@csrf_exempt
+def sheet_sales_save(request):
+    if request.method == "POST":
+        body = json.loads(request.body)
+        sheet = ExcelSheet.objects.get(name="Invoice Sheet")
+        sheet.data = body['data']
+        sheet.save()
+        return JsonResponse({'status': 'saved'})

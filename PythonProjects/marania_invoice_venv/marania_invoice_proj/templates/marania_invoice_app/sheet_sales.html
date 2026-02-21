@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Invoice Sheet</title>
+
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+</head>
+
+<body>
+<h3>Invoice Excel Sheet</h3>
+
+<div id="sheet" style="width:100%; height:400px;"></div>
+<button onclick="saveSheet()">Save</button>
+
+<!-- Safely pass Django JSON to JS -->
+{{ sheet_data|json_script:"sheet-data" }}
+
+<script>
+const container = document.getElementById('sheet');
+
+let parsedData = JSON.parse(
+    document.getElementById('sheet-data').textContent
+);
+
+const data = Array.isArray(parsedData) ? parsedData : [];
+
+const hot = new Handsontable(container, {
+    data: data,
+
+    rowHeaders: true,
+    colHeaders: [
+        'Invoice No',
+        'Amount',
+        'GST %',
+        'GST Amount',
+        'Total Amount'
+    ],
+
+    columns: [
+        { type: 'text' },
+        { type: 'numeric' },
+        { type: 'numeric' },
+        { type: 'numeric', readOnly: true },
+        { type: 'numeric', readOnly: true }
+    ],
+
+    minRows: 10,          // ⭐ REQUIRED
+    minSpareRows: 1,     // ⭐ REQUIRED
+    stretchH: 'all',
+    height: 400,
+
+    contextMenu: true,
+    manualRowMove: true,
+    manualColumnResize: true,
+    licenseKey: 'non-commercial-and-evaluation',
+
+    afterChange(changes, source) {
+        if (!changes || source === 'loadData' || source === 'calc') return;
+
+        changes.forEach(([row]) => {
+            const amount = Number(hot.getDataAtCell(row, 1)) || 0;
+            const gstRate = Number(hot.getDataAtCell(row, 2)) || 0;
+
+            const gst = +(amount * gstRate / 100).toFixed(3);
+            const total = +(amount + gst).toFixed(3);
+
+            hot.setDataAtCell(row, 3, gst, 'calc');
+            hot.setDataAtCell(row, 4, total, 'calc');
+        });
+    }
+});
+</script>
+
+
+</body>
+</html>

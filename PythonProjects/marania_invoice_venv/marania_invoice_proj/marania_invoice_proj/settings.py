@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'marania_invoice_app',
     'crispy_forms',
     'widget_tweaks',
+
 ]
 
 MIDDLEWARE = [

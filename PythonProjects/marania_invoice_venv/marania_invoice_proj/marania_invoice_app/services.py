@@ -85,7 +85,7 @@ def serialize_report_data(report_key, queryset):
             value = obj
             for part in field.split("__"):
                 value = getattr(value, part, "")
-            row[label] = value
+            row[label] = value if value is not None else "" # value
         rows.append(row)
 
     return rows

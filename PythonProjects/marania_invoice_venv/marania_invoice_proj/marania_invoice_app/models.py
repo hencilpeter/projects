@@ -1,5 +1,6 @@
 from django.db import models
 from datetime import date
+from decimal import Decimal
 
 def current_indian_financial_year():
     today = date.today()
@@ -271,9 +272,18 @@ class Invoice(models.Model):
     ship_to_customer_email = models.EmailField(null=True, blank=True)
 
     dispatched_through = models.CharField(max_length=100, null=True, blank=True)
+    destination = models.CharField(max_length=200, null=True, blank=True)
     vehicle_name_number = models.CharField(max_length=100, null=True, blank=True)
     transporter_gst = models.CharField(max_length=100, null=True, blank=True)
     
+    quantity_total  = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, default=Decimal('0.00'))
+    subtotal = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
+    cgst_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
+    sgst_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
+    igst_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
+    round_off = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    gross_total = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
+    remark = models.CharField(max_length=1024, null=True, blank=True,default="")
 
     def __str__(self):
         return f"{self.invoice_number}-{self.invoice_date}-{self.customer_name}"
@@ -303,7 +313,13 @@ class InvoiceItem(models.Model):
         return f"{self.invoice.invoice_number or ''}({self.invoice.invoice_date})-{self.invoice.customer_name or ''} -{self.item_description or ''} - {self.item_quantity or ''}"
 
 
+class ExcelSheet(models.Model):
+    name = models.CharField(max_length=100)
+    data = models.JSONField(default=list)
+    updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return self.name
 
 
 

@@ -117,10 +117,10 @@
       const inclPrice = parseFloat($('#unitPriceIncl1').val());
       const exclPrice = inclPrice / (1 + gst / 100);
       const gstAmount = inclPrice - exclPrice;
-      $('#unitPriceExcl1').val(exclPrice.toFixed(2));
-      $('#unitGST1').val(gstAmount.toFixed(2));
-      $('#totalExcl1').val((exclPrice * qty).toFixed(2));
-      $('#totalIncl1').val((inclPrice * qty).toFixed(2));
+      $('#unitPriceExcl1').val(exclPrice.toFixed(5));
+      $('#unitGST1').val(gstAmount.toFixed(5));
+      $('#totalExcl1').val((exclPrice * qty).toFixed(5));
+      $('#totalIncl1').val((inclPrice * qty).toFixed(5));
     }
 
     function calculateSection2() {
@@ -129,10 +129,10 @@
       const exclPrice = parseFloat($('#unitPriceExcl2').val());
       const gstAmount = exclPrice * (gst / 100);
       const inclPrice = exclPrice + gstAmount;
-      $('#unitGST2').val(gstAmount.toFixed(2));
-      $('#unitPriceIncl2').val(inclPrice.toFixed(2));
-      $('#totalExcl2').val((exclPrice * qty).toFixed(2));
-      $('#totalIncl2').val((inclPrice * qty).toFixed(2));
+      $('#unitGST2').val(gstAmount.toFixed(5));
+      $('#unitPriceIncl2').val(inclPrice.toFixed(5));
+      $('#totalExcl2').val((exclPrice * qty).toFixed(5));
+      $('#totalIncl2').val((inclPrice * qty).toFixed(5));
     }
 
     $('input').on('input', function () {

@@ -139,19 +139,14 @@
                 </div>
             </div>
 
-
-
               <!-- Row 6: Dispatched Through -->
-               <!-- <div class="row mb-3">
-                <div class="col-md-12">
-                  {{ invoice_form.dispatched_through }}
-                  <datalist id="dispatched_through_list"></datalist>
-                </div>
-                </div> -->
                <div class="row mb-3">
-                  <div class="col-md-6">
+                  <div class="col-md-3">
                     {{ invoice_form.dispatched_through }}
                     <datalist id="dispatched_through_list"></datalist>
+                  </div>
+                  <div class="col-md-3">
+                    {{ invoice_form.destination }}
                   </div>
                    <div class="col-md-3">
                     {{ invoice_form.vehicle_name_number }}
@@ -160,7 +155,12 @@
                     {{ invoice_form.transporter_gst }}
                   </div>
                 </div>
-
+              <!-- Row 7: Remarks -->
+              <div class="row mb-3">
+                    <div class="col-md-6">
+                    {{ invoice_form.remark }}
+                  </div>
+              </div>
 
               <!-- Invoice Items Group -->
               <div class="group-box mb-3">
@@ -172,14 +172,24 @@
                   <div><b>Qty:</b> <span id="total-qty">0</span></div>
                   <div><b>Sub Total:</b> ₹ <span id="total-sub">0.00</span></div>
                   <div><b>GST:</b> ₹ <span id="total-gst">0.00</span></div>
+                  <div><b>Round Off:</b> ₹ <span id="round-off">0.00</span></div>
                   <div><b>Grand Total:</b> ₹ <span id="grand-total">0.00</span></div>
                 </div>
 
               </div>
+<!-- Hidden Derived Fields -->
+{{ invoice_form.quantity_total.as_hidden }}
+{{ invoice_form.subtotal.as_hidden }}
+{{ invoice_form.cgst_amount.as_hidden }}
+{{ invoice_form.sgst_amount.as_hidden }}
+{{ invoice_form.igst_amount.as_hidden }}
+{{ invoice_form.round_off.as_hidden }}
+{{ invoice_form.gross_total.as_hidden }}
 
               <!-- Submit & Reset -->
               <div class="text-center">
-                <button type="submit" class="btn btn-success me-2" onclick="return ReviewAndDeriveValues();">Submit Invoice</button>
+                <button type="submit" class="btn btn-success me-2" onclick="return ReviewAndDeriveValues();">Submit Invoice</button> 
+                <!-- <button type="submit" class="btn btn-success me-2" onclick="recalculateInvoiceTotals(); return ReviewAndDeriveValues();">Submit Invoice</button> -->
                 <button type="button" class="btn btn-info me-2" onclick="ReviewAndDeriveValues()">Review & Derive Values</button>
                 <button type="button" class="btn btn-info me-2" onclick="showGSTCalculator()">GST Calculator</button>
                 <button type="button" class="btn btn-info me-2" onclick="showPriceList()">Price List</button>
@@ -283,6 +293,10 @@
 <!-- JS Section -->
 <script>
 
+function truncateTwoDecimals(value) {
+    return Math.trunc(value * 100) / 100;
+}
+
 function loadInvoice(invoiceNumber) {
   //alert("Load Invoice Called!");
     fetch(`/invoice/invoice_entry/get_invoice/${invoiceNumber}/`)
@@ -310,9 +324,15 @@ function loadInvoice(invoiceNumber) {
 
         // transportation
         document.querySelector('input[name="dispatched_through"]').value = data.invoice.dispatched_through;
+        document.querySelector('input[name="destination"]').value = data.invoice.destination;
         document.querySelector('input[name="vehicle_name_number"]').value = data.invoice.vehicle_name_number;
         document.querySelector('input[name="transporter_gst"]').value = data.invoice.transporter_gst;
 
+        // remarks 
+        document.querySelector('input[name="remark"]').value = data.invoice.remark;
+
+        // transport list
+        PopulateTransportationList(data.invoice.customer_code);
 
         // Clear existing invoice items
         const container = document.getElementById('item-container');
@@ -579,6 +599,12 @@ document.addEventListener('DOMContentLoaded', function() {
 let currentTransporters = []; // 👈 global / outer scope
 
 function populateTransportFields(transporter) {
+  document.querySelector('input[name="dispatched_through"]').value = 
+    transporter.transporter_name || '';
+
+  document.querySelector('input[name="destination"]').value =
+    transporter.delivery_place || '';
+
   document.querySelector('input[name="transporter_gst"]').value =
     transporter.transporter_gst || '';
 
@@ -617,7 +643,28 @@ dispatchedInput.addEventListener('input', function (e) {
   
 });
 
+
   // populate transportation details 
+  function PopulateTransportationList(customer_code){
+      const transporter_dict = JSON.parse('{{ transporter_dict|escapejs }}');
+      const dispatched_through = document.getElementById('dispatched_through');
+      const datalist = document.getElementById('dispatched_through_list');
+      
+      datalist.innerHTML = '';
+      currentTransporters = [];
+      if (transporter_dict[customer_code]) {
+        transporter_dict[customer_code].forEach((item, index) => {
+        //currentIndex = currentIndex + 1;
+        const option = document.createElement('option');
+        option.value = `${item.transporter_name} ( ${item.delivery_place} ) ` ; //item.transporter_name;
+        option.dataset.index = index;   // 👈 store index  
+        datalist.appendChild(option);
+        currentTransporters.push(item);
+      });          
+      }
+
+  }
+
   function populateTransportationDetails(customer_code){
       // populate dispatched through control 
       const transporter_dict = JSON.parse('{{ transporter_dict|escapejs }}');
@@ -635,7 +682,8 @@ dispatchedInput.addEventListener('input', function (e) {
         datalist.appendChild(option);
         currentTransporters.push(item);
         if ( item.is_default_transport ) {
-               document.querySelector('input[name="dispatched_through"]').value = option.value;
+               //document.querySelector('input[name="dispatched_through"]').value = option.value;
+               //document.querySelector('input[name="dispatched_through"]').value = item.transporter_name;
                populateTransportFields(item); 
         }
       });          
@@ -869,7 +917,19 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
     recalculateInvoiceTotals();
   });
 
+  function roundHalfUp(value, decimals = 0) {
+    const factor = Math.pow(10, decimals);
+    return (Math.sign(value) * 
+           Math.round(Math.abs(value) * factor + Number.EPSILON)
+           ) / factor;
+}
+
+
   function recalculateInvoiceTotals() {
+
+    const customer_dict = JSON.parse('{{ customer_dict|escapejs }}');
+	  const customer_price_dict = JSON.parse('{{ customer_price_dict|escapejs }}');
+    const customerCodeInput = document.querySelector('input[name="customer_code"]').value;
 
     let qtyEls = document.getElementsByName("item_quantity[]");
     let priceEls = document.getElementsByName("item_price[]");
@@ -885,14 +945,45 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
         let gst = Number(gstEls[i].value) || 0;
 
         totalQty += qty;
-        subTotal += qty * price;
+        subTotal += truncateTwoDecimals(qty * price);
         totalGST += gst;
     }
 
-    document.getElementById("total-qty").innerText = totalQty;
-    document.getElementById("total-sub").innerText = subTotal.toFixed(2);
-    document.getElementById("total-gst").innerText = totalGST.toFixed(2);
-    document.getElementById("grand-total").innerText =   (subTotal + totalGST).toFixed(2);
+    
+    //TODO- Below logic to be changed later. 
+    const is_within_state = customer_dict[customerCodeInput]?.is_within_state;
+    let sgst = 0;
+    let cgst = 0;
+    let igst = 0;
+    //GST - TODO change later 
+    if (is_within_state) {
+      sgst = truncateTwoDecimals(subTotal * 0.025).toFixed(2);
+      cgst = truncateTwoDecimals(subTotal * 0.025).toFixed(2);
+    } else {
+      igst = truncateTwoDecimals(subTotal * 0.05).toFixed(2);
+    }
+
+    // asign the invoice - derived  values 
+    document.querySelector('input[name="subtotal"]').value = truncateTwoDecimals(subTotal).toFixed(2);
+    document.getElementById("total-qty").innerText = truncateTwoDecimals(totalQty).toFixed(2);
+    document.querySelector('input[name="cgst_amount"]').value = cgst;
+    document.querySelector('input[name="sgst_amount"]').value = sgst;
+    document.querySelector('input[name="igst_amount"]').value = igst;
+    //temp 
+    totalGST = Number(cgst) + Number(sgst) +Number(igst);
+
+    let gross_total_before_roundoff = subTotal+ totalGST;
+    let afterRoundOff = roundHalfUp(gross_total_before_roundoff).toFixed(2);
+    let round_off =  Number((afterRoundOff - gross_total_before_roundoff ).toFixed(2));
+
+    document.querySelector('input[name="round_off"]').value = round_off
+    document.querySelector('input[name="gross_total"]').value = (subTotal + totalGST + Number(round_off)).toFixed(2);
+    document.querySelector('input[name="quantity_total"]').value = truncateTwoDecimals(totalQty).toFixed(2);
+            
+    document.getElementById("total-sub").innerText = truncateTwoDecimals(subTotal).toFixed(2);
+    document.getElementById("total-gst").innerText = truncateTwoDecimals(totalGST).toFixed(2);
+    document.getElementById("round-off").innerText = round_off;
+    document.getElementById("grand-total").innerText = (subTotal + totalGST + Number(round_off)).toFixed(2);
 }
 
 </script>

@@ -141,8 +141,17 @@ class InvoiceForm(forms.ModelForm):
             'ship_to_customer_contact',
             'ship_to_customer_email',
             'dispatched_through',
+            'destination',
             'vehicle_name_number',
-            'transporter_gst'
+            'transporter_gst',
+            'remark',
+            'quantity_total',  
+            'subtotal',
+            'cgst_amount', 	
+            'sgst_amount', 	
+            'igst_amount', 	
+            'round_off', 		
+            'gross_total',
         ]
 
         widgets = {
@@ -187,6 +196,14 @@ class InvoiceForm(forms.ModelForm):
             'ship_to_customer_email': forms.EmailInput(attrs={
                 'class': 'form-control form-control-sm',
                 'placeholder': 'Email (Ship to)'
+            }),
+            'destination': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Destination'
+            }),
+            'remark': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Remarks'
             }),
         }
             

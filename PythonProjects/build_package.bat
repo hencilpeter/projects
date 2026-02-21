@@ -24,6 +24,8 @@ echo Creating requirements.txt...
 echo Copying the scripts...
 copy %SCRIPT_ROOT%\mac_app_deploy.sh  %BUILD_ROOT%\
 copy %SCRIPT_ROOT%\mac_start_marania.sh		 %BUILD_ROOT%\
+copy %SCRIPT_ROOT%\mac_app_deploy_new.sh  %BUILD_ROOT%\
+copy %SCRIPT_ROOT%\mac_start_marania_new.sh		 %BUILD_ROOT%\
 copy %SCRIPT_ROOT%\windows_app_deploy.bat		 %BUILD_ROOT%\
 copy %SCRIPT_ROOT%\windows_start_marania.bat		 %BUILD_ROOT%\
 

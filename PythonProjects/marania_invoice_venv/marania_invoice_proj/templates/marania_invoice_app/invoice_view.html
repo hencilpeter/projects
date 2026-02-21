@@ -112,7 +112,7 @@
                 Delivery Note: </b><br>
                 Dispatch Doc No:</b><br>
                 Dispatched through:<b>{{ invoice.dispatched_through }}</b><br>
-                Destination : </b><br>
+                Destination : </b>{{ invoice.destination }}<br>
                 Delivery Terms:</b> {{ invoice.delivery_terms }}</b>
             </div>
 
@@ -266,7 +266,7 @@
             <!-- <b>E. & O.E</b> -->
               <!-- class="rounded-box" -->
               <div>
-                <b><u>Company Bank Details</u></b><br>
+                <b><u>Company Bank Account Details</u></b><br>
                 <b>Account Name:</b> {{ company.bank_account_name }}<br>
                 <b>Bank:</b> {{ company.bank_name }}<br>
                 <b>A/c Number:</b> {{ company.bank_account_no }}<br>
