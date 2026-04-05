@@ -415,13 +415,17 @@ def number_to_words(num):
 
 def invoice_summary():
     invoice_items = InvoiceItem.objects.select_related('invoice').all()
+    # invoice_items = (
+    #                     InvoiceItem.objects.select_related('invoice')
+    #                                        .order_by('-invoice__invoice_date', '-invoice__invoice_number')
+    #         )
+
     invoice_summary = {}
 
     for invoice_item in invoice_items:
         invoice_number = invoice_item.invoice.invoice_number
-        item_subtotal = invoice_item.item_quantity * invoice_item.item_price
-        item_amount = item_subtotal * (Decimal(1.05))
-        #invoice_amount = invoice_item.item_price * (Decimal(1.05))  # item price + 5%
+        item_subtotal = Decimal(invoice_item.item_quantity * invoice_item.item_price).quantize(Decimal("0.00"))
+        item_amount = Decimal(item_subtotal * (Decimal(1.05))).quantize(Decimal("0.00"))
 
         if invoice_number not in invoice_summary:
             invoice_summary[invoice_number] = {
@@ -436,7 +440,6 @@ def invoice_summary():
             summary['weight'] += invoice_item.item_quantity
             summary['sub_total'] += item_subtotal
             summary['invoice_amount'] += item_amount
-
     return invoice_summary
 
 #################################
@@ -485,7 +488,7 @@ def dashboard(request):
     .order_by("month")
 )
 
-    print(invoice_data)
+    # print(invoice_data)
     invoice_months = [d["month"].strftime("%b %Y") for d in invoice_data]
     #invoice_counts = [d["count"] for d in invoice_data]
     invoice_counts = [d["invoice_count"] for d in invoice_data]
@@ -588,7 +591,7 @@ def show_gst_calculator_from_main_UI(request):
      return render(request, "marania_invoice_app/view_gst_calculator.html") 
 
 def invoice_entry(request):
-    Invoices = Invoice.objects.all().order_by('-invoice_number')
+    Invoices =Invoice.objects.order_by('-invoice_date', '-invoice_number')
     Customers = Parties.objects.all()
     customer_dict = defaultdict(lambda:-1)
     transporter_dict = defaultdict(lambda:-1)
@@ -1428,7 +1431,6 @@ def materials_view(request):
             for code, name, displayname, price, gst, supplier in rows:
                 if not code:
                     continue
-
                 Materials.objects.update_or_create(
                     code=code,
                     defaults={

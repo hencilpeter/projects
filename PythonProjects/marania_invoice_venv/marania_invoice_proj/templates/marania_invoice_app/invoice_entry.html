@@ -7,6 +7,40 @@
 {% load dict_extras %}  <!-- load once at the top -->
 
 <style>
+  /* ---------- TABLE SCROLL ---------- */
+.invoice-table-wrapper {
+    max-height: 820px;     /* adjust height */
+    overflow-y: auto;      /* vertical scrollbar */
+    border: 1px solid #ddd;
+}
+
+/* ---------- FIX COLUMN WIDTH ---------- */
+#invoice-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+/* small numeric columns */
+.col-amount {
+    width: 120px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* view invoice column */
+.col-view-invoice {
+    width: 220px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* sticky header (optional but recommended) */
+#invoice-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
 .btn-3d-yellow {
   background: linear-gradient(to bottom, #ffeb3b, #f9c60a) !important;
   color: #212529 !important;
@@ -205,18 +239,41 @@
     <!-- Invoice List (outside collapse) -->
     <div class="invoice-list mt-4">
       {% if invoices %}
-        <div class="table-responsive">
-          <table class="table table-striped table-hover table-bordered table-sm align-middle">
+        <!-- <div class="table-responsive"> -->
+          <!-- <table class="table table-striped table-hover table-bordered table-sm align-middle"> -->
+          <div class="table-responsive invoice-table-wrapper">
+          <table id="invoice-table" class="table table-striped table-hover table-bordered table-sm align-middle">
             <thead class="table-dark">
               <tr>
                 <th scope="col">Date</th>
                 <th scope="col">Invoice #</th>
                 <th scope="col">Customer</th>
                 <th scope="col">Weight</th>
-                <th scope="col">Sub Total</th>
-                <th scope="col">Invoice Amount</th>
-                <th scope="col">View Invoice</th>
+                <th scope="col" class="col-amount">Sub Total</th>
+                <th scope="col" class="col-amount">Invoice Amount</th>
+                <th scope="col" class="col-view-invoice">View Invoice</th>
               </tr>
+                <tr id="invoice-filter-row">
+                <th><input class="filter-input" placeholder="Date"></th>
+                <th><input class="filter-input" placeholder="Invoice #"></th>
+                <!-- <th><input class="filter-input" placeholder="Customer"></th> -->
+                <th>
+                    <input class="filter-input" placeholder="Customer" list="customer-filter-list">
+                    <datalist id="customer-filter-list">
+                      {% for customer in customers %}
+                        <option value="{{ customer.name }}"></option>
+                      {% endfor %}
+                    </datalist>
+                </th>
+                <th><input class="filter-input" placeholder="Weight"></th>
+                <th><input class="filter-input" placeholder="Sub Total"></th>
+                <th><input class="filter-input" placeholder="Amount"></th>
+                <th>
+                  <button class="btn btn-warning btn-sm" id="clear-invoice-filters">
+                    Clear
+                  </button>
+                </th>
+               </tr>
             </thead>
             <tbody>
               {% for invoice in invoices %}
@@ -682,8 +739,6 @@ dispatchedInput.addEventListener('input', function (e) {
         datalist.appendChild(option);
         currentTransporters.push(item);
         if ( item.is_default_transport ) {
-               //document.querySelector('input[name="dispatched_through"]').value = option.value;
-               //document.querySelector('input[name="dispatched_through"]').value = item.transporter_name;
                populateTransportFields(item); 
         }
       });          
@@ -725,49 +780,17 @@ dispatchedInput.addEventListener('input', function (e) {
   // Invoice Items JS
   let rowIndex = -1;
   const container = document.getElementById('item-container');
-  document.getElementById('add-item').addEventListener('click', function() {
-    rowIndex++;
-    const row = document.createElement('div');
-    row.classList.add('item-row', 'row', 'mb-3');
-    row.dataset.index = rowIndex;
 
-    row.innerHTML = `
-<div class="d-flex align-items-center flex-nowrap gap-1 w-100">
+  function createNewRow() {
+    document.getElementById('add-item').click();
+    return container.lastElementChild;
+}
 
-  <div class="d-flex align-items-center position-relative" style="flex: 1.6;">
-    <input type="text" name="item_spec[]" class="form-control form-control-sm item-spec" placeholder="Specification">
-    <small class="text-success ms-1 spec-message" style="display:none;">✓</small>
-  </div>
+function processRow(row, specLine) {
 
-  <input type="text" name="item_code[]" class="form-control form-control-sm" placeholder="Code" style="flex: 0 0 70px;">
-  <input type="text" name="item_description[]" class="form-control form-control-sm" placeholder="Description" style="flex: 2;">
-  <input type="text" name="item_mesh_size[]" class="form-control form-control-sm" placeholder="MM" style="flex: 0 0 55px;">
-  <input type="text" name="item_mesh_depth[]" class="form-control form-control-sm" placeholder="MD" style="flex: 0 0 55px;">
-  <input type="number" name="item_quantity[]" step="0.01" class="form-control form-control-sm" placeholder="Qty" style="flex: 0 0 60px;">
-  <input type="number" name="item_price[]" step="0.01" class="form-control form-control-sm" placeholder="Q.Price" style="flex: 0 0 75px;">
-  <input type="text" name="item_colour[]" class="form-control form-control-sm" placeholder="Colour" style="flex:  0 0 70px;">
-  <input type="text" name="item_hsn_code[]" class="form-control form-control-sm" placeholder="HSN" style="flex: 0 0 50px;">
-
-  <div class="d-flex gap-1" style="flex: 0 0 80px;">
-    <button type="button" class="btn btn-outline-secondary btn-sm clear-item">Clr</button>
-    <button type="button" class="btn btn-outline-danger btn-sm delete-item">Del</button>
-  </div>
-
-  <div class="d-flex gap-1" style="flex: 0 0 170px;">
-    <input type="text" name="item_gst_amount[]" class="form-control form-control-sm" placeholder="GST" readonly>
-    <input type="text" name="item_total_with_gst[]" class="form-control form-control-sm" placeholder="Sub Total" readonly>
-  </div>
-
-</div>
-`;
-
-// Enable lost focus event
-row.querySelector('.item-spec').addEventListener('blur', function () {
-    // ---------- Helpers (ROW-SCOPED) ----------
     const getField = (selector) => row.querySelector(selector);
     const toNumber = (v) => Number(v) || 0;
 
-    // ---------- Dictionaries ----------
     const product_dict = JSON.parse('{{ product_dict|escapejs }}');
     const customer_dict = JSON.parse('{{ customer_dict|escapejs }}');
     const customer_price_dict = JSON.parse('{{ customer_price_dict|escapejs }}');
@@ -775,23 +798,11 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
     const customerCodeInput =
         document.querySelector('input[name="customer_code"]')?.value || "";
 
-    // ---------- Initial Values ----------
     let quantity = 0;
     let price = 0;
     let gst_percentage = 0;
 
-    // ---------- Parse Item Spec ----------
-    const value = getField('[name="item_spec[]"]')?.value || '';
-    const specField = value.toUpperCase();
-    
-    if (!specField) return; // safety
-
-    //const current_item_spec = specField.value || "";
-    const current_item_spec = specField || "";
-    const parts = current_item_spec.split('/');
-    
-
-    // ---------- Populate Product Details ----------
+    const parts = specLine.toUpperCase().split('/');
 
     if (parts.length >= 2)
         getField('[name="item_mesh_size[]"]').value = parts[1];
@@ -813,69 +824,24 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
         getField('[name="item_colour[]"]').value = parts[5];
     }
 
-    
     const mesh_size = toNumber(getField('[name="item_mesh_size[]"]')?.value);
     const mesh_depth = getField('[name="item_mesh_depth[]"]')?.value || "";
     const colour = getField('[name="item_colour[]"]')?.value || "";
 
     if (parts.length > 0 && product_dict[parts[0]]) {
-        let spec = "-"+mesh_size + "MM/" + mesh_depth + "MD"
-        if (colour != "")
-        spec = spec + "/" + colour
+        let spec = "-" + mesh_size + "MM/" + mesh_depth + "MD";
+        if (colour !== "")
+            spec += "/" + colour;
+
         getField('[name="item_code[]"]').value = parts[0];
         getField('[name="item_description[]"]').value =
             product_dict[parts[0]].display_name + spec;
         getField('[name="item_hsn_code[]"]').value =
             product_dict[parts[0]].hsn;
     }
+
     const item_code = getField('[name="item_code[]"]')?.value || "";
 
-
-    // ---------- Auto Price from Customer Price Dictionary ----------
-    if ((price === 0) &&
-        customerCodeInput &&
-        item_code &&
-        customer_price_dict[customerCodeInput] &&
-        customer_price_dict[customerCodeInput][item_code]) {
-
-        const priceConfig = customer_price_dict[customerCodeInput][item_code];
-
-        Object.entries(priceConfig).forEach(([range, value]) => {
-
-            const [startStr, endStr] = range.split("-");
-            const start = Number(startStr);
-            const end = endStr === "999" ? Infinity : Number(endStr);
-
-            if (mesh_size >= start && mesh_size <= end) {
-                 const configured_price = toNumber(value.price);
-                let colour_price = 0;
-                if (colour!="" && colour.toUpperCase() != "WHITE"){
-                    colour_price =  value.colour_extra_price;
-                }
-                  
-                if (value.gst_included) {
-                    gst_percentage = getGSTPercentage(
-                        item_code,
-                        product_dict,
-                        customer_dict,
-                        customerCodeInput
-                    );
-
-                    // Remove GST from inclusive price
-                    price = gst_percentage > 0
-                        ? configured_price / (1 + gst_percentage / 100)
-                        : configured_price;
-                } else {
-                    price = configured_price;
-                }
-                price = price + colour_price
-                price = truncateTo2Decimals(price);
-                getField('[name="item_price[]"]').value = price.toFixed(2);
-            }
-        });
-    }
-
-    // ---------- GST Percentage ----------
     gst_percentage = getGSTPercentage(
         item_code,
         product_dict,
@@ -883,26 +849,81 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
         customerCodeInput
     ) || 0;
 
-    // colour extra 
-    // small mesh size extra 
-    
-    // ---------- Amount Calculation ----------
     let base_amount = quantity * price;
     base_amount = truncateTo2Decimals(base_amount);
 
     let gst_amount = (base_amount * gst_percentage) / 100;
     gst_amount = truncateTo2Decimals(gst_amount);
 
-    let total_amount = base_amount + gst_amount;
-    total_amount = truncateTo2Decimals(total_amount);
+    let total_amount = truncateTo2Decimals(base_amount + gst_amount);
 
-    // ---------- Assign Values ----------
-    getField('[name="item_gst_amount[]"]').value = gst_amount;//.toFixed(2);
-    getField('[name="item_total_with_gst[]"]').value = total_amount;//.toFixed(2);
+    getField('[name="item_gst_amount[]"]').value = gst_amount;
+    getField('[name="item_total_with_gst[]"]').value = total_amount;
+}
 
-    recalculateInvoiceTotals();
-});
 
+  document.getElementById('add-item').addEventListener('click', function() {
+    rowIndex++;
+    const row = document.createElement('div');
+    row.classList.add('item-row', 'row', 'mb-3');
+    row.dataset.index = rowIndex;
+
+    row.innerHTML = `
+        <div class="d-flex align-items-center flex-nowrap gap-1 w-100">
+
+          <div class="d-flex align-items-center position-relative" style="flex: 1.6;">
+            <textarea name="item_spec[]" class="form-control form-control-sm item-spec" placeholder="Specification" rows="1"
+                      style="resize: none; overflow: hidden;"></textarea>
+            <small class="text-success ms-1 spec-message" style="display:none;">✓</small>
+          </div>
+
+          <input type="text" name="item_code[]" class="form-control form-control-sm" placeholder="Code" style="flex: 0 0 70px;">
+          <input type="text" name="item_description[]" class="form-control form-control-sm" placeholder="Description" style="flex: 2;">
+          <input type="text" name="item_mesh_size[]" class="form-control form-control-sm" placeholder="MM" style="flex: 0 0 55px;">
+          <input type="text" name="item_mesh_depth[]" class="form-control form-control-sm" placeholder="MD" style="flex: 0 0 55px;">
+          <input type="number" name="item_quantity[]" step="0.01" class="form-control form-control-sm" placeholder="Qty" style="flex: 0 0 60px;">
+          <input type="number" name="item_price[]" step="0.01" class="form-control form-control-sm" placeholder="Q.Price" style="flex: 0 0 75px;">
+          <input type="text" name="item_colour[]" class="form-control form-control-sm" placeholder="Colour" style="flex:  0 0 70px;">
+          <input type="text" name="item_hsn_code[]" class="form-control form-control-sm" placeholder="HSN" style="flex: 0 0 50px;">
+
+          <div class="d-flex gap-1" style="flex: 0 0 80px;">
+            <button type="button" class="btn btn-outline-secondary btn-sm clear-item">Clr</button>
+            <button type="button" class="btn btn-outline-danger btn-sm delete-item">Del</button>
+          </div>
+
+          <div class="d-flex gap-1" style="flex: 0 0 170px;">
+            <input type="text" name="item_gst_amount[]" class="form-control form-control-sm" placeholder="GST" readonly>
+            <input type="text" name="item_total_with_gst[]" class="form-control form-control-sm" placeholder="Sub Total" readonly>
+          </div>
+
+        </div>
+        `;
+
+// Enable lost focus event
+row.querySelector('.item-spec').addEventListener('blur', function () {
+        const lines = this.value
+            .split('\n')
+            .map(l => l.trim())
+            .filter(l => l !== '');
+
+        if (lines.length === 0) return;
+
+        // Process first line in current row
+        this.value = lines[0];
+        processRow(row, lines[0]);
+
+        // Process remaining lines → create new rows
+        for (let i = 1; i < lines.length; i++) {
+            const newRow = createNewRow();
+            container.appendChild(newRow);
+
+            const specField = newRow.querySelector('.item-spec');
+            specField.value = lines[i];
+
+            processRow(newRow, lines[i]);
+        }
+        recalculateInvoiceTotals();
+    });
     container.appendChild(row);
   });
 
@@ -984,6 +1005,57 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
     document.getElementById("total-gst").innerText = truncateTwoDecimals(totalGST).toFixed(2);
     document.getElementById("round-off").innerText = round_off;
     document.getElementById("grand-total").innerText = (subTotal + totalGST + Number(round_off)).toFixed(2);
+}
+
+// ===== Invoice Table Filters =====
+const invoiceTable = document.getElementById('invoice-table');
+
+if (invoiceTable) {
+
+  const invoiceTbody = invoiceTable.querySelector('tbody');
+
+  function applyInvoiceFilters() {
+
+    const filters = Array.from(
+      document.querySelectorAll('#invoice-filter-row input')
+    ).map(i => i.value.toLowerCase());
+
+    invoiceTbody.querySelectorAll('tr').forEach(row => {
+
+      const cells = row.querySelectorAll('td');
+      let show = true;
+
+      filters.forEach((filter, index) => {
+        if (!filter) return;
+
+        if (!cells[index]
+            .textContent
+            .toLowerCase()
+            .includes(filter)) {
+          show = false;
+        }
+      });
+
+      row.style.display = show ? '' : 'none';
+    });
+  }
+
+  // attach listeners
+  document
+    .querySelectorAll('#invoice-filter-row input')
+    .forEach(el => el.addEventListener('input', applyInvoiceFilters));
+
+  // clear button
+  document
+    .getElementById('clear-invoice-filters')
+    .addEventListener('click', () => {
+
+      document
+        .querySelectorAll('#invoice-filter-row input')
+        .forEach(i => i.value = '');
+
+      applyInvoiceFilters();
+    });
 }
 
 </script>

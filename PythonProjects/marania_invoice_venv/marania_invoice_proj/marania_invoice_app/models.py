@@ -85,6 +85,8 @@ class Materials(models.Model):
                             on_delete=models.DO_NOTHING,
                             related_name='materials',
                             db_constraint=False,   # ⭐ KEY LINE
+                            null=True,
+                            blank=True
                         )
 
     created_at = models.DateTimeField(auto_now_add=True)
