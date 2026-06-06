@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Swap Shifts - {{ roster.name }}{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header"><h5>Swap Shifts - {{ roster.name }}</h5></div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Assignment 1</label>
+                    <select name="assignment1" class="form-control" required>
+                        <option value="">-- Select --</option>
+                        {% for a in assignments %}
+                        <option value="{{ a.pk }}">{{ a.date|date:"M d" }} | {{ a.shift.code }} | {{ a.employee.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Assignment 2</label>
+                    <select name="assignment2" class="form-control" required>
+                        <option value="">-- Select --</option>
+                        {% for a in assignments %}
+                        <option value="{{ a.pk }}">{{ a.date|date:"M d" }} | {{ a.shift.code }} | {{ a.employee.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-dark">Swap</button>
+            <a href="{% url 'roster:roster_detail' roster.pk %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

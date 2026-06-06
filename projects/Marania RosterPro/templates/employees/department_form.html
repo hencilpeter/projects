@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Department{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header"><h5>{% if form.instance.pk %}Edit{% else %}Add{% endif %} Department</h5></div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-dark">Save</button>
+            <a href="{% url 'employees:department_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

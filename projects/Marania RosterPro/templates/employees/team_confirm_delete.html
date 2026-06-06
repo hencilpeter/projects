@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Delete Team{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header"><h5>Confirm Delete</h5></div>
+    <div class="card-body">
+        <p>Delete team <strong>{{ team.name }}</strong>?</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Delete</button>
+            <a href="{% url 'employees:team_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

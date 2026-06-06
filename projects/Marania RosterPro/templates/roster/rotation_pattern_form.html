@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Add Rotation Pattern{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header"><h5>Add Rotation Pattern for {{ rule.team.name }}</h5></div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-dark">Add</button>
+            <a href="{% url 'roster:rotation_patterns' rule.pk %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

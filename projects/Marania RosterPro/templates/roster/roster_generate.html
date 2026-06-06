@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Generate Roster{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header"><h5>Generate Roster</h5></div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-dark">Generate</button>
+            <a href="{% url 'roster:roster_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

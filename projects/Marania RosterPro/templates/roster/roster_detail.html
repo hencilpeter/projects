@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}{{ roster.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>{{ roster.name }}</h4>
+    <div>
+        <span class="badge bg-{% if roster.status == 'published' %}success{% else %}warning text-dark{% endif %} fs-6">{{ roster.get_status_display }}</span>
+        {% if roster.status == 'draft' %}
+        <a href="{% url 'roster:roster_publish' roster.pk %}" class="btn btn-sm btn-success">Publish</a>
+        {% endif %}
+        <a href="{% url 'roster:swap_shifts' roster.pk %}" class="btn btn-sm btn-outline-dark">Swap Shifts</a>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <span>Team: {{ roster.team.name }}</span>
+        <span>{{ roster.start_date }} to {{ roster.end_date }}</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:120px">Date</th>
+                        <th>Assignments</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for date, assigns in by_date.items %}
+                    <tr>
+                        <td class="fw-bold">{{ date|date:"D, M d" }}</td>
+                        <td>
+                            {% for a in assigns %}
+                            <span class="shift-label shift-{{ a.shift.code }} d-inline-block me-2 mb-1 p-1 border rounded">
+                                <strong>{{ a.shift.code }}</strong>: {{ a.employee.full_name }}
+                                {% if roster.status == 'draft' %}
+                                <a href="{% url 'roster:assignment_override' a.pk %}" class="text-decoration-none ms-1">✎</a>
+                                {% endif %}
+                            </span>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="2" class="text-center text-muted">No assignments in this roster.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

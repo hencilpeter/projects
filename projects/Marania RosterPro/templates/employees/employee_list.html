@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Employees{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Employees</h4>
+    <a href="{% url 'employees:employee_create' %}" class="btn btn-dark btn-sm">+ Add Employee</a>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr><th>ID</th><th>Name</th><th>Email</th><th>Department</th><th>Teams</th><th>Active</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+                {% for emp in employees %}
+                <tr>
+                    <td>{{ emp.employee_id }}</td>
+                    <td><a href="{% url 'employees:employee_detail' emp.pk %}">{{ emp.full_name }}</a></td>
+                    <td>{{ emp.email }}</td>
+                    <td>{{ emp.department|default:"-" }}</td>
+                    <td>{{ emp.teams.all|join:", "|default:"-" }}</td>
+                    <td>{% if emp.is_active %}<span class="badge bg-success">Yes</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                    <td>
+                        <a href="{% url 'employees:employee_update' emp.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+                        <a href="{% url 'employees:employee_delete' emp.pk %}" class="btn btn-sm btn-outline-danger">Del</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted">No employees yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

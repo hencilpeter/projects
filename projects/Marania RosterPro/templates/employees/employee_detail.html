@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}{{ employee.full_name }}{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5>{{ employee.full_name }}</h5>
+        <div>
+            <a href="{% url 'employees:employee_update' employee.pk %}" class="btn btn-sm btn-dark">Edit</a>
+            <a href="{% url 'employees:employee_delete' employee.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <p><strong>Employee ID:</strong> {{ employee.employee_id }}</p>
+        <p><strong>Name:</strong> {{ employee.full_name }}</p>
+        <p><strong>Email:</strong> {{ employee.email }}</p>
+        <p><strong>Phone:</strong> {{ employee.phone|default:"-" }}</p>
+        <p><strong>Department:</strong> {{ employee.department|default:"-" }}</p>
+        <p><strong>Teams:</strong> {{ employee.teams.all|join:", "|default:"-" }}</p>
+        <p><strong>Active:</strong> {{ employee.is_active|yesno:"Yes,No" }}</p>
+        <p><strong>Date Joined:</strong> {{ employee.date_joined }}</p>
+        {% if employee.notes %}<p><strong>Notes:</strong> {{ employee.notes }}</p>{% endif %}
+    </div>
+</div>
+{% endblock %}

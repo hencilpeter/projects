@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Rotation Patterns - {{ rule.team.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Rotation Patterns: {{ rule.team.name }}</h4>
+    <a href="{% url 'roster:rotation_pattern_add' rule.pk %}" class="btn btn-dark btn-sm">+ Add Pattern</a>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Week</th><th>Shift</th><th>Actions</th></tr></thead>
+            <tbody>
+                {% for p in patterns %}
+                <tr>
+                    <td>Week {{ p.week_number }}</td>
+                    <td><span class="badge bg-secondary">{{ p.shift.code }}</span> {{ p.shift.name }}</td>
+                    <td>
+                        <a href="{% url 'roster:rotation_pattern_delete' p.pk %}" class="btn btn-sm btn-outline-danger">Remove</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-center text-muted">No rotation patterns configured.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<a href="{% url 'roster:schedule_rules' %}" class="btn btn-outline-secondary">Back to Rules</a>
+{% endblock %}

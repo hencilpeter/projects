@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Rosters{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Rosters</h4>
+    <a href="{% url 'roster:roster_generate' %}" class="btn btn-dark btn-sm">+ Generate Roster</a>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Name</th><th>Team</th><th>Period</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+            <tbody>
+                {% for roster in rosters %}
+                <tr>
+                    <td><a href="{% url 'roster:roster_detail' roster.pk %}">{{ roster.name }}</a></td>
+                    <td>{{ roster.team.name }}</td>
+                    <td>{{ roster.start_date }} to {{ roster.end_date }}</td>
+                    <td>
+                        {% if roster.status == 'draft' %}<span class="badge bg-warning text-dark">Draft</span>
+                        {% elif roster.status == 'published' %}<span class="badge bg-success">Published</span>
+                        {% else %}<span class="badge bg-secondary">Archived</span>{% endif %}
+                    </td>
+                    <td>{{ roster.created_at|date:"M d, Y" }}</td>
+                    <td>
+                        <a href="{% url 'roster:roster_detail' roster.pk %}" class="btn btn-sm btn-outline-dark">View</a>
+                        {% if roster.status == 'draft' %}
+                        <a href="{% url 'roster:roster_publish' roster.pk %}" class="btn btn-sm btn-outline-success">Publish</a>
+                        {% endif %}
+                        <a href="{% url 'roster:roster_delete' roster.pk %}" class="btn btn-sm btn-outline-danger">Del</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-muted">No rosters generated yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

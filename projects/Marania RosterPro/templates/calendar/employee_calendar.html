@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load calendar_extras %}
+{% block title %}{{ employee.full_name }} Calendar{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>{{ employee.full_name }} - {{ month_name }} {{ year }}</h4>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3"><div class="card p-3 text-center"><strong>Work Days</strong><br>{{ work_days }}</div></div>
+    <div class="col-md-3"><div class="card p-3 text-center"><strong>Days Off</strong><br>{{ days_off }}</div></div>
+    <div class="col-md-3"><div class="card p-3 text-center"><strong>Leave Days</strong><br>{{ leaf_dates|length }}</div></div>
+    <div class="col-md-3"><div class="card p-3 text-center"><strong>Total Hours</strong><br>{{ total_hours.total }}</div></div>
+</div>
+
+<div class="d-flex justify-content-between mb-3">
+    <a href="{% url 'calendar_app:employee_calendar' employee.pk prev_date.year prev_date.month %}" class="btn btn-outline-dark btn-sm">&larr; {{ prev_date|date:"F" }}</a>
+    <a href="{% url 'calendar_app:employee_calendar' employee.pk next_date.year next_date.month %}" class="btn btn-outline-dark btn-sm">{{ next_date|date:"F" }} &rarr;</a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-bordered mb-0">
+            <thead>
+                <tr class="text-center">
+                    <th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for week in weeks %}
+                <tr>
+                    {% for d in week %}
+                    <td class="calendar-cell align-top" style="min-width:100px;">
+                        {% if d %}
+                            {% if d in leaf_dates %}
+                            <div class="leave-day p-1 rounded fw-bold">{{ d|date:"j" }}</div>
+                            <small class="text-white">Leave</small>
+                            {% elif d in by_date %}
+                            <div class="fw-bold">{{ d|date:"j" }}</div>
+                            <div class="shift-label shift-{{ by_date|get_item:d|get_item:'shift_code' }}">
+                                <small>{{ by_date|get_item:d|get_item:'shift_code' }} ({{ by_date|get_item:d|get_item:'time_range' }})</small>
+                            </div>
+                            {% else %}
+                            <div class="day-off p-1 rounded fw-bold">{{ d|date:"j" }}</div>
+                            <small class="text-muted">Off</small>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted">No data.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<h5 class="mt-4">Shift Hours Summary</h5>
+<div class="card">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-3"><strong>Morning:</strong> {{ total_hours.morning }}h</div>
+            <div class="col-3"><strong>Afternoon:</strong> {{ total_hours.afternoon }}h</div>
+            <div class="col-3"><strong>Night:</strong> {{ total_hours.night }}h</div>
+            <div class="col-3"><strong>Total:</strong> {{ total_hours.total }}h</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

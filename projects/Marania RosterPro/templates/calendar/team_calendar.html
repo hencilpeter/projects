@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Team Calendar{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Team Calendar</h4>
+    <div>
+        <select class="form-control d-inline-block w-auto" onchange="if(this.value) window.location.href='/calendar/team/' + this.value + '/'">
+            <option value="">-- Select Team --</option>
+            {% for t in teams %}
+            <option value="{{ t.pk }}" {% if selected_team and selected_team.pk == t.pk %}selected{% endif %}>{{ t.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+{% if selected_team %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <a href="{% url 'calendar_app:team_calendar' selected_team.pk prev_date.year prev_date.month %}" class="btn btn-outline-dark btn-sm">&larr; {{ prev_date|date:"F" }}</a>
+    <h5 class="m-0">{{ month_name }} {{ year }}</h5>
+    <a href="{% url 'calendar_app:team_calendar' selected_team.pk next_date.year next_date.month %}" class="btn btn-outline-dark btn-sm">{{ next_date|date:"F" }} &rarr;</a>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-bordered mb-0">
+            <thead>
+                <tr class="text-center">
+                    <th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for week in calendar_data %}
+                <tr>
+                    {% for day_assigns in week %}
+                    <td class="calendar-cell align-top" style="min-width:100px;">
+                        {% if day_assigns is not None %}
+                            {% if day_assigns.0 %}
+                                <div class="fw-bold mb-1">{{ day_assigns.0.date|date:"j" }}</div>
+                                {% for a in day_assigns %}
+                                <div class="shift-label shift-{{ a.shift.code }} mb-1 p-1 rounded">
+                                    <small><strong>{{ a.shift.code }}</strong>: {{ a.employee.full_name }}</small>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="fw-bold mb-1 text-muted">{{ forloop.parentloop.counter0|add:forloop.counter|add:"-1" }}</div>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted">No calendar data.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center text-muted">Select a team to view the calendar.</div>
+</div>
+{% endif %}
+{% endblock %}

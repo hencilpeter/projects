@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Override Assignment{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header"><h5>Override Assignment</h5></div>
+    <div class="card-body">
+        <p><strong>Employee:</strong> {{ assignment.employee.full_name }}</p>
+        <p><strong>Current Shift:</strong> {{ assignment.shift.name }} ({{ assignment.shift.code }})</p>
+        <p><strong>Date:</strong> {{ assignment.date }}</p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">New Shift</label>
+                <select name="shift" class="form-control">
+                    {% for shift in shifts %}
+                    <option value="{{ shift.id }}" {% if shift.id == assignment.shift_id %}selected{% endif %}>
+                        {{ shift.name }} ({{ shift.code }}) - {{ shift.time_range }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-dark">Update</button>
+            <a href="{% url 'roster:roster_detail' assignment.roster_version.pk %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

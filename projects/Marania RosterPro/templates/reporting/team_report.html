@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Team Report - {{ team.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Team Report: {{ team.name }} - {{ month_name }} {{ year }}</h4>
+</div>
+<div class="d-flex justify-content-between mb-3">
+    <a href="{% url 'reporting:team_report' team.pk prev_date.year prev_date.month %}" class="btn btn-outline-dark btn-sm">&larr; {{ prev_date|date:"F" }}</a>
+    <a href="{% url 'reporting:team_report' team.pk next_date.year next_date.month %}" class="btn btn-outline-dark btn-sm">{{ next_date|date:"F" }} &rarr;</a>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Employee</th><th>Work Days</th><th>Total Hours</th></tr></thead>
+            <tbody>
+                {% for r in report_data %}
+                <tr>
+                    <td>{{ r.employee.full_name }}</td>
+                    <td>{{ r.work_days }}</td>
+                    <td>{{ r.total_hours }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-center text-muted">No data.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -120,3 +120,9 @@ The system should optionally include:
 	Minimal manual intervention
 	Fair and balanced shift distribution
 	Scalable for large workforce
+	
+	
+	
+	cd "Marania RosterPro"
+python manage.py runserver
+Login with admin / admin123. Default shift types (MS, AS, NS) are pre-seeded.
