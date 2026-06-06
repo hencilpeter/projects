@@ -1,0 +1,122 @@
+Marania RosterPro
+=====================================
+1. Project Overview
+
+Develop a Django-based web application for automatic employee duty scheduling (roster management).
+Proposed application name: “Marania Roster” (or a more suitable alternative can be finalized during design).
+
+The system will automatically generate and manage shift schedules for employees based on configurable rules, constraints, and leave data.
+
+2. Core Modules
+	2.1 Employee Management
+	Add, edit, and delete employees
+	Assign employees to:
+	Departments
+	Teams
+	Ability to group employees into multiple teams
+	Store employee details (name, ID, role, department, etc.)   
+    
+	2.2 Shift Management
+	Support multiple shift types (default configuration):
+	Morning Shift (MS): 07:00 – 14:00
+	Afternoon Shift (AS): 14:00 – 21:00
+	Night Shift (NS): 21:00 – 07:00 (next day)
+	Admin must be able to:
+	Add or remove shift types
+	Modify shift timings dynamically	
+
+2.3 Roster / Duty Scheduling Engine
+
+	The system must generate duty schedules for teams based on configurable rules.
+
+	Scheduling Rules:
+	(i) Scheduling Frequency
+		Weekly scheduling is preferred by default
+		Monthly and daily scheduling options must be configurable
+	(ii) Shift Rotation Logic
+		Example rotation:
+		Week 1: MS
+		Week 2: NS
+		Week 3: AS
+		Week 4: MS (cycle repeats)
+		Rotation pattern should be configurable per team
+	(iii)Leave Constraints
+		Employees can apply for planned leaves
+		Default maximum: 4 leave days per month per employee
+		Leave limit must be configurable by admin
+	(iv) Minimum Staffing Requirement
+		Each shift must maintain a minimum staffing level (default: 50% of required employees)
+		This threshold must be configurable
+	(v) Leave-Aware Scheduling
+		System must consider approved/planned leaves before finalizing schedule
+		Adjust assignments automatically to ensure coverage
+		Avoid changing team assignments unless absolutely necessary
+		
+3. Calendar & Visualization Module
+	3.1 Team-Based Calendar View
+		Monthly calendar view per team
+		Display:
+		Assigned shifts
+		Team name clearly labeled per day/shift
+	3.2 Individual Calendar View
+		Monthly calendar per employee
+		Show:
+		Assigned shifts
+		Working hours
+		Days off
+		Leave days
+
+4. Duty Summary & Reporting
+
+	For each month, generate:
+
+	Employee-wise summary:
+	Total Morning Shift hours
+	Total Afternoon Shift hours
+	Total Night Shift hours
+	Total working hours
+	Total days off
+	Leave statistics
+
+5. Additional / Advanced Features (Recommended Enhancements)
+
+The system should optionally include:
+
+5.1 Reporting Module
+	Export reports in:
+	PDF
+	Excel
+	Printable monthly rosters
+	5.2 Duty Adjustment Module
+	Manual override of generated schedules
+	Swap shifts between employees
+	5.3 Salary Calculation Module (Optional)
+	Calculate salary based on:
+	Shift type
+	Working hours
+	Overtime rules (configurable)
+	Allow configurable pay rates per shift
+	5.4 Notifications (Optional but recommended)
+	Email/SMS alerts for:
+	Schedule publication
+	Shift changes
+	Leave approvals
+	5.5 Audit & History Tracking
+	Track all schedule changes
+	Maintain version history of rosters
+	
+
+6. System Requirements
+	Backend: Django (Python)
+	Database: SQLite
+	Frontend: Django Templates or REST API + Bootstrap 
+	Authentication:
+	Admin login
+	HR/Manager role
+	Employee view access (optional)
+7. Key Design Goals
+	Highly configurable scheduling engine
+	Leave-aware automatic roster generation
+	Minimal manual intervention
+	Fair and balanced shift distribution
+	Scalable for large workforce
