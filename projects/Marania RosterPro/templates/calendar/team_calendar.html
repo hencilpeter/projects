@@ -40,8 +40,8 @@
                             {% with cell_date=cell.0 cell_assigns=cell.1 %}
                             <div class="fw-bold mb-1">{{ cell_date|date:"j" }}</div>
                             {% for a in cell_assigns %}
-                            <div class="shift-label shift-{{ a.shift.code }} mb-1 p-1 rounded">
-                                <small><strong>{{ a.shift.code }}</strong>: {{ a.employee.full_name }}</small>
+                            <div style="font-size:10px; line-height:1.4;">
+                                {{ a.employee.first_name }}-{{ a.shift.code }}
                             </div>
                             {% empty %}
                             <div class="text-muted" style="font-size:11px;">—</div>

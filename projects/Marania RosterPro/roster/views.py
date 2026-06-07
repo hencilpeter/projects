@@ -202,11 +202,17 @@ def combined_roster(request, year=None, month=None):
     _, last_day = cal_module.monthrange(year, month)
     start_date = date(year, month, 1)
     end_date = date(year, month, last_day)
+    selected_team_ids = request.GET.getlist('teams')
 
     rosters = RosterVersion.objects.filter(
         start_date__lte=end_date,
         end_date__gte=start_date,
     ).filter(status__in=['draft', 'published']).select_related('team')
+
+    if selected_team_ids:
+        rosters = rosters.filter(team_id__in=selected_team_ids)
+
+    all_teams = Team.objects.all().order_by('name')
 
     assignments = DutyAssignment.objects.filter(
         roster_version__in=rosters,
@@ -241,6 +247,8 @@ def combined_roster(request, year=None, month=None):
         'month_name': date(year, month, 1).strftime('%B'),
         'weeks': weeks,
         'rosters': rosters,
+        'all_teams': all_teams,
+        'selected_team_ids': selected_team_ids,
         'prev_year': prev_y,
         'prev_month': prev_m,
         'prev_month_name': date(prev_y, prev_m, 1).strftime('%B'),
@@ -256,11 +264,15 @@ def combined_roster_print(request, year=None, month=None):
     _, last_day = cal_module.monthrange(year, month)
     start_date = date(year, month, 1)
     end_date = date(year, month, last_day)
+    selected_team_ids = request.GET.getlist('teams')
 
     rosters = RosterVersion.objects.filter(
         start_date__lte=end_date,
         end_date__gte=start_date,
     ).filter(status__in=['draft', 'published']).select_related('team')
+
+    if selected_team_ids:
+        rosters = rosters.filter(team_id__in=selected_team_ids)
 
     assignments = DutyAssignment.objects.filter(
         roster_version__in=rosters,
@@ -297,27 +309,42 @@ def roster_calendar(request, pk, year=None, month=None):
     roster = get_object_or_404(RosterVersion.objects.select_related('team', 'created_by'), pk=pk)
     year = year or date.today().year
     month = month or date.today().month
+    selected_team_ids = request.GET.getlist('teams')
 
     _, last_day = cal_module.monthrange(year, month)
     start_date = date(year, month, 1)
     end_date = date(year, month, last_day)
 
-    assignments = roster.assignments.filter(
-        date__gte=start_date, date__lte=end_date
-    ).select_related('employee', 'shift').order_by('date', 'shift__start_time')
+    if not selected_team_ids:
+        selected_team_ids = [str(roster.team_id)]
 
-    by_date = defaultdict(list)
+    all_team_rosters = RosterVersion.objects.filter(
+        start_date__lte=end_date,
+        end_date__gte=start_date,
+        status__in=['draft', 'published'],
+    ).select_related('team')
+
+    filtered_rosters = all_team_rosters.filter(team_id__in=selected_team_ids)
+
+    assignments = DutyAssignment.objects.filter(
+        roster_version__in=filtered_rosters,
+        date__gte=start_date,
+        date__lte=end_date,
+    ).select_related('employee', 'shift', 'roster_version__team').order_by('date', 'shift__start_time', 'roster_version__team__name')
+
+    by_date_team = defaultdict(lambda: defaultdict(list))
     for a in assignments:
-        by_date[a.date].append(a)
+        by_date_team[a.date][a.roster_version.team].append(a)
 
-    team_members = Employee.objects.filter(teams=roster.team, is_active=True)
+    team_members = Employee.objects.filter(teams__in=selected_team_ids, is_active=True).distinct()
+    all_teams = Team.objects.all().order_by('name')
 
     leaves_in_range = LeaveRequest.objects.filter(
-        employee__teams=roster.team,
+        employee__teams__in=selected_team_ids,
         status='approved',
         start_date__lte=end_date,
         end_date__gte=start_date
-    ).select_related('employee')
+    ).select_related('employee').distinct()
 
     cal = cal_module.Calendar()
     weeks = []
@@ -328,7 +355,7 @@ def roster_calendar(request, pk, year=None, month=None):
                 week_data.append(None)
             else:
                 d = date(year, month, day)
-                week_data.append((d, by_date.get(d, [])))
+                week_data.append((d, dict(by_date_team.get(d, {}))))
         weeks.append(week_data)
 
     prev_m = month - 1 or 12
@@ -343,6 +370,8 @@ def roster_calendar(request, pk, year=None, month=None):
         'month_name': date(year, month, 1).strftime('%B'),
         'weeks': weeks,
         'team_members': team_members,
+        'all_teams': all_teams,
+        'selected_team_ids': selected_team_ids,
         'leaves': leaves_in_range,
         'prev_year': prev_y,
         'prev_month': prev_m,

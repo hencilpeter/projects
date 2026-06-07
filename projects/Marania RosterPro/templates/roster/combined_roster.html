@@ -4,10 +4,25 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4>Combined Roster — {{ month_name }} {{ year }}</h4>
     <div>
-        <a href="{% url 'roster:combined_roster_print' year month %}" target="_blank" class="btn btn-sm btn-dark">Print</a>
-        {% for r in rosters %}
-        <a href="{% url 'roster:roster_calendar_default' r.pk %}" class="btn btn-sm btn-outline-dark">{{ r.team.name }}</a>
-        {% endfor %}
+        <a href="{% url 'roster:combined_roster_print' year month %}{% if selected_team_ids %}?teams={% for id in selected_team_ids %}{{ id }}{% if not forloop.last %}&teams={% endif %}{% endfor %}{% endif %}" target="_blank" class="btn btn-sm btn-dark">Print</a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex align-items-center flex-wrap gap-2">
+            <span class="fw-bold me-2">Teams:</span>
+            {% for team in all_teams %}
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="teams" value="{{ team.pk }}"
+                    id="team{{ team.pk }}"
+                    {% if not selected_team_ids or team.pk|stringformat:"d" in selected_team_ids %}checked{% endif %}>
+                <label class="form-check-label" for="team{{ team.pk }}">{{ team.name }}</label>
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-sm btn-dark">Filter</button>
+            <a href="{% url 'roster:combined_roster' year month %}" class="btn btn-sm btn-outline-secondary">Clear</a>
+        </form>
     </div>
 </div>
 

@@ -2,16 +2,34 @@
 {% block title %}Roster Calendar - {{ roster.team.name }}{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4>{{ roster.team.name }} — {{ month_name }} {{ year }}</h4>
+    <h4>Roster Calendar — {{ month_name }} {{ year }}</h4>
     <div>
         <span class="badge bg-{% if roster.status == 'published' %}success{% else %}warning text-dark{% endif %} fs-6">{{ roster.get_status_display }}</span>
         <a href="{% url 'roster:roster_detail' roster.pk %}" class="btn btn-sm btn-outline-dark ms-2">Detail View</a>
     </div>
 </div>
 
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex align-items-center flex-wrap gap-2">
+            <span class="fw-bold me-2">Teams:</span>
+            {% for team in all_teams %}
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="teams" value="{{ team.pk }}"
+                    id="team{{ team.pk }}"
+                    {% if not selected_team_ids or team.pk|stringformat:"d" in selected_team_ids %}checked{% endif %}>
+                <label class="form-check-label" for="team{{ team.pk }}">{{ team.name }}</label>
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-sm btn-dark">Filter</button>
+            <a href="{% url 'roster:roster_calendar' roster.pk year month %}" class="btn btn-sm btn-outline-secondary">Clear</a>
+        </form>
+    </div>
+</div>
+
 <div class="d-flex justify-content-between mb-3">
-    <a href="{% url 'roster:roster_calendar' roster.pk prev_year prev_month %}" class="btn btn-outline-dark btn-sm">&larr; {{ prev_month_name }}</a>
-    <a href="{% url 'roster:roster_calendar' roster.pk next_year next_month %}" class="btn btn-outline-dark btn-sm">{{ next_month_name }} &rarr;</a>
+    <a href="{% url 'roster:roster_calendar' roster.pk prev_year prev_month %}{% if selected_team_ids %}?teams={% for id in selected_team_ids %}{{ id }}{% if not forloop.last %}&teams={% endif %}{% endfor %}{% endif %}" class="btn btn-outline-dark btn-sm">&larr; {{ prev_month_name }}</a>
+    <a href="{% url 'roster:roster_calendar' roster.pk next_year next_month %}{% if selected_team_ids %}?teams={% for id in selected_team_ids %}{{ id }}{% if not forloop.last %}&teams={% endif %}{% endfor %}{% endif %}" class="btn btn-outline-dark btn-sm">{{ next_month_name }} &rarr;</a>
 </div>
 
 <div class="card">
@@ -26,17 +44,24 @@
                 {% for week in weeks %}
                 <tr>
                     {% for cell in week %}
-                    <td class="calendar-cell align-top" style="min-width:100px; height:90px;">
+                    <td class="calendar-cell align-top" style="min-width:110px; height:100px;">
                         {% if cell %}
-                        {% with d=cell.0 assigns=cell.1 %}
-                        <div class="fw-bold mb-1" style="font-size:13px;">{{ d|date:"j" }}</div>
-                        {% for a in assigns %}
-                        <div class="shift-label shift-{{ a.shift.code }} mb-1 p-1 rounded" style="font-size:10px; line-height:1.2;">
-                            <strong>{{ a.shift.code }}</strong> {{ a.employee.first_name|slice:":3" }}.
+                        {% with d=cell.0 teams_dict=cell.1 %}
+                        <div class="fw-bold mb-1" style="font-size:12px;">{{ d|date:"j" }}</div>
+                        {% if teams_dict %}
+                        {% for team, assigns in teams_dict.items %}
+                        <div style="font-size:9px; line-height:1.3; margin-bottom:3px; border-left:2px solid #6c757d; padding-left:3px;">
+                            <strong style="font-size:8px;">{{ team.name }}</strong>
+                            {% for a in assigns %}
+                            <div style="font-size:9px; line-height:1.4;">
+                                {{ a.employee.first_name }}-{{ a.shift.code }}
+                            </div>
+                            {% endfor %}
                         </div>
-                        {% empty %}
-                        <div style="font-size:10px; color:#ccc;">—</div>
                         {% endfor %}
+                        {% else %}
+                        <div style="font-size:9px; color:#ccc;">—</div>
+                        {% endif %}
                         {% endwith %}
                         {% endif %}
                     </td>
@@ -54,7 +79,7 @@
             <div class="card-header"><strong>Team Members</strong></div>
             <div class="card-body p-0">
                 <table class="table table-sm mb-0">
-                    <thead><tr><th>Name</th><th>Role</th><th>Status</th></tr></thead>
+                    <thead><tr><th>Name</th><th>Department</th><th>Status</th></tr></thead>
                     <tbody>
                         {% for m in team_members %}
                         <tr>
@@ -93,9 +118,6 @@
         <div class="card mt-3">
             <div class="card-header"><strong>Shift Summary</strong></div>
             <div class="card-body">
-                {% with total=roster.assignments.count %}
-                <p><strong>Total Assignments:</strong> {{ total }}</p>
-                {% endwith %}
                 <p><strong>Period:</strong> {{ roster.start_date }} to {{ roster.end_date }}</p>
                 <p><strong>Created:</strong> {{ roster.created_at|date:"M d, Y" }}</p>
             </div>
