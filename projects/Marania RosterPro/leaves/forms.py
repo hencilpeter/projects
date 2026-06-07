@@ -18,6 +18,15 @@ class LeaveRequestForm(forms.ModelForm):
             'reason': forms.Textarea(attrs={'rows': 3}),
         }
 
+class BatchLeaveForm(forms.Form):
+    employee = forms.ModelChoiceField(
+        queryset=Employee.objects.filter(is_active=True),
+        label="Employee"
+    )
+    start_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}))
+    end_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}))
+    reason = forms.CharField(widget=forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}), required=False)
+
 class LeaveConfigForm(forms.ModelForm):
     class Meta:
         model = LeaveConfiguration

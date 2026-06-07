@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Combined Roster — {{ month_name }} {{ year }}</title>
+    <style>
+        @page { size: A4 portrait; margin: 10mm; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 8pt; color: #000; }
+        h2 { text-align: center; margin-bottom: 4px; font-size: 12pt; }
+        .subtitle { text-align: center; font-size: 8pt; color: #555; margin-bottom: 8px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #333; padding: 2px 3px; vertical-align: top; }
+        th { background: #e0e0e0; font-size: 7pt; text-align: center; }
+        .date-cell { width: 60px; text-align: center; vertical-align: middle; font-weight: bold; font-size: 7pt; }
+        .team-block { display: inline; font-size: 7.5pt; line-height: 1.6; margin-right: 10px; padding-right: 10px; border-right: 1px dotted #999; }
+        .team-block:last-child { border-right: none; margin-right: 0; padding-right: 0; }
+        .team-block strong { font-size: 7.5pt; }
+        .shift-badge { display: inline-block; background: #555; color: #fff; padding: 0 2px; border-radius: 1px; font-size: 6.5pt; margin-right: 1px; }
+        @media print {
+            .no-print { display: none; }
+        }
+        .no-print { text-align: center; margin-bottom: 8px; }
+        .no-print button { padding: 6px 20px; font-size: 10pt; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button onclick="window.print()">Print / Save PDF</button>
+        <button onclick="window.close()">Close</button>
+    </div>
+
+    <h2>Marania RosterPro — Monthly Schedule</h2>
+    <div class="subtitle">{{ month_name }} {{ year }}</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:70px">Date</th>
+                <th>Assignments by Team</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for week in weeks %}
+            {% for cell in week %}
+            {% if cell %}
+            {% with d=cell.0 teams_dict=cell.1 %}
+            <tr>
+                <td class="date-cell">{{ d|date:"D" }}<br>{{ d|date:"M d" }}</td>
+                <td>
+                    {% if teams_dict %}
+                    {% for team, assigns in teams_dict.items %}
+                    <div class="team-block">
+                        <strong>{{ team.name }}:</strong>
+                        {% for a in assigns %}
+                        <span class="shift-badge">{{ a.shift.code }}</span>{{ a.employee.full_name }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <span style="color:#aaa;">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endwith %}
+            {% endif %}
+            {% endfor %}
+            {% empty %}
+            <tr><td colspan="2" style="text-align:center;padding:20px;color:#aaa;">No roster data for this month.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

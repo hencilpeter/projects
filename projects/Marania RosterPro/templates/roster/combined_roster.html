@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Combined Roster — {{ month_name }} {{ year }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Combined Roster — {{ month_name }} {{ year }}</h4>
+    <div>
+        <a href="{% url 'roster:combined_roster_print' year month %}" target="_blank" class="btn btn-sm btn-dark">Print</a>
+        {% for r in rosters %}
+        <a href="{% url 'roster:roster_calendar_default' r.pk %}" class="btn btn-sm btn-outline-dark">{{ r.team.name }}</a>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="d-flex justify-content-between mb-3">
+    <a href="{% url 'roster:combined_roster' prev_year prev_month %}" class="btn btn-outline-dark btn-sm">&larr; {{ prev_month_name }}</a>
+    <a href="{% url 'roster:combined_roster' next_year next_month %}" class="btn btn-outline-dark btn-sm">{{ next_month_name }} &rarr;</a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-bordered mb-0">
+            <thead>
+                <tr class="text-center">
+                    <th style="width:100px">Date</th>
+                    <th>Assignments by Team</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for week in weeks %}
+                {% for cell in week %}
+                {% if cell %}
+                {% with d=cell.0 teams_dict=cell.1 %}
+                <tr>
+                    <td class="fw-bold align-middle text-center">{{ d|date:"D, M d" }}</td>
+                    <td>
+                        {% if teams_dict %}
+                        {% for team, assigns in teams_dict.items %}
+                        <span style="display:inline-block; margin-right:12px; margin-bottom:4px; font-size:12px;">
+                            <strong>{{ team.name }}:</strong>
+                            {% for a in assigns %}
+                            <span class="shift-label shift-{{ a.shift.code }} d-inline-block px-1" style="border-radius:3px; font-size:11px;">
+                                {{ a.employee.full_name }} <span class="badge bg-secondary">{{ a.shift.code }}</span>
+                            </span>
+                            {% endfor %}
+                        </span>
+                        {% endfor %}
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endwith %}
+                {% endif %}
+                {% endfor %}
+                {% empty %}
+                <tr><td colspan="2" class="text-center text-muted py-4">No rosters found for this month.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

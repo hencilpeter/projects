@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Batch Leave Entry{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5>Batch Leave Entry</h5>
+        <span class="text-muted">Max {{ config.max_leave_days_per_month }} days/month per employee</span>
+    </div>
+    <div class="card-body">
+        <form method="post" id="batchForm">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Employee</label>
+                <select name="employee" class="form-control" required>
+                    <option value="">-- Select --</option>
+                    {% for emp in employees %}
+                    <option value="{{ emp.pk }}">{{ emp.full_name }} ({{ emp.employee_id }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <table class="table table-bordered" id="leaveTable">
+                <thead>
+                    <tr>
+                        <th style="width:30px">#</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Reason</th>
+                        <th style="width:40px"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="text-center">1</td>
+                        <td><input type="date" name="start_date" class="form-control form-control-sm" required></td>
+                        <td><input type="date" name="end_date" class="form-control form-control-sm" required></td>
+                        <td><input type="text" name="reason" class="form-control form-control-sm" placeholder="Optional"></td>
+                        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove(); renumber();">×</button></td>
+                    </tr>
+                </tbody>
+            </table>
+            <button type="button" class="btn btn-outline-dark btn-sm mb-3" onclick="addRow()">+ Add Row</button>
+            <br>
+            <button type="submit" class="btn btn-dark">Save All</button>
+            <a href="{% url 'leaves:leave_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function addRow() {
+    var tbody = document.querySelector('#leaveTable tbody');
+    var count = tbody.querySelectorAll('tr').length + 1;
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td class="text-center">' + count + '</td>' +
+        '<td><input type="date" name="start_date" class="form-control form-control-sm" required></td>' +
+        '<td><input type="date" name="end_date" class="form-control form-control-sm" required></td>' +
+        '<td><input type="text" name="reason" class="form-control form-control-sm" placeholder="Optional"></td>' +
+        '<td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'tr\').remove(); renumber();">×</button></td>';
+    tbody.appendChild(tr);
+}
+function renumber() {
+    var rows = document.querySelectorAll('#leaveTable tbody tr');
+    rows.forEach(function(row, i) {
+        row.cells[0].textContent = i + 1;
+    });
+}
+</script>
+{% endblock %}

@@ -13,7 +13,10 @@ class RotationPatternForm(forms.Form):
     shift = forms.ModelChoiceField(queryset=ShiftType.objects.filter(is_active=True))
 
 class RosterGenerateForm(forms.Form):
-    team = forms.ModelChoiceField(queryset=Team.objects.all(), label="Team")
+    teams = forms.ModelMultipleChoiceField(
+        queryset=Team.objects.all(), label="Teams",
+        widget=forms.SelectMultiple(attrs={'size': 8, 'class': 'form-control'})
+    )
     start_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
     end_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
     name = forms.CharField(max_length=200, required=False, help_text="Optional roster name")

@@ -16,7 +16,11 @@
 {% if selected_team %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <a href="{% url 'calendar_app:team_calendar' selected_team.pk prev_date.year prev_date.month %}" class="btn btn-outline-dark btn-sm">&larr; {{ prev_date|date:"F" }}</a>
-    <h5 class="m-0">{{ month_name }} {{ year }}</h5>
+    <h5 class="m-0">{{ month_name }} {{ year }}
+        {% if roster %}
+        <a href="{% url 'roster:roster_detail' roster.pk %}" class="badge bg-dark text-decoration-none ms-2">View Roster</a>
+        {% endif %}
+    </h5>
     <a href="{% url 'calendar_app:team_calendar' selected_team.pk next_date.year next_date.month %}" class="btn btn-outline-dark btn-sm">{{ next_date|date:"F" }} &rarr;</a>
 </div>
 <div class="card">
@@ -30,19 +34,19 @@
             <tbody>
                 {% for week in calendar_data %}
                 <tr>
-                    {% for day_assigns in week %}
+                    {% for cell in week %}
                     <td class="calendar-cell align-top" style="min-width:100px;">
-                        {% if day_assigns is not None %}
-                            {% if day_assigns.0 %}
-                                <div class="fw-bold mb-1">{{ day_assigns.0.date|date:"j" }}</div>
-                                {% for a in day_assigns %}
-                                <div class="shift-label shift-{{ a.shift.code }} mb-1 p-1 rounded">
-                                    <small><strong>{{ a.shift.code }}</strong>: {{ a.employee.full_name }}</small>
-                                </div>
-                                {% endfor %}
-                            {% else %}
-                                <div class="fw-bold mb-1 text-muted">{{ forloop.parentloop.counter0|add:forloop.counter|add:"-1" }}</div>
-                            {% endif %}
+                        {% if cell %}
+                            {% with cell_date=cell.0 cell_assigns=cell.1 %}
+                            <div class="fw-bold mb-1">{{ cell_date|date:"j" }}</div>
+                            {% for a in cell_assigns %}
+                            <div class="shift-label shift-{{ a.shift.code }} mb-1 p-1 rounded">
+                                <small><strong>{{ a.shift.code }}</strong>: {{ a.employee.full_name }}</small>
+                            </div>
+                            {% empty %}
+                            <div class="text-muted" style="font-size:11px;">—</div>
+                            {% endfor %}
+                            {% endwith %}
                         {% endif %}
                     </td>
                     {% endfor %}

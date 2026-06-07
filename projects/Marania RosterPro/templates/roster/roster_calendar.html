@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Roster Calendar - {{ roster.team.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>{{ roster.team.name }} — {{ month_name }} {{ year }}</h4>
+    <div>
+        <span class="badge bg-{% if roster.status == 'published' %}success{% else %}warning text-dark{% endif %} fs-6">{{ roster.get_status_display }}</span>
+        <a href="{% url 'roster:roster_detail' roster.pk %}" class="btn btn-sm btn-outline-dark ms-2">Detail View</a>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between mb-3">
+    <a href="{% url 'roster:roster_calendar' roster.pk prev_year prev_month %}" class="btn btn-outline-dark btn-sm">&larr; {{ prev_month_name }}</a>
+    <a href="{% url 'roster:roster_calendar' roster.pk next_year next_month %}" class="btn btn-outline-dark btn-sm">{{ next_month_name }} &rarr;</a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-bordered mb-0">
+            <thead>
+                <tr class="text-center">
+                    <th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for week in weeks %}
+                <tr>
+                    {% for cell in week %}
+                    <td class="calendar-cell align-top" style="min-width:100px; height:90px;">
+                        {% if cell %}
+                        {% with d=cell.0 assigns=cell.1 %}
+                        <div class="fw-bold mb-1" style="font-size:13px;">{{ d|date:"j" }}</div>
+                        {% for a in assigns %}
+                        <div class="shift-label shift-{{ a.shift.code }} mb-1 p-1 rounded" style="font-size:10px; line-height:1.2;">
+                            <strong>{{ a.shift.code }}</strong> {{ a.employee.first_name|slice:":3" }}.
+                        </div>
+                        {% empty %}
+                        <div style="font-size:10px; color:#ccc;">—</div>
+                        {% endfor %}
+                        {% endwith %}
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><strong>Team Members</strong></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Name</th><th>Role</th><th>Status</th></tr></thead>
+                    <tbody>
+                        {% for m in team_members %}
+                        <tr>
+                            <td>{{ m.full_name }}</td>
+                            <td>{{ m.department|default:"—" }}</td>
+                            <td>{% if m.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center text-muted">No team members.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><strong>Leave Details — {{ month_name }}</strong></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Employee</th><th>Period</th><th>Days</th></tr></thead>
+                    <tbody>
+                        {% for leave in leaves %}
+                        <tr>
+                            <td>{{ leave.employee.full_name }}</td>
+                            <td>{{ leave.start_date|date:"M d" }} – {{ leave.end_date|date:"M d" }}</td>
+                            <td>{{ leave.leave_days }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center text-muted">No approved leaves this month.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card mt-3">
+            <div class="card-header"><strong>Shift Summary</strong></div>
+            <div class="card-body">
+                {% with total=roster.assignments.count %}
+                <p><strong>Total Assignments:</strong> {{ total }}</p>
+                {% endwith %}
+                <p><strong>Period:</strong> {{ roster.start_date }} to {{ roster.end_date }}</p>
+                <p><strong>Created:</strong> {{ roster.created_at|date:"M d, Y" }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

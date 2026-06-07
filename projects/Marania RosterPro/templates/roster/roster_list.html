@@ -23,6 +23,7 @@
                     <td>{{ roster.created_at|date:"M d, Y" }}</td>
                     <td>
                         <a href="{% url 'roster:roster_detail' roster.pk %}" class="btn btn-sm btn-outline-dark">View</a>
+                        <a href="{% url 'roster:roster_calendar_default' roster.pk %}" class="btn btn-sm btn-outline-info">Calendar</a>
                         {% if roster.status == 'draft' %}
                         <a href="{% url 'roster:roster_publish' roster.pk %}" class="btn btn-sm btn-outline-success">Publish</a>
                         {% endif %}

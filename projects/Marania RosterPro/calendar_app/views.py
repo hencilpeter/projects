@@ -33,7 +33,6 @@ def team_calendar(request, team_id=None, year=None, month=None):
     month = month or date.today().month
     teams = Team.objects.all()
     selected_team = None
-    calendar_data = []
     months = []
 
     if team_id:
@@ -42,13 +41,13 @@ def team_calendar(request, team_id=None, year=None, month=None):
     start, end = _get_month_range(year, month)
     weeks = _build_month_calendar(year, month)
 
+    assignments_by_date = {}
     if selected_team:
         roster = RosterVersion.objects.filter(
             team=selected_team,
             start_date__lte=end,
             end_date__gte=start,
-            status='published'
-        ).first()
+        ).filter(status__in=['draft', 'published']).first()
 
         if roster:
             assignments = DutyAssignment.objects.filter(
@@ -60,18 +59,17 @@ def team_calendar(request, team_id=None, year=None, month=None):
             by_date = defaultdict(list)
             for a in assignments:
                 by_date[a.date].append(a)
+            assignments_by_date = dict(by_date)
 
-            for i, week in enumerate(weeks):
-                week_assignments = []
-                for d in week:
-                    if d:
-                        week_assignments.append(by_date.get(d, []))
-                    else:
-                        week_assignments.append(None)
-                calendar_data.append(week_assignments)
-        else:
-            for week in weeks:
-                calendar_data.append([None] * len(week) if week else [])
+    # Build calendar_data with (date, assignments) pairs
+    calendar_data = []
+    for week in weeks:
+        week_data = []
+        for d in week:
+            week_data.append((d, assignments_by_date.get(d, [])) if d else None)
+        calendar_data.append(week_data)
+
+    roster = roster if selected_team else None
 
     for m in range(1, 13):
         months.append({'num': m, 'name': date(year, m, 1).strftime('%B')})
@@ -94,6 +92,7 @@ def team_calendar(request, team_id=None, year=None, month=None):
         'months': months,
         'prev_date': prev_date,
         'next_date': next_date,
+        'roster': roster,
     })
 
 @login_required
@@ -109,8 +108,8 @@ def employee_calendar(request, emp_id=None, year=None, month=None):
     else:
         employee = Employee.objects.filter(user=request.user).first()
         if not employee:
-            messages.warning(request, 'No employee profile linked to your account.')
-            return redirect('dashboard')
+            messages.warning(request, 'Select an employee to view their calendar.')
+            return redirect('employees:employee_list')
 
     start, end = _get_month_range(year, month)
     weeks = _build_month_calendar(year, month)

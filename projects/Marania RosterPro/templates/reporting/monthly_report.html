@@ -28,6 +28,7 @@
             <thead>
                 <tr>
                     <th>Employee</th>
+                    <th>Team(s)</th>
                     <th>Morning (h)</th>
                     <th>Afternoon (h)</th>
                     <th>Night (h)</th>
@@ -41,6 +42,7 @@
                 {% for r in report_data %}
                 <tr>
                     <td>{{ r.employee.full_name }}</td>
+                    <td>{{ r.teams }}</td>
                     <td>{{ r.shift_hours.morning }}</td>
                     <td>{{ r.shift_hours.afternoon }}</td>
                     <td>{{ r.shift_hours.night }}</td>
@@ -50,7 +52,7 @@
                     <td>{{ r.leave_days }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="8" class="text-center text-muted">No data for this month.</td></tr>
+                <tr><td colspan="9" class="text-center text-muted">No data for this month.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

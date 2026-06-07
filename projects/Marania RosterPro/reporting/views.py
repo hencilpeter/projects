@@ -61,6 +61,7 @@ def monthly_report(request, year=None, month=None):
 
         report_data.append({
             'employee': emp,
+            'teams': ', '.join(emp.teams.values_list('name', flat=True)) or '—',
             'shift_hours': shift_hours,
             'total_hours': round(total_hours, 1),
             'work_days': work_days,

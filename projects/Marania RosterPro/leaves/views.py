@@ -11,6 +11,45 @@ def leave_list(request):
     leaves = LeaveRequest.objects.all()
     return render(request, 'leaves/leave_list.html', {'leaves': leaves})
 
+@admin_or_hr_required
+def leave_batch_create(request):
+    config = LeaveConfiguration.get_config()
+    created = 0
+    errors = []
+    if request.method == 'POST':
+        employee_id = request.POST.get('employee')
+        start_dates = request.POST.getlist('start_date')
+        end_dates = request.POST.getlist('end_date')
+        reasons = request.POST.getlist('reason')
+        emp = get_object_or_404(Employee, pk=employee_id) if employee_id else None
+        if emp:
+            for i in range(len(start_dates)):
+                from datetime import datetime
+                try:
+                    sd = datetime.strptime(start_dates[i], '%Y-%m-%d').date()
+                    ed = datetime.strptime(end_dates[i], '%Y-%m-%d').date()
+                    days = (ed - sd).days + 1
+                    if days > config.max_leave_days_per_month:
+                        errors.append(f"Row {i+1}: exceeds max {config.max_leave_days_per_month} days")
+                        continue
+                    LeaveRequest.objects.create(
+                        employee=emp,
+                        start_date=sd,
+                        end_date=ed,
+                        reason=reasons[i] if i < len(reasons) else '',
+                        status='approved'
+                    )
+                    created += 1
+                except (ValueError, IndexError):
+                    errors.append(f"Row {i+1}: invalid date")
+        if created:
+            messages.success(request, f'{created} leave entr(ies) created.')
+        for e in errors:
+            messages.error(request, e)
+        return redirect('leaves:leave_list')
+    employees = Employee.objects.filter(is_active=True)
+    return render(request, 'leaves/leave_batch.html', {'config': config, 'employees': employees})
+
 @login_required
 def leave_create(request):
     if request.method == 'POST':
@@ -51,6 +90,23 @@ def leave_reject(request, pk):
     leave.approved_by = request.user
     leave.save()
     messages.success(request, 'Leave rejected.')
+    return redirect('leaves:leave_list')
+
+@admin_or_hr_required
+def leave_delete(request, pk):
+    leave = get_object_or_404(LeaveRequest, pk=pk)
+    if request.method == 'POST':
+        leave.delete()
+        messages.success(request, 'Leave request deleted.')
+        return redirect('leaves:leave_list')
+    return render(request, 'leaves/leave_confirm_delete.html', {'leave': leave})
+
+@admin_or_hr_required
+def leave_bulk_delete(request):
+    if request.method == 'POST':
+        ids = request.POST.getlist('leave_ids')
+        count = LeaveRequest.objects.filter(pk__in=ids).delete()[0]
+        messages.success(request, f'{count} leave request(s) deleted.')
     return redirect('leaves:leave_list')
 
 @admin_or_hr_required

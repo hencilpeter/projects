@@ -126,3 +126,20 @@ The system should optionally include:
 	cd "Marania RosterPro"
 python manage.py runserver
 Login with admin / admin123. Default shift types (MS, AS, NS) are pre-seeded.
+
+
+
+
+Rajan A
+Satish T 
+Vinu M 
+Sarathy R 
+Pramila P 
+Praveena T 
+
+
+------------------
+1. Only one person has been added for each shift. leave should be given only if its approved in the system. 
+2. i need to see the monthly roster in a calender view with each team name. on the bottown, should show the team members, leave details and other info 
+
+

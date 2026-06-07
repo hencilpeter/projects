@@ -45,7 +45,7 @@ class SchedulerEngine:
 
         employees = list(Employee.objects.filter(teams=self.team, is_active=True))
         if not employees:
-            return roster
+            raise ValueError(f"No active employees found in team '{self.team.name}'. Add employees to the team first.")
 
         min_staff = max(1, int(len(employees) * self.rule.min_staffing_percent / 100))
 
@@ -59,6 +59,7 @@ class SchedulerEngine:
             d += datetime.timedelta(days=1)
 
         assignments = []
+        warnings = []
         for date in dates:
             week_of_year = date.isocalendar()[1]
             week_in_rotation = ((week_of_year - 1) % self.rule.default_rotation_weeks) + 1
@@ -67,25 +68,27 @@ class SchedulerEngine:
             if not shifts_today:
                 shifts_today = list(ShiftType.objects.filter(is_active=True))
 
-            available = []
-            for emp in employees:
-                if self._is_on_leave(emp, date, leaves):
-                    continue
-                available.append(emp)
+            if not shifts_today:
+                continue
 
-            for shift in shifts_today:
-                assigned_count = 0
-                for emp in available:
-                    if assigned_count >= min_staff:
-                        break
-                    if not self._is_already_assigned(assignments, emp, date):
-                        assignments.append(DutyAssignment(
-                            roster_version=roster,
-                            employee=emp,
-                            shift=shift,
-                            date=date
-                        ))
-                        assigned_count += 1
+            available = [emp for emp in employees if not self._is_on_leave(emp, date, leaves)]
+
+            if not available:
+                continue
+
+            num_shifts = len(shifts_today)
+
+            if len(available) < min_staff * num_shifts:
+                warnings.append(f"{date}: Not enough staff to meet minimum for all shifts")
+
+            for i, emp in enumerate(available):
+                shift = shifts_today[i % num_shifts]
+                assignments.append(DutyAssignment(
+                    roster_version=roster,
+                    employee=emp,
+                    shift=shift,
+                    date=date
+                ))
 
         DutyAssignment.objects.bulk_create(assignments)
 
@@ -123,6 +126,3 @@ class SchedulerEngine:
 
     def _is_on_leave(self, employee, date, leaves_map):
         return employee.id in leaves_map.get(date, [])
-
-    def _is_already_assigned(self, assignments_list, employee, date):
-        return any(a.employee == employee and a.date == date for a in assignments_list)

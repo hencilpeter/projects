@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Delete Leave{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header"><h5>Confirm Delete</h5></div>
+    <div class="card-body">
+        <p>Delete leave request for <strong>{{ leave.employee.full_name }}</strong> ({{ leave.start_date }} to {{ leave.end_date }})?</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Delete</button>
+            <a href="{% url 'leaves:leave_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}
