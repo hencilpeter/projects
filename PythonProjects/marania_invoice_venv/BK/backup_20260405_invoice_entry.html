@@ -1,0 +1,956 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block main %}
+
+{% load dict_extras %}  <!-- load once at the top -->
+
+<style>
+.btn-3d-yellow {
+  background: linear-gradient(to bottom, #ffeb3b, #f9c60a) !important;
+  color: #212529 !important;
+  border: 1px solid #e0b800 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 0 #caa600, 0 6px 12px rgba(0, 0, 0, 0.15) !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease-in-out;
+  padding: 4px 10px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-3d-yellow:hover {
+  background: linear-gradient(to bottom, #ffe600, #f9b208) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #caa600, 0 10px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+.btn-3d-yellow:active {
+  background: linear-gradient(to bottom, #f9c60a, #d4a500) !important;
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #caa600 inset !important;
+}
+</style>
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container my-5">
+
+    <h2 class="mb-4">Invoice</h2>
+
+    <!-- Button to open Add Invoice Form -->
+    <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#customerForm" aria-expanded="false" aria-controls="customerForm">
+      New Invoice
+    </button>
+
+    <!-- Collapsible Invoice Form -->
+    <div class="collapse" id="customerForm">
+      <!-- <div class="container border rounded p-4 mb-4 shadow-sm"> -->
+        <form method="POST" action="{% url 'invoice_save' %}">
+          {% csrf_token %}
+
+          <!-- Customer Group -->
+          <!-- <div class="group-box p-2 border rounded mb-3"> -->
+            <div class="card shadow-sm p-3">
+
+              <!-- Row 1: Date & Invoice Number -->
+              <div class="row mb-3">
+                <div class="col-md-4">{{ invoice_form.invoice_date }}</div>
+                <div class="col-md-8">{{ invoice_form.invoice_number }}</div>
+              </div>
+
+              <!-- Row 2: Customer Code, Name, GST -->
+              <div class="row mb-3">
+                <div class="col-md-3">
+                  {{ invoice_form.customer_code }}
+                    <!-- The datalist options -->
+                      <datalist id="customer_code_list">
+                          {% for customer in customers %}
+                              <option value="{{ customer.code }}-{{ customer.name }}"></option>
+                          {% endfor %}
+                      </datalist>
+                </div>
+
+                <div class="col-md-6">
+                  {{ invoice_form.customer_name }}
+                  <!-- The datalist options -->
+                      <datalist id="customer_name_list">
+                          {% for customer in customers %}
+                              <option value="{{ customer.name }}"></option>
+                          {% endfor %}
+                      </datalist>
+                </div>
+
+                <div class="col-md-3">{{ invoice_form.customer_gst }}</div>
+              </div>
+        
+            <!-- Row 3: Customer contact, email and address -->
+            <div class="row mb-3 d-flex align-items-stretch">
+                <!-- Left column: contact and email stacked -->
+                <div class="col-md-6 d-flex flex-column">
+                    <div class="mb-2">{{ invoice_form.customer_contact }}</div>
+                    <div class="mb-2">{{ invoice_form.customer_email }}</div>
+                </div>
+
+                <!-- Right column: address, stretches to match left column height -->
+                <div class="col-md-6 h-100">
+                    {{ invoice_form.customer_address }}
+                </div>
+            </div>
+
+
+              <!--  Row 4-->
+              <div class="row mb-3">
+                <div class="col-md-3">
+                  {{ invoice_form.ship_to_customer_code }}
+                    <!-- The datalist options -->
+                      <datalist id="ship_to_customer_code_list">
+                          {% for customer in customers %}
+                              <option value="{{ customer.code }}-{{ customer.name }}"></option>
+                          {% endfor %}
+                      </datalist>
+                </div>
+
+                <div class="col-md-6">
+                  {{ invoice_form.ship_to_customer_name }}
+                  <!-- The datalist options -->
+                      <datalist id="ship_to_customer_name_list">
+                          {% for customer in customers %}
+                              <option value="{{ customer.name }}"></option>
+                          {% endfor %}
+                      </datalist>
+                </div>
+
+                <div class="col-md-3">{{ invoice_form.ship_to_customer_gst }}</div>
+              </div>
+        
+            <!-- Row 5: Customer contact, email and address -->
+            <div class="row mb-3 d-flex align-items-stretch">
+                <!-- Left column: contact and email stacked -->
+                <div class="col-md-6 d-flex flex-column">
+                    <div class="mb-2">{{ invoice_form.ship_to_customer_contact }}</div>
+                    <div class="mb-2">{{ invoice_form.ship_to_customer_email }}</div>
+                </div>
+
+                <!-- Right column: address, stretches to match left column height -->
+                <div class="col-md-6 h-100">
+                    {{ invoice_form.ship_to_customer_address }}
+                </div>
+            </div>
+
+              <!-- Row 6: Dispatched Through -->
+               <div class="row mb-3">
+                  <div class="col-md-3">
+                    {{ invoice_form.dispatched_through }}
+                    <datalist id="dispatched_through_list"></datalist>
+                  </div>
+                  <div class="col-md-3">
+                    {{ invoice_form.destination }}
+                  </div>
+                   <div class="col-md-3">
+                    {{ invoice_form.vehicle_name_number }}
+                  </div>
+                  <div class="col-md-3">
+                    {{ invoice_form.transporter_gst }}
+                  </div>
+                </div>
+              <!-- Row 7: Remarks -->
+              <div class="row mb-3">
+                    <div class="col-md-6">
+                    {{ invoice_form.remark }}
+                  </div>
+              </div>
+
+              <!-- Invoice Items Group -->
+              <div class="group-box mb-3">
+                <div class="group-title">INVOICE ITEMS ( Code/MM/MD/Qty/Price/Colour )</div>
+                <div id="item-container"></div>
+                <button type="button" id="add-item" class="btn btn-secondary btn-sm mt-2">+ Add Item</button>
+                <!-- 🔥 NEW TOTALS PANEL -->
+                <div class="invoice-totals d-flex gap-4">
+                  <div><b>Qty:</b> <span id="total-qty">0</span></div>
+                  <div><b>Sub Total:</b> ₹ <span id="total-sub">0.00</span></div>
+                  <div><b>GST:</b> ₹ <span id="total-gst">0.00</span></div>
+                  <div><b>Round Off:</b> ₹ <span id="round-off">0.00</span></div>
+                  <div><b>Grand Total:</b> ₹ <span id="grand-total">0.00</span></div>
+                </div>
+
+              </div>
+<!-- Hidden Derived Fields -->
+{{ invoice_form.quantity_total.as_hidden }}
+{{ invoice_form.subtotal.as_hidden }}
+{{ invoice_form.cgst_amount.as_hidden }}
+{{ invoice_form.sgst_amount.as_hidden }}
+{{ invoice_form.igst_amount.as_hidden }}
+{{ invoice_form.round_off.as_hidden }}
+{{ invoice_form.gross_total.as_hidden }}
+
+              <!-- Submit & Reset -->
+              <div class="text-center">
+                <button type="submit" class="btn btn-success me-2" onclick="return ReviewAndDeriveValues();">Submit Invoice</button> 
+                <!-- <button type="submit" class="btn btn-success me-2" onclick="recalculateInvoiceTotals(); return ReviewAndDeriveValues();">Submit Invoice</button> -->
+                <button type="button" class="btn btn-info me-2" onclick="ReviewAndDeriveValues()">Review & Derive Values</button>
+                <button type="button" class="btn btn-info me-2" onclick="showGSTCalculator()">GST Calculator</button>
+                <button type="button" class="btn btn-info me-2" onclick="showPriceList()">Price List</button>
+                <button type="reset" class="btn btn-secondary">Clear Invoice</button>
+              </div>
+
+            </div> <!-- card -->
+          <!-- </div> group-box -->
+        </form>
+      <!-- </div> container collapse -->
+    </div> <!-- collapse -->
+
+    <!-- Invoice List (outside collapse) -->
+    <div class="invoice-list mt-4">
+      {% if invoices %}
+        <div class="table-responsive">
+          <table class="table table-striped table-hover table-bordered table-sm align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Invoice #</th>
+                <th scope="col">Customer</th>
+                <th scope="col">Weight</th>
+                <th scope="col">Sub Total</th>
+                <th scope="col">Invoice Amount</th>
+                <th scope="col">View Invoice</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for invoice in invoices %}
+                <tr>
+                  <td>{{ invoice.invoice_date|date:"Y-m-d" }}</td>
+                  <td>{{ invoice.invoice_number }}</td>
+                  <td>{{ invoice.customer_name }}</td>
+                  {% with invoice_item=invoiceitems|get_item:invoice.invoice_number %}
+                    <td>
+                      {% if invoice_item %}
+                        {{ invoice_item.weight }}
+                      {% else %}
+                        <span class="text-muted">0</span>
+                      {% endif %}
+                    </td>
+                     <td>
+                      {% if invoice_item %}
+                        {{ invoice_item.sub_total }}
+                      {% else %}
+                        <span class="text-muted">0</span>
+                      {% endif %}
+                    </td>
+                     <td>
+                      {% if invoice_item %}
+                        {{ invoice_item.invoice_amount }}
+                      {% else %}
+                        <span class="text-muted">0</span>
+                      {% endif %}
+                    </td>
+                  {% endwith %} 
+                  <!-- 🌈 Attractive View Button -->
+
+                  <td>
+                    <a href="javascript:void(0);" 
+                      onclick="openInvoicePopup('{{ invoice.invoice_number }}')" 
+                      class="btn btn-sm btn-secondary d-inline-flex align-items-center">
+                      <i class="bi bi-eye me-1"></i> View
+                    </a>
+                  
+                 <a href="{% url 'invoice_pdf' invoice.invoice_number %}" 
+                    class="btn btn-sm btn-secondary d-inline-flex align-items-center">
+                    <i class="bi bi-eye me-1"></i> PDF
+                  </a>
+
+                     <a href="javascript:void(0);" 
+                      onclick="openInvoicePopup('{{ invoice.invoice_number }}')" 
+                      class="btn btn-sm btn-secondary d-inline-flex align-items-center">
+                      <i class="bi bi-eye me-1"></i> Excel
+                    </a>
+
+                    <a href="javascript:void(0);" 
+                       onclick="loadInvoice('{{ invoice.invoice_number }}')" 
+                        class="btn btn-sm btn-primary d-inline-flex align-items-center">
+                        <i class="bi bi-upload me-1"></i> Edit
+                    </a>
+
+                  </td>
+                   
+
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-muted">No invoices found.</p>
+      {% endif %}
+    </div> <!-- invoice-list -->
+
+  </div> <!-- container -->
+</main>
+
+
+<!-- JS Section -->
+<script>
+
+function truncateTwoDecimals(value) {
+    return Math.trunc(value * 100) / 100;
+}
+
+function loadInvoice(invoiceNumber) {
+  //alert("Load Invoice Called!");
+    fetch(`/invoice/invoice_entry/get_invoice/${invoiceNumber}/`)
+    .then(response => response.json())
+    .then(data => {
+        // Populate invoice fields
+        document.querySelector('input[name="invoice_number"]').value = data.invoice.invoice_number;
+        document.querySelector('input[name="invoice_date"]').value = data.invoice.invoice_date;
+
+        // Customer fields
+        document.querySelector('input[name="customer_code"]').value = data.invoice.customer_code;
+        document.querySelector('input[name="customer_name"]').value = data.invoice.customer_name;
+        document.querySelector('input[name="customer_gst"]').value = data.invoice.customer_gst;
+        document.querySelector('textarea[name="customer_address"]').value = data.invoice.customer_address;
+        document.querySelector('input[name="customer_contact"]').value = data.invoice.customer_contact;
+        document.querySelector('input[name="customer_email"]').value = data.invoice.customer_email;
+
+        // Ship To fields
+        document.querySelector('input[name="ship_to_customer_code"]').value = data.invoice.ship_to_customer_code;
+        document.querySelector('input[name="ship_to_customer_name"]').value = data.invoice.ship_to_customer_name;
+        document.querySelector('input[name="ship_to_customer_gst"]').value = data.invoice.ship_to_customer_gst;
+        document.querySelector('textarea[name="ship_to_customer_address"]').value = data.invoice.ship_to_customer_address;
+        document.querySelector('input[name="ship_to_customer_contact"]').value = data.invoice.ship_to_customer_contact;
+        document.querySelector('input[name="ship_to_customer_email"]').value = data.invoice.ship_to_customer_email;
+
+        // transportation
+        document.querySelector('input[name="dispatched_through"]').value = data.invoice.dispatched_through;
+        document.querySelector('input[name="destination"]').value = data.invoice.destination;
+        document.querySelector('input[name="vehicle_name_number"]').value = data.invoice.vehicle_name_number;
+        document.querySelector('input[name="transporter_gst"]').value = data.invoice.transporter_gst;
+
+        // remarks 
+        document.querySelector('input[name="remark"]').value = data.invoice.remark;
+
+        // transport list
+        PopulateTransportationList(data.invoice.customer_code);
+
+        // Clear existing invoice items
+        const container = document.getElementById('item-container');
+        container.innerHTML = '';
+
+        // Add invoice items dynamically
+        data.items.forEach((item, idx) => {
+            document.getElementById('add-item').click(); // creates a new row
+            document.getElementsByName('item_spec[]')[idx].value = item.item_spec;
+            document.getElementsByName('item_code[]')[idx].value = item.item_code;
+            document.getElementsByName('item_description[]')[idx].value = item.item_description;
+            document.getElementsByName('item_mesh_size[]')[idx].value = item.item_mesh_size;
+            document.getElementsByName('item_mesh_depth[]')[idx].value = item.item_mesh_depth;
+            document.getElementsByName('item_quantity[]')[idx].value = item.item_quantity;
+            document.getElementsByName('item_price[]')[idx].value = item.item_price;
+            document.getElementsByName('item_colour[]')[idx].value = item.item_colour;
+            document.getElementsByName('item_hsn_code[]')[idx].value = item.item_hsn_code;
+            document.getElementsByName('item_gst_amount[]')[idx].value = item.item_gst_amount;
+            document.getElementsByName('item_total_with_gst[]')[idx].value = item.item_total_with_gst;
+            
+        });
+
+        
+
+        // Only show collapse if not already shown
+          const collapseEl = document.getElementById("customerForm");
+          const bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, {toggle:false});
+          if (!collapseEl.classList.contains("show")) {
+              bsCollapse.show();
+          }
+
+  recalculateInvoiceTotals();
+    })
+    .catch(error => console.error('Error loading invoice:', error));
+}
+function truncateTo2Decimals(price) {
+  return Math.trunc(price * 100) / 100;
+}
+
+function getGSTPercentage(code, product_dict, customer_dict, customerCodeInput) {
+    let gst_percentage = 0;
+
+    if (product_dict[code]) {
+        const is_within_state =
+            customer_dict[customerCodeInput]?.is_within_state;
+
+        if (is_within_state) {
+            gst_percentage =
+                Number(product_dict[code].cgst) +
+                Number(product_dict[code].sgst);
+        } else {
+            gst_percentage = Number(product_dict[code].igst);
+        }
+    }
+
+    return gst_percentage;
+  }
+
+function ReviewAndDeriveValues() {
+    let errors = [];
+
+    // ------------------------------
+    // Helpers
+    // ------------------------------
+    const isEmpty = (v) => v === null || v.trim() === "";
+    const isNumber = (v) => !isNaN(v) && v !== "";
+
+    // ------------------------------
+    // Load Dictionaries
+    // ------------------------------
+    const product_dict = JSON.parse('{{ product_dict|escapejs }}');
+    const customer_dict = JSON.parse('{{ customer_dict|escapejs }}');
+    const customer_price_dict = JSON.parse('{{ customer_price_dict|escapejs }}');
+
+    const customerCodeInput = document.querySelector('input[name="customer_code"]').value;
+
+    // ------------------------------
+    // Item Fields
+    // ------------------------------
+    let item_codes = document.getElementsByName("item_code[]");
+    let item_qty = document.getElementsByName("item_quantity[]");
+    let item_price = document.getElementsByName("item_price[]");
+    let gst_amounts = document.getElementsByName("item_gst_amount[]");
+    let totals_with_gst = document.getElementsByName("item_total_with_gst[]");
+    let hsn_codes = document.getElementsByName("item_hsn_code[]");
+    let mesh_sizes = document.getElementsByName("item_mesh_size[]");
+    let colours = document.getElementsByName("item_colour[]");
+
+    // ------------------------------
+    // Loop Items
+    // ------------------------------
+    for (let i = 0; i < item_codes.length; i++) {
+
+        let code = item_codes[i].value.trim();
+        let qty = Number(item_qty[i].value);
+        let price = Number(item_price[i].value);
+        let mesh_size = Number(mesh_sizes[i].value);
+        let colour = colours[i].value.trim();
+
+        // ---------- Validations ----------
+        if (isEmpty(code)) {
+            errors.push(`Item row ${i + 1}: Item Code is required.`);
+            continue;
+        }
+
+        if (!isNumber(qty) || qty <= 0) {
+            errors.push(`Item row ${i + 1}: Quantity must be numeric.`);
+            continue;
+        }
+
+        // ---------- Populate HSN ----------
+        if (product_dict[code]) {
+            hsn_codes[i].value = product_dict[code].hsn;
+        }
+
+        // ---------- Auto Price if Empty ----------
+        if ((!price || price === 0) &&
+            customerCodeInput &&
+            customer_price_dict[customerCodeInput] &&
+            customer_price_dict[customerCodeInput][code]) {
+
+            const priceConfig = customer_price_dict[customerCodeInput][code];
+
+            Object.entries(priceConfig).forEach(([range, value]) => {
+                const [startStr, endStr] = range.split("-");
+                const start = Number(startStr);
+                const end = endStr === "999" ? Infinity : Number(endStr);
+
+                if (mesh_size >= start && mesh_size <= end) {
+                        let colour_price = 0;
+                        if (colour!="" && colour.toUpperCase() != "WHITE"){
+                             colour_price =  value.colour_extra_price;
+                        }
+
+                    if (value.gst_included) {
+                        const gst_percentage = getGSTPercentage(code,  product_dict,customer_dict, customerCodeInput );
+
+                        let gross_price = Number(value.price) || 0;
+
+                        // Remove GST from inclusive price
+                        price = gst_percentage > 0  ? gross_price / (1 + gst_percentage / 100) : gross_price;
+                       } else {
+                        // GST not included, price remains as-is
+                        price = Number(value.price) || 0;
+                    }
+                    // add colour price if exist 
+                    price = price + colour_price;
+                    price = truncateTo2Decimals(price);
+                    item_price[i].value = price;
+                    
+                }
+            });
+        }
+
+        if (!isNumber(price) || price <= 0) {
+            errors.push(`Item row ${i + 1}: Price must be numeric.`);
+            continue;
+        }
+
+      const gst_percentage = Number( getGSTPercentage(code, product_dict, customer_dict, customerCodeInput)) || 0;
+
+        // ---------- Amount Calculation ----------
+        const quantity = Number(qty) || 0;
+        const unit_price = Number(price) || 0;
+
+        // Base amount (price is assumed GST-exclusive here)
+        let base_amount = quantity * unit_price;
+        base_amount = truncateTo2Decimals(base_amount);
+
+        // GST amount
+        let gst_amount = (base_amount * gst_percentage) / 100;
+        gst_amount = truncateTo2Decimals(gst_amount);
+
+        // Total amount
+        let total_amount = base_amount + gst_amount;
+        total_amount = truncateTo2Decimals(total_amount);
+
+        // Assign values
+        gst_amounts[i].value = gst_amount;//.toFixed(2);
+        totals_with_gst[i].value = total_amount;//.toFixed(2);
+
+    }
+
+    // ------------------------------
+    // Errors
+    // ------------------------------
+    if (errors.length > 0) {
+        alert("Please correct the following:\n\n" + errors.join("\n"));
+        return false;
+    }
+    return true;
+}
+
+
+function showGSTCalculator() {
+    // Your tax calculation logic here    
+    const url = `/invoice/invoice_entry/show_gst_calculator`;
+    window.open(url, 'CalculatorPopup', 'width=1000,height=750,top=100,left=200,resizable=yes,scrollbars=yes');   
+}
+
+function showPriceList() {
+    //alert("Price List!");
+    const url = `/invoice/customer-price-dictionary_invoice`;
+    window.open(url, 'CalculatorPopup', 'width=1000,height=750,top=100,left=200,resizable=yes,scrollbars=yes');
+}
+
+const customerData = JSON.parse('{{ customer_dict|escapejs }}');
+document.addEventListener('DOMContentLoaded', function() {
+    // Find the input field connected to your datalist
+    const input = document.querySelector('input[list="customer_code_list"]');
+    const datalist = document.getElementById('customer_code_list');
+
+    if (input && datalist) {
+        input.addEventListener('input', function() {
+            const val = input.value;
+            const option = Array.from(datalist.options).find(o => o.value === val);
+
+            if (option) {
+                // If user selected a full "CODE-NAME" entry,
+                // trim it down to show only the CODE part.
+                const codeOnly = val.split('-')[0].trim();
+                input.value = codeOnly;
+            }
+        });
+    }
+
+    // Ship to Customer Code 
+    const ship_to_input = document.querySelector('input[list="ship_to_customer_code_list"]');
+    const ship_to_datalist = document.getElementById('ship_to_customer_code_list');
+    if (ship_to_input && ship_to_datalist) {
+      ship_to_input.addEventListener('input', function() {
+                  const val = ship_to_input.value;
+                  const option = Array.from(ship_to_datalist.options).find(o => o.value === val);
+
+                  if (option) {
+                      // If user selected a full "CODE-NAME" entry,
+                      // trim it down to show only the CODE part.
+                      const codeOnly = val.split('-')[0].trim();
+                      ship_to_input.value = codeOnly;
+                  }
+              });
+    }
+
+});
+
+  function openInvoicePopup(invoiceNumber) {
+  const url = `/invoice/invoice_entry/view/${invoiceNumber}`;
+  window.open(url, 'InvoicePopup', 'width=1000,height=750,top=100,left=200,resizable=yes,scrollbars=yes');
+}
+
+  const ship_to_customerCodeInput = document.querySelector('input[name="ship_to_customer_code"]');
+  ship_to_customerCodeInput.addEventListener('blur', function() {
+     const code = this.value.toUpperCase().trim();
+    if (!code) { alert("Ship to Customer code cannot be empty!"); return; }
+     document.querySelector('input[name="ship_to_customer_name"]').value = customerData[code].name;
+      document.querySelector('input[name="ship_to_customer_gst"]').value = customerData[code].gst;
+      document.querySelector('textarea[name="ship_to_customer_address"]').value = customerData[code].address_bill_to;
+      document.querySelector('input[name="ship_to_customer_contact"]').value = customerData[code].phone;
+      document.querySelector('input[name="ship_to_customer_email"]').value = customerData[code].email;
+
+  });
+
+//Transportation Deails - Default value population logic 
+let currentTransporters = []; // 👈 global / outer scope
+
+function populateTransportFields(transporter) {
+  document.querySelector('input[name="dispatched_through"]').value = 
+    transporter.transporter_name || '';
+
+  document.querySelector('input[name="destination"]').value =
+    transporter.delivery_place || '';
+
+  document.querySelector('input[name="transporter_gst"]').value =
+    transporter.transporter_gst || '';
+
+  document.querySelector('input[name="vehicle_name_number"]').value =
+    transporter.vehicle_name_number || '';
+}
+
+function clearTransportFields() {
+  document.querySelector('input[name="transporter_gst"]').value = '';
+  document.querySelector('input[name="vehicle_name_number"]').value = '';
+}
+
+
+
+const dispatchedInput = document.querySelector(  'input[name="dispatched_through"]');
+dispatchedInput.addEventListener('input', function (e) {
+ if (!e.target.matches('input[name="dispatched_through"]')) return;
+  const value = e.target.value;
+  const options = document.querySelectorAll('#dispatched_through_list option');
+
+  let selectedIndex = -1;
+
+  options.forEach((opt, idx) => {
+    if (opt.value === value) {
+      selectedIndex = idx;
+    }
+  });
+
+  if (selectedIndex === -1) {
+    clearTransportFields();
+    return;
+  }
+
+  const transporter = currentTransporters[selectedIndex];
+  populateTransportFields(transporter);
+  
+});
+
+
+  // populate transportation details 
+  function PopulateTransportationList(customer_code){
+      const transporter_dict = JSON.parse('{{ transporter_dict|escapejs }}');
+      const dispatched_through = document.getElementById('dispatched_through');
+      const datalist = document.getElementById('dispatched_through_list');
+      
+      datalist.innerHTML = '';
+      currentTransporters = [];
+      if (transporter_dict[customer_code]) {
+        transporter_dict[customer_code].forEach((item, index) => {
+        //currentIndex = currentIndex + 1;
+        const option = document.createElement('option');
+        option.value = `${item.transporter_name} ( ${item.delivery_place} ) ` ; //item.transporter_name;
+        option.dataset.index = index;   // 👈 store index  
+        datalist.appendChild(option);
+        currentTransporters.push(item);
+      });          
+      }
+
+  }
+
+  function populateTransportationDetails(customer_code){
+      // populate dispatched through control 
+      const transporter_dict = JSON.parse('{{ transporter_dict|escapejs }}');
+      const dispatched_through = document.getElementById('dispatched_through');
+      const datalist = document.getElementById('dispatched_through_list');
+
+      datalist.innerHTML = '';
+      currentTransporters = [];
+      if (transporter_dict[customer_code]) {
+        transporter_dict[customer_code].forEach((item, index) => {
+        //currentIndex = currentIndex + 1;
+        const option = document.createElement('option');
+        option.value = `${item.transporter_name} ( ${item.delivery_place} ) ` ; //item.transporter_name;
+        option.dataset.index = index;   // 👈 store index  
+        datalist.appendChild(option);
+        currentTransporters.push(item);
+        if ( item.is_default_transport ) {
+               populateTransportFields(item); 
+        }
+      });          
+      }
+
+  }
+
+  const customerCodeInput = document.querySelector('input[name="customer_code"]');
+  customerCodeInput.addEventListener('blur', function() {
+    const code = this.value.toUpperCase().trim();
+    if (!code) { alert("Customer code cannot be empty!"); return; }
+
+     // Read and parse it back into a JavaScript object
+    //const customerData = JSON.parse('{{ customer_dict|escapejs }}');
+    if (customerData[code]) {
+      //Bill to customer
+      document.querySelector('input[name="customer_name"]').value = customerData[code].name;
+      document.querySelector('input[name="customer_gst"]').value = customerData[code].gst;
+      document.querySelector('textarea[name="customer_address"]').value = customerData[code].address_bill_to;
+      document.querySelector('input[name="customer_contact"]').value = customerData[code].phone;
+      document.querySelector('input[name="customer_email"]').value = customerData[code].email;
+
+      //Ship to customer  
+      document.querySelector('input[name="ship_to_customer_code"]').value = code;//customerData[code].code;
+      document.querySelector('input[name="ship_to_customer_name"]').value = customerData[code].name;
+      document.querySelector('input[name="ship_to_customer_gst"]').value = customerData[code].gst;
+      document.querySelector('textarea[name="ship_to_customer_address"]').value = customerData[code].address_bill_to;
+      document.querySelector('input[name="ship_to_customer_contact"]').value = customerData[code].phone;
+      document.querySelector('input[name="ship_to_customer_email"]').value = customerData[code].email;
+
+      // populate dispatched through control 
+      populateTransportationDetails(code);
+
+    }
+  });
+
+
+
+  // Invoice Items JS
+  let rowIndex = -1;
+  const container = document.getElementById('item-container');
+
+  function createNewRow() {
+    document.getElementById('add-item').click();
+    return container.lastElementChild;
+}
+
+function processRow(row, specLine) {
+
+    const getField = (selector) => row.querySelector(selector);
+    const toNumber = (v) => Number(v) || 0;
+
+    const product_dict = JSON.parse('{{ product_dict|escapejs }}');
+    const customer_dict = JSON.parse('{{ customer_dict|escapejs }}');
+    const customer_price_dict = JSON.parse('{{ customer_price_dict|escapejs }}');
+
+    const customerCodeInput =
+        document.querySelector('input[name="customer_code"]')?.value || "";
+
+    let quantity = 0;
+    let price = 0;
+    let gst_percentage = 0;
+
+    const parts = specLine.toUpperCase().split('/');
+
+    if (parts.length >= 2)
+        getField('[name="item_mesh_size[]"]').value = parts[1];
+
+    if (parts.length >= 3)
+        getField('[name="item_mesh_depth[]"]').value = parts[2];
+
+    if (parts.length >= 4) {
+        quantity = toNumber(parts[3]);
+        getField('[name="item_quantity[]"]').value = quantity;
+    }
+
+    if (parts.length >= 5) {
+        price = toNumber(parts[4]);
+        getField('[name="item_price[]"]').value = price;
+    }
+
+    if (parts.length >= 6) {
+        getField('[name="item_colour[]"]').value = parts[5];
+    }
+
+    const mesh_size = toNumber(getField('[name="item_mesh_size[]"]')?.value);
+    const mesh_depth = getField('[name="item_mesh_depth[]"]')?.value || "";
+    const colour = getField('[name="item_colour[]"]')?.value || "";
+
+    if (parts.length > 0 && product_dict[parts[0]]) {
+        let spec = "-" + mesh_size + "MM/" + mesh_depth + "MD";
+        if (colour !== "")
+            spec += "/" + colour;
+
+        getField('[name="item_code[]"]').value = parts[0];
+        getField('[name="item_description[]"]').value =
+            product_dict[parts[0]].display_name + spec;
+        getField('[name="item_hsn_code[]"]').value =
+            product_dict[parts[0]].hsn;
+    }
+
+    const item_code = getField('[name="item_code[]"]')?.value || "";
+
+    gst_percentage = getGSTPercentage(
+        item_code,
+        product_dict,
+        customer_dict,
+        customerCodeInput
+    ) || 0;
+
+    let base_amount = quantity * price;
+    base_amount = truncateTo2Decimals(base_amount);
+
+    let gst_amount = (base_amount * gst_percentage) / 100;
+    gst_amount = truncateTo2Decimals(gst_amount);
+
+    let total_amount = truncateTo2Decimals(base_amount + gst_amount);
+
+    getField('[name="item_gst_amount[]"]').value = gst_amount;
+    getField('[name="item_total_with_gst[]"]').value = total_amount;
+}
+
+
+  document.getElementById('add-item').addEventListener('click', function() {
+    rowIndex++;
+    const row = document.createElement('div');
+    row.classList.add('item-row', 'row', 'mb-3');
+    row.dataset.index = rowIndex;
+
+    row.innerHTML = `
+        <div class="d-flex align-items-center flex-nowrap gap-1 w-100">
+
+          <div class="d-flex align-items-center position-relative" style="flex: 1.6;">
+            <textarea name="item_spec[]" class="form-control form-control-sm item-spec" placeholder="Specification" rows="1"
+                      style="resize: none; overflow: hidden;"></textarea>
+            <small class="text-success ms-1 spec-message" style="display:none;">✓</small>
+          </div>
+
+          <input type="text" name="item_code[]" class="form-control form-control-sm" placeholder="Code" style="flex: 0 0 70px;">
+          <input type="text" name="item_description[]" class="form-control form-control-sm" placeholder="Description" style="flex: 2;">
+          <input type="text" name="item_mesh_size[]" class="form-control form-control-sm" placeholder="MM" style="flex: 0 0 55px;">
+          <input type="text" name="item_mesh_depth[]" class="form-control form-control-sm" placeholder="MD" style="flex: 0 0 55px;">
+          <input type="number" name="item_quantity[]" step="0.01" class="form-control form-control-sm" placeholder="Qty" style="flex: 0 0 60px;">
+          <input type="number" name="item_price[]" step="0.01" class="form-control form-control-sm" placeholder="Q.Price" style="flex: 0 0 75px;">
+          <input type="text" name="item_colour[]" class="form-control form-control-sm" placeholder="Colour" style="flex:  0 0 70px;">
+          <input type="text" name="item_hsn_code[]" class="form-control form-control-sm" placeholder="HSN" style="flex: 0 0 50px;">
+
+          <div class="d-flex gap-1" style="flex: 0 0 80px;">
+            <button type="button" class="btn btn-outline-secondary btn-sm clear-item">Clr</button>
+            <button type="button" class="btn btn-outline-danger btn-sm delete-item">Del</button>
+          </div>
+
+          <div class="d-flex gap-1" style="flex: 0 0 170px;">
+            <input type="text" name="item_gst_amount[]" class="form-control form-control-sm" placeholder="GST" readonly>
+            <input type="text" name="item_total_with_gst[]" class="form-control form-control-sm" placeholder="Sub Total" readonly>
+          </div>
+
+        </div>
+        `;
+
+// Enable lost focus event
+row.querySelector('.item-spec').addEventListener('blur', function () {
+        const lines = this.value
+            .split('\n')
+            .map(l => l.trim())
+            .filter(l => l !== '');
+
+        if (lines.length === 0) return;
+
+        // Process first line in current row
+        this.value = lines[0];
+        processRow(row, lines[0]);
+
+        // Process remaining lines → create new rows
+        for (let i = 1; i < lines.length; i++) {
+            const newRow = createNewRow();
+            container.appendChild(newRow);
+
+            const specField = newRow.querySelector('.item-spec');
+            specField.value = lines[i];
+
+            processRow(newRow, lines[i]);
+        }
+        recalculateInvoiceTotals();
+    });
+    container.appendChild(row);
+  });
+
+ 
+
+  container.addEventListener('click', function(e){
+    if(e.target.classList.contains('delete-item')){
+      e.target.closest('.item-row').remove();
+    } else if(e.target.classList.contains('clear-item')){
+      e.target.closest('.item-row').querySelectorAll('input').forEach(inp=>inp.value='');
+    }
+    recalculateInvoiceTotals();
+  });
+
+  function roundHalfUp(value, decimals = 0) {
+    const factor = Math.pow(10, decimals);
+    return (Math.sign(value) * 
+           Math.round(Math.abs(value) * factor + Number.EPSILON)
+           ) / factor;
+}
+
+
+  function recalculateInvoiceTotals() {
+
+    const customer_dict = JSON.parse('{{ customer_dict|escapejs }}');
+	  const customer_price_dict = JSON.parse('{{ customer_price_dict|escapejs }}');
+    const customerCodeInput = document.querySelector('input[name="customer_code"]').value;
+
+    let qtyEls = document.getElementsByName("item_quantity[]");
+    let priceEls = document.getElementsByName("item_price[]");
+    let gstEls = document.getElementsByName("item_gst_amount[]");
+
+    let totalQty = 0;
+    let subTotal = 0;
+    let totalGST = 0;
+
+    for (let i = 0; i < qtyEls.length; i++) {
+        let qty = Number(qtyEls[i].value) || 0;
+        let price = Number(priceEls[i].value) || 0;
+        let gst = Number(gstEls[i].value) || 0;
+
+        totalQty += qty;
+        subTotal += truncateTwoDecimals(qty * price);
+        totalGST += gst;
+    }
+
+    
+    //TODO- Below logic to be changed later. 
+    const is_within_state = customer_dict[customerCodeInput]?.is_within_state;
+    let sgst = 0;
+    let cgst = 0;
+    let igst = 0;
+    //GST - TODO change later 
+    if (is_within_state) {
+      sgst = truncateTwoDecimals(subTotal * 0.025).toFixed(2);
+      cgst = truncateTwoDecimals(subTotal * 0.025).toFixed(2);
+    } else {
+      igst = truncateTwoDecimals(subTotal * 0.05).toFixed(2);
+    }
+
+    // asign the invoice - derived  values 
+    document.querySelector('input[name="subtotal"]').value = truncateTwoDecimals(subTotal).toFixed(2);
+    document.getElementById("total-qty").innerText = truncateTwoDecimals(totalQty).toFixed(2);
+    document.querySelector('input[name="cgst_amount"]').value = cgst;
+    document.querySelector('input[name="sgst_amount"]').value = sgst;
+    document.querySelector('input[name="igst_amount"]').value = igst;
+    //temp 
+    totalGST = Number(cgst) + Number(sgst) +Number(igst);
+
+    let gross_total_before_roundoff = subTotal+ totalGST;
+    let afterRoundOff = roundHalfUp(gross_total_before_roundoff).toFixed(2);
+    let round_off =  Number((afterRoundOff - gross_total_before_roundoff ).toFixed(2));
+
+    document.querySelector('input[name="round_off"]').value = round_off
+    document.querySelector('input[name="gross_total"]').value = (subTotal + totalGST + Number(round_off)).toFixed(2);
+    document.querySelector('input[name="quantity_total"]').value = truncateTwoDecimals(totalQty).toFixed(2);
+            
+    document.getElementById("total-sub").innerText = truncateTwoDecimals(subTotal).toFixed(2);
+    document.getElementById("total-gst").innerText = truncateTwoDecimals(totalGST).toFixed(2);
+    document.getElementById("round-off").innerText = round_off;
+    document.getElementById("grand-total").innerText = (subTotal + totalGST + Number(round_off)).toFixed(2);
+}
+
+</script>
+
+
+{% endblock %}
