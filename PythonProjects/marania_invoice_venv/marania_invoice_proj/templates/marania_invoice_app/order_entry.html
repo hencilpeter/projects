@@ -22,7 +22,7 @@
 }
 
 .col-actions {
-    width: 160px;
+    width: 280px;
     text-align: center;
     white-space: nowrap;
 }
@@ -292,6 +292,9 @@
                         <i class="bi bi-trash me-1"></i> Del
                       </button>
                     </form>
+                    <a href="{% url 'copy_order_to_sales' order.order_key %}" class="btn btn-sm btn-success d-inline-flex align-items-center">
+                      <i class="bi bi-arrow-right-circle me-1"></i> Copy to Sales
+                    </a>
                   </td>
                 </tr>
               {% endfor %}

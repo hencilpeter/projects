@@ -678,10 +678,10 @@ make the following changes for Sales module:
 1. Add "Sales" menu under Orders/ Sales 
 -------------
 re-write the sales module with the following field names:
-order_no
-sales_entry_date
-customer
-twine
+[d]order_no
+[d]sales_entry_date   ??
+[d]customer
+[d]twine
 speification
 colour 
 piece_weight
@@ -691,7 +691,38 @@ processed_weight
 unit_price
 gst_rate
 total_amount
-delivery_date
+delivery_date  ??
 status
 payment_date
 remarks
+---->
+make the following sequence changes in the sales enry form fields:
+1. row1:  sales_entry_date, order_no, customer, twine
+2. sales sequence is not required. it can be removed 
+3. order # is editable 
+---->
+make the following sequence changes in the sales enry form fields:
+1. move the Initial Weight field to second row last and bring down teh payment date field 
+to 3rd row last. 
+2. first default status is "ON HOLD(PROCESSING)"
+---->
+make the following sequence changes in the sales enry form:
+1. add the suffix "D.Date" on the delivery_date field when the date is not selected. 
+2. add the suffix "P.Date" on the payment_date field when the date is not selected. 
+---->
+make the following sequence changes in the sales enry form. belwo columns widht must be reduced to  50%:
+1.  Order No
+2. Twine 
+3. Colour
+4. Piece Wt	
+5. Piece Ct	
+6. Init Wt	
+7. Proc Wt
+
+--->
+increase the below columns width to 90px:
+	Unit Price	GST Rate	Total Amt	Delivery Date	Payment Date	Status	
+---->
+make the following sequence changes in the order enry form:
+1. add a new button named "Copy to Sales" in the action column in the table for each order.
+2. upon clicking the "Copy to Sales" button, copy the order #, twine, colour, customer details to the sales and save the details in sales. 

@@ -2353,3 +2353,39 @@ def sales_entry(request):
         'products': products,
         'parties': parties,
     })
+
+
+def copy_order_to_sales(request, order_key):
+    try:
+        order = Order.objects.prefetch_related('specifications').get(order_key=order_key)
+    except Order.DoesNotExist:
+        messages.error(request, "Order not found.")
+        return redirect('order_entry')
+
+    spec = order.specifications.first()
+    mesh_size = spec.mesh_size if spec else ''
+    mesh_depth = spec.mesh_depth if spec else ''
+    salvage = spec.salvage if spec else ''
+    md_disp = mesh_depth if mesh_depth and 'MD' in mesh_depth.upper() else (mesh_depth + 'MD' if mesh_depth else '')
+    sal_disp = salvage if salvage and 'SEL' in salvage.upper() else (salvage + 'Sel' if salvage else '')
+    spec_text = f"{mesh_size}MM-{md_disp}-{sal_disp}" if mesh_size or md_disp or sal_disp else ""
+
+    now = datetime.now()
+    seq = (Sales.objects.aggregate(max_seq=Max('sales_sequence'))['max_seq'] or 0) + 1
+
+    sales = Sales(
+        sales_sequence=seq,
+        order_no=order.order_number or f"{order.twine}-{seq}",
+        sales_entry_date=now.strftime('%Y-%m-%d'),
+        customer=order.customer or "",
+        twine=order.twine or "",
+        speification=spec_text,
+        colour=spec.colour if spec else "White",
+        piece_weight=spec.piece_weight if spec else "",
+        piece_count=spec.no_of_pcs if spec else None,
+        status='ON_HOLD_PROCESSING',
+    )
+    sales.save()
+
+    messages.success(request, f"Order {order.order_number} copied to Sales as {sales.order_no}.")
+    return redirect('order_entry')
