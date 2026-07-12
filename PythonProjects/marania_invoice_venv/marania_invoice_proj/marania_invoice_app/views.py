@@ -16,6 +16,7 @@ from django.db import transaction, models, IntegrityError
 # =======================
 from django.db.models import (
     Count,
+    Max,
     BooleanField,
     ForeignKey,
 )
@@ -64,6 +65,7 @@ from .models import (
     Product,
     CustomerPriceCatalog,
     Materials,
+    Order,
 )
 
 # =======================
@@ -1932,6 +1934,166 @@ def report_pdf(request):
     response["Content-Disposition"] = f'attachment; filename="{report_key}.pdf"'
     HTML(string=html).write_pdf(response)
     return response
+
+
+def order_entry(request):
+    orders = Order.objects.all()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        drafts_raw = request.POST.get("drafts_data")
+
+        if not drafts_raw and request.content_type == 'application/json':
+            try:
+                body = json.loads(request.body)
+                drafts_raw = body.get('drafts_data')
+            except (json.JSONDecodeError, AttributeError):
+                drafts_raw = None
+
+        saved_count = 0
+        if drafts_raw:
+            if isinstance(drafts_raw, str):
+                try:
+                    entries = json.loads(drafts_raw)
+                    if not isinstance(entries, list):
+                        entries = []
+                except json.JSONDecodeError:
+                    entries = []
+            else:
+                entries = drafts_raw if isinstance(drafts_raw, list) else []
+            batch_sequence = None
+            batch_order_number = None
+            base_twine = None
+            now = datetime.now()
+            orders_to_create = []
+            for entry in entries:
+                if base_twine is None:
+                    base_twine = (entry.get("twine") or "").strip()
+                twine = (entry.get("twine") or "").strip()
+                if not twine:
+                    continue
+                if batch_sequence is None:
+                    raw_seq = entry.get("order_sequence")
+                    if raw_seq is not None and str(raw_seq).strip():
+                        batch_sequence = int(str(raw_seq).strip())
+                    else:
+                        batch_sequence = (Order.objects.aggregate(max_seq=Max('order_sequence'))['max_seq'] or 0) + 1
+                if batch_order_number is None:
+                    batch_order_number = (entry.get("order_number") or "").strip() or None
+
+                obj = Order()
+                obj.order_sequence = batch_sequence
+                if batch_order_number:
+                    obj.order_number = batch_order_number
+                else:
+                    obj.order_number = f"{base_twine}-{batch_sequence}" if base_twine else f"UNKNOWN-{batch_sequence}"
+                obj.order_date = entry.get("order_date") or now.strftime('%Y-%m-%d')
+                obj.twine = twine
+                obj.mesh_size = entry.get("mesh_size") or None
+                obj.mesh_depth = entry.get("mesh_depth") or ""
+                obj.salvage = entry.get("salvage") or ""
+                obj.piece_weight = entry.get("piece_weight") or ""
+                obj.quantity = entry.get("quantity") or 0
+                obj.quantity_unit = entry.get("quantity_unit") or "Bag"
+                obj.customer = entry.get("customer") or ""
+                obj.unit_price = entry.get("unit_price") or None
+                obj.is_gst_included = entry.get("is_gst_included") in (True, "True", "true", "on")
+                obj.status = entry.get("status") or "Ordered"
+                obj.colour = entry.get("colour") or "White"
+                obj.order_instructions = entry.get("order_instructions") or ""
+                obj.comments = entry.get("comments") or ""
+                obj.created_at = now
+                obj.updated_at = now
+                orders_to_create.append(obj)
+
+            if orders_to_create:
+                Order.objects.bulk_create(orders_to_create)
+                saved_count = len(orders_to_create)
+        else:
+            keys = request.POST.getlist("order_key")
+            order_dates = request.POST.getlist("order_date")
+            twines = request.POST.getlist("twine")
+            mesh_sizes = request.POST.getlist("mesh_size")
+            mesh_depths = request.POST.getlist("mesh_depth")
+            salvages = request.POST.getlist("salvage")
+            piece_weights = request.POST.getlist("piece_weight")
+            quantities = request.POST.getlist("quantity")
+            quantity_units = request.POST.getlist("quantity_unit")
+            customers = request.POST.getlist("customer")
+            unit_prices = request.POST.getlist("unit_price")
+            is_gst_includeds = request.POST.getlist("is_gst_included")
+            statuses = request.POST.getlist("status")
+            colours = request.POST.getlist("colour")
+            order_instructions = request.POST.getlist("order_instructions")
+            comments = request.POST.getlist("comments")
+
+            for idx in range(len(twines)):
+                order_key = keys[idx].strip() if idx < len(keys) else ""
+                twine = twines[idx].strip()
+                if not twine:
+                    continue
+
+                if action == "delete":
+                    Order.objects.filter(order_key=order_key).delete()
+                    continue
+
+                try:
+                    obj = Order.objects.get(order_key=order_key) if order_key else None
+                except Order.DoesNotExist:
+                    obj = None
+
+                is_new = obj is None
+
+                if is_new:
+                    obj = Order()
+                    next_seq = (Order.objects.aggregate(max_seq=Max('order_sequence'))['max_seq'] or 0) + 1
+                    obj.order_sequence = next_seq
+                    obj.order_number = f"{twine}-{next_seq}"
+
+                obj.order_date = order_dates[idx] if idx < len(order_dates) else None
+                obj.twine = twine
+                obj.mesh_size = mesh_sizes[idx] if idx < len(mesh_sizes) else None
+                obj.mesh_depth = mesh_depths[idx] if idx < len(mesh_depths) else ""
+                obj.salvage = salvages[idx] if idx < len(salvages) else ""
+                obj.piece_weight = piece_weights[idx] if idx < len(piece_weights) else ""
+                obj.quantity = quantities[idx] if idx < len(quantities) else 0
+                obj.quantity_unit = quantity_units[idx] if idx < len(quantity_units) else "Bag"
+                obj.customer = customers[idx] if idx < len(customers) else ""
+                obj.unit_price = unit_prices[idx] if idx < len(unit_prices) and unit_prices[idx] else None
+                obj.is_gst_included = True if (idx < len(is_gst_includeds) and is_gst_includeds[idx] == "on") else False
+                obj.status = statuses[idx] if idx < len(statuses) else "Ordered"
+                obj.colour = colours[idx] if idx < len(colours) and colours[idx] else "White"
+                obj.order_instructions = order_instructions[idx] if idx < len(order_instructions) else ""
+                obj.comments = comments[idx] if idx < len(comments) else ""
+                obj.save()
+
+        if saved_count:
+            messages.success(request, f'{saved_count} order(s) saved successfully')
+        if request.content_type == 'application/json':
+            return JsonResponse({'status': 'ok', 'saved': saved_count})
+        return redirect("order_entry")
+
+    orders_data = list(orders.values(
+        'order_key', 'order_sequence', 'order_number', 'order_date', 'customer',
+        'twine', 'mesh_size', 'mesh_depth', 'salvage', 'piece_weight',
+        'quantity', 'quantity_unit', 'unit_price', 'is_gst_included',
+        'status', 'colour', 'order_instructions', 'comments'
+    ))
+    orders_json = json.dumps(orders_data, default=str)
+
+    next_order_sequence = (Order.objects.aggregate(max_seq=Max('order_sequence'))['max_seq'] or 0) + 1
+
+    parties = Parties.objects.all()
+    products = Product.objects.all()
+
+    context = {
+        "orders": orders,
+        "orders_json": orders_json,
+        "next_order_sequence": next_order_sequence,
+        "parties": parties,
+        "products": products,
+    }
+    return render(request, "marania_invoice_app/order_entry.html", context)
 
 
 def sheet_sales_view(request):

@@ -6,3 +6,4 @@
 *.xml
 *.pyc
 
+/PythonProjects/marania_invoice_venv/marania_invoice_proj/uploads

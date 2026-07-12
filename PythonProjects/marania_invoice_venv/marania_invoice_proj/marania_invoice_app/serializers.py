@@ -12,6 +12,7 @@ MODEL_REGISTRY = {
     "Transportation": Transportation,
     "Configuration": Configuration,
     "CompanySettings": CompanySettings,
+    "Order": Order,
 }
 
 UNIQUE_KEY_MODEL = {
@@ -26,4 +27,5 @@ UNIQUE_KEY_MODEL = {
     "Transportation": "",
     "Configuration": "",
     "CompanySettings": "",
+    "Order": "order_key",
 }

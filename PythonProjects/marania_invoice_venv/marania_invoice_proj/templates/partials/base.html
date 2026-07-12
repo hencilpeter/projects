@@ -156,12 +156,12 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
             </div>
           </li>
 
-          <!-- 4. Sales -->
+          <!-- 4. Orders / Sales -->
           <li class="nav-item">
             <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
                 <span data-feather="dollar-sign"></span>
-                Sales
+                Orders / Sales
               </span>
               <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle" 
                       type="button" 
@@ -175,9 +175,9 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
             <div class="collapse" id="SalesSubmenu">
               <ul class="nav flex-column ms-4">
                 <li class="nav-item">
-                  <a class="nav-link" href="{% url 'sheet_sales_view' %}">
+                  <a class="nav-link" href="{% url 'order_entry' %}">
                     <span data-feather="shopping-cart"></span>
-                    Sales Orders
+                    Orders
                   </a>
                 </li>
               </ul>

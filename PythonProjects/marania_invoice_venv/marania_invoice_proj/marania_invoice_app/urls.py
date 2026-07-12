@@ -65,6 +65,9 @@ path("reports",  views.report_page, name="report_page"),
 path("reports/csv/",  views.report_csv, name="report_csv"),
 path("reports/pdf/",  views.report_pdf, name="report_pdf"),
 
+# orders
+path('orders', views.order_entry, name='order_entry'),
+
 # excel 
 path('sheets/salesview', views.sheet_sales_view, name="sheet_sales_view"),
 path('sheets/salessave', views.sheet_sales_save, name="sheet_sales_save"),
