@@ -630,20 +630,19 @@ make the below additional changes in the "View Order List"
 	_DK16-50mm- 100 KG(s)_
 3. add a line at the end of printing the orders 
 --->
+Make the following changes in order_entry module:
+1. add the below additional order statuses:
+   Cancelled
+   On Hold
+   Rejected 
+--->
+Make the following changes in order_entry module:
+1. when we Edit and submit the orders, old orders with same order number to be removed. 
+   And, new orders with the same orders to be saved. 
+--->
+Make the following changes in order_entry module:
+1. add another disabled filed in order module named last_status_date and it should be shown next to "Date" column in the table. Its visible lable should be "Status Upd Date" or anything shorter and meaningful. 
+2. existing "Date" colum to be renamed to "O.Date" or "Order Date" or something meaningful and shorter
 
-
-
-
-DK16 Order(Date: 2026-07-12, Order# DK16-2)
-═════════════════════════════════════════════
-(1) DK16-50mm- 100 KG(s)
-    * 100MD-.23Sel-PW(1+1)-PCs(5)-White
-    * 50MD-.23Sel-Piece Weight:1+1-Pcs:3-White
-(2) DK16-50mm-100MD-.23 Sel-Piece Weight:1+1-P.Green colour- 1 BAG(s)
-(3) DK16-100mm- 1 BAG(s)
-    50MD-2/3XSel-Piece Weight:1+1-Pcs:5-P.Green
-    100MD-2/3XXSel-Piece Weight:1+1-Pcs:4-P.Green
-═══════════════════════════════════════════
-
-  100MD-.23Sel-Piece Weight:1+1-Pcs:5-White
-* 100MD-.23Sel-PW(1+1)-PCs(5)-White
+Sales Module
+-------------

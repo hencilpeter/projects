@@ -341,6 +341,7 @@ class Order(models.Model):
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     is_gst_included = models.BooleanField(default=False)
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='Ordered')
+    last_status_date = models.DateField(blank=True, null=True)
     order_instructions = models.TextField(blank=True, null=True)
     comments = models.TextField(blank=True, null=True)
 

@@ -2043,6 +2043,11 @@ def order_entry(request):
                 obj.unit_price = entry.get("unit_price") or None
                 obj.is_gst_included = entry.get("is_gst_included") in (True, "True", "true", "on")
                 obj.status = entry.get("status") or "Ordered"
+                raw_lsd = entry.get("last_status_date")
+                if raw_lsd and str(raw_lsd).strip():
+                    obj.last_status_date = str(raw_lsd).strip()
+                else:
+                    obj.last_status_date = now.strftime('%Y-%m-%d')
                 obj.order_instructions = entry.get("order_instructions") or ""
                 obj.comments = entry.get("comments") or ""
                 obj.updated_at = now

@@ -84,6 +84,9 @@
             <div class="col-md-2">
               <input type="date" name="order_date" id="order_date" class="form-control form-control-sm" value="{% now 'Y-m-d' %}">
             </div>
+            <div class="col-md-2">
+              <input type="date" name="last_status_date" id="last_status_date" class="form-control form-control-sm bg-light" readonly placeholder="Status Upd Date">
+            </div>
             <div class="col-md-3">
               <input type="text" name="twine" id="twine" class="form-control form-control-sm" placeholder="Twine (Product Code)" list="twine_list">
               <datalist id="twine_list">
@@ -206,7 +209,8 @@
             <thead class="table-dark">
               <tr>
                 <th scope="col">Order #</th>
-                <th scope="col">Date</th>
+                <th scope="col">O.Date</th>
+                <th scope="col">Status Upd Date</th>
                 <th scope="col">Customer</th>
                 <th scope="col">Twine</th>
                 <th scope="col" class="col-orderspec">OrderSpec</th>
@@ -220,7 +224,8 @@
               </tr>
               <tr id="order-filter-row">
                 <th><input class="filter-input" placeholder="Order #"></th>
-                <th><input class="filter-input" placeholder="Date"></th>
+                <th><input class="filter-input" placeholder="O.Date"></th>
+                <th><input class="filter-input" placeholder="Status Upd Date"></th>
                 <th><input class="filter-input" placeholder="Customer"></th>
                 <th><input class="filter-input" placeholder="Twine"></th>
                 <th><input class="filter-input" placeholder="OrderSpec"></th>
@@ -258,6 +263,7 @@
                 <tr>
                   <td>{{ order.order_number }}</td>
                   <td>{{ order.order_date|date:"Y-m-d" }}</td>
+                  <td>{{ order.last_status_date|date:"Y-m-d" }}</td>
                   <td>{{ order.customer }}</td>
                   <td>{{ order.twine }}</td>
                   <td>{% with spec=order.specifications.first %}{{ spec.mesh_size }}MM-{% if "MD" in spec.mesh_depth|upper %}{{ spec.mesh_depth }}{% else %}{{ spec.mesh_depth }}MD{% endif %}-{% if "SEL" in spec.salvage|upper %}{{ spec.salvage }}{% else %}{{ spec.salvage }}Sel{% endif %}{% endwith %}</td>
@@ -345,6 +351,7 @@ function getFormData() {
         order_sequence: document.getElementById('order_sequence').value.trim(),
         order_number: document.getElementById('order_number').value.trim(),
         order_date: document.getElementById('order_date').value,
+        last_status_date: document.getElementById('last_status_date').value,
         customer: document.getElementById('customer').value.trim(),
         twine: document.getElementById('twine').value.trim(),
         specifications: specs,
@@ -472,6 +479,7 @@ function setFormData(data) {
     document.getElementById('order_sequence').value = data.order_sequence || data.order_key || '';
     document.getElementById('order_number').value = data.order_number || '';
     document.getElementById('order_date').value = data.order_date || '{% now "Y-m-d" %}';
+    document.getElementById('last_status_date').value = data.last_status_date || '';
     document.getElementById('customer').value = data.customer || '';
     document.getElementById('twine').value = data.twine || '';
     renderSpecRows(data.specifications);
@@ -495,6 +503,7 @@ function resetOrderForm() {
     document.getElementById('order_sequence').value = '{{ next_order_sequence }}';
     document.getElementById('order_number').value = '';
     document.getElementById('order_date').value = '{% now "Y-m-d" %}';
+    document.getElementById('last_status_date').value = '';
     document.getElementById('customer').value = '';
     document.getElementById('twine').value = '';
     renderSpecRows();
