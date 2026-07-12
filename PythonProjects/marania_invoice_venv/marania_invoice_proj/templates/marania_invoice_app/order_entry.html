@@ -82,25 +82,8 @@
           <div class="row mb-3">
             <input type="hidden" name="order_key" id="order_key" value="">
             <div class="col-md-2">
-              <input type="number" name="order_sequence" id="order_sequence" class="form-control form-control-sm" placeholder="Order Seq" value="{{ next_order_sequence }}" onblur="previewOrderNumber()">
-            </div>
-            <div class="col-md-2">
-              <input type="text" name="order_number" id="order_number" class="form-control form-control-sm" placeholder="Order #" readonly>
-            </div>
-            <div class="col-md-3">
               <input type="date" name="order_date" id="order_date" class="form-control form-control-sm" value="{% now 'Y-m-d' %}">
             </div>
-            <div class="col-md-6">
-              <input type="text" name="customer" id="customer" class="form-control form-control-sm" placeholder="Customer" list="customer_list">
-              <datalist id="customer_list">
-                {% for party in parties %}
-                  <option value="{{ party.code }}-{{ party.name }}">
-                {% endfor %}
-              </datalist>
-            </div>
-          </div>
-
-            <div class="row mb-3">
             <div class="col-md-3">
               <input type="text" name="twine" id="twine" class="form-control form-control-sm" placeholder="Twine (Product Code)" list="twine_list">
               <datalist id="twine_list">
@@ -109,22 +92,48 @@
                 {% endfor %}
               </datalist>
             </div>
-            <div class="col-md-2">
-              <input type="number" name="mesh_size" id="mesh_size" step="1" class="form-control form-control-sm" placeholder="Mesh Size">
+            <div class="col-md-3">
+              <input type="text" name="customer" id="customer" class="form-control form-control-sm" placeholder="Customer" list="customer_list">
+              <datalist id="customer_list">
+                {% for party in parties %}
+                  <option value="{{ party.code }}-{{ party.name }}">
+                {% endfor %}
+              </datalist>
             </div>
             <div class="col-md-2">
-              <input type="text" name="mesh_depth" id="mesh_depth" class="form-control form-control-sm" placeholder="Mesh Depth" onblur="autoFillPieceWeight()">
+              <input type="number" name="order_sequence" id="order_sequence" class="form-control form-control-sm bg-secondary bg-opacity-10" placeholder="Order Seq" value="{{ next_order_sequence }}" onblur="previewOrderNumber()">
             </div>
             <div class="col-md-2">
-              <input type="text" name="salvage" id="salvage" class="form-control form-control-sm" placeholder="Salvage">
-            </div>
-            <div class="col-md-1">
-              <input type="text" name="colour" id="colour" class="form-control form-control-sm" placeholder="Colour" value="White">
-            </div>
-            <div class="col-md-2">
-              <input type="text" name="piece_weight" id="piece_weight" class="form-control form-control-sm" placeholder="Piece Weight (auto)">
+              <input type="text" name="order_number" id="order_number" class="form-control form-control-sm" placeholder="Order #" readonly>
             </div>
           </div>
+
+            <div id="spec-container">
+              <div class="spec-row row mb-3" data-index="0">
+                <div class="col-md-2">
+                  <input type="number" name="spec_mesh_size" step="1" class="form-control form-control-sm spec-mesh-size" placeholder="Mesh Size">
+                </div>
+                <div class="col-md-2">
+                  <input type="text" name="spec_mesh_depth" class="form-control form-control-sm spec-mesh-depth" placeholder="Mesh Depth">
+                </div>
+                <div class="col-md-2">
+                  <input type="text" name="spec_salvage" class="form-control form-control-sm spec-salvage" placeholder="Selvage">
+                </div>
+                <div class="col-md-2">
+                  <input type="text" name="spec_piece_weight" class="form-control form-control-sm spec-piece-weight" placeholder="Piece Weight">
+                </div>
+                <div class="col-md-2">
+                  <input type="text" name="spec_colour" class="form-control form-control-sm spec-colour" placeholder="Colour" value="White">
+                </div>
+                <div class="col-md-1">
+                  <input type="number" name="spec_no_of_pcs" step="1" class="form-control form-control-sm spec-no-of-pcs" placeholder="Pcs">
+                </div>
+                <div class="col-md-1 d-flex align-items-center gap-1">
+                  <button type="button" class="btn btn-outline-danger btn-sm rounded-circle spec-remove-btn" onclick="removeSpecRow(this)" style="display:none;">-</button>
+                  <button type="button" class="btn btn-outline-primary btn-sm rounded-circle spec-add-btn" onclick="addSpecRow(this)">+</button>
+                </div>
+              </div>
+            </div>
 
           <div class="row mb-3">
             <div class="col-md-2">
@@ -132,7 +141,7 @@
             </div>
             <div class="col-md-2">
               <select name="quantity_unit" id="quantity_unit" class="form-control form-control-sm">
-                <option value="KGs">KGs</option>
+                <option value="KG">KG</option>
                 <option value="Bag" selected>Bag</option>
               </select>
             </div>
@@ -152,6 +161,9 @@
                 <option value="InProduction">In Production</option>
                 <option value="ProductionCompleted">Production Completed</option>
                 <option value="Delivered">Delivered</option>
+                <option value="Cancelled">Cancelled</option>
+                <option value="OnHold">On Hold</option>
+                <option value="Rejected">Rejected</option>
               </select>
             </div>
           </div>
@@ -168,18 +180,19 @@
           <input type="hidden" name="drafts_data" id="drafts_data" value="">
 
           <div class="text-center">
-            <button type="button" class="btn btn-info me-2" onclick="addDraft()">Save Draft</button>
-            <button type="button" class="btn btn-success me-2" onclick="confirmSave();">Save Order</button>
+            <button type="button" class="btn btn-info me-2" onclick="addToCart()">Add to Cart</button>
+            <button type="button" class="btn btn-warning me-2" onclick="submitCart()">Submit Cart</button>
+            <button type="button" class="btn btn-success me-2" onclick="submitOrder()">Submit Order</button>
+            <button type="button" class="btn btn-primary me-2" onclick="submitAll()">Submit All</button>
             <button type="reset" class="btn btn-secondary" onclick="resetOrderForm()">Clear</button>
+            <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="viewOrderList()">View Order List</button>
+            <span id="mesh-depth-total" class="ms-3 fw-bold"></span>
           </div>
 
           <div id="draft-list" class="mt-3" style="display:none;">
             <hr>
             <h6 class="text-muted">Draft Orders (<span id="draft-count">0</span>)</h6>
             <div id="draft-items" class="d-flex flex-wrap gap-2"></div>
-            <div class="mt-2">
-              <button type="button" class="btn btn-outline-primary btn-sm" onclick="viewOrderList()">View Order List</button>
-            </div>
           </div>
 
         </div>
@@ -223,6 +236,9 @@
                     <option value="InProduction">In Prod</option>
                     <option value="ProductionCompleted">Prod Completed</option>
                     <option value="Delivered">Delivered</option>
+                    <option value="Cancelled">Cancelled</option>
+                    <option value="OnHold">On Hold</option>
+                    <option value="Rejected">Rejected</option>
                   </select>
                 </th>
                 <th>
@@ -244,13 +260,13 @@
                   <td>{{ order.order_date|date:"Y-m-d" }}</td>
                   <td>{{ order.customer }}</td>
                   <td>{{ order.twine }}</td>
-                  <td>{{ order.mesh_size }}MM-{% if "MD" in order.mesh_depth|upper %}{{ order.mesh_depth }}{% else %}{{ order.mesh_depth }}MD{% endif %}-{% if "SAL" in order.salvage|upper %}{{ order.salvage }}{% else %}{{ order.salvage }}Sal{% endif %}</td>
-                  <td>{{ order.colour }}</td>
+                  <td>{% with spec=order.specifications.first %}{{ spec.mesh_size }}MM-{% if "MD" in spec.mesh_depth|upper %}{{ spec.mesh_depth }}{% else %}{{ spec.mesh_depth }}MD{% endif %}-{% if "SEL" in spec.salvage|upper %}{{ spec.salvage }}{% else %}{{ spec.salvage }}Sel{% endif %}{% endwith %}</td>
+                  <td>{{ order.specifications.first.colour }}</td>
                   <td>{{ order.quantity }}</td>
                   <td>{{ order.quantity_unit }}</td>
                   <td>{{ order.unit_price }}</td>
                   <td>
-                    <span class="badge {% if order.status == 'Delivered' %}bg-success{% elif order.status == 'InProduction' %}bg-warning text-dark{% elif order.status == 'ProductionCompleted' %}bg-info text-dark{% elif order.status == 'ProductionQueue' %}bg-secondary{% else %}bg-primary{% endif %}">
+                    <span class="badge {% if order.status == 'Delivered' %}bg-success{% elif order.status == 'InProduction' %}bg-warning text-dark{% elif order.status == 'ProductionCompleted' %}bg-info text-dark{% elif order.status == 'ProductionQueue' %}bg-secondary{% elif order.status == 'Cancelled' or order.status == 'Rejected' %}bg-danger{% elif order.status == 'OnHold' %}bg-warning text-dark{% else %}bg-primary{% endif %}">
                       {{ order.get_status_display }}
                     </span>
                   </td>
@@ -258,6 +274,9 @@
                   <td>
                     <a href="javascript:void(0);" onclick="loadOrder('{{ order.order_key }}')" class="btn btn-sm btn-primary d-inline-flex align-items-center">
                       <i class="bi bi-pencil me-1"></i> Edit
+                    </a>
+                    <a href="javascript:void(0);" onclick="cloneOrder('{{ order.order_key }}')" class="btn btn-sm btn-info d-inline-flex align-items-center">
+                      <i class="bi bi-copy me-1"></i> Clone
                     </a>
                     <form method="POST" action="{% url 'order_entry' %}" style="display:inline;" onsubmit="return confirm('Delete this order?')">
                       {% csrf_token %}
@@ -309,6 +328,17 @@ let drafts = [];
 let draftIdCounter = 0;
 
 function getFormData() {
+    const specs = [];
+    document.querySelectorAll('.spec-row').forEach(row => {
+        specs.push({
+            mesh_size: row.querySelector('.spec-mesh-size').value,
+            mesh_depth: row.querySelector('.spec-mesh-depth').value.trim(),
+            salvage: row.querySelector('.spec-salvage').value.trim(),
+            piece_weight: row.querySelector('.spec-piece-weight').value.trim(),
+            colour: row.querySelector('.spec-colour').value.trim() || 'White',
+            no_of_pcs: row.querySelector('.spec-no-of-pcs').value,
+        });
+    });
     return {
         draft_id: '',
         order_key: document.getElementById('order_key').value.trim(),
@@ -317,11 +347,14 @@ function getFormData() {
         order_date: document.getElementById('order_date').value,
         customer: document.getElementById('customer').value.trim(),
         twine: document.getElementById('twine').value.trim(),
-        mesh_size: document.getElementById('mesh_size').value,
-        mesh_depth: document.getElementById('mesh_depth').value.trim(),
-        salvage: document.getElementById('salvage').value.trim(),
-        colour: document.getElementById('colour').value.trim(),
-        piece_weight: document.getElementById('piece_weight').value.trim(),
+        specifications: specs,
+        // Flat fallback for backward compat
+        mesh_size: specs[0]?.mesh_size || '',
+        mesh_depth: specs[0]?.mesh_depth || '',
+        salvage: specs[0]?.salvage || '',
+        piece_weight: specs[0]?.piece_weight || '',
+        colour: specs[0]?.colour || 'White',
+        no_of_pcs: specs[0]?.no_of_pcs || '',
         quantity: document.getElementById('quantity').value,
         quantity_unit: document.getElementById('quantity_unit').value,
         unit_price: document.getElementById('unit_price').value,
@@ -332,6 +365,108 @@ function getFormData() {
     };
 }
 
+function renderSpecRows(specs) {
+    const container = document.getElementById('spec-container');
+    container.innerHTML = '';
+    const list = specs && specs.length ? specs : [{mesh_size:'', mesh_depth:'', salvage:'', piece_weight:'', colour:'White', no_of_pcs:''}];
+    const firstMeshSize = list[0]?.mesh_size || '';
+    list.forEach((s, idx) => {
+        const row = document.createElement('div');
+        row.className = 'spec-row row mb-3';
+        row.dataset.index = idx;
+        const disabledAttr = idx > 0 ? ' disabled' : '';
+        const meshVal = idx > 0 ? firstMeshSize : (s.mesh_size || '');
+        row.innerHTML =
+            '<div class="col-md-2"><input type="number" name="spec_mesh_size" step="1" class="form-control form-control-sm spec-mesh-size" placeholder="Mesh Size" value="' + meshVal + '"' + disabledAttr + '></div>' +
+            '<div class="col-md-2"><input type="text" name="spec_mesh_depth" class="form-control form-control-sm spec-mesh-depth" placeholder="Mesh Depth" value="' + (s.mesh_depth||'') + '"></div>' +
+            '<div class="col-md-2"><input type="text" name="spec_salvage" class="form-control form-control-sm spec-salvage" placeholder="Selvage" value="' + (s.salvage||'') + '"></div>' +
+            '<div class="col-md-2"><input type="text" name="spec_piece_weight" class="form-control form-control-sm spec-piece-weight" placeholder="Piece Weight" value="' + (s.piece_weight||'') + '"></div>' +
+            '<div class="col-md-2"><input type="text" name="spec_colour" class="form-control form-control-sm spec-colour" placeholder="Colour" value="' + (s.colour||'White') + '"></div>' +
+            '<div class="col-md-1"><input type="number" name="spec_no_of_pcs" step="1" class="form-control form-control-sm spec-no-of-pcs" placeholder="Pcs" value="' + (s.no_of_pcs||'') + '"></div>' +
+            '<div class="col-md-1 d-flex align-items-center gap-1">' +
+            (idx > 0
+                ? '<button type="button" class="btn btn-outline-danger btn-sm rounded-circle" onclick="removeSpecRow(this)">-</button>'
+                : '') +
+            '<button type="button" class="btn btn-outline-primary btn-sm rounded-circle" onclick="addSpecRow(this)">+</button></div>';
+        container.appendChild(row);
+    });
+}
+
+function addSpecRow(btn) {
+    const currentRow = btn ? btn.closest('.spec-row') : document.querySelector('.spec-row');
+    if (!currentRow) return;
+    const container = document.getElementById('spec-container');
+
+    // Clone current row's DOM
+    const newRow = currentRow.cloneNode(true);
+    // Copy current values to clone
+    newRow.querySelector('.spec-mesh-depth').value = currentRow.querySelector('.spec-mesh-depth').value;
+    newRow.querySelector('.spec-salvage').value = currentRow.querySelector('.spec-salvage').value;
+    newRow.querySelector('.spec-piece-weight').value = currentRow.querySelector('.spec-piece-weight').value;
+    newRow.querySelector('.spec-colour').value = currentRow.querySelector('.spec-colour').value || 'White';
+    newRow.querySelector('.spec-no-of-pcs').value = currentRow.querySelector('.spec-no-of-pcs').value;
+
+    // Lock mesh_size to first row's value and disable it
+    const firstMeshSize = container.querySelector('.spec-mesh-size')?.value || '';
+    const meshSizeInput = newRow.querySelector('.spec-mesh-size');
+    meshSizeInput.value = firstMeshSize;
+    meshSizeInput.disabled = true;
+    meshSizeInput.removeAttribute('id');
+
+    // Ensure a visible remove button exists
+    const btnGroup = newRow.querySelector('.d-flex');
+    if (btnGroup) {
+        let removeBtn = btnGroup.querySelector('.btn-outline-danger');
+        if (!removeBtn) {
+            removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-outline-danger btn-sm rounded-circle';
+            removeBtn.textContent = '-';
+            removeBtn.onclick = function() { removeSpecRow(this); };
+            btnGroup.insertBefore(removeBtn, btnGroup.firstChild);
+        } else {
+            removeBtn.style.display = '';
+            removeBtn.onclick = function() { removeSpecRow(this); };
+        }
+    }
+
+    // Wire up the add button
+    const addBtn = newRow.querySelector('.btn-outline-primary');
+    if (addBtn) addBtn.onclick = function() { addSpecRow(this); };
+
+    container.appendChild(newRow);
+}
+
+function removeSpecRow(btn) {
+    const row = btn.closest('.spec-row');
+    if (row) row.remove();
+}
+
+document.getElementById('spec-container').addEventListener('input', function(e) {
+    if (e.target.classList.contains('spec-mesh-size') && !e.target.disabled) {
+        const val = e.target.value;
+        document.querySelectorAll('#spec-container .spec-mesh-size:disabled').forEach(el => el.value = val);
+    }
+    if (e.target.classList.contains('spec-mesh-depth') || e.target.classList.contains('spec-no-of-pcs')) {
+        updateMeshDepthTotal();
+    }
+});
+
+function updateMeshDepthTotal() {
+    let total = 0;
+    document.querySelectorAll('.spec-row').forEach(row => {
+        const md = row.querySelector('.spec-mesh-depth')?.value || '';
+        const pcs = row.querySelector('.spec-no-of-pcs')?.value || '';
+        const num = parseFloat(md.replace(/[^0-9.]/g, ''));
+        const pcsNum = parseInt(pcs);
+        if (!isNaN(num) && !isNaN(pcsNum) && pcsNum > 0) {
+            total += num * pcsNum;
+        }
+    });
+    const el = document.getElementById('mesh-depth-total');
+    if (el) el.textContent = total > 0 ? 'MeshDepth Total: ' + total : '';
+}
+
 function setFormData(data) {
     document.getElementById('order_key').value = data.order_key || '';
     document.getElementById('order_sequence').value = data.order_sequence || data.order_key || '';
@@ -339,11 +474,7 @@ function setFormData(data) {
     document.getElementById('order_date').value = data.order_date || '{% now "Y-m-d" %}';
     document.getElementById('customer').value = data.customer || '';
     document.getElementById('twine').value = data.twine || '';
-    document.getElementById('mesh_size').value = data.mesh_size || '';
-    document.getElementById('mesh_depth').value = data.mesh_depth || '';
-    document.getElementById('salvage').value = data.salvage || '';
-    document.getElementById('colour').value = data.colour || 'White';
-    document.getElementById('piece_weight').value = data.piece_weight || '';
+    renderSpecRows(data.specifications);
     document.getElementById('quantity').value = data.quantity || '';
     document.getElementById('quantity_unit').value = data.quantity_unit || 'Bag';
     document.getElementById('unit_price').value = data.unit_price || '';
@@ -366,11 +497,7 @@ function resetOrderForm() {
     document.getElementById('order_date').value = '{% now "Y-m-d" %}';
     document.getElementById('customer').value = '';
     document.getElementById('twine').value = '';
-    document.getElementById('mesh_size').value = '';
-    document.getElementById('mesh_depth').value = '';
-    document.getElementById('salvage').value = '';
-    document.getElementById('colour').value = 'White';
-    document.getElementById('piece_weight').value = '';
+    renderSpecRows();
     document.getElementById('quantity').value = '';
     document.getElementById('quantity_unit').value = 'Bag';
     document.getElementById('unit_price').value = '';
@@ -378,15 +505,6 @@ function resetOrderForm() {
     document.getElementById('status').value = 'Ordered';
     document.getElementById('order_instructions').value = '';
     document.getElementById('comments').value = '';
-}
-
-function autoFillPieceWeight() {
-    const depth = parseInt(document.getElementById('mesh_depth').value);
-    let weight = '';
-    if (depth >= 1 && depth <= 100) weight = '1+1';
-    else if (depth >= 101 && depth <= 200) weight = '2+2';
-    else if (depth > 200) weight = '5+5';
-    document.getElementById('piece_weight').value = weight;
 }
 
 function previewOrderNumber() {
@@ -415,8 +533,17 @@ function renderDrafts() {
         badge.className = 'badge bg-secondary py-2 px-3 text-start';
         badge.style.cursor = 'pointer';
         badge.style.fontSize = '13px';
-        const spec = d.mesh_size + 'MM-' + (d.mesh_depth.toUpperCase().includes('MD') ? d.mesh_depth : d.mesh_depth + 'MD') + '-' + (d.salvage.toUpperCase().includes('SAL') ? d.salvage : d.salvage + 'Sal');
-        badge.textContent = (d.order_number || '?') + ' | ' + (d.customer || '?') + ' | ' + spec + ' | ' + (d.colour || 'White') + ' | ' + d.quantity + ' ' + d.quantity_unit;
+        const specsList = d.specifications && d.specifications.length ? d.specifications : [d];
+        const specStr = specsList.map(s => {
+            const md = s.mesh_depth || '';
+            const mdDisp = md.toUpperCase().includes('MD') ? md : md + 'MD';
+            const sal = s.salvage || '';
+            const salDisp = sal.toUpperCase().includes('SEL') ? sal : sal + 'Sel';
+            const pcs = s.no_of_pcs || '';
+            const col = s.colour || 'White';
+            return (s.mesh_size || '') + 'MM-' + mdDisp + '-' + salDisp + (pcs ? '-Pcs:' + pcs : '') + '-' + col;
+        }).join('/');
+        badge.textContent = (d.order_number || '?') + ' | ' + (d.customer || '?') + ' | ' + specStr + ' | ' + d.quantity + ' ' + d.quantity_unit;
         badge.title = 'Click to edit';
         badge.onclick = function() { loadDraft(d.draft_id); };
         container.appendChild(badge);
@@ -429,19 +556,43 @@ function viewOrderList() {
     if (!orderNumber) {
         if (drafts.length === 0) return;
         let lines = [];
-        drafts.forEach((d, i) => {
+        const twine = document.getElementById('twine').value.trim();
+        const date = document.getElementById('order_date').value;
+        if (twine) {
+            const header = '*' + twine + ' Order(Date: ' + date + ')*';
+            lines.push(header);
+            lines.push('═'.repeat(header.length));
+        }
+        drafts.forEach((d, idx) => {
+            const specs = d.specifications && d.specifications.length ? d.specifications : [d];
             const tw = d.twine || '';
-            const ms = d.mesh_size || '';
-            const md = d.mesh_depth || '';
-            const mdDisp = md.toUpperCase().includes('MD') ? md : md + 'MD';
-            const sal = d.salvage || '';
-            const salDisp = (sal.toUpperCase().includes('SAL') ? sal : sal + ' Sal').trim();
-            const pw = d.piece_weight || '';
-            const col = d.colour || 'White';
+            const ms = specs[0]?.mesh_size || '';
             const qty = Math.round(parseFloat(d.quantity) || 0);
-            const unit = (d.quantity_unit || 'Bag').toUpperCase() + '(s)';
-            lines.push('(' + (i+1) + ') ' + tw + '-' + ms + 'mm-' + mdDisp + '-' + salDisp + '-Piece Weight:' + pw + '-' + col + ' colour- ' + qty + ' ' + unit);
+            const unit = (d.quantity_unit || 'Bag').toUpperCase().replace(/S$/, '') + '(s)';
+            if (specs.length === 1) {
+                const s = specs[0];
+                const md = s.mesh_depth || '';
+                const mdDisp = md.toUpperCase().includes('MD') ? md : md + 'MD';
+                const sal = s.salvage || '';
+                const salDisp = (sal.toUpperCase().includes('SEL') ? sal : sal + ' Sel').trim();
+                const pw = s.piece_weight || '';
+                const col = s.colour || 'White';
+                lines.push('(' + (idx + 1) + ') _' + tw + '-' + ms + 'mm-' + mdDisp + '-' + salDisp + '-PW(' + pw + ')-' + col + ' - ' + qty + ' ' + unit + '_');
+            } else {
+                lines.push('(' + (idx + 1) + ') _' + tw + '-' + ms + 'mm- ' + qty + ' ' + unit + '_');
+                specs.forEach(s => {
+                    const md = s.mesh_depth || '';
+                    const mdDisp = md.toUpperCase().includes('MD') ? md : md + 'MD';
+                    const sal = s.salvage || '';
+                    const salDisp = sal.toUpperCase().includes('SEL') ? sal : sal + 'Sel';
+                    const pw = s.piece_weight || '';
+                    const pcs = s.no_of_pcs || '';
+                    const col = s.colour || 'White';
+                    lines.push('* ' + mdDisp + '-' + salDisp + (pw ? '-PW(' + pw + ')' : '') + (pcs ? '-PCs(' + pcs + ')' : '') + '-' + col);
+                });
+            }
         });
+        lines.push('═══════════════════════════════════════════');
         document.getElementById('order-list-content').textContent = lines.join('\n');
         var modal = new bootstrap.Modal(document.getElementById('orderListModal'));
         modal.show();
@@ -462,30 +613,55 @@ function viewOrderList() {
     if (allItems.length === 0) return;
 
     let lines = [];
-    allItems.forEach((d, i) => {
+    const twine = document.getElementById('twine').value.trim();
+    const date = document.getElementById('order_date').value;
+    if (twine) {
+        const header = '*' + twine + ' Order(Date: ' + date + ', Order# ' + orderNumber + ')*';
+        lines.push(header);
+        lines.push('═'.repeat(header.length));
+    }
+    allItems.forEach((d, idx) => {
+        const specs = d.specifications && d.specifications.length ? d.specifications : [d];
         const tw = d.twine || '';
-        const ms = d.mesh_size || '';
-        const md = d.mesh_depth || '';
-        const mdDisp = md.toUpperCase().includes('MD') ? md : md + 'MD';
-        const sal = d.salvage || '';
-        const salDisp = (sal.toUpperCase().includes('SAL') ? sal : sal + ' Sal').trim();
-        const pw = d.piece_weight || '';
-        const col = d.colour || 'White';
+        const ms = specs[0]?.mesh_size || '';
         const qty = Math.round(parseFloat(d.quantity) || 0);
-        const unit = (d.quantity_unit || 'Bag').toUpperCase() + '(s)';
-        lines.push('(' + (i+1) + ') ' + tw + '-' + ms + 'mm-' + mdDisp + '-' + salDisp + '-Piece Weight:' + pw + '-' + col + ' colour- ' + qty + ' ' + unit);
+        const unit = (d.quantity_unit || 'Bag').toUpperCase().replace(/S$/, '') + '(s)';
+        if (specs.length === 1) {
+            const s = specs[0];
+            const md = s.mesh_depth || '';
+            const mdDisp = md.toUpperCase().includes('MD') ? md : md + 'MD';
+            const sal = s.salvage || '';
+            const salDisp = (sal.toUpperCase().includes('SEL') ? sal : sal + ' Sel').trim();
+            const pw = s.piece_weight || '';
+            const col = s.colour || 'White';
+            lines.push('(' + (idx + 1) + ') _' + tw + '-' + ms + 'mm-' + mdDisp + '-' + salDisp + '-PW(' + pw + ')-' + col + ' - ' + qty + ' ' + unit + '_');
+        } else {
+            lines.push('(' + (idx + 1) + ') _' + tw + '-' + ms + 'mm- ' + qty + ' ' + unit + '_');
+            specs.forEach(s => {
+                const md = s.mesh_depth || '';
+                const mdDisp = md.toUpperCase().includes('MD') ? md : md + 'MD';
+                const sal = s.salvage || '';
+                const salDisp = sal.toUpperCase().includes('SEL') ? sal : sal + 'Sel';
+                const pw = s.piece_weight || '';
+                const pcs = s.no_of_pcs || '';
+                const col = s.colour || 'White';
+                    lines.push('* ' + mdDisp + '-' + salDisp + (pw ? '-PW(' + pw + ')' : '') + (pcs ? '-PCs(' + pcs + ')' : '') + '-' + col);
+            });
+        }
     });
+    lines.push('═══════════════════════════════════════════');
     document.getElementById('order-list-content').textContent = lines.join('\n');
     var modal = new bootstrap.Modal(document.getElementById('orderListModal'));
     modal.show();
 }
 
-function addDraft() {
+function addToCart() {
     const twine = document.getElementById('twine').value.trim();
     const customer = document.getElementById('customer').value.trim();
     if (!twine) { alert("Twine (Product Code) is required."); return; }
     if (!customer) { alert("Customer is required."); return; }
     let data = getFormData();
+    delete data.order_key;
     data.draft_id = ++draftIdCounter;
     drafts.push(data);
     renderDrafts();
@@ -499,7 +675,28 @@ function loadDraft(draftId) {
     renderDrafts();
 }
 
-function confirmSave() {
+function submitOrder() {
+    const current = getFormData();
+    if (!current.twine) { alert("Twine (Product Code) is required."); return; }
+    if (!current.customer) { alert("Customer is required."); return; }
+    let entry = {...current};
+    delete entry.draft_id;
+    document.getElementById('drafts_data').value = JSON.stringify([entry]);
+    document.getElementById('orderFormTag').submit();
+}
+
+function submitCart() {
+    if (drafts.length === 0) { alert("Cart is empty. Add items to cart first."); return; }
+    let allEntries = drafts.map(d => {
+        let copy = {...d};
+        delete copy.draft_id;
+        return copy;
+    });
+    document.getElementById('drafts_data').value = JSON.stringify(allEntries);
+    document.getElementById('orderFormTag').submit();
+}
+
+function submitAll() {
     let allEntries = drafts.map(d => {
         let copy = {...d};
         delete copy.draft_id;
@@ -536,30 +733,32 @@ function loadOrder(orderKey) {
     });
     renderDrafts();
 
-    document.getElementById('order_key').value = order.order_key;
-    document.getElementById('order_sequence').value = order.order_sequence;
-    document.getElementById('order_number').value = order.order_number;
-    document.getElementById('order_date').value = order.order_date;
-    document.getElementById('customer').value = order.customer;
-    document.getElementById('twine').value = order.twine || '';
-    document.getElementById('mesh_size').value = order.mesh_size || '';
-    document.getElementById('mesh_depth').value = order.mesh_depth || '';
-    document.getElementById('salvage').value = order.salvage || '';
-    document.getElementById('piece_weight').value = order.piece_weight || '';
-    document.getElementById('colour').value = order.colour || 'White';
-    document.getElementById('quantity').value = order.quantity || '';
-    document.getElementById('quantity_unit').value = order.quantity_unit || 'Bag';
-    document.getElementById('unit_price').value = order.unit_price || '';
-    document.getElementById('is_gst_included').checked = order.is_gst_included || false;
-    document.getElementById('status').value = order.status || 'Ordered';
-    document.getElementById('order_instructions').value = order.order_instructions || '';
-    document.getElementById('comments').value = order.comments || '';
+    setFormData(order);
+}
 
-    const collapseEl = document.getElementById("orderForm");
-    const bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, {toggle: false});
-    if (!collapseEl.classList.contains("show")) {
-        bsCollapse.show();
-    }
+function cloneOrder(orderKey) {
+    const order = ordersData.find(o => o.order_key == orderKey);
+    if (!order) return;
+
+    // Compute new order_sequence
+    let maxSeq = 0;
+    ordersData.forEach(o => {
+        const seq = parseInt(o.order_sequence) || 0;
+        if (seq > maxSeq) maxSeq = seq;
+    });
+    const newSeq = maxSeq + 1;
+    const twine = (order.twine || '').trim();
+
+    const clone = {...order};
+    delete clone.order_key;
+    clone.order_sequence = newSeq;
+    clone.order_number = twine ? twine + '-' + newSeq : 'UNKNOWN-' + newSeq;
+
+    // Clear drafts
+    drafts = [];
+    renderDrafts();
+
+    setFormData(clone);
 }
 
 const orderTable = document.getElementById('order-table');

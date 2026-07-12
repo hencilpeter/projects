@@ -563,4 +563,87 @@ This structure will scale well from a small fishnet factory to a multi-factory o
 =====================
 2026-07-12
 ----------
-Order module changes 
+Make the following changes in order_entry module:
+1.  rearrange the new order controls as follows:
+   row1: order_date, twine, customer, order_sequence, order_number
+2. make the order_sequence control background bit dark is it shows the portion of order number  
+----->
+Make the following changes in order_entry module:
+1. rearrange the new order controls as follows:  
+   row2: mesh_size,mesh_depth,salvage,piece_weight,colour
+2. add another field named "no_of_pcs" next to colour field, default value is empty 
+3. make the required changes for the new column "no_of_pcs" to save and load accordingly.
+---->
+Make the following changes in order_entry module:
+1. create a new model called order_specification to move the following fields from order to order specificatoin:
+   mesh_size, mesh_depth,salvage, piece_weight, colour, no_of_pcs
+2. order_specification should be linked to order_number field from order table. 
+3.  make the required changes for saving and loading accordingly. 
+---->
+Make the following changes in order_entry module:
+1. Reduce the width of "No of Pcs" control and add a + rounded button next to each specification on order entry controls section. 
+2. once press the + button new order entry specification controls (mesh_size, mesh_depth, salvage, piece_weight, colour and no_of_pcs controls to be added below). 
+3. Along with the new specification conrols, another - button to be added. if we press the - button, added corresponding order specifications to be deleted. 
+4. one order entry can have multiple order specifications and this must be stored correctly in order specification table and we must be able to load it correctly. 
+--->
+Make the following changes in order_entry module:
+1. while clicking the newly added + button, copy the specification values of current row to the new specification control. 
+2. only the very first specifications, mesh_size must be editable and other newly created specifications mesh_size must be disabled but to hold  the same mesh_size of the first row. 
+--->
+Make the following changes in order_entry module:
+1. bug fix: currently if Click on Edit button, order details are correctly loaded but while saving it treats it as a new order details. But we need the existing order detials to be saved. 
+2. add new new control "Clone" next to earch orders on the botton table's last column. once the clone button is clicked new order number to be assigned and the order details to be loaded for corrections ans savings.    
+--->
+Make the following changes in order_entry module:
+1. "Save Draft" button to be renamed to "Add to Cart" and retain the same functinality. 
+2. "Submit Cart" button to be added to save all the cart items in the list if any. 
+3. Save Order button in order entry form to be renamed to "Submit Order" that should submit only the order on the order entry form but not in the cart. 
+4. Add a new button "Submit All" that should store the items in cart as well as order entry form. 
+5. ensure all the save and load logic should work as expected. 
+
+--->
+Make the following changes in order_entry module:
+1. if the Pcs column is not empty, calculate the MeshDepth count using the formula mesh_depth X Pcs for all the specifications rows and show the final value next to Clear button 
+--->
+Make the following changes in order_entry module:
+1. cart items should include all the specifications. if there are more than one specifications then it should be like below(below example has two specifications):
+DK16-2 | HST-H.S. TRADING | 50MM-50MD-.23Sal-Pcs:5-White/50MM-100MD-.23Sal-Pcs:5-White | 1.00 Bag
+--->
+Make the following changes in order_entry module:
+1. move the "View Order List" button next to "Clear" button 
+2. "View Order List" show the number that to be added for each order not each specification. below is the  example 
+   (1) DK16-50mm-100MD-.23 Sal-Piece Weight:1+1-White colour- 1 BAG(s)
+   (2) DK16-50mm- 1 BAG(s)
+       50MD-.23Sal-Pcs:5-White
+	   100MD-.23Sal-Pcs:4-White
+--->
+Make the following changes in order_entry module:
+1. when click on "View Order List" , show the twine code, date and order number details as the first line with underline. 
+   e.g. DK16 Order(Date: 2026-07-12, Order# DK16-2)
+        -------------------------------------------
+2. Order List must include piece weight details in the order specification which is missing now. 
+--->
+make the below additional changes in the "View Order List"
+1. order list title must have "*" at the begining and end. e.g.  
+   *DK16 Order(Date: 2026-07-12, Order# DK16-2)*
+2. each order title must have "_" at the begining and end. e.g.  
+	_DK16-50mm- 100 KG(s)_
+3. add a line at the end of printing the orders 
+--->
+
+
+
+
+DK16 Order(Date: 2026-07-12, Order# DK16-2)
+═════════════════════════════════════════════
+(1) DK16-50mm- 100 KG(s)
+    * 100MD-.23Sel-PW(1+1)-PCs(5)-White
+    * 50MD-.23Sel-Piece Weight:1+1-Pcs:3-White
+(2) DK16-50mm-100MD-.23 Sel-Piece Weight:1+1-P.Green colour- 1 BAG(s)
+(3) DK16-100mm- 1 BAG(s)
+    50MD-2/3XSel-Piece Weight:1+1-Pcs:5-P.Green
+    100MD-2/3XXSel-Piece Weight:1+1-Pcs:4-P.Green
+═══════════════════════════════════════════
+
+  100MD-.23Sel-Piece Weight:1+1-Pcs:5-White
+* 100MD-.23Sel-PW(1+1)-PCs(5)-White

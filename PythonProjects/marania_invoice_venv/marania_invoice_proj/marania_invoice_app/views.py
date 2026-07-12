@@ -66,6 +66,7 @@ from .models import (
     CustomerPriceCatalog,
     Materials,
     Order,
+    OrderSpecification,
 )
 
 # =======================
@@ -1937,10 +1938,19 @@ def report_pdf(request):
 
 
 def order_entry(request):
-    orders = Order.objects.all()
+    orders = Order.objects.all().prefetch_related('specifications')
 
     if request.method == "POST":
         action = request.POST.get("action")
+
+        # Handle single order delete (from table action button)
+        if action == "delete":
+            order_key = request.POST.get("order_key")
+            if order_key:
+                Order.objects.filter(order_key=order_key).delete()
+                messages.success(request, "Order deleted successfully.")
+            return redirect('order_entry')
+
         drafts_raw = request.POST.get("drafts_data")
 
         if not drafts_raw and request.content_type == 'application/json':
@@ -1965,50 +1975,109 @@ def order_entry(request):
             batch_order_number = None
             base_twine = None
             now = datetime.now()
-            orders_to_create = []
+            saved_count = 0
+
+            # Determine batch order_number and collect existing order_keys
+            submitted_keys = set()
             for entry in entries:
-                if base_twine is None:
-                    base_twine = (entry.get("twine") or "").strip()
                 twine = (entry.get("twine") or "").strip()
                 if not twine:
                     continue
-                if batch_sequence is None:
-                    raw_seq = entry.get("order_sequence")
-                    if raw_seq is not None and str(raw_seq).strip():
-                        batch_sequence = int(str(raw_seq).strip())
-                    else:
-                        batch_sequence = (Order.objects.aggregate(max_seq=Max('order_sequence'))['max_seq'] or 0) + 1
+                order_key = entry.get("order_key")
+                if order_key is not None:
+                    order_key = str(order_key).strip()
+                    if order_key:
+                        submitted_keys.add(order_key)
+                        if batch_order_number is None:
+                            try:
+                                batch_order_number = Order.objects.values_list('order_number', flat=True).get(order_key=order_key)
+                            except Order.DoesNotExist:
+                                pass
                 if batch_order_number is None:
-                    batch_order_number = (entry.get("order_number") or "").strip() or None
+                    on = (entry.get("order_number") or "").strip()
+                    if on:
+                        batch_order_number = on
 
-                obj = Order()
-                obj.order_sequence = batch_sequence
-                if batch_order_number:
-                    obj.order_number = batch_order_number
+            # Remove old orders with same order_number that are not in the submitted set
+            if batch_order_number:
+                Order.objects.filter(order_number=batch_order_number).exclude(order_key__in=submitted_keys).delete()
+
+            batch_sequence = None
+            base_twine = None
+            for entry in entries:
+                twine = (entry.get("twine") or "").strip()
+                if not twine:
+                    continue
+
+                order_key = entry.get("order_key")
+                if order_key is not None:
+                    order_key = str(order_key).strip()
                 else:
-                    obj.order_number = f"{base_twine}-{batch_sequence}" if base_twine else f"UNKNOWN-{batch_sequence}"
+                    order_key = ""
+                is_update = bool(order_key)
+
+                if is_update:
+                    try:
+                        obj = Order.objects.get(order_key=order_key)
+                    except Order.DoesNotExist:
+                        obj = Order()
+                    if batch_order_number is None:
+                        batch_order_number = obj.order_number
+                else:
+                    obj = Order()
+                    if batch_order_number is None:
+                        batch_order_number = (entry.get("order_number") or "").strip() or None
+                    if batch_order_number is None:
+                        batch_sequence = (Order.objects.aggregate(max_seq=Max('order_sequence'))['max_seq'] or 0) + 1
+                        base_twine = base_twine or twine
+                        batch_order_number = f"{base_twine}-{batch_sequence}"
+
+                raw_seq = entry.get("order_sequence")
+                obj.order_sequence = int(str(raw_seq).strip()) if raw_seq is not None and str(raw_seq).strip() else (batch_sequence or (Order.objects.aggregate(max_seq=Max('order_sequence'))['max_seq'] or 0) + 1)
+                obj.order_number = batch_order_number or entry.get("order_number") or f"{twine}-{obj.order_sequence}"
                 obj.order_date = entry.get("order_date") or now.strftime('%Y-%m-%d')
                 obj.twine = twine
-                obj.mesh_size = entry.get("mesh_size") or None
-                obj.mesh_depth = entry.get("mesh_depth") or ""
-                obj.salvage = entry.get("salvage") or ""
-                obj.piece_weight = entry.get("piece_weight") or ""
                 obj.quantity = entry.get("quantity") or 0
                 obj.quantity_unit = entry.get("quantity_unit") or "Bag"
                 obj.customer = entry.get("customer") or ""
                 obj.unit_price = entry.get("unit_price") or None
                 obj.is_gst_included = entry.get("is_gst_included") in (True, "True", "true", "on")
                 obj.status = entry.get("status") or "Ordered"
-                obj.colour = entry.get("colour") or "White"
                 obj.order_instructions = entry.get("order_instructions") or ""
                 obj.comments = entry.get("comments") or ""
-                obj.created_at = now
                 obj.updated_at = now
-                orders_to_create.append(obj)
+                if not is_update:
+                    obj.created_at = now
+                obj.save()
+                saved_count += 1
 
-            if orders_to_create:
-                Order.objects.bulk_create(orders_to_create)
-                saved_count = len(orders_to_create)
+                # Replace specifications
+                obj.specifications.all().delete()
+                specs_data = entry.get("specifications")
+                if specs_data:
+                    for s in specs_data:
+                        raw_pcs = s.get("no_of_pcs")
+                        OrderSpecification.objects.create(
+                            order=obj,
+                            mesh_size=s.get("mesh_size") or None,
+                            mesh_depth=s.get("mesh_depth") or "",
+                            salvage=s.get("salvage") or "",
+                            piece_weight=s.get("piece_weight") or "",
+                            colour=s.get("colour") or "White",
+                            no_of_pcs=int(str(raw_pcs).strip()) if raw_pcs is not None and str(raw_pcs).strip() else None,
+                        )
+                else:
+                    # Fallback to flat fields
+                    raw_pcs = entry.get("no_of_pcs")
+                    OrderSpecification.objects.create(
+                        order=obj,
+                        mesh_size=entry.get("mesh_size") or None,
+                        mesh_depth=entry.get("mesh_depth") or "",
+                        salvage=entry.get("salvage") or "",
+                        piece_weight=entry.get("piece_weight") or "",
+                        colour=entry.get("colour") or "White",
+                        no_of_pcs=int(str(raw_pcs).strip()) if raw_pcs is not None and str(raw_pcs).strip() else None,
+                    )
         else:
             keys = request.POST.getlist("order_key")
             order_dates = request.POST.getlist("order_date")
@@ -2024,6 +2093,7 @@ def order_entry(request):
             is_gst_includeds = request.POST.getlist("is_gst_included")
             statuses = request.POST.getlist("status")
             colours = request.POST.getlist("colour")
+            no_of_pcss = request.POST.getlist("no_of_pcs")
             order_instructions = request.POST.getlist("order_instructions")
             comments = request.POST.getlist("comments")
 
@@ -2031,10 +2101,6 @@ def order_entry(request):
                 order_key = keys[idx].strip() if idx < len(keys) else ""
                 twine = twines[idx].strip()
                 if not twine:
-                    continue
-
-                if action == "delete":
-                    Order.objects.filter(order_key=order_key).delete()
                     continue
 
                 try:
@@ -2052,20 +2118,37 @@ def order_entry(request):
 
                 obj.order_date = order_dates[idx] if idx < len(order_dates) else None
                 obj.twine = twine
-                obj.mesh_size = mesh_sizes[idx] if idx < len(mesh_sizes) else None
-                obj.mesh_depth = mesh_depths[idx] if idx < len(mesh_depths) else ""
-                obj.salvage = salvages[idx] if idx < len(salvages) else ""
-                obj.piece_weight = piece_weights[idx] if idx < len(piece_weights) else ""
                 obj.quantity = quantities[idx] if idx < len(quantities) else 0
                 obj.quantity_unit = quantity_units[idx] if idx < len(quantity_units) else "Bag"
                 obj.customer = customers[idx] if idx < len(customers) else ""
                 obj.unit_price = unit_prices[idx] if idx < len(unit_prices) and unit_prices[idx] else None
                 obj.is_gst_included = True if (idx < len(is_gst_includeds) and is_gst_includeds[idx] == "on") else False
                 obj.status = statuses[idx] if idx < len(statuses) else "Ordered"
-                obj.colour = colours[idx] if idx < len(colours) and colours[idx] else "White"
                 obj.order_instructions = order_instructions[idx] if idx < len(order_instructions) else ""
                 obj.comments = comments[idx] if idx < len(comments) else ""
                 obj.save()
+
+                # Read spec rows from POST (indexed by spec_idx)
+                spec_mesh_sizes = request.POST.getlist("spec_mesh_size")
+                spec_mesh_depths = request.POST.getlist("spec_mesh_depth")
+                spec_salvages = request.POST.getlist("spec_salvage")
+                spec_piece_weights = request.POST.getlist("spec_piece_weight")
+                spec_colours = request.POST.getlist("spec_colour")
+                spec_no_of_pcss = request.POST.getlist("spec_no_of_pcs")
+
+                # Delete existing specs and recreate
+                obj.specifications.all().delete()
+                num_specs = max(len(spec_mesh_sizes), 1)
+                for si in range(num_specs):
+                    OrderSpecification.objects.create(
+                        order=obj,
+                        mesh_size=spec_mesh_sizes[si] if si < len(spec_mesh_sizes) else None,
+                        mesh_depth=spec_mesh_depths[si] if si < len(spec_mesh_depths) else "",
+                        salvage=spec_salvages[si] if si < len(spec_salvages) else "",
+                        piece_weight=spec_piece_weights[si] if si < len(spec_piece_weights) else "",
+                        colour=spec_colours[si] if si < len(spec_colours) and spec_colours[si] else "White",
+                        no_of_pcs=int(spec_no_of_pcss[si]) if si < len(spec_no_of_pcss) and spec_no_of_pcss[si] else None,
+                    )
 
         if saved_count:
             messages.success(request, f'{saved_count} order(s) saved successfully')
@@ -2075,10 +2158,25 @@ def order_entry(request):
 
     orders_data = list(orders.values(
         'order_key', 'order_sequence', 'order_number', 'order_date', 'customer',
-        'twine', 'mesh_size', 'mesh_depth', 'salvage', 'piece_weight',
-        'quantity', 'quantity_unit', 'unit_price', 'is_gst_included',
-        'status', 'colour', 'order_instructions', 'comments'
+        'twine', 'quantity', 'quantity_unit', 'unit_price', 'is_gst_included',
+        'status', 'order_instructions', 'comments',
     ))
+    order_keys = [o['order_key'] for o in orders_data]
+    specs = list(OrderSpecification.objects.filter(order__order_key__in=order_keys).values(
+        'order_id', 'mesh_size', 'mesh_depth', 'salvage', 'piece_weight', 'colour', 'no_of_pcs',
+    ))
+    specs_by_order = {}
+    for s in specs:
+        specs_by_order.setdefault(s['order_id'], []).append(
+            {k: s[k] for k in ('mesh_size', 'mesh_depth', 'salvage', 'piece_weight', 'colour', 'no_of_pcs')}
+        )
+    for item in orders_data:
+        order_specs = specs_by_order.get(item['order_key'], [])
+        item['specifications'] = order_specs
+        # Flatten first spec for backward compat with JS
+        first = order_specs[0] if order_specs else {}
+        for fld in ('mesh_size', 'mesh_depth', 'salvage', 'piece_weight', 'colour', 'no_of_pcs'):
+            item[fld] = first.get(fld)
     orders_json = json.dumps(orders_data, default=str)
 
     next_order_sequence = (Order.objects.aggregate(max_seq=Max('order_sequence'))['max_seq'] or 0) + 1

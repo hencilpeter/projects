@@ -315,7 +315,7 @@ class InvoiceItem(models.Model):
         return f"{self.invoice.invoice_number or ''}({self.invoice.invoice_date})-{self.invoice.customer_name or ''} -{self.item_description or ''} - {self.item_quantity or ''}"
 class Order(models.Model):
     QUANTITY_UNIT_CHOICES = [
-        ('KGs', 'KGs'),
+        ('KG', 'KG'),
         ('Bag', 'Bag'),
     ]
 
@@ -325,6 +325,9 @@ class Order(models.Model):
         ('InProduction', 'In Production'),
         ('ProductionCompleted', 'Production Completed'),
         ('Delivered', 'Delivered'),
+        ('Cancelled', 'Cancelled'),
+        ('OnHold', 'On Hold'),
+        ('Rejected', 'Rejected'),
     ]
 
     order_key = models.AutoField(primary_key=True)
@@ -332,10 +335,6 @@ class Order(models.Model):
     order_number = models.CharField(max_length=100)
     order_date = models.DateField()
     twine = models.CharField(max_length=255, blank=True, null=True)
-    mesh_size = models.IntegerField(blank=True, null=True)
-    mesh_depth = models.CharField(max_length=50, blank=True, null=True)
-    salvage = models.CharField(max_length=255, blank=True, null=True)
-    piece_weight = models.CharField(max_length=50, blank=True, null=True)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     quantity_unit = models.CharField(max_length=10, choices=QUANTITY_UNIT_CHOICES, default='Bag')
     customer = models.CharField(max_length=255)
@@ -344,7 +343,6 @@ class Order(models.Model):
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='Ordered')
     order_instructions = models.TextField(blank=True, null=True)
     comments = models.TextField(blank=True, null=True)
-    colour = models.CharField(max_length=50, default='White')
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -354,6 +352,19 @@ class Order(models.Model):
 
     class Meta:
         ordering = ['-order_date', '-order_sequence']
+
+
+class OrderSpecification(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='specifications')
+    mesh_size = models.IntegerField(blank=True, null=True)
+    mesh_depth = models.CharField(max_length=50, blank=True, null=True)
+    salvage = models.CharField(max_length=255, blank=True, null=True)
+    piece_weight = models.CharField(max_length=50, blank=True, null=True)
+    colour = models.CharField(max_length=50, default='White')
+    no_of_pcs = models.IntegerField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Spec for {self.order.order_number}"
 
 
 class ExcelSheet(models.Model):
