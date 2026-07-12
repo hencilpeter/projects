@@ -674,3 +674,24 @@ ON HOLD(Item On Stock)
 ON HOLD(PROCESSING)
 
 -------------
+make the following changes for Sales module:
+1. Add "Sales" menu under Orders/ Sales 
+-------------
+re-write the sales module with the following field names:
+order_no
+sales_entry_date
+customer
+twine
+speification
+colour 
+piece_weight
+piece_count
+initial_weight
+processed_weight
+unit_price
+gst_rate
+total_amount
+delivery_date
+status
+payment_date
+remarks

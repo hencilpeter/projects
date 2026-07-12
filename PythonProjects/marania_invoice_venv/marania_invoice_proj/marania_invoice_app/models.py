@@ -356,7 +356,7 @@ class Order(models.Model):
 
 
 class OrderSpecification(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='specifications')
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='specifications', null=True, blank=True)
     mesh_size = models.IntegerField(blank=True, null=True)
     mesh_depth = models.CharField(max_length=50, blank=True, null=True)
     salvage = models.CharField(max_length=255, blank=True, null=True)
@@ -365,7 +365,9 @@ class OrderSpecification(models.Model):
     no_of_pcs = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
-        return f"Spec for {self.order.order_number}"
+        if self.order_id:
+            return f"Spec for {self.order.order_number}"
+        return f"Spec #{self.pk}"
 
 
 class ExcelSheet(models.Model):
@@ -390,39 +392,29 @@ class Sales(models.Model):
     sales_key = models.AutoField(primary_key=True)
     sales_sequence = models.IntegerField(default=0)
     order_no = models.CharField(max_length=100)
-    order_date = models.DateField()
-    entry_date = models.DateField(blank=True, null=True)
-    payment_date = models.DateField(blank=True, null=True)
-    delivery_date = models.DateField(blank=True, null=True)
-    twine = models.CharField(max_length=255, blank=True, null=True)
+    sales_entry_date = models.DateField(default=date.today)
     customer = models.CharField(max_length=255)
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    gst_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    total_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    gst_rate = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    twine = models.CharField(max_length=255, blank=True, null=True)
+    speification = models.CharField(max_length=255, blank=True, null=True)
+    colour = models.CharField(max_length=50, default='White')
+    piece_weight = models.CharField(max_length=50, blank=True, null=True)
+    piece_count = models.IntegerField(blank=True, null=True)
     initial_weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     processed_weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    gst_rate = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    delivery_date = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=30, choices=PAYMENT_STATUS_CHOICES, default='PENDING')
+    payment_date = models.DateField(blank=True, null=True)
     remarks = models.TextField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.order_no} - {self.customer} - {self.order_date}"
+        return f"{self.order_no} - {self.customer} - {self.sales_entry_date}"
 
     class Meta:
-        ordering = ['-order_date', '-sales_sequence']
+        ordering = ['-sales_entry_date', '-sales_sequence']
 
-
-class SalesSpecification(models.Model):
-    sales = models.ForeignKey(Sales, on_delete=models.CASCADE, related_name='specifications')
-    mesh_size = models.IntegerField(blank=True, null=True)
-    mesh_depth = models.CharField(max_length=50, blank=True, null=True)
-    salvage = models.CharField(max_length=255, blank=True, null=True)
-    piece_weight = models.CharField(max_length=50, blank=True, null=True)
-    colour = models.CharField(max_length=50, default='White')
-    no_of_pcs = models.IntegerField(blank=True, null=True)
-
-    def __str__(self):
-        return f"Spec for {self.sales.order_no}"

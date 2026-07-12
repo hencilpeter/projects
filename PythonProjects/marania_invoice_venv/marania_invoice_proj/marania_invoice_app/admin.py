@@ -20,5 +20,4 @@ admin.site.register(ExcelSheet)
 admin.site.register(Order)
 admin.site.register(OrderSpecification)
 admin.site.register(Sales)
-admin.site.register(SalesSpecification)
 

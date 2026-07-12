@@ -6,7 +6,7 @@
 <style>
 .invoice-table-wrapper {
     max-height: 820px;
-    overflow-y: auto;
+    overflow: auto;
     border: 1px solid #ddd;
 }
 
@@ -15,26 +15,34 @@
     width: 100%;
 }
 
-.col-amount {
-    width: 120px;
-    text-align: center;
-    white-space: nowrap;
-}
+.col-narrow { text-align: center; white-space: nowrap; }
+.col-actions { width: 160px; text-align: center; white-space: nowrap; }
+.col-spec { width: 200px; }
 
-.col-actions {
-    width: 160px;
-    text-align: center;
-    white-space: nowrap;
-}
-
-.col-orderspec {
-    width: 220px;
+#sales-table th:nth-child(1),
+#sales-table td:nth-child(1),
+#sales-table th:nth-child(2),
+#sales-table td:nth-child(2),
+#sales-table th:nth-child(4),
+#sales-table td:nth-child(4),
+#sales-table th:nth-child(6),
+#sales-table td:nth-child(6),
+#sales-table th:nth-child(7),
+#sales-table td:nth-child(7),
+#sales-table th:nth-child(8),
+#sales-table td:nth-child(8),
+#sales-table th:nth-child(9),
+#sales-table td:nth-child(9),
+#sales-table th:nth-child(10),
+#sales-table td:nth-child(10) {
+    width: 40px;
 }
 
 #sales-table thead th {
     position: sticky;
     top: 0;
     z-index: 2;
+    white-space: nowrap;
 }
 
 .btn-3d-yellow {
@@ -81,25 +89,11 @@
 
           <div class="row mb-3">
             <input type="hidden" name="sales_key" id="sales_key" value="">
-            <div class="col-md-2">
-              <input type="date" name="order_date" id="order_date" class="form-control form-control-sm" value="{% now 'Y-m-d' %}">
-            </div>
-            <div class="col-md-2">
-              <input type="date" name="entry_date" id="entry_date" class="form-control form-control-sm" value="{% now 'Y-m-d' %}">
-            </div>
-            <div class="col-md-2">
-              <input type="date" name="payment_date" id="payment_date" class="form-control form-control-sm">
-            </div>
-            <div class="col-md-2">
-              <input type="date" name="delivery_date" id="delivery_date" class="form-control form-control-sm">
+            <div class="col-md-3">
+              <input type="date" name="sales_entry_date" id="sales_entry_date" class="form-control form-control-sm" value="{% now 'Y-m-d' %}" placeholder="Sales Entry Date">
             </div>
             <div class="col-md-3">
-              <input type="text" name="twine" id="twine" class="form-control form-control-sm" placeholder="Twine (Product Code)" list="twine_list">
-              <datalist id="twine_list">
-                {% for product in products %}
-                  <option value="{{ product.code }}">
-                {% endfor %}
-              </datalist>
+              <input type="text" name="order_no" id="order_no" class="form-control form-control-sm" placeholder="Order #" value="NA">
             </div>
             <div class="col-md-3">
               <input type="text" name="customer" id="customer" class="form-control form-control-sm" placeholder="Customer" list="customer_list">
@@ -109,74 +103,67 @@
                 {% endfor %}
               </datalist>
             </div>
-            <div class="col-md-2">
-              <input type="number" name="sales_sequence" id="sales_sequence" class="form-control form-control-sm bg-secondary bg-opacity-10" placeholder="Sales Seq" value="{{ next_sales_sequence }}" onblur="previewOrderNo()">
-            </div>
-            <div class="col-md-2">
-              <input type="text" name="order_no" id="order_no" class="form-control form-control-sm" placeholder="Order #" readonly>
+            <div class="col-md-3">
+              <input type="text" name="twine" id="twine" class="form-control form-control-sm" placeholder="Twine (Product Code)" list="twine_list">
+              <datalist id="twine_list">
+                {% for product in products %}
+                  <option value="{{ product.code }}">
+                {% endfor %}
+              </datalist>
             </div>
           </div>
 
-            <div id="spec-container">
-              <div class="spec-row row mb-3" data-index="0">
-                <div class="col-md-2">
-                  <input type="number" name="spec_mesh_size" step="1" class="form-control form-control-sm spec-mesh-size" placeholder="Mesh Size">
-                </div>
-                <div class="col-md-2">
-                  <input type="text" name="spec_mesh_depth" class="form-control form-control-sm spec-mesh-depth" placeholder="Mesh Depth">
-                </div>
-                <div class="col-md-2">
-                  <input type="text" name="spec_salvage" class="form-control form-control-sm spec-salvage" placeholder="Selvage">
-                </div>
-                <div class="col-md-2">
-                  <input type="text" name="spec_piece_weight" class="form-control form-control-sm spec-piece-weight" placeholder="Piece Weight">
-                </div>
-                <div class="col-md-2">
-                  <input type="text" name="spec_colour" class="form-control form-control-sm spec-colour" placeholder="Colour" value="White">
-                </div>
-                <div class="col-md-1">
-                  <input type="number" name="spec_no_of_pcs" step="1" class="form-control form-control-sm spec-no-of-pcs" placeholder="Pcs">
-                </div>
-                <div class="col-md-1 d-flex align-items-center gap-1">
-                  <button type="button" class="btn btn-outline-danger btn-sm rounded-circle spec-remove-btn" onclick="removeSpecRow(this)" style="display:none;">-</button>
-                  <button type="button" class="btn btn-outline-primary btn-sm rounded-circle spec-add-btn" onclick="addSpecRow(this)">+</button>
-                </div>
-              </div>
-            </div>
-
           <div class="row mb-3">
-            <div class="col-md-2">
-              <input type="number" name="unit_price" id="unit_price" step="0.01" class="form-control form-control-sm" placeholder="Unit Price">
+            <div class="col-md-3">
+              <input type="text" name="speification" id="speification" class="form-control form-control-sm" placeholder="Specification">
             </div>
             <div class="col-md-2">
-              <input type="number" name="gst_amount" id="gst_amount" step="0.01" class="form-control form-control-sm" placeholder="GST Amount">
+              <input type="text" name="colour" id="colour" class="form-control form-control-sm" placeholder="Colour" value="White">
             </div>
             <div class="col-md-2">
-              <input type="number" name="total_price" id="total_price" step="0.01" class="form-control form-control-sm" placeholder="Total Price">
+              <input type="text" name="piece_weight" id="piece_weight" class="form-control form-control-sm" placeholder="Piece Weight">
+            </div>
+            <div class="col-md-1">
+              <input type="number" name="piece_count" id="piece_count" step="1" class="form-control form-control-sm" placeholder="Pcs">
+            </div>
+            <div class="col-md-2">
+              <input type="date" name="delivery_date" id="delivery_date" class="form-control form-control-sm" placeholder="Delivery Date">
             </div>
             <div class="col-md-2">
               <input type="number" name="initial_weight" id="initial_weight" step="0.01" class="form-control form-control-sm" placeholder="Initial Weight">
             </div>
+          </div>
+
+          <div class="row mb-3">
             <div class="col-md-2">
               <input type="number" name="processed_weight" id="processed_weight" step="0.01" class="form-control form-control-sm" placeholder="Processed Weight">
             </div>
             <div class="col-md-2">
+              <input type="number" name="unit_price" id="unit_price" step="0.01" class="form-control form-control-sm" placeholder="Unit Price">
+            </div>
+            <div class="col-md-2">
               <input type="number" name="gst_rate" id="gst_rate" step="0.01" class="form-control form-control-sm" placeholder="GST Rate">
             </div>
-          </div>
-
-          <div class="row mb-3">
-            <div class="col-md-4">
+            <div class="col-md-2">
+              <input type="number" name="total_amount" id="total_amount" step="0.01" class="form-control form-control-sm" placeholder="Total Amount">
+            </div>
+            <div class="col-md-2">
               <select name="status" id="status" class="form-control form-control-sm">
                 <option value="PAID">PAID</option>
                 <option value="PARTIALLY_PAID">PARTIALLY PAID</option>
                 <option value="PENDING">PENDING</option>
                 <option value="NO_PAYMENT">NO PAYMENT</option>
                 <option value="ON_HOLD_STOCK">ON HOLD(Item On Stock)</option>
-                <option value="ON_HOLD_PROCESSING">ON HOLD(PROCESSING)</option>
+                <option value="ON_HOLD_PROCESSING" selected>ON HOLD(PROCESSING)</option>
               </select>
             </div>
-            <div class="col-md-8">
+            <div class="col-md-2">
+              <input type="date" name="payment_date" id="payment_date" class="form-control form-control-sm" placeholder="Payment Date">
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-12">
               <textarea name="remarks" id="remarks" class="form-control form-control-sm" rows="2" placeholder="Remarks"></textarea>
             </div>
           </div>
@@ -189,8 +176,7 @@
             <button type="button" class="btn btn-success me-2" onclick="submitOrder()">Submit Order</button>
             <button type="button" class="btn btn-primary me-2" onclick="submitAll()">Submit All</button>
             <button type="reset" class="btn btn-secondary" onclick="resetSalesForm()">Clear</button>
-            <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="viewSalesList()">View Order List</button>
-            <span id="mesh-depth-total" class="ms-3 fw-bold"></span>
+            <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="viewSalesList()">View Sales List</button>
           </div>
 
           <div id="draft-list" class="mt-3" style="display:none;">
@@ -210,31 +196,39 @@
             <thead class="table-dark">
               <tr>
                 <th scope="col">Order No</th>
-                <th scope="col">O.Date</th>
                 <th scope="col">Entry Date</th>
-                <th scope="col">Payment Date</th>
-                <th scope="col">Delivery Date</th>
                 <th scope="col">Customer</th>
                 <th scope="col">Twine</th>
-                <th scope="col" class="col-orderspec">OrderSpec</th>
-                <th scope="col" class="col-amount">Unit Price</th>
-                <th scope="col" class="col-amount">GST Amt</th>
-                <th scope="col" class="col-amount">Total Price</th>
+                <th scope="col" class="col-spec">Specification</th>
+                <th scope="col">Colour</th>
+                <th scope="col" class="col-narrow">Piece Wt</th>
+                <th scope="col" class="col-narrow">Piece Ct</th>
+                <th scope="col" class="col-narrow">Init Wt</th>
+                <th scope="col" class="col-narrow">Proc Wt</th>
+                <th scope="col" class="col-narrow">Unit Price</th>
+                <th scope="col" class="col-narrow">GST Rate</th>
+                <th scope="col" class="col-narrow">Total Amt</th>
+                <th scope="col">Delivery Date</th>
+                <th scope="col">Payment Date</th>
                 <th scope="col">Status</th>
                 <th scope="col" class="col-actions">Actions</th>
               </tr>
               <tr id="sales-filter-row">
                 <th><input class="filter-input" placeholder="Order No"></th>
-                <th><input class="filter-input" placeholder="O.Date"></th>
                 <th><input class="filter-input" placeholder="Entry Date"></th>
-                <th><input class="filter-input" placeholder="Payment Date"></th>
-                <th><input class="filter-input" placeholder="Delivery Date"></th>
                 <th><input class="filter-input" placeholder="Customer"></th>
                 <th><input class="filter-input" placeholder="Twine"></th>
-                <th><input class="filter-input" placeholder="OrderSpec"></th>
-                <th><input class="filter-input" placeholder="Price"></th>
-                <th><input class="filter-input" placeholder="GST Amt"></th>
+                <th><input class="filter-input" placeholder="Spec"></th>
+                <th><input class="filter-input" placeholder="Colour"></th>
+                <th><input class="filter-input" placeholder="Piece Wt"></th>
+                <th><input class="filter-input" placeholder="Piece Ct"></th>
+                <th><input class="filter-input" placeholder="Init Wt"></th>
+                <th><input class="filter-input" placeholder="Proc Wt"></th>
+                <th><input class="filter-input" placeholder="U Price"></th>
+                <th><input class="filter-input" placeholder="GST Rate"></th>
                 <th><input class="filter-input" placeholder="Total"></th>
+                <th><input class="filter-input" placeholder="Delivery"></th>
+                <th><input class="filter-input" placeholder="Payment"></th>
                 <th>
                   <select class="filter-select">
                     <option value="">All</option>
@@ -255,16 +249,20 @@
               {% for sale in sales %}
                 <tr>
                   <td>{{ sale.order_no }}</td>
-                  <td>{{ sale.order_date|date:"Y-m-d" }}</td>
-                  <td>{{ sale.entry_date|date:"Y-m-d" }}</td>
-                  <td>{{ sale.payment_date|date:"Y-m-d" }}</td>
-                  <td>{{ sale.delivery_date|date:"Y-m-d" }}</td>
+                  <td>{{ sale.sales_entry_date|date:"Y-m-d" }}</td>
                   <td>{{ sale.customer }}</td>
                   <td>{{ sale.twine }}</td>
-                  <td>{% with spec=sale.specifications.first %}{{ spec.mesh_size }}MM-{% if "MD" in spec.mesh_depth|upper %}{{ spec.mesh_depth }}{% else %}{{ spec.mesh_depth }}MD{% endif %}-{% if "SEL" in spec.salvage|upper %}{{ spec.salvage }}{% else %}{{ spec.salvage }}Sel{% endif %}{% endwith %}</td>
+                  <td>{{ sale.speification }}</td>
+                  <td>{{ sale.colour }}</td>
+                  <td>{{ sale.piece_weight }}</td>
+                  <td>{{ sale.piece_count }}</td>
+                  <td>{{ sale.initial_weight }}</td>
+                  <td>{{ sale.processed_weight }}</td>
                   <td>{{ sale.unit_price }}</td>
-                  <td>{{ sale.gst_amount }}</td>
-                  <td>{{ sale.total_price }}</td>
+                  <td>{{ sale.gst_rate }}</td>
+                  <td>{{ sale.total_amount }}</td>
+                  <td>{{ sale.delivery_date|date:"Y-m-d" }}</td>
+                  <td>{{ sale.payment_date|date:"Y-m-d" }}</td>
                   <td>
                     <span class="badge {% if sale.status == 'PAID' %}bg-success{% elif sale.status == 'PARTIALLY_PAID' %}bg-info{% elif sale.status == 'PENDING' %}bg-warning text-dark{% elif sale.status == 'NO_PAYMENT' %}bg-danger{% else %}bg-secondary{% endif %}">
                       {{ sale.get_status_display }}
@@ -326,168 +324,69 @@ const productNames = {
 let drafts = [];
 let draftIdCounter = 0;
 
+function getDateValue(id) {
+    var el = document.getElementById(id);
+    if (!el) return '';
+    if (el.type === 'text') return '';
+    return el.value;
+}
+
 function getFormData() {
-    const specs = [];
-    document.querySelectorAll('.spec-row').forEach(row => {
-        specs.push({
-            mesh_size: row.querySelector('.spec-mesh-size').value,
-            mesh_depth: row.querySelector('.spec-mesh-depth').value.trim(),
-            salvage: row.querySelector('.spec-salvage').value.trim(),
-            piece_weight: row.querySelector('.spec-piece-weight').value.trim(),
-            colour: row.querySelector('.spec-colour').value.trim() || 'White',
-            no_of_pcs: row.querySelector('.spec-no-of-pcs').value,
-        });
-    });
     return {
         draft_id: '',
         sales_key: document.getElementById('sales_key').value.trim(),
-        sales_sequence: document.getElementById('sales_sequence').value.trim(),
         order_no: document.getElementById('order_no').value.trim(),
-        order_date: document.getElementById('order_date').value,
-        entry_date: document.getElementById('entry_date').value,
-        payment_date: document.getElementById('payment_date').value,
-        delivery_date: document.getElementById('delivery_date').value,
+        sales_entry_date: getDateValue('sales_entry_date'),
         customer: document.getElementById('customer').value.trim(),
         twine: document.getElementById('twine').value.trim(),
-        specifications: specs,
-        // Flat fallback for backward compat
-        mesh_size: specs[0]?.mesh_size || '',
-        mesh_depth: specs[0]?.mesh_depth || '',
-        salvage: specs[0]?.salvage || '',
-        piece_weight: specs[0]?.piece_weight || '',
-        colour: specs[0]?.colour || 'White',
-        no_of_pcs: specs[0]?.no_of_pcs || '',
-        unit_price: document.getElementById('unit_price').value,
-        gst_amount: document.getElementById('gst_amount').value,
-        total_price: document.getElementById('total_price').value,
+        speification: document.getElementById('speification').value.trim(),
+        colour: document.getElementById('colour').value.trim() || 'White',
+        piece_weight: document.getElementById('piece_weight').value.trim(),
+        piece_count: document.getElementById('piece_count').value,
         initial_weight: document.getElementById('initial_weight').value,
         processed_weight: document.getElementById('processed_weight').value,
+        unit_price: document.getElementById('unit_price').value,
         gst_rate: document.getElementById('gst_rate').value,
+        total_amount: document.getElementById('total_amount').value,
+        delivery_date: getDateValue('delivery_date'),
         status: document.getElementById('status').value,
+        payment_date: getDateValue('payment_date'),
         remarks: document.getElementById('remarks').value.trim(),
     };
 }
 
-function renderSpecRows(specs) {
-    const container = document.getElementById('spec-container');
-    container.innerHTML = '';
-    const list = specs && specs.length ? specs : [{mesh_size:'', mesh_depth:'', salvage:'', piece_weight:'', colour:'White', no_of_pcs:''}];
-    const firstMeshSize = list[0]?.mesh_size || '';
-    list.forEach((s, idx) => {
-        const row = document.createElement('div');
-        row.className = 'spec-row row mb-3';
-        row.dataset.index = idx;
-        const disabledAttr = idx > 0 ? ' disabled' : '';
-        const meshVal = idx > 0 ? firstMeshSize : (s.mesh_size || '');
-        row.innerHTML =
-            '<div class="col-md-2"><input type="number" name="spec_mesh_size" step="1" class="form-control form-control-sm spec-mesh-size" placeholder="Mesh Size" value="' + meshVal + '"' + disabledAttr + '></div>' +
-            '<div class="col-md-2"><input type="text" name="spec_mesh_depth" class="form-control form-control-sm spec-mesh-depth" placeholder="Mesh Depth" value="' + (s.mesh_depth||'') + '"></div>' +
-            '<div class="col-md-2"><input type="text" name="spec_salvage" class="form-control form-control-sm spec-salvage" placeholder="Selvage" value="' + (s.salvage||'') + '"></div>' +
-            '<div class="col-md-2"><input type="text" name="spec_piece_weight" class="form-control form-control-sm spec-piece-weight" placeholder="Piece Weight" value="' + (s.piece_weight||'') + '"></div>' +
-            '<div class="col-md-2"><input type="text" name="spec_colour" class="form-control form-control-sm spec-colour" placeholder="Colour" value="' + (s.colour||'White') + '"></div>' +
-            '<div class="col-md-1"><input type="number" name="spec_no_of_pcs" step="1" class="form-control form-control-sm spec-no-of-pcs" placeholder="Pcs" value="' + (s.no_of_pcs||'') + '"></div>' +
-            '<div class="col-md-1 d-flex align-items-center gap-1">' +
-            (idx > 0
-                ? '<button type="button" class="btn btn-outline-danger btn-sm rounded-circle" onclick="removeSpecRow(this)">-</button>'
-                : '') +
-            '<button type="button" class="btn btn-outline-primary btn-sm rounded-circle" onclick="addSpecRow(this)">+</button></div>';
-        container.appendChild(row);
-    });
-}
-
-function addSpecRow(btn) {
-    const currentRow = btn ? btn.closest('.spec-row') : document.querySelector('.spec-row');
-    if (!currentRow) return;
-    const container = document.getElementById('spec-container');
-
-    // Clone current row's DOM
-    const newRow = currentRow.cloneNode(true);
-    // Copy current values to clone
-    newRow.querySelector('.spec-mesh-depth').value = currentRow.querySelector('.spec-mesh-depth').value;
-    newRow.querySelector('.spec-salvage').value = currentRow.querySelector('.spec-salvage').value;
-    newRow.querySelector('.spec-piece-weight').value = currentRow.querySelector('.spec-piece-weight').value;
-    newRow.querySelector('.spec-colour').value = currentRow.querySelector('.spec-colour').value || 'White';
-    newRow.querySelector('.spec-no-of-pcs').value = currentRow.querySelector('.spec-no-of-pcs').value;
-
-    // Lock mesh_size to first row's value and disable it
-    const firstMeshSize = container.querySelector('.spec-mesh-size')?.value || '';
-    const meshSizeInput = newRow.querySelector('.spec-mesh-size');
-    meshSizeInput.value = firstMeshSize;
-    meshSizeInput.disabled = true;
-    meshSizeInput.removeAttribute('id');
-
-    // Ensure a visible remove button exists
-    const btnGroup = newRow.querySelector('.d-flex');
-    if (btnGroup) {
-        let removeBtn = btnGroup.querySelector('.btn-outline-danger');
-        if (!removeBtn) {
-            removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'btn btn-outline-danger btn-sm rounded-circle';
-            removeBtn.textContent = '-';
-            removeBtn.onclick = function() { removeSpecRow(this); };
-            btnGroup.insertBefore(removeBtn, btnGroup.firstChild);
-        } else {
-            removeBtn.style.display = '';
-            removeBtn.onclick = function() { removeSpecRow(this); };
-        }
+function setDateField(id, value) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.type = 'date';
+    el.value = value || '';
+    if (!el.value) {
+        el.type = 'text';
+        el.value = el.placeholder;
+        el.classList.add('text-muted');
+    } else {
+        el.classList.remove('text-muted');
     }
-
-    // Wire up the add button
-    const addBtn = newRow.querySelector('.btn-outline-primary');
-    if (addBtn) addBtn.onclick = function() { addSpecRow(this); };
-
-    container.appendChild(newRow);
-}
-
-function removeSpecRow(btn) {
-    const row = btn.closest('.spec-row');
-    if (row) row.remove();
-}
-
-document.getElementById('spec-container').addEventListener('input', function(e) {
-    if (e.target.classList.contains('spec-mesh-size') && !e.target.disabled) {
-        const val = e.target.value;
-        document.querySelectorAll('#spec-container .spec-mesh-size:disabled').forEach(el => el.value = val);
-    }
-    if (e.target.classList.contains('spec-mesh-depth') || e.target.classList.contains('spec-no-of-pcs')) {
-        updateMeshDepthTotal();
-    }
-});
-
-function updateMeshDepthTotal() {
-    let total = 0;
-    document.querySelectorAll('.spec-row').forEach(row => {
-        const md = row.querySelector('.spec-mesh-depth')?.value || '';
-        const pcs = row.querySelector('.spec-no-of-pcs')?.value || '';
-        const num = parseFloat(md.replace(/[^0-9.]/g, ''));
-        const pcsNum = parseInt(pcs);
-        if (!isNaN(num) && !isNaN(pcsNum) && pcsNum > 0) {
-            total += num * pcsNum;
-        }
-    });
-    const el = document.getElementById('mesh-depth-total');
-    if (el) el.textContent = total > 0 ? 'MeshDepth Total: ' + total : '';
 }
 
 function setFormData(data) {
     document.getElementById('sales_key').value = data.sales_key || '';
-    document.getElementById('sales_sequence').value = data.sales_sequence || data.sales_key || '';
-    document.getElementById('order_no').value = data.order_no || '';
-    document.getElementById('order_date').value = data.order_date || '{% now "Y-m-d" %}';
-    document.getElementById('entry_date').value = data.entry_date || '';
-    document.getElementById('payment_date').value = data.payment_date || '';
-    document.getElementById('delivery_date').value = data.delivery_date || '';
+    document.getElementById('order_no').value = data.order_no || 'NA';
+    document.getElementById('sales_entry_date').value = data.sales_entry_date || '{% now "Y-m-d" %}';
     document.getElementById('customer').value = data.customer || '';
     document.getElementById('twine').value = data.twine || '';
-    renderSpecRows(data.specifications);
-    document.getElementById('unit_price').value = data.unit_price || '';
-    document.getElementById('gst_amount').value = data.gst_amount || '';
-    document.getElementById('total_price').value = data.total_price || '';
+    document.getElementById('speification').value = data.speification || '';
+    document.getElementById('colour').value = data.colour || 'White';
+    document.getElementById('piece_weight').value = data.piece_weight || '';
+    document.getElementById('piece_count').value = data.piece_count || '';
     document.getElementById('initial_weight').value = data.initial_weight || '';
     document.getElementById('processed_weight').value = data.processed_weight || '';
+    document.getElementById('unit_price').value = data.unit_price || '';
     document.getElementById('gst_rate').value = data.gst_rate || '';
-    document.getElementById('status').value = data.status || 'PENDING';
+    document.getElementById('total_amount').value = data.total_amount || '';
+    setDateField('delivery_date', data.delivery_date);
+    document.getElementById('status').value = data.status || 'ON_HOLD_PROCESSING';
+    setDateField('payment_date', data.payment_date);
     document.getElementById('remarks').value = data.remarks || '';
 
     const collapseEl = document.getElementById("salesForm");
@@ -499,34 +398,24 @@ function setFormData(data) {
 
 function resetSalesForm() {
     document.getElementById('sales_key').value = '';
-    document.getElementById('sales_sequence').value = '{{ next_sales_sequence }}';
-    document.getElementById('order_no').value = '';
-    document.getElementById('order_date').value = '{% now "Y-m-d" %}';
-    document.getElementById('entry_date').value = '';
-    document.getElementById('payment_date').value = '';
-    document.getElementById('delivery_date').value = '';
+    document.getElementById('order_no').value = 'NA';
+    document.getElementById('sales_entry_date').value = '{% now "Y-m-d" %}';
     document.getElementById('customer').value = '';
     document.getElementById('twine').value = '';
-    renderSpecRows();
-    document.getElementById('unit_price').value = '';
-    document.getElementById('gst_amount').value = '';
-    document.getElementById('total_price').value = '';
+    document.getElementById('speification').value = '';
+    document.getElementById('colour').value = 'White';
+    document.getElementById('piece_weight').value = '';
+    document.getElementById('piece_count').value = '';
     document.getElementById('initial_weight').value = '';
     document.getElementById('processed_weight').value = '';
+    document.getElementById('unit_price').value = '';
     document.getElementById('gst_rate').value = '';
-    document.getElementById('status').value = 'PENDING';
+    document.getElementById('total_amount').value = '';
+    setDateField('delivery_date', '');
+    document.getElementById('status').value = 'ON_HOLD_PROCESSING';
+    setDateField('payment_date', '');
     document.getElementById('remarks').value = '';
 }
-
-function previewOrderNo() {
-    const twine = document.getElementById('twine').value.trim();
-    const salesSeq = document.getElementById('sales_sequence').value;
-    if (twine && salesSeq) {
-        document.getElementById('order_no').value = twine + '-' + salesSeq;
-    }
-}
-
-document.getElementById('twine').addEventListener('blur', previewOrderNo);
 
 function renderDrafts() {
     const container = document.getElementById('draft-items');
@@ -544,17 +433,7 @@ function renderDrafts() {
         badge.className = 'badge bg-secondary py-2 px-3 text-start';
         badge.style.cursor = 'pointer';
         badge.style.fontSize = '13px';
-        const specsList = d.specifications && d.specifications.length ? d.specifications : [d];
-        const specStr = specsList.map(s => {
-            const md = s.mesh_depth || '';
-            const mdDisp = md.toUpperCase().includes('MD') ? md : md + 'MD';
-            const sal = s.salvage || '';
-            const salDisp = sal.toUpperCase().includes('SEL') ? sal : sal + 'Sel';
-            const pcs = s.no_of_pcs || '';
-            const col = s.colour || 'White';
-            return (s.mesh_size || '') + 'MM-' + mdDisp + '-' + salDisp + (pcs ? '-Pcs:' + pcs : '') + '-' + col;
-        }).join('/');
-        badge.textContent = (d.order_no || '?') + ' | ' + (d.customer || '?') + ' | ' + specStr;
+        badge.textContent = (d.order_no || '?') + ' | ' + (d.customer || '?') + ' | ' + (d.speification || '').substring(0, 30);
         badge.title = 'Click to edit';
         badge.onclick = function() { loadDraft(d.draft_id); };
         container.appendChild(badge);
@@ -568,49 +447,26 @@ function viewSalesList() {
         if (drafts.length === 0) return;
         let lines = [];
         const twine = document.getElementById('twine').value.trim();
-        const date = document.getElementById('order_date').value;
+        const date = document.getElementById('sales_entry_date').value;
         if (twine) {
             const header = '*' + twine + ' Sales(Date: ' + date + ')*';
             lines.push(header);
-            lines.push('═'.repeat(header.length));
+            lines.push('='.repeat(header.length));
         }
         drafts.forEach((d, idx) => {
-            const specs = d.specifications && d.specifications.length ? d.specifications : [d];
-            const tw = d.twine || '';
-            const ms = specs[0]?.mesh_size || '';
-            if (specs.length === 1) {
-                const s = specs[0];
-                const md = s.mesh_depth || '';
-                const mdDisp = md.toUpperCase().includes('MD') ? md : md + 'MD';
-                const sal = s.salvage || '';
-                const salDisp = (sal.toUpperCase().includes('SEL') ? sal : sal + ' Sel').trim();
-                const pw = s.piece_weight || '';
-                const col = s.colour || 'White';
-                lines.push('(' + (idx + 1) + ') _' + tw + '-' + ms + 'mm-' + mdDisp + '-' + salDisp + '-PW(' + pw + ')-' + col + '_');
-            } else {
-                lines.push('(' + (idx + 1) + ') _' + tw + '-' + ms + 'mm-_');
-                specs.forEach(s => {
-                    const md = s.mesh_depth || '';
-                    const mdDisp = md.toUpperCase().includes('MD') ? md : md + 'MD';
-                    const sal = s.salvage || '';
-                    const salDisp = sal.toUpperCase().includes('SEL') ? sal : sal + 'Sel';
-                    const pw = s.piece_weight || '';
-                    const pcs = s.no_of_pcs || '';
-                    const col = s.colour || 'White';
-                    lines.push('* ' + mdDisp + '-' + salDisp + (pw ? '-PW(' + pw + ')' : '') + (pcs ? '-PCs(' + pcs + ')' : '') + '-' + col);
-                });
-            }
+            lines.push('(' + (idx + 1) + ') _' + (d.twine || '') + '-' + (d.order_no || '') + '_');
+            lines.push('   Customer: ' + (d.customer || ''));
+            lines.push('   Spec: ' + (d.speification || '') + ', Colour: ' + (d.colour || 'White') + ', PW: ' + (d.piece_weight || '') + ', PCs: ' + (d.piece_count || ''));
+            lines.push('   InitWt: ' + (d.initial_weight || '') + ', ProcWt: ' + (d.processed_weight || '') + ', Price: ' + (d.unit_price || '') + ', GST: ' + (d.gst_rate || '') + '%, Total: ' + (d.total_amount || ''));
         });
-        lines.push('═══════════════════════════════════════════');
+        lines.push('='.repeat(50));
         document.getElementById('sales-list-content').textContent = lines.join('\n');
         var modal = new bootstrap.Modal(document.getElementById('salesListModal'));
         modal.show();
         return;
     }
 
-    // Collect saved sales matching this order_no
     const saved = salesData.filter(s => s.order_no === orderNo);
-    // Merge: saved sales first, then unsaved drafts that aren't already saved
     const allItems = [...saved];
     const savedKeys = new Set(saved.map(s => String(s.sales_key)));
     drafts.forEach(d => {
@@ -623,40 +479,19 @@ function viewSalesList() {
 
     let lines = [];
     const twine = document.getElementById('twine').value.trim();
-    const date = document.getElementById('order_date').value;
+    const date = document.getElementById('sales_entry_date').value;
     if (twine) {
         const header = '*' + twine + ' Sales(Date: ' + date + ', Order# ' + orderNo + ')*';
         lines.push(header);
-        lines.push('═'.repeat(header.length));
+        lines.push('='.repeat(header.length));
     }
     allItems.forEach((d, idx) => {
-        const specs = d.specifications && d.specifications.length ? d.specifications : [d];
-        const tw = d.twine || '';
-        const ms = specs[0]?.mesh_size || '';
-        if (specs.length === 1) {
-            const s = specs[0];
-            const md = s.mesh_depth || '';
-            const mdDisp = md.toUpperCase().includes('MD') ? md : md + 'MD';
-            const sal = s.salvage || '';
-            const salDisp = (sal.toUpperCase().includes('SEL') ? sal : sal + ' Sel').trim();
-            const pw = s.piece_weight || '';
-            const col = s.colour || 'White';
-            lines.push('(' + (idx + 1) + ') _' + tw + '-' + ms + 'mm-' + mdDisp + '-' + salDisp + '-PW(' + pw + ')-' + col + '_');
-        } else {
-            lines.push('(' + (idx + 1) + ') _' + tw + '-' + ms + 'mm-_');
-            specs.forEach(s => {
-                const md = s.mesh_depth || '';
-                const mdDisp = md.toUpperCase().includes('MD') ? md : md + 'MD';
-                const sal = s.salvage || '';
-                const salDisp = sal.toUpperCase().includes('SEL') ? sal : sal + 'Sel';
-                const pw = s.piece_weight || '';
-                const pcs = s.no_of_pcs || '';
-                const col = s.colour || 'White';
-                    lines.push('* ' + mdDisp + '-' + salDisp + (pw ? '-PW(' + pw + ')' : '') + (pcs ? '-PCs(' + pcs + ')' : '') + '-' + col);
-            });
-        }
+        lines.push('(' + (idx + 1) + ') _' + (d.twine || '') + '-' + (d.order_no || '') + '_');
+        lines.push('   Customer: ' + (d.customer || ''));
+        lines.push('   Spec: ' + (d.speification || '') + ', Colour: ' + (d.colour || 'White') + ', PW: ' + (d.piece_weight || '') + ', PCs: ' + (d.piece_count || ''));
+        lines.push('   InitWt: ' + (d.initial_weight || '') + ', ProcWt: ' + (d.processed_weight || '') + ', Price: ' + (d.unit_price || '') + ', GST: ' + (d.gst_rate || '') + '%, Total: ' + (d.total_amount || ''));
     });
-    lines.push('═══════════════════════════════════════════');
+    lines.push('='.repeat(50));
     document.getElementById('sales-list-content').textContent = lines.join('\n');
     var modal = new bootstrap.Modal(document.getElementById('salesListModal'));
     modal.show();
@@ -728,10 +563,8 @@ function loadSale(salesKey) {
     const sale = salesData.find(s => s.sales_key == salesKey);
     if (!sale) return;
 
-    // Find sibling sales sharing the same order_no
     const siblings = salesData.filter(s => s.order_no === sale.order_no && s.sales_key != salesKey);
 
-    // Clear drafts and populate with siblings
     drafts = [];
     siblings.forEach(s => {
         let d = {...s};
@@ -747,21 +580,11 @@ function cloneSale(salesKey) {
     const sale = salesData.find(s => s.sales_key == salesKey);
     if (!sale) return;
 
-    // Compute new sales_sequence
-    let maxSeq = 0;
-    salesData.forEach(s => {
-        const seq = parseInt(s.sales_sequence) || 0;
-        if (seq > maxSeq) maxSeq = seq;
-    });
-    const newSeq = maxSeq + 1;
-    const twine = (sale.twine || '').trim();
-
     const clone = {...sale};
     delete clone.sales_key;
-    clone.sales_sequence = newSeq;
-    clone.order_no = twine ? twine + '-' + newSeq : 'UNKNOWN-' + newSeq;
+    delete clone.sales_sequence;
+    clone.order_no = '';
 
-    // Clear drafts
     drafts = [];
     renderDrafts();
 
@@ -803,6 +626,20 @@ if (salesTable) {
             applySalesFilters();
         });
 }
+
+// Placeholder fallback for date inputs
+['sales_entry_date', 'delivery_date', 'payment_date'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var placeholder = el.placeholder;
+    el.addEventListener('focus', function() {
+        if (el.type === 'text') { el.type = 'date'; el.value = ''; el.classList.remove('text-muted'); }
+    });
+    el.addEventListener('blur', function() {
+        if (!el.value) { el.type = 'text'; el.value = placeholder; el.classList.add('text-muted'); }
+    });
+    if (!el.value) { el.type = 'text'; el.value = placeholder; el.classList.add('text-muted'); }
+});
 </script>
 
 {% endblock %}

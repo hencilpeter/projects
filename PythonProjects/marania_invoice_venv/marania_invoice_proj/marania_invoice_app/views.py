@@ -68,7 +68,7 @@ from .models import (
     Order,
     OrderSpecification,
     Sales,
-    SalesSpecification,
+
 )
 
 # =======================
@@ -2221,15 +2221,24 @@ def sheet_sales_save(request):
 # Sales Entry
 # =======================
 
+def parse_date(value):
+    if not value:
+        return None
+    s = str(value).strip()
+    try:
+        datetime.strptime(s, '%Y-%m-%d')
+        return s
+    except (ValueError, TypeError):
+        return None
+
 def sales_entry(request):
-    sales_list = Sales.objects.all().prefetch_related('specifications')
+    sales_list = Sales.objects.all()
     products = Product.objects.all()
     parties = Parties.objects.all()
 
     if request.method == "POST":
         action = request.POST.get("action")
 
-        # Handle single delete
         if action == "delete":
             sales_key = request.POST.get("sales_key")
             if sales_key:
@@ -2258,34 +2267,6 @@ def sales_entry(request):
             else:
                 entries = drafts_raw if isinstance(drafts_raw, list) else []
 
-            # Determine batch order_no and collect existing sales_keys
-            batch_order_no = None
-            submitted_keys = set()
-            for entry in entries:
-                twine = (entry.get("twine") or "").strip()
-                if not twine:
-                    continue
-                sales_key = entry.get("sales_key")
-                if sales_key is not None:
-                    sales_key = str(sales_key).strip()
-                    if sales_key:
-                        submitted_keys.add(sales_key)
-                        if batch_order_no is None:
-                            try:
-                                batch_order_no = Sales.objects.values_list('order_no', flat=True).get(sales_key=sales_key)
-                            except Sales.DoesNotExist:
-                                pass
-                if batch_order_no is None:
-                    on = (entry.get("order_no") or "").strip()
-                    if on:
-                        batch_order_no = on
-
-            # Remove old sales with same order_no not in submitted set
-            if batch_order_no:
-                Sales.objects.filter(order_no=batch_order_no).exclude(sales_key__in=submitted_keys).delete()
-
-            batch_sequence = None
-            base_twine = None
             now = datetime.now()
             for entry in entries:
                 twine = (entry.get("twine") or "").strip()
@@ -2304,66 +2285,35 @@ def sales_entry(request):
                         obj = Sales.objects.get(sales_key=sales_key)
                     except Sales.DoesNotExist:
                         obj = Sales()
-                    if batch_order_no is None:
-                        batch_order_no = obj.order_no
                 else:
                     obj = Sales()
-                    if batch_order_no is None:
-                        batch_order_no = (entry.get("order_no") or "").strip() or None
-                    if batch_order_no is None:
-                        batch_sequence = (Sales.objects.aggregate(max_seq=Max('sales_sequence'))['max_seq'] or 0) + 1
-                        base_twine = base_twine or twine
-                        batch_order_no = f"{base_twine}-{batch_sequence}"
 
-                raw_seq = entry.get("sales_sequence")
-                obj.sales_sequence = int(str(raw_seq).strip()) if raw_seq is not None and str(raw_seq).strip() else (batch_sequence or (Sales.objects.aggregate(max_seq=Max('sales_sequence'))['max_seq'] or 0) + 1)
-                obj.order_no = batch_order_no or entry.get("order_no") or f"{twine}-{obj.sales_sequence}"
-                obj.order_date = entry.get("order_date") or now.strftime('%Y-%m-%d')
-                obj.entry_date = entry.get("entry_date") or None
-                obj.payment_date = entry.get("payment_date") or None
-                obj.delivery_date = entry.get("delivery_date") or None
-                obj.twine = twine
+                obj.order_no = entry.get("order_no") or ""
+                obj.sales_entry_date = parse_date(entry.get("sales_entry_date")) or now.strftime('%Y-%m-%d')
                 obj.customer = entry.get("customer") or ""
-                obj.unit_price = entry.get("unit_price") or None
-                obj.gst_amount = entry.get("gst_amount") or None
-                obj.total_price = entry.get("total_price") or None
-                obj.gst_rate = entry.get("gst_rate") or None
+                obj.twine = twine
+                obj.speification = entry.get("speification") or ""
+                obj.colour = entry.get("colour") or "White"
+                obj.piece_weight = entry.get("piece_weight") or ""
+                raw_pc = entry.get("piece_count")
+                if raw_pc is not None and str(raw_pc).strip():
+                    obj.piece_count = int(str(raw_pc).strip())
+                else:
+                    obj.piece_count = None
                 obj.initial_weight = entry.get("initial_weight") or None
                 obj.processed_weight = entry.get("processed_weight") or None
-                obj.status = entry.get("status") or "PENDING"
+                obj.unit_price = entry.get("unit_price") or None
+                obj.gst_rate = entry.get("gst_rate") or None
+                obj.total_amount = entry.get("total_amount") or None
+                obj.delivery_date = parse_date(entry.get("delivery_date"))
+                obj.status = entry.get("status") or "ON_HOLD_PROCESSING"
+                obj.payment_date = parse_date(entry.get("payment_date"))
                 obj.remarks = entry.get("remarks") or ""
                 obj.updated_at = now
                 if not is_update:
                     obj.created_at = now
                 obj.save()
                 saved_count += 1
-
-                # Replace specifications
-                obj.specifications.all().delete()
-                specs_data = entry.get("specifications")
-                if specs_data:
-                    for s in specs_data:
-                        raw_pcs = s.get("no_of_pcs")
-                        SalesSpecification.objects.create(
-                            sales=obj,
-                            mesh_size=s.get("mesh_size") or None,
-                            mesh_depth=s.get("mesh_depth") or "",
-                            salvage=s.get("salvage") or "",
-                            piece_weight=s.get("piece_weight") or "",
-                            colour=s.get("colour") or "White",
-                            no_of_pcs=int(str(raw_pcs).strip()) if raw_pcs is not None and str(raw_pcs).strip() else None,
-                        )
-                else:
-                    raw_pcs = entry.get("no_of_pcs")
-                    SalesSpecification.objects.create(
-                        sales=obj,
-                        mesh_size=entry.get("mesh_size") or None,
-                        mesh_depth=entry.get("mesh_depth") or "",
-                        salvage=entry.get("salvage") or "",
-                        piece_weight=entry.get("piece_weight") or "",
-                        colour=entry.get("colour") or "White",
-                        no_of_pcs=int(str(raw_pcs).strip()) if raw_pcs is not None and str(raw_pcs).strip() else None,
-                    )
 
             if saved_count:
                 messages.success(request, f"{saved_count} sale(s) saved successfully.")
@@ -2374,51 +2324,32 @@ def sales_entry(request):
             return JsonResponse({'saved_count': saved_count})
         return redirect('sales_entry')
 
-    # Serialize sales for JS
     sales_json = []
     for s in sales_list:
-        specs_qs = s.specifications.all()
         sales_json.append({
             'sales_key': s.sales_key,
-            'sales_sequence': s.sales_sequence,
             'order_no': s.order_no,
-            'order_date': str(s.order_date) if s.order_date else '',
-            'entry_date': str(s.entry_date) if s.entry_date else '',
-            'payment_date': str(s.payment_date) if s.payment_date else '',
-            'delivery_date': str(s.delivery_date) if s.delivery_date else '',
-            'twine': s.twine or '',
+            'sales_entry_date': str(s.sales_entry_date) if s.sales_entry_date else '',
             'customer': s.customer or '',
-            'unit_price': str(s.unit_price) if s.unit_price else '',
-            'gst_amount': str(s.gst_amount) if s.gst_amount else '',
-            'total_price': str(s.total_price) if s.total_price else '',
-            'gst_rate': str(s.gst_rate) if s.gst_rate else '',
+            'twine': s.twine or '',
+            'speification': s.speification or '',
+            'colour': s.colour or 'White',
+            'piece_weight': s.piece_weight or '',
+            'piece_count': s.piece_count,
             'initial_weight': str(s.initial_weight) if s.initial_weight else '',
             'processed_weight': str(s.processed_weight) if s.processed_weight else '',
+            'unit_price': str(s.unit_price) if s.unit_price else '',
+            'gst_rate': str(s.gst_rate) if s.gst_rate else '',
+            'total_amount': str(s.total_amount) if s.total_amount else '',
+            'delivery_date': str(s.delivery_date) if s.delivery_date else '',
             'status': s.status or 'PENDING',
+            'payment_date': str(s.payment_date) if s.payment_date else '',
             'remarks': s.remarks or '',
-            'specifications': [{
-                'mesh_size': sp.mesh_size,
-                'mesh_depth': sp.mesh_depth or '',
-                'salvage': sp.salvage or '',
-                'piece_weight': sp.piece_weight or '',
-                'colour': sp.colour or 'White',
-                'no_of_pcs': sp.no_of_pcs,
-            } for sp in specs_qs],
-            # Flat fallback
-            'mesh_size': specs_qs[0].mesh_size if specs_qs else '',
-            'mesh_depth': specs_qs[0].mesh_depth if specs_qs else '',
-            'salvage': specs_qs[0].salvage if specs_qs else '',
-            'piece_weight': specs_qs[0].piece_weight if specs_qs else '',
-            'colour': specs_qs[0].colour if specs_qs else 'White',
-            'no_of_pcs': specs_qs[0].no_of_pcs if specs_qs else '',
         })
-
-    next_seq = (Sales.objects.aggregate(max_seq=Max('sales_sequence'))['max_seq'] or 0) + 1
 
     return render(request, 'marania_invoice_app/sales_entry.html', {
         'sales': sales_list,
         'sales_json': json.dumps(sales_json),
-        'next_sales_sequence': next_seq,
         'products': products,
         'parties': parties,
     })
