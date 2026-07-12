@@ -12,65 +12,11 @@
 
 #sales-table {
     table-layout: fixed;
-    width: max-content;
-    min-width: 100%;
 }
 
 .col-narrow { text-align: center; white-space: nowrap; }
-.col-actions { width: 160px; text-align: center; white-space: nowrap; }
-.col-spec { width: 200px; }
-
-#sales-table th:nth-child(1),
-#sales-table td:nth-child(1) {
-    width: 50px;
-    text-align: center;
-}
-
-#sales-table th:nth-child(2),
-#sales-table td:nth-child(2)
-{
-  width: 40px;
-    text-align: center;
-}
-
-#sales-table th:nth-child(4),
-#sales-table td:nth-child(4),
-#sales-table th:nth-child(5),
-#sales-table td:nth-child(5),
-#sales-table th:nth-child(6),
-#sales-table td:nth-child(6),
-#sales-table th:nth-child(8),
-#sales-table td:nth-child(8),
-#sales-table th:nth-child(9),
-#sales-table td:nth-child(9),
-#sales-table th:nth-child(10),
-#sales-table td:nth-child(10),
-#sales-table th:nth-child(11),
-#sales-table td:nth-child(11),
-#sales-table th:nth-child(12),
-#sales-table td:nth-child(12) {
-    width: 90px;
-}
-
-#sales-table th:nth-child(13),
-#sales-table td:nth-child(13),
-#sales-table th:nth-child(14),
-#sales-table td:nth-child(14),
-#sales-table th:nth-child(15),
-#sales-table td:nth-child(15),
-#sales-table th:nth-child(16),
-#sales-table td:nth-child(16),
-#sales-table th:nth-child(18),
-#sales-table td:nth-child(18) {
-    width: 90px;
-}
-
-#sales-table th:nth-child(17),
-#sales-table td:nth-child(17) {
-    width: 130px;
-}
-
-
+.col-actions { text-align: center; white-space: nowrap; }
+.col-spec { white-space: nowrap; }
 
 #sales-table thead th {
     position: sticky;
@@ -227,6 +173,26 @@
       {% if sales %}
         <div class="table-responsive invoice-table-wrapper">
           <table id="sales-table" class="table table-striped table-hover table-bordered table-sm align-middle">
+            <colgroup>
+              <col style="width:60px">
+              <col style="width:80px">
+              <col style="width:160px">
+              <col style="width:90px">
+              <col style="width:120px">
+              <col style="width:90px">
+              <col style="width:200px">
+              <col style="width:90px">
+              <col style="width:90px">
+              <col style="width:90px">
+              <col style="width:90px">
+              <col style="width:90px">
+              <col style="width:90px">
+              <col style="width:90px">
+              <col style="width:90px">
+              <col style="width:90px">
+              <col style="width:130px">
+              <col style="width:90px">
+            </colgroup>
             <thead class="table-dark">
               <tr>
                 <th scope="col" style="width:40px"><input type="checkbox" id="select-all" onchange="toggleAllCheckboxes(this)"></th>
