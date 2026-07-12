@@ -160,7 +160,7 @@
                 <option value="ProductionQueue">Production Queue</option>
                 <option value="InProduction">In Production</option>
                 <option value="ProductionCompleted">Production Completed</option>
-                <option value="Delivered">Delivered</option>
+                <option value="Completed">Completed</option>
                 <option value="Cancelled">Cancelled</option>
                 <option value="OnHold">On Hold</option>
                 <option value="Rejected">Rejected</option>
@@ -235,7 +235,7 @@
                     <option value="ProductionQueue">Prod Queue</option>
                     <option value="InProduction">In Prod</option>
                     <option value="ProductionCompleted">Prod Completed</option>
-                    <option value="Delivered">Delivered</option>
+                    <option value="Completed">Completed</option>
                     <option value="Cancelled">Cancelled</option>
                     <option value="OnHold">On Hold</option>
                     <option value="Rejected">Rejected</option>
@@ -266,7 +266,7 @@
                   <td>{{ order.quantity_unit }}</td>
                   <td>{{ order.unit_price }}</td>
                   <td>
-                    <span class="badge {% if order.status == 'Delivered' %}bg-success{% elif order.status == 'InProduction' %}bg-warning text-dark{% elif order.status == 'ProductionCompleted' %}bg-info text-dark{% elif order.status == 'ProductionQueue' %}bg-secondary{% elif order.status == 'Cancelled' or order.status == 'Rejected' %}bg-danger{% elif order.status == 'OnHold' %}bg-warning text-dark{% else %}bg-primary{% endif %}">
+                    <span class="badge {% if order.status == 'Completed' %}bg-success{% elif order.status == 'InProduction' %}bg-warning text-dark{% elif order.status == 'ProductionCompleted' %}bg-info text-dark{% elif order.status == 'ProductionQueue' %}bg-secondary{% elif order.status == 'Cancelled' or order.status == 'Rejected' %}bg-danger{% elif order.status == 'OnHold' %}bg-warning text-dark{% else %}bg-primary{% endif %}">
                       {{ order.get_status_display }}
                     </span>
                   </td>
