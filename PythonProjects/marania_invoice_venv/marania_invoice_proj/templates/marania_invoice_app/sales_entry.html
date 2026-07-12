@@ -49,10 +49,13 @@
 #sales-table th:nth-child(14),
 #sales-table td:nth-child(14),
 #sales-table th:nth-child(15),
-#sales-table td:nth-child(15),
+#sales-table td:nth-child(15) {
+    width: 90px;
+}
+
 #sales-table th:nth-child(16),
 #sales-table td:nth-child(16) {
-    width: 90px;
+    width: 130px;
 }
 
 
@@ -252,11 +255,11 @@
                   <select class="filter-select">
                     <option value="">All</option>
                     <option value="PAID">PAID</option>
-                    <option value="PARTIALLY_PAID">PARTIALLY PAID</option>
+                    <option value="PARTIALLY PAID">PARTIALLY PAID</option>
                     <option value="PENDING">PENDING</option>
-                    <option value="NO_PAYMENT">NO PAYMENT</option>
-                    <option value="ON_HOLD_STOCK">ON HOLD(Stock)</option>
-                    <option value="ON_HOLD_PROCESSING">ON HOLD(Proc)</option>
+                    <option value="NO PAYMENT">NO PAYMENT</option>
+                    <option value="ON HOLD(Item On Stock)">ON HOLD(STOCK)</option>
+                    <option value="ON HOLD(PROCESSING)">ON HOLD(PROCESSING)</option>
                   </select>
                 </th>
                 <th>
@@ -274,14 +277,14 @@
                   <td>{{ sale.speification }}</td>
                   <td>{{ sale.colour }}</td>
                   <td>{{ sale.piece_weight }}</td>
-                  <td>{{ sale.piece_count }}</td>
-                  <td>{{ sale.initial_weight }}</td>
-                  <td>{{ sale.processed_weight }}</td>
-                  <td>{{ sale.unit_price }}</td>
-                  <td>{{ sale.gst_rate }}</td>
-                  <td>{{ sale.total_amount }}</td>
-                  <td>{{ sale.delivery_date|date:"Y-m-d" }}</td>
-                  <td>{{ sale.payment_date|date:"Y-m-d" }}</td>
+                  <td>{{ sale.piece_count|default:"" }}</td>
+                  <td>{{ sale.initial_weight|default:"" }}</td>
+                  <td>{{ sale.processed_weight|default:"" }}</td>
+                  <td>{{ sale.unit_price|default:"" }}</td>
+                  <td>{{ sale.gst_rate|default:"" }}</td>
+                  <td>{{ sale.total_amount|default:"" }}</td>
+                  <td>{{ sale.delivery_date|default:""|date:"Y-m-d" }}</td>
+                  <td>{{ sale.payment_date|default:""|date:"Y-m-d" }}</td>
                   <td>
                     <span class="badge {% if sale.status == 'PAID' %}bg-success{% elif sale.status == 'PARTIALLY_PAID' %}bg-info{% elif sale.status == 'PENDING' %}bg-warning text-dark{% elif sale.status == 'NO_PAYMENT' %}bg-danger{% else %}bg-secondary{% endif %}">
                       {{ sale.get_status_display }}
