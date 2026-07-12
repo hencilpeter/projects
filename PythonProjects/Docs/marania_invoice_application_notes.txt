@@ -749,3 +749,22 @@ make the following sequence changes in the sales entry form:
 1. In sales entry form table, payment_date column must be placed after payment status in the table. 
 2. Also, while changing the payment status, change the status colour to be different as like order entry form. 
 3. if possible, similar effect to be given on the upper status field in sales entry form. 
+---->
+make the following sequence changes in the sales entry form:
+1. "Submit Order" button to be renamed to "Submit Sales"
+2. while clicking the status control, drop down must show different colour on each statuses.
+---->
+make the following sequence changes in the sales entry form:
+1. for each orders in sales form, add a select control or check box to select the order row. 
+2. next to "Clear" button, add another button "View  Sales" that should show the summary of the selcted below orders detils. 
+3. new "View  Sales" to be enabled only if any order is selected. 
+4. once "Clear" button is clicked, all the checked order to be unchecked and clear the filters.
+---->
+make the following sequence changes in the sales entry form:
+1. "View Sales" button on the sales entry form table header is un-usable. 
+    move to the filter row just above select just below the select all checkbox row. 
+---->
+make the following sequence changes in the sales entry form:
+1. increase the sales table's select column width to 70px. 
+2. in sales table's filer "Payment Date" goes out of boundary and it should be corrected. 
+3. in sales table's other filters except Status is not working, this needs to be fixed. 

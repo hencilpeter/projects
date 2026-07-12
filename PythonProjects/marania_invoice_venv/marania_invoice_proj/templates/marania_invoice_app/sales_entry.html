@@ -12,7 +12,8 @@
 
 #sales-table {
     table-layout: fixed;
-    width: 100%;
+    width: max-content;
+    min-width: 100%;
 }
 
 .col-narrow { text-align: center; white-space: nowrap; }
@@ -21,11 +22,17 @@
 
 #sales-table th:nth-child(1),
 #sales-table td:nth-child(1) {
-    width: 40px;
+    width: 70px;
     text-align: center;
 }
+
 #sales-table th:nth-child(2),
-#sales-table td:nth-child(2),
+#sales-table td:nth-child(2)
+{
+  width: 40px;
+    text-align: center;
+}
+
 #sales-table th:nth-child(4),
 #sales-table td:nth-child(4),
 #sales-table th:nth-child(5),
@@ -669,13 +676,17 @@ if (salesTable) {
     const salesTbody = salesTable.querySelector('tbody');
 
     function applySalesFilters() {
-        const filterInputs = document.querySelectorAll('#sales-filter-row input, #sales-filter-row select');
-        const filters = Array.from(filterInputs).map(i => i.value.toLowerCase());
+        var filterThs = document.querySelectorAll('#sales-filter-row th');
+        var filters = [];
+        filterThs.forEach(function(th) {
+            var input = th.querySelector('input, select');
+            filters.push(input ? input.value.toLowerCase() : '');
+        });
 
-        salesTbody.querySelectorAll('tr').forEach(row => {
-            const cells = row.querySelectorAll('td');
-            let show = true;
-            filters.forEach((filter, index) => {
+        salesTbody.querySelectorAll('tr').forEach(function(row) {
+            var cells = row.querySelectorAll('td');
+            var show = true;
+            filters.forEach(function(filter, index) {
                 if (!filter) return;
                 if (!cells[index] || !cells[index].textContent.toLowerCase().includes(filter)) {
                     show = false;
@@ -693,10 +704,9 @@ if (salesTable) {
     document.getElementById('clear-sales-filters')
         .addEventListener('click', () => {
             document.querySelectorAll('#sales-filter-row input')
-                .forEach(i => i.value = '');
+                .forEach(i => { i.value = ''; i.dispatchEvent(new Event('input')); });
             document.querySelectorAll('#sales-filter-row select')
-                .forEach(s => s.value = '');
-            applySalesFilters();
+                .forEach(s => { s.value = ''; s.dispatchEvent(new Event('change')); });
         });
 }
 
