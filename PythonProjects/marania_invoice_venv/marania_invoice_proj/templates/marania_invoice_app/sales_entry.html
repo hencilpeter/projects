@@ -48,13 +48,13 @@
 #sales-table td:nth-child(13),
 #sales-table th:nth-child(14),
 #sales-table td:nth-child(14),
-#sales-table th:nth-child(15),
-#sales-table td:nth-child(15) {
+#sales-table th:nth-child(16),
+#sales-table td:nth-child(16) {
     width: 90px;
 }
 
-#sales-table th:nth-child(16),
-#sales-table td:nth-child(16) {
+#sales-table th:nth-child(15),
+#sales-table td:nth-child(15) {
     width: 130px;
 }
 
@@ -167,7 +167,7 @@
               <input type="number" name="gst_rate" id="gst_rate" step="0.01" class="form-control form-control-sm" placeholder="GST Rate">
             </div>
             <div class="col-md-2">
-              <input type="number" name="total_amount" id="total_amount" step="0.01" class="form-control form-control-sm" placeholder="Total Amount">
+              <input type="number" name="total_amount" id="total_amount" step="0.01" class="form-control form-control-sm" placeholder="Total Amount" readonly>
             </div>
             <div class="col-md-2">
               <select name="status" id="status" class="form-control form-control-sm">
@@ -231,8 +231,8 @@
                 <th scope="col" class="col-narrow">GST Rate</th>
                 <th scope="col" class="col-narrow">Total Amt</th>
                 <th scope="col">Delivery Date</th>
-                <th scope="col">Payment Date</th>
                 <th scope="col">Status</th>
+                <th scope="col">Payment Date</th>
                 <th scope="col" class="col-actions">Actions</th>
               </tr>
               <tr id="sales-filter-row">
@@ -250,7 +250,6 @@
                 <th><input class="filter-input" placeholder="GST Rate"></th>
                 <th><input class="filter-input" placeholder="Total"></th>
                 <th><input class="filter-input" placeholder="Delivery"></th>
-                <th><input class="filter-input" placeholder="Payment"></th>
                 <th>
                   <select class="filter-select">
                     <option value="">All</option>
@@ -262,6 +261,7 @@
                     <option value="ON HOLD(PROCESSING)">ON HOLD(PROCESSING)</option>
                   </select>
                 </th>
+                <th><input class="filter-input" placeholder="Payment"></th>
                 <th>
                   <button class="btn btn-warning btn-sm" id="clear-sales-filters">Clear</button>
                 </th>
@@ -284,12 +284,12 @@
                   <td>{{ sale.gst_rate|default:"" }}</td>
                   <td>{{ sale.total_amount|default:"" }}</td>
                   <td>{{ sale.delivery_date|default:""|date:"Y-m-d" }}</td>
-                  <td>{{ sale.payment_date|default:""|date:"Y-m-d" }}</td>
                   <td>
-                    <span class="badge {% if sale.status == 'PAID' %}bg-success{% elif sale.status == 'PARTIALLY_PAID' %}bg-info{% elif sale.status == 'PENDING' %}bg-warning text-dark{% elif sale.status == 'NO_PAYMENT' %}bg-danger{% else %}bg-secondary{% endif %}">
+                    <span class="badge {% if sale.status == 'PAID' %}bg-success{% elif sale.status == 'PARTIALLY_PAID' %}bg-info{% elif sale.status == 'PENDING' %}bg-warning text-dark{% elif sale.status == 'NO_PAYMENT' %}bg-danger{% elif sale.status == 'ON_HOLD_STOCK' %}bg-secondary{% elif sale.status == 'ON_HOLD_PROCESSING' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
                       {{ sale.get_status_display }}
                     </span>
                   </td>
+                  <td>{{ sale.payment_date|default:""|date:"Y-m-d" }}</td>
                   <td>
                     <a href="javascript:void(0);" onclick="loadSale('{{ sale.sales_key }}')" class="btn btn-sm btn-primary d-inline-flex align-items-center">
                       <i class="bi bi-pencil me-1"></i> Edit
@@ -377,6 +377,44 @@ function getFormData() {
     };
 }
 
+function calcTotalAmount() {
+    var initWt = parseFloat(document.getElementById('initial_weight').value) || 0;
+    var procWt = parseFloat(document.getElementById('processed_weight').value) || 0;
+    var price = parseFloat(document.getElementById('unit_price').value) || 0;
+    var gst = parseFloat(document.getElementById('gst_rate').value) || 0;
+    var baseWt = procWt || initWt;
+    if (baseWt > 0 && price > 0) {
+        var baseAmt = baseWt * price;
+        var total = baseAmt + (baseAmt * gst / 100);
+        document.getElementById('total_amount').value = total.toFixed(2);
+    } else {
+        document.getElementById('total_amount').value = '';
+    }
+}
+
+var calcFields = ['initial_weight', 'processed_weight', 'unit_price', 'gst_rate'];
+calcFields.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('blur', calcTotalAmount);
+});
+
+// Status color sync
+function updateStatusStyle(select) {
+    var val = select.value;
+    select.classList.remove('bg-success', 'bg-info', 'bg-warning', 'bg-danger', 'bg-secondary', 'text-dark');
+    if (val === 'PAID') select.classList.add('bg-success');
+    else if (val === 'PARTIALLY_PAID') select.classList.add('bg-info');
+    else if (val === 'PENDING') select.classList.add('bg-warning', 'text-dark');
+    else if (val === 'NO_PAYMENT') select.classList.add('bg-danger');
+    else if (val === 'ON_HOLD_STOCK') select.classList.add('bg-secondary');
+    else if (val === 'ON_HOLD_PROCESSING') select.classList.add('bg-warning', 'text-dark');
+}
+var statusSelect = document.getElementById('status');
+if (statusSelect) {
+    statusSelect.addEventListener('change', function() { updateStatusStyle(this); });
+    updateStatusStyle(statusSelect);
+}
+
 function setDateField(id, value) {
     var el = document.getElementById(id);
     if (!el) return;
@@ -408,6 +446,7 @@ function setFormData(data) {
     document.getElementById('total_amount').value = data.total_amount || '';
     setDateField('delivery_date', data.delivery_date);
     document.getElementById('status').value = data.status || 'ON_HOLD_PROCESSING';
+    if (statusSelect) updateStatusStyle(statusSelect);
     setDateField('payment_date', data.payment_date);
     document.getElementById('remarks').value = data.remarks || '';
 
@@ -416,6 +455,7 @@ function setFormData(data) {
     if (!collapseEl.classList.contains("show")) {
         bsCollapse.show();
     }
+    calcTotalAmount();
 }
 
 function resetSalesForm() {
@@ -435,6 +475,7 @@ function resetSalesForm() {
     document.getElementById('total_amount').value = '';
     setDateField('delivery_date', '');
     document.getElementById('status').value = 'ON_HOLD_PROCESSING';
+    if (statusSelect) updateStatusStyle(statusSelect);
     setDateField('payment_date', '');
     document.getElementById('remarks').value = '';
 }

@@ -2373,6 +2373,19 @@ def copy_order_to_sales(request, order_key):
     now = datetime.now()
     seq = (Sales.objects.aggregate(max_seq=Max('sales_sequence'))['max_seq'] or 0) + 1
 
+    # Determine GST rate from party/company settings
+    party = Parties.objects.filter(code=order.customer).first()
+    settings = CompanySettings.objects.get(id=1)
+    if party and party.is_within_state:
+        gst_rate = (settings.cgst or 0) + (settings.sgst or 0)
+    else:
+        gst_rate = settings.igst or 0
+
+    # Calculate unit price (exclude GST if is_gst_included)
+    unit_price = order.unit_price
+    if order.is_gst_included and order.unit_price and gst_rate:
+        unit_price = round(order.unit_price / (1 + gst_rate / 100), 2)
+
     sales = Sales(
         sales_sequence=seq,
         order_no=order.order_number or f"{order.twine}-{seq}",
@@ -2383,6 +2396,8 @@ def copy_order_to_sales(request, order_key):
         colour=spec.colour if spec else "White",
         piece_weight=spec.piece_weight if spec else "",
         piece_count=spec.no_of_pcs if spec else None,
+        unit_price=unit_price,
+        gst_rate=gst_rate,
         status='ON_HOLD_PROCESSING',
     )
     sales.save()

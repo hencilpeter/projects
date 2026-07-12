@@ -726,3 +726,26 @@ increase the below columns width to 90px:
 make the following sequence changes in the order enry form:
 1. add a new button named "Copy to Sales" in the action column in the table for each order.
 2. upon clicking the "Copy to Sales" button, copy the order #, twine, colour, customer details to the sales and save the details in sales. 
+---->
+make the following sequence changes in the sales entry form:
+1. sales entry form's table, gst rate value to be populated while clicking "Copy to Sales" button  from order entry from  and the gst rate value would calculated as follows: 
+   i. if the customer/party  is is_within_state (true) then populate the sum of settings's cgst+sgst value 
+   ii. if the customer/party  is not is_within_state (fase) then populate the settings's igst value 
+2.   sales entry form's table, Unit Price value to be populate while clicking "Copy to Sales" button   from order entry from and it show follow the below rules:
+   i. if the GST Included is checked or True in orders and the unit price is not empty, exclude the gst rate from the unit price and populte the value in sales entry form unit price.   
+   ii. if the GST Included is not-checked or False in orders and the unit price is not empty, copy the value as it is to sales entry form unit price 
+---->
+make the following sequence changes in the sales entry form:
+Total Amount field value is the derived value from Initial Weight,Processed Weight, Unit Price and Gst Rate and it must be callcualted as follows:
+i. Total Amount field in the sales entry column list should be non-editable. 
+ii.Total Amount field  value would be populated only if the Initial Weight or Processed Weight value exist. 
+iii. if the Processed Weight Value exist, then Total Amount = (Processed Weght X Unit Price ) + GST for (Processed Weght X Unit Price )
+iv. if the Processed Weight Value is empty but Initial Weight is not empty, then Total Amount = (Initial Weght X Unit Price ) + GST for (Initial Weight X Unit Price )
+v. if the Processed Weight and Initial Weight is empty, Total Amount should not be populated. 
+vi. So the total amount calculation should happen when the lost focus happens from Initial Weight, Processed Weight, Unit Price, Gst Rate controls as well as copy the values from Order from to sales from 
+
+---->
+make the following sequence changes in the sales entry form:
+1. In sales entry form table, payment_date column must be placed after payment status in the table. 
+2. Also, while changing the payment status, change the status colour to be different as like order entry form. 
+3. if possible, similar effect to be given on the upper status field in sales entry form. 
