@@ -375,3 +375,54 @@ class ExcelSheet(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Sales(models.Model):
+    PAYMENT_STATUS_CHOICES = [
+        ('PAID', 'PAID'),
+        ('PARTIALLY_PAID', 'PARTIALLY PAID'),
+        ('PENDING', 'PENDING'),
+        ('NO_PAYMENT', 'NO PAYMENT'),
+        ('ON_HOLD_STOCK', 'ON HOLD(Item On Stock)'),
+        ('ON_HOLD_PROCESSING', 'ON HOLD(PROCESSING)'),
+    ]
+
+    sales_key = models.AutoField(primary_key=True)
+    sales_sequence = models.IntegerField(default=0)
+    order_no = models.CharField(max_length=100)
+    order_date = models.DateField()
+    entry_date = models.DateField(blank=True, null=True)
+    payment_date = models.DateField(blank=True, null=True)
+    delivery_date = models.DateField(blank=True, null=True)
+    twine = models.CharField(max_length=255, blank=True, null=True)
+    customer = models.CharField(max_length=255)
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    gst_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    gst_rate = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    initial_weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    processed_weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    status = models.CharField(max_length=30, choices=PAYMENT_STATUS_CHOICES, default='PENDING')
+    remarks = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.order_no} - {self.customer} - {self.order_date}"
+
+    class Meta:
+        ordering = ['-order_date', '-sales_sequence']
+
+
+class SalesSpecification(models.Model):
+    sales = models.ForeignKey(Sales, on_delete=models.CASCADE, related_name='specifications')
+    mesh_size = models.IntegerField(blank=True, null=True)
+    mesh_depth = models.CharField(max_length=50, blank=True, null=True)
+    salvage = models.CharField(max_length=255, blank=True, null=True)
+    piece_weight = models.CharField(max_length=50, blank=True, null=True)
+    colour = models.CharField(max_length=50, default='White')
+    no_of_pcs = models.IntegerField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Spec for {self.sales.order_no}"

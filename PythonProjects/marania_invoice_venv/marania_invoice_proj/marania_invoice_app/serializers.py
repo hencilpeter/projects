@@ -13,6 +13,7 @@ MODEL_REGISTRY = {
     "Configuration": Configuration,
     "CompanySettings": CompanySettings,
     "Order": Order,
+    "Sales": Sales,
 }
 
 UNIQUE_KEY_MODEL = {
@@ -28,4 +29,5 @@ UNIQUE_KEY_MODEL = {
     "Configuration": "",
     "CompanySettings": "",
     "Order": "order_key",
+    "Sales": "sales_key",
 }

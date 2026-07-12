@@ -646,3 +646,31 @@ Make the following changes in order_entry module:
 
 Sales Module
 -------------
+Add a sales module and mimic the style and edit behaviour of order module and use the following fileds for the sales module.
+order_date
+order_no
+entry_date
+payment_date
+twine
+order_specification
+customer
+unit_price
+gst_amount
+total_price
+initial_weight
+processed_weight
+gst_rate
+status
+remarks
+delivery_date
+
+
+below status must be supported:
+PAID
+PARTIALLY PAID
+PENDING
+NO PAYMENT
+ON HOLD(Item On Stock)
+ON HOLD(PROCESSING)
+
+-------------
