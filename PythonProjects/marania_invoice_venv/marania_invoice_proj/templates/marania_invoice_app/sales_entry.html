@@ -45,6 +45,24 @@
     line-height: 1.4 !important;
 }
 
+/* Row status background colors (very light pastels) */
+tr.row-status-paid { background-color: #d4edda !important; }
+tr.row-status-partially_paid { background-color: #d1ecf1 !important; }
+tr.row-status-pending { background-color: #fff3cd !important; }
+tr.row-status-no_payment { background-color: #f8d7da !important; }
+tr.row-status-on_hold_stock { background-color: #e2e3e5 !important; }
+tr.row-status-on_hold_processing { background-color: #fff3cd !important; }
+
+/* Ensure text remains readable */
+tr.row-status-paid td,
+tr.row-status-partially_paid td,
+tr.row-status-pending td,
+tr.row-status-no_payment td,
+tr.row-status-on_hold_stock td,
+tr.row-status-on_hold_processing td {
+    color: #212529 !important;
+}
+
 .btn-3d-yellow {
   background: linear-gradient(to bottom, #ffeb3b, #f9c60a) !important;
   color: #212529 !important;
@@ -243,8 +261,8 @@
                   <button class="btn btn-warning btn-sm" id="clear-sales-filters">Clear</button>
                 </th>
                 <th><input class="filter-input" placeholder="Entry Date"></th>
-                <th><input class="filter-input" placeholder="Customer"></th>
-                <th><input class="filter-input" placeholder="Twine"></th>
+                <th><input class="filter-input" placeholder="Customer" list="customer_list"></th>
+                <th><input class="filter-input" placeholder="Twine" list="twine_list"></th>
                 <th><input class="filter-input" placeholder="Spec"></th>
                 <th><input class="filter-input" placeholder="Colour"></th>
                 <th><input class="filter-input" placeholder="Piece Wt"></th>
@@ -271,7 +289,7 @@
             </thead>
             <tbody>
               {% for sale in sales %}
-                <tr>
+                <tr class="row-status-{{ sale.status|lower }}">
                   <td><input type="checkbox" class="row-checkbox" value="{{ sale.sales_key }}" onchange="updateViewSalesBtn()"></td>
                   <td>{{ sale.order_no }}</td>
                   <td>

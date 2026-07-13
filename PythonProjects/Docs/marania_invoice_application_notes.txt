@@ -768,3 +768,14 @@ make the following sequence changes in the sales entry form:
 1. increase the sales table's select column width to 70px. 
 2. in sales table's filer "Payment Date" goes out of boundary and it should be corrected. 
 3. in sales table's other filters except Status is not working, this needs to be fixed. 
+---->
+make the following sequence changes in the sales entry form:
+1. "View Sales" to be renamed to "View" and clumn width to be reduced to 50px. 
+2.  "Order No" column to be reduced to 90px but other columns widht to be untouched. 
+---->
+make the following sequence changes in the sales entry form:
+1. payment date header filter in the table goes out of the boundary. this to be fixed. 
+2. is it possible to reduce the width of "Edit", "Clone" and "Del" button against each row in the sales table. 
+---->
+make the following sequence changes in the sales entry form:
+1. sales entry table, change the background of the each order items row with light transparent colour of the status colour. colour should be very light and all the text must be readable.  
