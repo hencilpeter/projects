@@ -30,6 +30,21 @@
     text-align: center;
 }
 
+#sales-table th input.filter-input,
+#sales-table th select.filter-select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 2px 4px;
+    font-size: 0.85rem;
+    margin-bottom: 2px;
+}
+
+.btn-action-compact {
+    padding: 2px 6px !important;
+    font-size: 0.85rem !important;
+    line-height: 1.4 !important;
+}
+
 .btn-3d-yellow {
   background: linear-gradient(to bottom, #ffeb3b, #f9c60a) !important;
   color: #212529 !important;
@@ -260,18 +275,18 @@
                   <td><input type="checkbox" class="row-checkbox" value="{{ sale.sales_key }}" onchange="updateViewSalesBtn()"></td>
                   <td>{{ sale.order_no }}</td>
                   <td>
-                    <a href="javascript:void(0);" onclick="loadSale('{{ sale.sales_key }}')" class="btn btn-sm btn-primary d-inline-flex align-items-center">
-                      <i class="bi bi-pencil me-1"></i> Edit
+                    <a href="javascript:void(0);" onclick="loadSale('{{ sale.sales_key }}')" class="btn btn-sm btn-primary">
+                      <i class="bi bi-pencil"></i> Edit
                     </a>
-                    <a href="javascript:void(0);" onclick="cloneSale('{{ sale.sales_key }}')" class="btn btn-sm btn-info d-inline-flex align-items-center">
-                      <i class="bi bi-copy me-1"></i> Clone
+                    <a href="javascript:void(0);" onclick="cloneSale('{{ sale.sales_key }}')" class="btn btn-sm btn-info">
+                      <i class="bi bi-copy"></i> Clone
                     </a>
                     <form method="POST" action="{% url 'sales_entry' %}" style="display:inline;" onsubmit="return confirm('Delete this sale?')">
                       {% csrf_token %}
                       <input type="hidden" name="action" value="delete">
                       <input type="hidden" name="sales_key" value="{{ sale.sales_key }}">
-                      <button type="submit" class="btn btn-sm btn-danger d-inline-flex align-items-center">
-                        <i class="bi bi-trash me-1"></i> Del
+                      <button type="submit" class="btn btn-sm btn-danger">
+                        <i class="bi bi-trash"></i> Del
                       </button>
                     </form>
                   </td>
