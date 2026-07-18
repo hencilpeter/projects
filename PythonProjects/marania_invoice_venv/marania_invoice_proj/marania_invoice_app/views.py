@@ -835,7 +835,7 @@ def get_invoice_dictonaries(invoice_number):
                     "state_code": company_settings.company_state_code,
                     "contact": company_settings.company_phone, 
                     "bank_account_name": company_settings.bank_account_name, 
-                    "bank_name": company_settings.bank_account_name,
+                    "bank_name": company_settings.bank_name,
                     "bank_account_no": company_settings.bank_account_number, 
                     "bank_branch": company_settings.bank_branch,
                     "bank_ifsc":  company_settings.bank_ifsc,  
