@@ -70,12 +70,38 @@
   transform: translateY(3px);
   box-shadow: 0 1px 0 #caa600 inset !important;
 }
+
+.allocation-mode-btn {
+  font-size: 0.85rem;
+  padding: 6px 18px;
+  border: 2px solid #dee2e6;
+  background: #fff;
+  color: #495057;
+  transition: all 0.15s;
+}
+.allocation-mode-btn.active {
+  border-color: #0d6efd;
+  background: #0d6efd;
+  color: #fff;
+}
+.allocation-mode-btn:first-child {
+  border-radius: 6px 0 0 6px;
+}
+.allocation-mode-btn:last-child {
+  border-radius: 0 6px 6px 0;
+}
 </style>
 
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
   <div class="container my-5">
 
     <h2 class="mb-4">Payment Allocations</h2>
+
+    <div class="btn-group mb-3" role="group" aria-label="Allocation mode">
+      <button type="button" class="allocation-mode-btn active" data-mode="perfect" onclick="setAllocationMode('perfect')">Perfect Allocation</button>
+      <button type="button" class="allocation-mode-btn" data-mode="sequential" onclick="setAllocationMode('sequential')">Sequential Allocation</button>
+    </div>
+    <input type="hidden" id="allocation_mode" value="perfect">
 
     <form method="POST" action="{% url 'payment_allocation_entry' %}" id="allocForm">
       {% csrf_token %}
@@ -132,11 +158,12 @@
         <!-- Right Panel: Invoices -->
         <div class="col-md-6">
           <div class="panel-card">
-            <h6><i class="bi bi-file-text"></i> Invoices — Allocate Amounts</h6>
+            <h6><i class="bi bi-file-text"></i> Invoices — Allocate Amounts <span class="badge bg-primary" id="invoice-count-badge">0</span></h6>
             <div class="allocation-wrapper" id="invoice-panel">
               <table class="table table-sm table-bordered mb-0" id="invoice-table">
                 <thead class="table-light">
                   <tr>
+                    <th style="width:40px"><input type="checkbox" id="select-all-invoices" checked onchange="toggleAllInvoices()"></th>
                     <th>Invoice #</th>
                     <th>Date</th>
                     <th>Invoice Amt</th>
@@ -145,7 +172,7 @@
                   </tr>
                 </thead>
                 <tbody id="invoice-tbody">
-                  <tr><td colspan="5" class="text-muted text-center">Select a customer</td></tr>
+                  <tr><td colspan="6" class="text-muted text-center">Select a customer</td></tr>
                 </tbody>
               </table>
             </div>
@@ -220,6 +247,24 @@ var invoiceData = {{ invoice_data_json|safe }};
 
 var filteredPayments = [];
 var filteredInvoices = [];
+var currentMode = 'perfect';
+
+function setAllocationMode(mode) {
+    currentMode = mode;
+    document.getElementById('allocation_mode').value = mode;
+    document.querySelectorAll('.allocation-mode-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-mode') === mode);
+    });
+    distribute();
+}
+
+function distribute() {
+    if (currentMode === 'perfect') {
+        allocatePerfect();
+    } else {
+        allocateSequential();
+    }
+}
 
 function onCustomerChange() {
     var val = document.getElementById('alloc_customer').value.trim().toLowerCase();
@@ -255,7 +300,7 @@ function renderPayments() {
     var html = '';
     filteredPayments.forEach(function(p, i) {
         html += '<tr class="payment-row" data-payment-id="' + p.payment_id + '">'
-            + '<td><input type="checkbox" class="payment-checkbox" checked onchange="distributeSequentially()"></td>'
+            + '<td><input type="checkbox" class="payment-checkbox" checked onchange="distribute()"></td>'
             + '<td>' + (p.payment_date || '') + '</td>'
             + '<td>' + (p.receipt_no || '') + '</td>'
             + '<td>' + (p.total_received || '') + '</td>'
@@ -263,13 +308,13 @@ function renderPayments() {
             + '</tr>';
     });
     tbody.innerHTML = html;
-    distributeSequentially();
+    distribute();
 }
 
 function toggleAllPayments() {
     var checked = document.getElementById('select-all-payments').checked;
     document.querySelectorAll('.payment-checkbox').forEach(function(cb) { cb.checked = checked; });
-    distributeSequentially();
+    distribute();
 }
 
 function getSelectedPaymentIds() {
@@ -286,13 +331,17 @@ function getSelectedPaymentIds() {
 
 function renderInvoices() {
     var tbody = document.getElementById('invoice-tbody');
+    var countBadge = document.getElementById('invoice-count-badge');
     if (filteredInvoices.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-muted text-center">No invoices with balance</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-muted text-center">No invoices with balance</td></tr>';
+        countBadge.textContent = '0';
         return;
     }
+    countBadge.textContent = filteredInvoices.length;
     var html = '';
     filteredInvoices.forEach(function(inv) {
         html += '<tr>'
+            + '<td><input type="checkbox" class="invoice-checkbox" checked onchange="distribute()"></td>'
             + '<td>' + (inv.invoice_number || '') + '</td>'
             + '<td>' + (inv.invoice_date || '') + '</td>'
             + '<td>' + (inv.gross_total || '') + '</td>'
@@ -306,34 +355,127 @@ function renderInvoices() {
     tbody.innerHTML = html;
 }
 
-function distributeSequentially() {
+function allocateSequential() {
+    // Compute total available from SELECTED payment checkboxes only
     var totalAvailable = 0;
-    filteredPayments.forEach(function(p) {
-        totalAvailable += parseFloat(p.available) || 0;
+    document.querySelectorAll('.payment-checkbox:checked').forEach(function(cb) {
+        var row = cb.closest('tr');
+        if (row) {
+            var availCell = row.cells[4];
+            totalAvailable += parseFloat(availCell ? availCell.textContent : '0') || 0;
+        }
     });
     document.getElementById('total-available').textContent = totalAvailable.toFixed(2);
-    console.log('totalAvailable:', totalAvailable);
 
-    var inputs = document.querySelectorAll('input[name="allocated_amount[]"]');
-    var balanceCells = document.querySelectorAll('.balance-cell');
-    console.log('invoice inputs found:', inputs.length, 'balance cells:', balanceCells.length);
-
+    // Only distribute to SELECTED invoices
+    var invoiceRows = document.querySelectorAll('#invoice-tbody tr');
     var remaining = totalAvailable;
-    inputs.forEach(function(inp, i) {
-        var balText = balanceCells[i] ? balanceCells[i].textContent.trim() : '';
-        var bal = parseFloat(balText) || 0;
-        console.log('invoice', i, 'balance text:', balText, 'parsed:', bal);
-        if (remaining > 0 && bal > 0) {
-            var alloc = Math.min(bal, remaining);
-            inp.value = alloc.toFixed(2);
-            remaining -= alloc;
-            console.log('  alloc:', alloc.toFixed(2), 'remaining:', remaining.toFixed(2));
+    invoiceRows.forEach(function(row) {
+        var checkbox = row.querySelector('.invoice-checkbox');
+        var inp = row.querySelector('input[name="allocated_amount[]"]');
+        var balCell = row.querySelector('.balance-cell');
+        if (!checkbox || !inp) return;
+
+        if (checkbox.checked && remaining > 0) {
+            var bal = parseFloat(balCell ? balCell.textContent.trim() : '0') || 0;
+            if (bal > 0) {
+                var alloc = Math.min(bal, remaining);
+                inp.value = alloc.toFixed(2);
+                remaining -= alloc;
+            } else {
+                inp.value = '';
+            }
         } else {
             inp.value = '';
         }
     });
     updateTotalAllocating();
     updateSelectedPaymentsInfo();
+}
+
+function allocatePerfect() {
+    // Compute total available from SELECTED payment checkboxes
+    var totalAvailable = 0;
+    document.querySelectorAll('.payment-checkbox:checked').forEach(function(cb) {
+        var row = cb.closest('tr');
+        if (row) {
+            var availCell = row.cells[4];
+            totalAvailable += parseFloat(availCell ? availCell.textContent : '0') || 0;
+        }
+    });
+    document.getElementById('total-available').textContent = totalAvailable.toFixed(2);
+
+    // Collect selected invoice data, clear all inputs
+    var invoiceRows = document.querySelectorAll('#invoice-tbody tr');
+    var selectedInvoices = [];
+
+    invoiceRows.forEach(function(row) {
+        var checkbox = row.querySelector('.invoice-checkbox');
+        var inp = row.querySelector('input[name="allocated_amount[]"]');
+        var balCell = row.querySelector('.balance-cell');
+        if (!checkbox || !inp) return;
+        inp.value = '';
+        if (checkbox.checked) {
+            var bal = parseFloat(balCell ? balCell.textContent.trim() : '0') || 0;
+            if (bal > 0) selectedInvoices.push({ inp: inp, bal: bal });
+        }
+    });
+
+    var remaining = totalAvailable;
+    var n = selectedInvoices.length;
+    var perfectMask = null;
+    var perfectCount = 0;
+
+    if (n > 0) {
+        // Try all subsets to find one whose sum equals totalAvailable
+        var totalMasks = 1 << n;
+        var limit = Math.min(totalMasks, 65536); // cap at 16 invoices for performance
+        for (var mask = 1; mask < limit; mask++) {
+            var sum = 0;
+            var count = 0;
+            for (var i = 0; i < n; i++) {
+                if (mask & (1 << i)) {
+                    sum += selectedInvoices[i].bal;
+                    count++;
+                }
+            }
+            if (Math.abs(sum - totalAvailable) < 0.001 && count > perfectCount) {
+                perfectMask = mask;
+                perfectCount = count;
+            }
+        }
+    }
+
+    if (perfectMask !== null) {
+        // Allocate perfectly matched invoices fully
+        for (var i = 0; i < n; i++) {
+            if (perfectMask & (1 << i)) {
+                selectedInvoices[i].inp.value = selectedInvoices[i].bal.toFixed(2);
+                remaining -= selectedInvoices[i].bal;
+            }
+        }
+    }
+
+    // Fallback: sequential allocation for any remaining available amount
+    if (remaining > 0.001) {
+        for (var i = 0; i < n; i++) {
+            if (remaining <= 0.001) break;
+            if (selectedInvoices[i].inp.value === '') {
+                var alloc = Math.min(selectedInvoices[i].bal, remaining);
+                selectedInvoices[i].inp.value = alloc.toFixed(2);
+                remaining -= alloc;
+            }
+        }
+    }
+
+    updateTotalAllocating();
+    updateSelectedPaymentsInfo();
+}
+
+function toggleAllInvoices() {
+    var checked = document.getElementById('select-all-invoices').checked;
+    document.querySelectorAll('.invoice-checkbox').forEach(function(cb) { cb.checked = checked; });
+    distribute();
 }
 
 function updateTotalAllocating() {
@@ -353,13 +495,24 @@ function updateSelectedPaymentsInfo() {
 }
 
 function validateAllocations() {
-    var inputs = document.querySelectorAll('input[name="allocated_amount[]"]');
+    // Disable unchecked invoice inputs so they don't submit
+    document.querySelectorAll('#invoice-tbody tr').forEach(function(row) {
+        var cb = row.querySelector('.invoice-checkbox');
+        var inputs = row.querySelectorAll('input[name="invoice_number[]"], input[name="allocated_amount[]"]');
+        inputs.forEach(function(inp) { inp.disabled = !cb.checked; });
+    });
+
+    // Check at least one checked invoice has an allocation
     var hasAlloc = false;
-    inputs.forEach(function(inp) {
-        if (parseFloat(inp.value) > 0) hasAlloc = true;
+    document.querySelectorAll('#invoice-tbody tr').forEach(function(row) {
+        var cb = row.querySelector('.invoice-checkbox');
+        if (cb && cb.checked) {
+            var inp = row.querySelector('input[name="allocated_amount[]"]');
+            if (inp && parseFloat(inp.value) > 0) hasAlloc = true;
+        }
     });
     if (!hasAlloc) {
-        alert('Enter at least one allocation amount.');
+        alert('Enter at least one allocation amount for a selected invoice.');
         return false;
     }
     var selectedIds = getSelectedPaymentIds();

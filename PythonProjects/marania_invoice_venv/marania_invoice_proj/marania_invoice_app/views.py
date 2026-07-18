@@ -2587,11 +2587,14 @@ def payment_allocation_entry(request):
                     alloc, created = PaymentAllocation.objects.get_or_create(
                         payment=receipt_obj,
                         invoice=invoice,
-                        defaults={'allocated_amount': take}
+                        defaults={
+                            'allocated_amount': take,
+                            'allocation_date': parse_date(allocation_date) or now.strftime('%Y-%m-%d'),
+                        }
                     )
                     if not created:
                         alloc.allocated_amount = (alloc.allocated_amount or 0) + take
-                    alloc.allocation_date = parse_date(allocation_date) or now.strftime('%Y-%m-%d')
+                        alloc.allocation_date = parse_date(allocation_date) or now.strftime('%Y-%m-%d')
                     alloc.remarks = remarks
                     alloc.updated_at = now
                     alloc.save()
