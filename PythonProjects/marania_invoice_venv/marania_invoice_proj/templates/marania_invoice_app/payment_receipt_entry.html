@@ -366,9 +366,17 @@ function generateReceiptNo() {
     var d = String(now.getDate()).padStart(2, '0');
     var base = 'RCPT-' + y + m + d + '-';
     var maxSeq = 0;
+    // Check existing DB records
     receiptsData.forEach(function(r) {
         if (r.receipt_no && r.receipt_no.startsWith(base)) {
             var seq = parseInt(r.receipt_no.split('-').pop(), 10);
+            if (seq > maxSeq) maxSeq = seq;
+        }
+    });
+    // Also check cart entries (draftEntries)
+    draftEntries.forEach(function(e) {
+        if (e.receipt_no && e.receipt_no.startsWith(base)) {
+            var seq = parseInt(e.receipt_no.split('-').pop(), 10);
             if (seq > maxSeq) maxSeq = seq;
         }
     });

@@ -2445,6 +2445,9 @@ def payment_receipt_entry(request):
                 entries = drafts_raw if isinstance(drafts_raw, list) else []
 
             now = datetime.now()
+            today_str = now.strftime('%Y%m%d')
+            base = f'RCPT-{today_str}-'
+            batch_seq = 0
             for entry in entries:
                 customer = (entry.get("customer") or "").strip()
                 if not customer:
@@ -2465,7 +2468,24 @@ def payment_receipt_entry(request):
                 else:
                     obj = PaymentReceipt()
 
-                obj.receipt_no = entry.get("receipt_no") or ""
+                # Always generate receipt_no server-side for new records
+                if is_update and (entry.get("receipt_no") or "").strip():
+                    obj.receipt_no = entry.get("receipt_no").strip()
+                else:
+                    if batch_seq == 0:
+                        existing = PaymentReceipt.objects.filter(
+                            receipt_no__startswith=base
+                        ).values_list('receipt_no', flat=True)
+                        for r in existing:
+                            parts = r.split('-')
+                            try:
+                                seq = int(parts[-1])
+                                if seq > batch_seq:
+                                    batch_seq = seq
+                            except (ValueError, IndexError):
+                                pass
+                    batch_seq += 1
+                    obj.receipt_no = base + str(batch_seq).zfill(3)
                 party_code = customer.split('-')[0] if '-' in customer else customer
                 party = Parties.objects.filter(code=party_code).first()
                 if party:
@@ -2477,7 +2497,17 @@ def payment_receipt_entry(request):
                 obj.allocation_status = entry.get("allocation_status") or "Unallocated"
                 obj.remarks = entry.get("remarks") or ""
                 obj.updated_at = now
-                obj.save()
+                # Retry save with incremented seq on unique constraint collision
+                for _ in range(3):
+                    try:
+                        obj.save()
+                        break
+                    except IntegrityError as e:
+                        if not is_update and 'receipt_no' in str(e):
+                            batch_seq += 1
+                            obj.receipt_no = base + str(batch_seq).zfill(3)
+                            continue
+                        raise
                 saved_count += 1
 
             if saved_count:
