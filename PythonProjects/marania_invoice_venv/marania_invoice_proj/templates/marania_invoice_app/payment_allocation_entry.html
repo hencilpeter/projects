@@ -1,0 +1,374 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block main %}
+
+<style>
+.allocation-wrapper {
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+.panel-card {
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 12px;
+    background: #f8f9fa;
+    margin-bottom: 12px;
+}
+
+.panel-card h6 {
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+}
+
+.payment-row {
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.payment-row:hover {
+    background: #e9ecef;
+}
+
+.payment-row.selected {
+    background: #cfe2ff;
+    font-weight: 500;
+}
+
+.alloc-input {
+    width: 100px;
+    display: inline-block;
+}
+
+.btn-3d-yellow {
+  background: linear-gradient(to bottom, #ffeb3b, #f9c60a) !important;
+  color: #212529 !important;
+  border: 1px solid #e0b800 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 0 #caa600, 0 6px 12px rgba(0, 0, 0, 0.15) !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease-in-out;
+  padding: 4px 10px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-3d-yellow:hover {
+  background: linear-gradient(to bottom, #ffe600, #f9b208) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #caa600, 0 10px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+.btn-3d-yellow:active {
+  background: linear-gradient(to bottom, #f9c60a, #d4a500) !important;
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #caa600 inset !important;
+}
+</style>
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container my-5">
+
+    <h2 class="mb-4">Payment Allocations</h2>
+
+    <form method="POST" action="{% url 'payment_allocation_entry' %}" id="allocForm">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_allocations">
+      <input type="hidden" name="payment_ids" id="selected_payment_ids" value="">
+
+      <div class="row mb-3">
+        <div class="col-md-4">
+          <label class="form-label">Customer</label>
+          <input type="text" id="alloc_customer" class="form-control form-control-sm" placeholder="Select Customer" list="customer_list" oninput="onCustomerChange()" onchange="onCustomerChange()">
+          <datalist id="customer_list">
+            {% for party in parties %}
+              <option value="{{ party.code }}-{{ party.name }}">
+            {% endfor %}
+          </datalist>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Allocation Date</label>
+          <input type="date" name="allocation_date" id="allocation_date" class="form-control form-control-sm" value="{% now 'Y-m-d' %}">
+        </div>
+        <div class="col-md-5">
+          <label class="form-label">Remarks</label>
+          <input type="text" name="remarks" id="remarks" class="form-control form-control-sm" placeholder="Remarks (optional)">
+        </div>
+      </div>
+
+      <div class="row">
+        <!-- Left Panel: Payments -->
+        <div class="col-md-6">
+            <div class="panel-card">
+            <h6><i class="bi bi-credit-card"></i> Unallocated Payments <span class="badge bg-primary" id="payment-count-badge">0</span></h6>
+            <div class="allocation-wrapper" id="payment-panel">
+              <table class="table table-sm table-bordered table-hover mb-0" id="payment-table">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width:40px"><input type="checkbox" id="select-all-payments" checked onchange="toggleAllPayments()"></th>
+                    <th>Date</th>
+                    <th>Receipt No</th>
+                    <th>Amount</th>
+                    <th>Available</th>
+                  </tr>
+                </thead>
+                <tbody id="payment-tbody">
+                  <tr><td colspan="5" class="text-muted text-center">Select a customer</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="mt-2 text-end">
+              <strong>Total Available: </strong><span id="total-available">0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Panel: Invoices -->
+        <div class="col-md-6">
+          <div class="panel-card">
+            <h6><i class="bi bi-file-text"></i> Invoices — Allocate Amounts</h6>
+            <div class="allocation-wrapper" id="invoice-panel">
+              <table class="table table-sm table-bordered mb-0" id="invoice-table">
+                <thead class="table-light">
+                  <tr>
+                    <th>Invoice #</th>
+                    <th>Date</th>
+                    <th>Invoice Amt</th>
+                    <th>Balance</th>
+                    <th>Allocate</th>
+                  </tr>
+                </thead>
+                <tbody id="invoice-tbody">
+                  <tr><td colspan="5" class="text-muted text-center">Select a customer</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="mt-2 text-end">
+              <strong>Total Allocating: </strong><span id="total-allocating">0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center mt-3">
+        <button type="submit" class="btn btn-success btn-lg" id="saveAllocBtn" disabled onclick="return validateAllocations()">
+          <i class="bi bi-check-circle"></i> Save Allocations
+        </button>
+        <a href="{% url 'payment_allocation_entry' %}" class="btn btn-secondary btn-lg ms-2">
+          <i class="bi bi-arrow-counterclockwise"></i> Refresh
+        </a>
+      </div>
+    </form>
+
+    <!-- Existing Allocations Table -->
+    <div class="mt-5">
+      <h5><i class="bi bi-list"></i> Existing Allocations</h5>
+      <div class="table-responsive" style="max-height:400px;overflow:auto;border:1px solid #ddd;">
+        <table class="table table-sm table-bordered table-striped">
+          <thead class="table-dark">
+            <tr>
+              <th>Alloc ID</th>
+              <th>Receipt</th>
+              <th>Invoice</th>
+              <th>Amount</th>
+              <th>Date</th>
+              <th>Remarks</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in existing_allocations %}
+            <tr>
+              <td>{{ a.allocation_id }}</td>
+              <td>{{ a.payment.receipt_no }}</td>
+              <td>{{ a.invoice.invoice_number }}</td>
+              <td>{{ a.allocated_amount }}</td>
+              <td>{{ a.allocation_date|date:"Y-m-d" }}</td>
+              <td>{{ a.remarks|default:"" }}</td>
+              <td>
+                <form method="POST" action="{% url 'payment_allocation_entry' %}" style="display:inline;" onsubmit="return confirm('Delete this allocation?')">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="delete">
+                  <input type="hidden" name="allocation_id" value="{{ a.allocation_id }}">
+                  <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i> Del</button>
+                </form>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-muted text-center">No allocations yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+var paymentData = {{ payment_data_json|safe }};
+var invoiceData = {{ invoice_data_json|safe }};
+
+var filteredPayments = [];
+var filteredInvoices = [];
+
+function onCustomerChange() {
+    var val = document.getElementById('alloc_customer').value.trim().toLowerCase();
+    var code = val.split('-')[0].trim();
+
+    // Don't filter on very short input (prevents flickering while typing)
+    if (code.length < 2) {
+        filteredPayments = paymentData;
+        filteredInvoices = invoiceData;
+    } else {
+        filteredPayments = paymentData.filter(function(p) {
+            return p.customer_code && p.customer_code.toLowerCase() === code;
+        });
+        filteredInvoices = invoiceData.filter(function(inv) {
+            return inv.customer_code && inv.customer_code.toLowerCase() === code;
+        });
+    }
+
+    renderInvoices();
+    renderPayments();
+}
+
+function renderPayments() {
+    var tbody = document.getElementById('payment-tbody');
+    var countBadge = document.getElementById('payment-count-badge');
+    if (filteredPayments.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-muted text-center">No unallocated payments</td></tr>';
+        countBadge.textContent = '0';
+        document.getElementById('total-available').textContent = '0.00';
+        return;
+    }
+    countBadge.textContent = filteredPayments.length;
+    var html = '';
+    filteredPayments.forEach(function(p, i) {
+        html += '<tr class="payment-row" data-payment-id="' + p.payment_id + '">'
+            + '<td><input type="checkbox" class="payment-checkbox" checked onchange="distributeSequentially()"></td>'
+            + '<td>' + (p.payment_date || '') + '</td>'
+            + '<td>' + (p.receipt_no || '') + '</td>'
+            + '<td>' + (p.total_received || '') + '</td>'
+            + '<td>' + (p.available || '') + '</td>'
+            + '</tr>';
+    });
+    tbody.innerHTML = html;
+    distributeSequentially();
+}
+
+function toggleAllPayments() {
+    var checked = document.getElementById('select-all-payments').checked;
+    document.querySelectorAll('.payment-checkbox').forEach(function(cb) { cb.checked = checked; });
+    distributeSequentially();
+}
+
+function getSelectedPaymentIds() {
+    var ids = [];
+    document.querySelectorAll('.payment-checkbox:checked').forEach(function(cb) {
+        var row = cb.closest('tr');
+        if (row) {
+            var pid = row.getAttribute('data-payment-id');
+            if (pid) ids.push(pid);
+        }
+    });
+    return ids;
+}
+
+function renderInvoices() {
+    var tbody = document.getElementById('invoice-tbody');
+    if (filteredInvoices.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-muted text-center">No invoices with balance</td></tr>';
+        return;
+    }
+    var html = '';
+    filteredInvoices.forEach(function(inv) {
+        html += '<tr>'
+            + '<td>' + (inv.invoice_number || '') + '</td>'
+            + '<td>' + (inv.invoice_date || '') + '</td>'
+            + '<td>' + (inv.gross_total || '') + '</td>'
+            + '<td class="balance-cell">' + (inv.balance || '') + '</td>'
+            + '<td>'
+            + '<input type="hidden" name="invoice_number[]" value="' + inv.invoice_number + '">'
+            + '<input type="number" name="allocated_amount[]" class="form-control form-control-sm alloc-input" step="0.01" min="0" placeholder="0.00" oninput="updateTotalAllocating()">'
+            + '</td>'
+            + '</tr>';
+    });
+    tbody.innerHTML = html;
+}
+
+function distributeSequentially() {
+    var totalAvailable = 0;
+    filteredPayments.forEach(function(p) {
+        totalAvailable += parseFloat(p.available) || 0;
+    });
+    document.getElementById('total-available').textContent = totalAvailable.toFixed(2);
+    console.log('totalAvailable:', totalAvailable);
+
+    var inputs = document.querySelectorAll('input[name="allocated_amount[]"]');
+    var balanceCells = document.querySelectorAll('.balance-cell');
+    console.log('invoice inputs found:', inputs.length, 'balance cells:', balanceCells.length);
+
+    var remaining = totalAvailable;
+    inputs.forEach(function(inp, i) {
+        var balText = balanceCells[i] ? balanceCells[i].textContent.trim() : '';
+        var bal = parseFloat(balText) || 0;
+        console.log('invoice', i, 'balance text:', balText, 'parsed:', bal);
+        if (remaining > 0 && bal > 0) {
+            var alloc = Math.min(bal, remaining);
+            inp.value = alloc.toFixed(2);
+            remaining -= alloc;
+            console.log('  alloc:', alloc.toFixed(2), 'remaining:', remaining.toFixed(2));
+        } else {
+            inp.value = '';
+        }
+    });
+    updateTotalAllocating();
+    updateSelectedPaymentsInfo();
+}
+
+function updateTotalAllocating() {
+    var inputs = document.querySelectorAll('input[name="allocated_amount[]"]');
+    var total = 0;
+    inputs.forEach(function(inp) {
+        var v = parseFloat(inp.value) || 0;
+        total += v;
+    });
+    document.getElementById('total-allocating').textContent = total.toFixed(2);
+}
+
+function updateSelectedPaymentsInfo() {
+    var selectedIds = getSelectedPaymentIds();
+    document.getElementById('selected_payment_ids').value = selectedIds.join(',');
+    document.getElementById('saveAllocBtn').disabled = selectedIds.length === 0;
+}
+
+function validateAllocations() {
+    var inputs = document.querySelectorAll('input[name="allocated_amount[]"]');
+    var hasAlloc = false;
+    inputs.forEach(function(inp) {
+        if (parseFloat(inp.value) > 0) hasAlloc = true;
+    });
+    if (!hasAlloc) {
+        alert('Enter at least one allocation amount.');
+        return false;
+    }
+    var selectedIds = getSelectedPaymentIds();
+    if (selectedIds.length === 0) {
+        alert('Select at least one payment receipt.');
+        return false;
+    }
+    document.getElementById('selected_payment_ids').value = selectedIds.join(',');
+    return confirm('Save these allocations?');
+}
+</script>
+{% endblock %}

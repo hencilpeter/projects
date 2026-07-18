@@ -72,6 +72,15 @@ path('orders/copy-to-sales/<int:order_key>/', views.copy_order_to_sales, name='c
 # sales
 path('sales', views.sales_entry, name='sales_entry'),
 
+# payment receipt
+path('payment-receipts', views.payment_receipt_entry, name='payment_receipt_entry'),
+
+# payment allocation
+path('payment-allocations', views.payment_allocation_entry, name='payment_allocation_entry'),
+
+# opening balance
+path('opening-balances', views.opening_balance_entry, name='opening_balance_entry'),
+
 # excel 
 path('sheets/salesview', views.sheet_sales_view, name="sheet_sales_view"),
 path('sheets/salessave', views.sheet_sales_save, name="sheet_sales_save"),

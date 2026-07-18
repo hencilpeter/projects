@@ -1,0 +1,531 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block main %}
+
+<style>
+.invoice-table-wrapper {
+    max-height: 820px;
+    overflow: auto;
+    border: 1px solid #ddd;
+}
+
+#receipts-table {
+    table-layout: fixed;
+}
+
+.col-narrow { text-align: center; white-space: nowrap; }
+.col-actions { text-align: center; white-space: nowrap; }
+
+#receipts-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    white-space: nowrap;
+}
+
+#receipts-table th:nth-child(1),
+#receipts-table td:nth-child(1) {
+    text-align: center;
+}
+
+#receipts-table th input.filter-input,
+#receipts-table th select.filter-select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 2px 4px;
+    font-size: 0.85rem;
+    margin-bottom: 2px;
+}
+
+.btn-action-compact {
+    padding: 2px 6px !important;
+    font-size: 0.85rem !important;
+    line-height: 1.4 !important;
+}
+
+.btn-3d-yellow {
+  background: linear-gradient(to bottom, #ffeb3b, #f9c60a) !important;
+  color: #212529 !important;
+  border: 1px solid #e0b800 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 0 #caa600, 0 6px 12px rgba(0, 0, 0, 0.15) !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease-in-out;
+  padding: 4px 10px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-3d-yellow:hover {
+  background: linear-gradient(to bottom, #ffe600, #f9b208) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #caa600, 0 10px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+.btn-3d-yellow:active {
+  background: linear-gradient(to bottom, #f9c60a, #d4a500) !important;
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #caa600 inset !important;
+}
+</style>
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container my-5">
+
+    <h2 class="mb-4">Payment Receipts</h2>
+
+    <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#receiptForm" aria-expanded="false" aria-controls="receiptForm">
+      New Receipt
+    </button>
+
+    <div class="collapse" id="receiptForm">
+      <form method="POST" action="{% url 'payment_receipt_entry' %}" id="receiptFormTag">
+        {% csrf_token %}
+
+        <div class="card shadow-sm p-3">
+
+          <div class="row mb-3">
+            <input type="hidden" name="payment_id" id="payment_id" value="">
+            <div class="col-md-3">
+              <input type="text" name="receipt_no" id="receipt_no" class="form-control form-control-sm" placeholder="Receipt No" readonly>
+            </div>
+            <div class="col-md-3">
+              <input type="text" name="customer" id="customer" class="form-control form-control-sm" placeholder="Customer" list="customer_list">
+              <datalist id="customer_list">
+                {% for party in parties %}
+                  <option value="{{ party.code }}-{{ party.name }}">
+                {% endfor %}
+              </datalist>
+            </div>
+            <div class="col-md-3">
+              <input type="date" name="payment_date" id="payment_date" class="form-control form-control-sm" value="{% now 'Y-m-d' %}">
+            </div>
+            <div class="col-md-3">
+              <input type="number" name="total_received" id="total_received" step="0.01" class="form-control form-control-sm" placeholder="Total Received">
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-3">
+              <select name="payment_mode" id="payment_mode" class="form-control form-control-sm">
+                <option value="Cash">Cash</option>
+                <option value="Bank" selected>Bank</option>
+                <option value="Cheque">Cheque</option>
+                <option value="UPI">UPI</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <input type="text" name="reference_no" id="reference_no" class="form-control form-control-sm" placeholder="Reference No">
+            </div>
+            <div class="col-md-3">
+              <select name="allocation_status" id="allocation_status" class="form-control form-control-sm">
+                <option value="Unallocated" selected>Unallocated</option>
+                <option value="Partially Allocated">Partially Allocated</option>
+                <option value="Fully Allocated">Fully Allocated</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <input type="text" name="remarks" id="remarks" class="form-control form-control-sm" placeholder="Remarks">
+            </div>
+          </div>
+
+          <input type="hidden" name="drafts_data" id="drafts_data" value="">
+
+          <div class="text-center">
+            <button type="button" class="btn btn-info me-2" onclick="addToCart()">Add to Cart</button>
+            <button type="button" class="btn btn-warning me-2" onclick="submitCart()">Submit Cart</button>
+            <button type="button" class="btn btn-success me-2" onclick="submitOrder()">Submit Receipt</button>
+            <button type="button" class="btn btn-primary me-2" onclick="submitAll()">Submit All</button>
+            <button type="reset" class="btn btn-secondary" onclick="resetForm()">Clear</button>
+            <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="viewList()">View List</button>
+          </div>
+
+          <div id="draft-list" class="mt-3" style="display:none;">
+            <hr>
+            <h6 class="text-muted">Draft Receipts (<span id="draft-count">0</span>)</h6>
+            <div id="draft-items" class="d-flex flex-wrap gap-2"></div>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <div class="receipts-list mt-4">
+      {% if receipts %}
+        <div class="table-responsive invoice-table-wrapper">
+          <table id="receipts-table" class="table table-striped table-hover table-bordered table-sm align-middle">
+            <colgroup>
+              <col style="width:50px">
+              <col style="width:100px">
+              <col style="width:160px">
+              <col style="width:120px">
+              <col style="width:110px">
+              <col style="width:110px">
+              <col style="width:110px">
+              <col style="width:130px">
+              <col style="width:150px">
+            </colgroup>
+            <thead class="table-dark">
+              <tr>
+                <th scope="col" style="width:40px"><input type="checkbox" id="select-all" onchange="toggleAllCheckboxes(this)"></th>
+                <th scope="col">Receipt No</th>
+                <th scope="col" class="col-actions">Actions</th>
+                <th scope="col">Customer</th>
+                <th scope="col">Payment Date</th>
+                <th scope="col">Total Received</th>
+                <th scope="col">Payment Mode</th>
+                <th scope="col">Reference No</th>
+                <th scope="col">Allocation Status</th>
+              </tr>
+              <tr id="receipts-filter-row">
+                <th>
+                  <button type="button" class="btn btn-outline-success btn-sm" id="viewSelectedBtn" onclick="viewSelected()" disabled>View</button>
+                </th>
+                <th><input class="filter-input" placeholder="Receipt No"></th>
+                <th>
+                  <button class="btn btn-warning btn-sm" id="clear-filters">Clear</button>
+                </th>
+                <th><input class="filter-input" placeholder="Customer" list="filter_customer_list"></th>
+                <th><input class="filter-input" placeholder="Payment Date"></th>
+                <th><input class="filter-input" placeholder="Total"></th>
+                <th>
+                  <select class="filter-select">
+                    <option value="">All</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Bank">Bank</option>
+                    <option value="Cheque">Cheque</option>
+                    <option value="UPI">UPI</option>
+                  </select>
+                </th>
+                <th><input class="filter-input" placeholder="Reference"></th>
+                <th>
+                  <select class="filter-select">
+                    <option value="">All</option>
+                    <option value="Unallocated">Unallocated</option>
+                    <option value="Partially Allocated">Partially Allocated</option>
+                    <option value="Fully Allocated">Fully Allocated</option>
+                  </select>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in receipts %}
+                <tr>
+                  <td><input type="checkbox" class="row-checkbox" value="{{ r.payment_id }}" onchange="updateViewBtn()"></td>
+                  <td>{{ r.receipt_no }}</td>
+                  <td>
+                    <a href="javascript:void(0);" onclick="loadReceipt('{{ r.payment_id }}')" class="btn btn-sm btn-primary">
+                      <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <a href="javascript:void(0);" onclick="cloneReceipt('{{ r.payment_id }}')" class="btn btn-sm btn-info">
+                      <i class="bi bi-copy"></i> Clone
+                    </a>
+                    <form method="POST" action="{% url 'payment_receipt_entry' %}" style="display:inline;" onsubmit="return confirm('Delete this receipt?')">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete">
+                      <input type="hidden" name="payment_id" value="{{ r.payment_id }}">
+                      <button type="submit" class="btn btn-sm btn-danger">
+                        <i class="bi bi-trash"></i> Del
+                      </button>
+                    </form>
+                  </td>
+                  <td>{{ r.customer }}</td>
+                  <td>{{ r.payment_date|date:"Y-m-d" }}</td>
+                  <td>{{ r.total_received }}</td>
+                  <td>{{ r.payment_mode }}</td>
+                  <td>{{ r.reference_no|default:"" }}</td>
+                  <td>{{ r.allocation_status }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-muted">No payment receipts found.</p>
+      {% endif %}
+    </div>
+
+  </div>
+</main>
+
+<!-- View List Modal -->
+<div class="modal fade" id="listModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Selected Receipts</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="listModalBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<datalist id="filter_customer_list">
+  {% for party in parties %}
+    <option value="{{ party.code }}-{{ party.name }}">
+  {% endfor %}
+</datalist>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+var receiptsData = {{ receipts_json|safe }};
+var draftEntries = [];
+var editingId = null;
+
+function addToCart() {
+    var entry = getFormData();
+    if (!entry.receipt_no) { alert('Receipt No is required'); return; }
+    if (!entry.customer) { alert('Customer is required'); return; }
+    if (editingId) {
+        var idx = draftEntries.findIndex(function(e) { return e._draft_id === editingId; });
+        if (idx > -1) { draftEntries[idx] = entry; }
+        editingId = null;
+    } else {
+        draftEntries.push(entry);
+    }
+    renderDrafts();
+    resetForm();
+}
+
+function getFormData() {
+    return {
+        payment_id: document.getElementById('payment_id').value,
+        receipt_no: document.getElementById('receipt_no').value,
+        customer: document.getElementById('customer').value,
+        payment_date: document.getElementById('payment_date').value,
+        total_received: document.getElementById('total_received').value,
+        payment_mode: document.getElementById('payment_mode').value,
+        reference_no: document.getElementById('reference_no').value,
+        allocation_status: document.getElementById('allocation_status').value,
+        remarks: document.getElementById('remarks').value,
+    };
+}
+
+function renderDrafts() {
+    var container = document.getElementById('draft-items');
+    var count = document.getElementById('draft-count');
+    container.innerHTML = '';
+    count.textContent = draftEntries.length;
+    if (draftEntries.length === 0) {
+        document.getElementById('draft-list').style.display = 'none';
+        return;
+    }
+    document.getElementById('draft-list').style.display = 'block';
+    draftEntries.forEach(function(e, i) {
+        var badge = document.createElement('span');
+        badge.className = 'badge bg-info text-dark p-2 m-1';
+        badge.style.cursor = 'pointer';
+        badge.textContent = (i + 1) + '. ' + (e.receipt_no || 'No Receipt');
+        badge.title = 'Customer: ' + (e.customer || '') + ' | Amount: ' + (e.total_received || '');
+        badge.onclick = function() { loadDraft(i); };
+        container.appendChild(badge);
+    });
+}
+
+function loadDraft(index) {
+    var e = draftEntries[index];
+    document.getElementById('payment_id').value = e.payment_id || '';
+    document.getElementById('receipt_no').value = e.receipt_no || '';
+    document.getElementById('customer').value = e.customer || '';
+    document.getElementById('payment_date').value = e.payment_date || '';
+    document.getElementById('total_received').value = e.total_received || '';
+    document.getElementById('payment_mode').value = e.payment_mode || 'Cash';
+    document.getElementById('reference_no').value = e.reference_no || '';
+    document.getElementById('allocation_status').value = e.allocation_status || 'Unallocated';
+    document.getElementById('remarks').value = e.remarks || '';
+    editingId = e._draft_id;
+    var form = document.getElementById('receiptForm');
+    if (form) { var bs = new bootstrap.Collapse(form, {toggle:false}); bs.show(); }
+}
+
+function resetForm() {
+    document.getElementById('payment_id').value = '';
+    document.getElementById('receipt_no').value = generateReceiptNo();
+    document.getElementById('customer').value = '';
+    document.getElementById('payment_date').value = new Date().toISOString().slice(0,10);
+    document.getElementById('total_received').value = '';
+    document.getElementById('payment_mode').value = 'Bank';
+    document.getElementById('reference_no').value = '';
+    document.getElementById('allocation_status').value = 'Unallocated';
+    document.getElementById('remarks').value = '';
+    editingId = null;
+}
+
+function generateReceiptNo() {
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = String(now.getMonth() + 1).padStart(2, '0');
+    var d = String(now.getDate()).padStart(2, '0');
+    var base = 'RCPT-' + y + m + d + '-';
+    var maxSeq = 0;
+    receiptsData.forEach(function(r) {
+        if (r.receipt_no && r.receipt_no.startsWith(base)) {
+            var seq = parseInt(r.receipt_no.split('-').pop(), 10);
+            if (seq > maxSeq) maxSeq = seq;
+        }
+    });
+    return base + String(maxSeq + 1).padStart(3, '0');
+}
+
+function submitCart() {
+    if (draftEntries.length === 0) { alert('Cart is empty'); return; }
+    document.getElementById('drafts_data').value = JSON.stringify(draftEntries);
+    document.getElementById('receiptFormTag').submit();
+}
+
+function submitOrder() {
+    var entry = getFormData();
+    if (!entry.receipt_no) { alert('Receipt No is required'); return; }
+    if (!entry.customer) { alert('Customer is required'); return; }
+    document.getElementById('drafts_data').value = JSON.stringify([entry]);
+    document.getElementById('receiptFormTag').submit();
+}
+
+function submitAll() {
+    if (draftEntries.length === 0) {
+        var entry = getFormData();
+        if (entry.receipt_no && entry.customer) {
+            document.getElementById('drafts_data').value = JSON.stringify([entry]);
+            document.getElementById('receiptFormTag').submit();
+            return;
+        }
+        alert('Cart is empty and form is incomplete');
+        return;
+    }
+    var current = getFormData();
+    var all = draftEntries.slice();
+    if (current.receipt_no && current.customer) {
+        all.push(current);
+    }
+    document.getElementById('drafts_data').value = JSON.stringify(all);
+    document.getElementById('receiptFormTag').submit();
+}
+
+function loadReceipt(id) {
+    var item = receiptsData.find(function(r) { return String(r.payment_id) === String(id); });
+    if (!item) return;
+    document.getElementById('payment_id').value = item.payment_id;
+    document.getElementById('receipt_no').value = item.receipt_no;
+    document.getElementById('customer').value = item.customer;
+    document.getElementById('payment_date').value = item.payment_date;
+    document.getElementById('total_received').value = item.total_received;
+    document.getElementById('payment_mode').value = item.payment_mode;
+    document.getElementById('reference_no').value = item.reference_no;
+    document.getElementById('allocation_status').value = item.allocation_status;
+    document.getElementById('remarks').value = item.remarks;
+    var form = document.getElementById('receiptForm');
+    if (form) { var bs = new bootstrap.Collapse(form, {toggle:false}); bs.show(); }
+}
+
+function cloneReceipt(id) {
+    var item = receiptsData.find(function(r) { return String(r.payment_id) === String(id); });
+    if (!item) return;
+    resetForm();
+    document.getElementById('receipt_no').value = item.receipt_no + '-CLONE';
+    document.getElementById('customer').value = item.customer;
+    document.getElementById('payment_date').value = new Date().toISOString().slice(0,10);
+    document.getElementById('total_received').value = item.total_received;
+    document.getElementById('payment_mode').value = item.payment_mode;
+    document.getElementById('reference_no').value = item.reference_no;
+    document.getElementById('allocation_status').value = item.allocation_status;
+    document.getElementById('remarks').value = item.remarks;
+    var form = document.getElementById('receiptForm');
+    if (form) { var bs = new bootstrap.Collapse(form, {toggle:false}); bs.show(); }
+}
+
+function toggleAllCheckboxes(master) {
+    document.querySelectorAll('.row-checkbox').forEach(function(cb) { cb.checked = master.checked; });
+    updateViewBtn();
+}
+
+function updateViewBtn() {
+    var checked = document.querySelectorAll('.row-checkbox:checked').length;
+    document.getElementById('viewSelectedBtn').disabled = checked === 0;
+}
+
+function viewSelected() {
+    var checked = document.querySelectorAll('.row-checkbox:checked');
+    var body = document.getElementById('listModalBody');
+    var html = '<table class="table table-sm table-bordered"><thead><tr><th>#</th><th>Receipt No</th><th>Customer</th><th>Payment Date</th><th>Total</th><th>Mode</th><th>Status</th></tr></thead><tbody>';
+    checked.forEach(function(cb, i) {
+        var r = receiptsData.find(function(x) { return String(x.payment_id) === String(cb.value); });
+        if (r) {
+            html += '<tr><td>' + (i+1) + '</td><td>' + (r.receipt_no || '') + '</td><td>' + (r.customer || '') + '</td><td>' + (r.payment_date || '') + '</td><td>' + (r.total_received || '') + '</td><td>' + (r.payment_mode || '') + '</td><td>' + (r.allocation_status || '') + '</td></tr>';
+        }
+    });
+    html += '</tbody></table>';
+    body.innerHTML = html;
+    var modal = new bootstrap.Modal(document.getElementById('listModal'));
+    modal.show();
+}
+
+function viewList() {
+    var allChecked = document.querySelectorAll('.row-checkbox');
+    allChecked.forEach(function(cb) { cb.checked = true; });
+    viewSelected();
+    allChecked.forEach(function(cb) { cb.checked = false; });
+    updateViewBtn();
+}
+
+// Filters
+(function() {
+    var tbody = document.querySelector('#receipts-table tbody');
+    if (!tbody) return;
+
+    function applyFilters() {
+        var filterThs = document.querySelectorAll('#receipts-filter-row th');
+        var filters = [];
+        filterThs.forEach(function(th) {
+            var input = th.querySelector('input, select');
+            filters.push(input ? input.value.toLowerCase() : '');
+        });
+        tbody.querySelectorAll('tr').forEach(function(row) {
+            var cells = row.querySelectorAll('td');
+            var show = true;
+            filters.forEach(function(filter, index) {
+                if (!filter) return;
+                if (!cells[index] || !cells[index].textContent.toLowerCase().includes(filter)) {
+                    show = false;
+                }
+            });
+            row.style.display = show ? '' : 'none';
+        });
+    }
+
+    document.querySelectorAll('#receipts-filter-row input, #receipts-filter-row select')
+        .forEach(function(el) { el.addEventListener('input', applyFilters); });
+    document.querySelectorAll('#receipts-filter-row select')
+        .forEach(function(el) { el.addEventListener('change', applyFilters); });
+
+    document.getElementById('clear-filters').addEventListener('click', function() {
+        document.querySelectorAll('#receipts-filter-row input').forEach(function(i) { i.value = ''; i.dispatchEvent(new Event('input')); });
+        document.querySelectorAll('#receipts-filter-row select').forEach(function(s) { s.value = ''; s.dispatchEvent(new Event('change')); });
+    });
+
+    // Date input fallback
+    document.querySelectorAll('input[type="date"]').forEach(function(el) {
+        if (!el.value) {
+            el.type = 'text';
+            el.placeholder = el.placeholder || 'YYYY-MM-DD';
+        }
+        el.addEventListener('focus', function() {
+            if (this.type === 'text') { this.type = 'date'; this.value = ''; }
+        });
+        el.addEventListener('blur', function() {
+            if (!this.value) { this.type = 'text'; this.placeholder = 'YYYY-MM-DD'; }
+        });
+    });
+})();
+
+// Initialize receipt number on page load
+document.getElementById('receipt_no').value = generateReceiptNo();
+</script>
+{% endblock %}

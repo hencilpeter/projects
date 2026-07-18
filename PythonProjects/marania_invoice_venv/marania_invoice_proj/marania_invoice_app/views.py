@@ -17,6 +17,7 @@ from django.db import transaction, models, IntegrityError
 from django.db.models import (
     Count,
     Max,
+    Sum,
     BooleanField,
     ForeignKey,
 )
@@ -68,6 +69,9 @@ from .models import (
     Order,
     OrderSpecification,
     Sales,
+    PaymentReceipt,
+    PaymentAllocation,
+    OpeningBalance,
 
 )
 
@@ -2404,3 +2408,355 @@ def copy_order_to_sales(request, order_key):
 
     messages.success(request, f"Order {order.order_number} copied to Sales as {sales.order_no}.")
     return redirect('order_entry')
+
+
+def payment_receipt_entry(request):
+    receipts = PaymentReceipt.objects.all()
+    parties = Parties.objects.all()
+    invoices = Invoice.objects.all()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "delete":
+            pk = request.POST.get("payment_id")
+            if pk:
+                PaymentReceipt.objects.filter(payment_id=pk).delete()
+                messages.success(request, "Payment receipt deleted.")
+            return redirect('payment_receipt_entry')
+
+        drafts_raw = request.POST.get("drafts_data")
+        if not drafts_raw and request.content_type == 'application/json':
+            try:
+                body = json.loads(request.body)
+                drafts_raw = body.get('drafts_data')
+            except (json.JSONDecodeError, AttributeError):
+                drafts_raw = None
+
+        saved_count = 0
+        if drafts_raw:
+            if isinstance(drafts_raw, str):
+                try:
+                    entries = json.loads(drafts_raw)
+                    if not isinstance(entries, list):
+                        entries = []
+                except json.JSONDecodeError:
+                    entries = []
+            else:
+                entries = drafts_raw if isinstance(drafts_raw, list) else []
+
+            now = datetime.now()
+            for entry in entries:
+                customer = (entry.get("customer") or "").strip()
+                if not customer:
+                    continue
+
+                pk = entry.get("payment_id")
+                if pk is not None:
+                    pk = str(pk).strip()
+                else:
+                    pk = ""
+                is_update = bool(pk)
+
+                if is_update:
+                    try:
+                        obj = PaymentReceipt.objects.get(payment_id=pk)
+                    except PaymentReceipt.DoesNotExist:
+                        obj = PaymentReceipt()
+                else:
+                    obj = PaymentReceipt()
+
+                obj.receipt_no = entry.get("receipt_no") or ""
+                party_code = customer.split('-')[0] if '-' in customer else customer
+                party = Parties.objects.filter(code=party_code).first()
+                if party:
+                    obj.customer = party
+                obj.payment_date = parse_date(entry.get("payment_date")) or now.strftime('%Y-%m-%d')
+                obj.total_received = entry.get("total_received") or 0
+                obj.payment_mode = entry.get("payment_mode") or "Cash"
+                obj.reference_no = entry.get("reference_no") or ""
+                obj.allocation_status = entry.get("allocation_status") or "Unallocated"
+                obj.remarks = entry.get("remarks") or ""
+                obj.updated_at = now
+                obj.save()
+                saved_count += 1
+
+            if saved_count:
+                messages.success(request, f"{saved_count} receipt(s) saved successfully.")
+        else:
+            messages.error(request, "No receipt data received.")
+
+        if request.content_type == 'application/json':
+            return JsonResponse({'saved_count': saved_count})
+        return redirect('payment_receipt_entry')
+
+    receipts_json = []
+    for r in receipts:
+        receipts_json.append({
+            'payment_id': r.payment_id,
+            'receipt_no': r.receipt_no or '',
+            'customer': str(r.customer) if r.customer else '',
+            'payment_date': str(r.payment_date) if r.payment_date else '',
+            'total_received': str(r.total_received) if r.total_received else '',
+            'payment_mode': r.payment_mode or '',
+            'reference_no': r.reference_no or '',
+            'allocation_status': r.allocation_status or 'Unallocated',
+            'remarks': r.remarks or '',
+        })
+
+    return render(request, 'marania_invoice_app/payment_receipt_entry.html', {
+        'receipts': receipts,
+        'receipts_json': json.dumps(receipts_json),
+        'parties': parties,
+    })
+
+
+def payment_allocation_entry(request):
+    parties = Parties.objects.all()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "delete":
+            pk = request.POST.get("allocation_id")
+            if pk:
+                PaymentAllocation.objects.filter(allocation_id=pk).delete()
+                messages.success(request, "Payment allocation deleted.")
+            return redirect('payment_allocation_entry')
+
+        if action == "save_allocations":
+            payment_ids_str = request.POST.get("payment_ids", "")
+            allocation_date = request.POST.get("allocation_date")
+            remarks = request.POST.get("remarks", "")
+            invoice_nos = request.POST.getlist("invoice_number[]")
+            alloc_amts = request.POST.getlist("allocated_amount[]")
+
+            payment_ids = [pid.strip() for pid in payment_ids_str.split(",") if pid.strip()]
+            if not payment_ids:
+                messages.error(request, "No payment receipts selected.")
+                return redirect('payment_allocation_entry')
+
+            receipts = PaymentReceipt.objects.filter(payment_id__in=payment_ids).order_by('payment_date')
+            if not receipts.exists():
+                messages.error(request, "Payment receipts not found.")
+                return redirect('payment_allocation_entry')
+
+            # Build available balance per receipt
+            receipt_avail = {}
+            for r in receipts:
+                total_alloc = PaymentAllocation.objects.filter(
+                    payment=r
+                ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+                avail = r.total_received - total_alloc
+                if avail > 0:
+                    receipt_avail[r.payment_id] = avail
+
+            if not receipt_avail:
+                messages.warning(request, "Selected receipts have no available balance.")
+                return redirect('payment_allocation_entry')
+
+            now = datetime.now()
+            sorted_pids = sorted(receipt_avail.keys())
+            saved = 0
+
+            for i, inv_no in enumerate(invoice_nos):
+                amt_str = alloc_amts[i] if i < len(alloc_amts) else ""
+                if not amt_str:
+                    continue
+                try:
+                    amt = Decimal(str(amt_str))
+                except Exception:
+                    continue
+                if amt <= 0:
+                    continue
+
+                invoice = Invoice.objects.filter(invoice_number=inv_no).first()
+                if not invoice:
+                    continue
+
+                remaining_amt = amt
+                # Allocate from receipts in order
+                for pid in sorted_pids:
+                    if remaining_amt <= 0:
+                        break
+                    avail = receipt_avail[pid]
+                    if avail <= 0:
+                        continue
+                    take = min(remaining_amt, avail)
+                    receipt_obj = PaymentReceipt.objects.get(payment_id=pid)
+
+                    alloc, created = PaymentAllocation.objects.get_or_create(
+                        payment=receipt_obj,
+                        invoice=invoice,
+                        defaults={'allocated_amount': take}
+                    )
+                    if not created:
+                        alloc.allocated_amount = (alloc.allocated_amount or 0) + take
+                    alloc.allocation_date = parse_date(allocation_date) or now.strftime('%Y-%m-%d')
+                    alloc.remarks = remarks
+                    alloc.updated_at = now
+                    alloc.save()
+
+                    receipt_avail[pid] -= take
+                    remaining_amt -= take
+                    saved += 1
+
+            # Update allocation_status for all involved receipts
+            for r in receipts:
+                total_alloc = PaymentAllocation.objects.filter(
+                    payment=r
+                ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+                if total_alloc >= r.total_received:
+                    r.allocation_status = 'Fully Allocated'
+                elif total_alloc > 0:
+                    r.allocation_status = 'Partially Allocated'
+                else:
+                    r.allocation_status = 'Unallocated'
+                r.save()
+
+            if saved:
+                messages.success(request, f"{saved} allocation(s) saved.")
+            else:
+                messages.warning(request, "No allocations to save.")
+            return redirect('payment_allocation_entry')
+
+    # GET: build split-panel data
+    payments_qs = PaymentReceipt.objects.all()
+    payment_data = []
+    for p in payments_qs:
+        total_alloc = PaymentAllocation.objects.filter(
+            payment=p
+        ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+        available = p.total_received - total_alloc
+        if available > 0:
+            payment_data.append({
+                'payment_id': p.payment_id,
+                'receipt_no': p.receipt_no or '',
+                'payment_date': str(p.payment_date) if p.payment_date else '',
+                'customer': str(p.customer) if p.customer else '',
+                'customer_code': p.customer.code if p.customer else '',
+                'total_received': str(p.total_received),
+                'available': str(available),
+            })
+
+    invoices_qs = Invoice.objects.all()
+    invoice_data = []
+    for inv in invoices_qs:
+        total_alloc = PaymentAllocation.objects.filter(
+            invoice=inv
+        ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+        balance = inv.gross_total - total_alloc
+        if balance > 0:
+            invoice_data.append({
+                'invoice_number': inv.invoice_number or '',
+                'invoice_date': str(inv.invoice_date) if inv.invoice_date else '',
+                'customer_code': inv.customer_code or '',
+                'gross_total': str(inv.gross_total),
+                'balance': str(balance),
+            })
+
+    # Existing allocations for reference
+    existing_allocations = PaymentAllocation.objects.select_related('payment', 'invoice').all()
+
+    return render(request, 'marania_invoice_app/payment_allocation_entry.html', {
+        'parties': parties,
+        'payment_data_json': json.dumps(payment_data),
+        'invoice_data_json': json.dumps(invoice_data),
+        'existing_allocations': existing_allocations,
+    })
+
+
+def opening_balance_entry(request):
+    balances = OpeningBalance.objects.all()
+    parties = Parties.objects.all()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "delete":
+            pk = request.POST.get("opening_balance_id")
+            if pk:
+                OpeningBalance.objects.filter(opening_balance_id=pk).delete()
+                messages.success(request, "Opening balance deleted.")
+            return redirect('opening_balance_entry')
+
+        drafts_raw = request.POST.get("drafts_data")
+        if not drafts_raw and request.content_type == 'application/json':
+            try:
+                body = json.loads(request.body)
+                drafts_raw = body.get('drafts_data')
+            except (json.JSONDecodeError, AttributeError):
+                drafts_raw = None
+
+        saved_count = 0
+        if drafts_raw:
+            if isinstance(drafts_raw, str):
+                try:
+                    entries = json.loads(drafts_raw)
+                    if not isinstance(entries, list):
+                        entries = []
+                except json.JSONDecodeError:
+                    entries = []
+            else:
+                entries = drafts_raw if isinstance(drafts_raw, list) else []
+
+            now = datetime.now()
+            for entry in entries:
+                pk = entry.get("opening_balance_id")
+                if pk is not None:
+                    pk = str(pk).strip()
+                else:
+                    pk = ""
+                is_update = bool(pk)
+
+                if is_update:
+                    try:
+                        obj = OpeningBalance.objects.get(opening_balance_id=pk)
+                    except OpeningBalance.DoesNotExist:
+                        obj = OpeningBalance()
+                else:
+                    obj = OpeningBalance()
+
+                obj.opening_date = parse_date(entry.get("opening_date")) or now.strftime('%Y-%m-%d')
+                obj.account_id = entry.get("account_id") or ""
+                customer_val = entry.get("customer") or ""
+                if customer_val:
+                    party_code = customer_val.split('-')[0] if '-' in customer_val else customer_val
+                    party = Parties.objects.filter(code=party_code).first()
+                    if party:
+                        obj.customer = party
+                obj.debit_amount = entry.get("debit_amount") or 0
+                obj.credit_amount = entry.get("credit_amount") or 0
+                obj.reference_no = entry.get("reference_no") or ""
+                obj.remarks = entry.get("remarks") or ""
+                obj.status = entry.get("status") or "Draft"
+                obj.updated_at = now
+                obj.save()
+                saved_count += 1
+
+            if saved_count:
+                messages.success(request, f"{saved_count} opening balance(s) saved successfully.")
+        else:
+            messages.error(request, "No opening balance data received.")
+
+        if request.content_type == 'application/json':
+            return JsonResponse({'saved_count': saved_count})
+        return redirect('opening_balance_entry')
+
+    balances_json = []
+    for b in balances:
+        balances_json.append({
+            'opening_balance_id': b.opening_balance_id,
+            'opening_date': str(b.opening_date) if b.opening_date else '',
+            'account_id': b.account_id or '',
+            'customer': str(b.customer) if b.customer else '',
+            'debit_amount': str(b.debit_amount) if b.debit_amount else '',
+            'credit_amount': str(b.credit_amount) if b.credit_amount else '',
+            'reference_no': b.reference_no or '',
+            'remarks': b.remarks or '',
+            'status': b.status or 'Draft',
+        })
+
+    return render(request, 'marania_invoice_app/opening_balance_entry.html', {
+        'balances': balances,
+        'balances_json': json.dumps(balances_json),
+        'parties': parties,
+    })

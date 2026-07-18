@@ -190,7 +190,7 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
             </div>
           </li>
 
-          <!-- 5. Purchases -->
+          <!-- 6. Purchases -->
           <li class="nav-item">
             <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
@@ -274,6 +274,24 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
                   <a class="nav-link" href="{% url 'invoice_entry' %}">
                     <span data-feather="file"></span>
                     Invoices
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'payment_receipt_entry' %}">
+                    <span data-feather="credit-card"></span>
+                    Payment Receipts
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'payment_allocation_entry' %}">
+                    <span data-feather="share-2"></span>
+                    Payment Allocations
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'opening_balance_entry' %}">
+                    <span data-feather="book-open"></span>
+                    Opening Balances
                   </a>
                 </li>
                 <li class="nav-item">

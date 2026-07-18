@@ -418,3 +418,80 @@ class Sales(models.Model):
     class Meta:
         ordering = ['-sales_entry_date', '-sales_sequence']
 
+
+class PaymentReceipt(models.Model):
+    PAYMENT_MODE_CHOICES = [
+        ('Cash', 'Cash'), ('Bank', 'Bank'),
+        ('Cheque', 'Cheque'), ('UPI', 'UPI'),
+    ]
+    ALLOCATION_STATUS_CHOICES = [
+        ('Unallocated', 'Unallocated'),
+        ('Partially Allocated', 'Partially Allocated'),
+        ('Fully Allocated', 'Fully Allocated'),
+    ]
+    payment_id = models.AutoField(primary_key=True)
+    receipt_no = models.CharField(max_length=50, unique=True)
+    customer = models.ForeignKey(
+        Parties, to_field='code', on_delete=models.DO_NOTHING,
+        related_name='payment_receipts', db_constraint=False)
+    payment_date = models.DateField()
+    total_received = models.DecimalField(max_digits=18, decimal_places=2)
+    payment_mode = models.CharField(max_length=20, choices=PAYMENT_MODE_CHOICES)
+    reference_no = models.CharField(max_length=100, blank=True, null=True)
+    allocation_status = models.CharField(
+        max_length=20, choices=ALLOCATION_STATUS_CHOICES, default='Unallocated')
+    remarks = models.TextField(blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.receipt_no} - {self.customer} - {self.payment_date}"
+
+    class Meta:
+        ordering = ['-payment_date']
+
+
+class PaymentAllocation(models.Model):
+    allocation_id = models.AutoField(primary_key=True)
+    payment = models.ForeignKey(
+        PaymentReceipt, on_delete=models.CASCADE,
+        related_name='allocations', db_constraint=False)
+    invoice = models.ForeignKey(
+        Invoice, on_delete=models.DO_NOTHING,
+        related_name='payment_allocations', db_constraint=False,
+        to_field='invoice_number')
+    allocated_amount = models.DecimalField(max_digits=18, decimal_places=2)
+    allocation_date = models.DateField()
+    remarks = models.TextField(blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Alloc {self.allocation_id} - {self.payment.receipt_no} - {self.invoice.invoice_number}"
+
+    class Meta:
+        ordering = ['-allocation_date']
+
+
+class OpeningBalance(models.Model):
+    STATUS_CHOICES = [
+        ('Draft', 'Draft'), ('Posted', 'Posted'), ('Cancelled', 'Cancelled'),
+    ]
+    opening_balance_id = models.AutoField(primary_key=True)
+    opening_date = models.DateField()
+    account_id = models.CharField(max_length=100, blank=True, null=True)
+    customer = models.ForeignKey(
+        Parties, to_field='code', on_delete=models.DO_NOTHING,
+        related_name='opening_balances', db_constraint=False,
+        null=True, blank=True)
+    debit_amount = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    credit_amount = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    reference_no = models.CharField(max_length=100, blank=True, null=True)
+    remarks = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Draft')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"OB {self.opening_balance_id} - {self.opening_date}"
+
+    class Meta:
+        ordering = ['-opening_date']
+
