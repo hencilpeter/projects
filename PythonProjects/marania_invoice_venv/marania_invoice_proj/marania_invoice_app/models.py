@@ -285,6 +285,15 @@ class Invoice(models.Model):
     igst_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
     round_off = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     gross_total = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
+    payment_status = models.CharField(max_length=20,
+        choices=[
+            ('Pending', 'Pending'),
+            ('Partial', 'Partial'),
+            ('Paid', 'Paid'),
+            ('WrittenOff', 'Written Off'),
+            ('Cancelled', 'Cancelled'),
+        ],
+        default='Pending')
     remark = models.CharField(max_length=1024, null=True, blank=True,default="")
 
     def __str__(self):
@@ -438,6 +447,13 @@ class PaymentReceipt(models.Model):
     total_received = models.DecimalField(max_digits=18, decimal_places=2)
     payment_mode = models.CharField(max_length=20, choices=PAYMENT_MODE_CHOICES)
     reference_no = models.CharField(max_length=100, blank=True, null=True)
+    transaction_type = models.CharField(max_length=20,
+        choices=[
+            ('Payment', 'Payment'),
+            ('Adjustment(Cr)', 'Adjustment(Cr)'),
+            ('Adjustment(Dr)', 'Adjustment(Dr)'),
+        ],
+        default='Payment')
     allocation_status = models.CharField(
         max_length=20, choices=ALLOCATION_STATUS_CHOICES, default='Unallocated')
     remarks = models.TextField(blank=True, null=True)

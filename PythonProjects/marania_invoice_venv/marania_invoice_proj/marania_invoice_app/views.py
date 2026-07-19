@@ -819,6 +819,19 @@ def invoice_save(request):
     }
     return render(request, 'marania_invoice_app/invoice_entry.html', context)
 
+def update_invoice_payment_status(invoice):
+    """Recalculate payment_status for an invoice based on allocations vs gross_total."""
+    total_alloc = PaymentAllocation.objects.filter(
+        invoice=invoice
+    ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+    if total_alloc >= invoice.gross_total:
+        invoice.payment_status = 'Paid'
+    elif total_alloc > 0:
+        invoice.payment_status = 'Partial'
+    else:
+        invoice.payment_status = 'Pending'
+    invoice.save(update_fields=['payment_status'])
+
 def decimal_to_str(value):
     return format(Decimal(str(value)).normalize(), 'f')
 
@@ -1058,7 +1071,8 @@ def get_invoice(request, invoice_number):
             "destination": invoice.destination,
             "vehicle_name_number":invoice.vehicle_name_number,
             "transporter_gst": invoice.transporter_gst,
-            "remark":invoice.remark
+            "remark":invoice.remark,
+            "payment_status": invoice.payment_status
         },
         "items": list(items)
     })
@@ -2492,6 +2506,7 @@ def payment_receipt_entry(request):
                     obj.customer = party
                 obj.payment_date = parse_date(entry.get("payment_date")) or now.strftime('%Y-%m-%d')
                 obj.total_received = entry.get("total_received") or 0
+                obj.transaction_type = entry.get("transaction_type") or "Payment"
                 obj.payment_mode = entry.get("payment_mode") or "Cash"
                 obj.reference_no = entry.get("reference_no") or ""
                 obj.allocation_status = entry.get("allocation_status") or "Unallocated"
@@ -2525,18 +2540,44 @@ def payment_receipt_entry(request):
             'payment_id': r.payment_id,
             'receipt_no': r.receipt_no or '',
             'customer': str(r.customer) if r.customer else '',
+            'customer_code': r.customer.code if r.customer else '',
             'payment_date': str(r.payment_date) if r.payment_date else '',
             'total_received': str(r.total_received) if r.total_received else '',
+            'transaction_type': r.transaction_type or 'Payment',
             'payment_mode': r.payment_mode or '',
             'reference_no': r.reference_no or '',
             'allocation_status': r.allocation_status or 'Unallocated',
             'remarks': r.remarks or '',
         })
 
+    # Compute outstanding balance per customer
+    from django.db.models import Sum, Q
+    customer_balance = {}
+    for p in parties:
+        code = p.code
+        # Total invoiced
+        inv_total = Invoice.objects.filter(customer_code=code).aggregate(
+            total=Sum('gross_total'))['total'] or 0
+        # Total allocated to invoices of this customer
+        alloc_total = PaymentAllocation.objects.filter(
+            invoice__customer_code=code
+        ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+        # Opening balance (debit - credit)
+        ob = OpeningBalance.objects.filter(
+            customer__code=code
+        ).aggregate(
+            debit=Sum('debit_amount'),
+            credit=Sum('credit_amount')
+        )
+        ob_net = (ob['debit'] or 0) - (ob['credit'] or 0)
+        balance = ob_net + inv_total - alloc_total
+        customer_balance[code] = float(balance)
+
     return render(request, 'marania_invoice_app/payment_receipt_entry.html', {
         'receipts': receipts,
         'receipts_json': json.dumps(receipts_json),
         'parties': parties,
+        'customer_balance_json': json.dumps(customer_balance),
     })
 
 
@@ -2549,7 +2590,12 @@ def payment_allocation_entry(request):
         if action == "delete":
             pk = request.POST.get("allocation_id")
             if pk:
-                PaymentAllocation.objects.filter(allocation_id=pk).delete()
+                alloc = PaymentAllocation.objects.filter(allocation_id=pk).first()
+                if alloc:
+                    invoice = alloc.invoice
+                    alloc.delete()
+                    if invoice:
+                        update_invoice_payment_status(invoice)
                 messages.success(request, "Payment allocation deleted.")
             return redirect('payment_allocation_entry')
 
@@ -2587,6 +2633,7 @@ def payment_allocation_entry(request):
             now = datetime.now()
             sorted_pids = sorted(receipt_avail.keys())
             saved = 0
+            affected_invoices = set()
 
             for i, inv_no in enumerate(invoice_nos):
                 amt_str = alloc_amts[i] if i < len(alloc_amts) else ""
@@ -2602,6 +2649,7 @@ def payment_allocation_entry(request):
                 invoice = Invoice.objects.filter(invoice_number=inv_no).first()
                 if not invoice:
                     continue
+                affected_invoices.add(invoice)
 
                 remaining_amt = amt
                 # Allocate from receipts in order
@@ -2645,6 +2693,10 @@ def payment_allocation_entry(request):
                 else:
                     r.allocation_status = 'Unallocated'
                 r.save()
+
+            # Update payment_status for all affected invoices
+            for inv in affected_invoices:
+                update_invoice_payment_status(inv)
 
             if saved:
                 messages.success(request, f"{saved} allocation(s) saved.")

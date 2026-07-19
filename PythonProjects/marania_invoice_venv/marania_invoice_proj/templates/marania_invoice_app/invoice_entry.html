@@ -189,11 +189,15 @@
                     {{ invoice_form.transporter_gst }}
                   </div>
                 </div>
-              <!-- Row 7: Remarks -->
+              <!-- Row 7: Remarks + Payment Status -->
               <div class="row mb-3">
-                    <div class="col-md-6">
-                    {{ invoice_form.remark }}
-                  </div>
+                <div class="col-md-6">
+                  {{ invoice_form.remark }}
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-0">Payment Status</label>
+                  {{ invoice_form.payment_status }}
+                </div>
               </div>
 
               <!-- Invoice Items Group -->
@@ -251,6 +255,7 @@
                 <th scope="col">Weight</th>
                 <th scope="col" class="col-amount">Sub Total</th>
                 <th scope="col" class="col-amount">Invoice Amount</th>
+                <th scope="col">Payment Status</th>
                 <th scope="col" class="col-view-invoice">View Invoice</th>
               </tr>
                 <tr id="invoice-filter-row">
@@ -268,6 +273,16 @@
                 <th><input class="filter-input" placeholder="Weight"></th>
                 <th><input class="filter-input" placeholder="Sub Total"></th>
                 <th><input class="filter-input" placeholder="Amount"></th>
+                <th>
+                  <select class="filter-input">
+                    <option value="">All</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Partial">Partial</option>
+                    <option value="Paid">Paid</option>
+                    <option value="WrittenOff">Written Off</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                </th>
                 <th>
                   <button class="btn btn-warning btn-sm" id="clear-invoice-filters">
                     Clear
@@ -304,7 +319,17 @@
                       {% endif %}
                     </td>
                   {% endwith %} 
-                  <!-- 🌈 Attractive View Button -->
+                  <td>
+                    <span class="badge 
+                      {% if invoice.payment_status == 'Paid' %}bg-success
+                      {% elif invoice.payment_status == 'Partial' %}bg-info text-dark
+                      {% elif invoice.payment_status == 'Pending' %}bg-warning text-dark
+                      {% elif invoice.payment_status == 'WrittenOff' %}bg-secondary
+                      {% elif invoice.payment_status == 'Cancelled' %}bg-danger
+                      {% else %}bg-light text-dark{% endif %}">
+                      {{ invoice.payment_status|default:'Pending' }}
+                    </span>
+                  </td>
 
                   <td>
                     <a href="javascript:void(0);" 
@@ -387,6 +412,10 @@ function loadInvoice(invoiceNumber) {
 
         // remarks 
         document.querySelector('input[name="remark"]').value = data.invoice.remark;
+
+        // payment status
+        var ps = document.querySelector('select[name="payment_status"]');
+        if (ps) ps.value = data.invoice.payment_status || 'Pending';
 
         // transport list
         PopulateTransportationList(data.invoice.customer_code);
@@ -1015,23 +1044,19 @@ if (invoiceTable) {
   const invoiceTbody = invoiceTable.querySelector('tbody');
 
   function applyInvoiceFilters() {
+    var filterInputs = document.querySelectorAll('#invoice-filter-row input, #invoice-filter-row select');
+    var filters = [];
+    filterInputs.forEach(function(el) {
+      filters.push(el.value ? el.value.toLowerCase() : '');
+    });
 
-    const filters = Array.from(
-      document.querySelectorAll('#invoice-filter-row input')
-    ).map(i => i.value.toLowerCase());
+    invoiceTbody.querySelectorAll('tr').forEach(function(row) {
+      var cells = row.querySelectorAll('td');
+      var show = true;
 
-    invoiceTbody.querySelectorAll('tr').forEach(row => {
-
-      const cells = row.querySelectorAll('td');
-      let show = true;
-
-      filters.forEach((filter, index) => {
+      filters.forEach(function(filter, index) {
         if (!filter) return;
-
-        if (!cells[index]
-            .textContent
-            .toLowerCase()
-            .includes(filter)) {
+        if (!cells[index] || !cells[index].textContent.toLowerCase().includes(filter)) {
           show = false;
         }
       });
@@ -1042,16 +1067,16 @@ if (invoiceTable) {
 
   // attach listeners
   document
-    .querySelectorAll('#invoice-filter-row input')
-    .forEach(el => el.addEventListener('input', applyInvoiceFilters));
+    .querySelectorAll('#invoice-filter-row input, #invoice-filter-row select')
+    .forEach(function(el) { el.addEventListener('change', applyInvoiceFilters); el.addEventListener('input', applyInvoiceFilters); });
 
   // clear button
   document
     .getElementById('clear-invoice-filters')
-    .addEventListener('click', () => {
+    .addEventListener('click', function() {
 
       document
-        .querySelectorAll('#invoice-filter-row input')
+        .querySelectorAll('#invoice-filter-row input, #invoice-filter-row select')
         .forEach(i => i.value = '');
 
       applyInvoiceFilters();

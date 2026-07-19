@@ -152,6 +152,7 @@ class InvoiceForm(forms.ModelForm):
             'igst_amount', 	
             'round_off', 		
             'gross_total',
+            'payment_status',
         ]
 
         widgets = {
@@ -204,6 +205,9 @@ class InvoiceForm(forms.ModelForm):
             'remark': forms.TextInput(attrs={
                 'class': 'form-control form-control-sm',
                 'placeholder': 'Remarks'
+            }),
+            'payment_status': forms.Select(attrs={
+                'class': 'form-control form-control-sm',
             }),
         }
             
