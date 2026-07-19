@@ -496,22 +496,26 @@ class OpeningBalance(models.Model):
     STATUS_CHOICES = [
         ('Draft', 'Draft'), ('Posted', 'Posted'), ('Cancelled', 'Cancelled'),
     ]
+    BALANCE_TYPE_CHOICES = [
+        ('Debit', 'Debit'),
+        ('Credit', 'Credit'),
+    ]
     opening_balance_id = models.AutoField(primary_key=True)
+    ob_number = models.CharField(max_length=50, blank=True, null=True)
     opening_date = models.DateField()
-    account_id = models.CharField(max_length=100, blank=True, null=True)
     customer = models.ForeignKey(
         Parties, to_field='code', on_delete=models.DO_NOTHING,
         related_name='opening_balances', db_constraint=False,
         null=True, blank=True)
-    debit_amount = models.DecimalField(max_digits=18, decimal_places=2, default=0)
-    credit_amount = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    amount = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    balance_type = models.CharField(max_length=10, choices=BALANCE_TYPE_CHOICES, default='Debit')
     reference_no = models.CharField(max_length=100, blank=True, null=True)
     remarks = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Draft')
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"OB {self.opening_balance_id} - {self.opening_date}"
+        return self.ob_number or f"OB-{self.opening_balance_id}"
 
     class Meta:
         ordering = ['-opening_date']

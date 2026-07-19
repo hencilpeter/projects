@@ -1,7 +1,7 @@
 # =======================
 # Django core
 # =======================
-from django.shortcuts import render, redirect 
+from django.shortcuts import render, redirect, reverse 
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -2578,14 +2578,14 @@ def payment_receipt_entry(request):
         alloc_total = PaymentAllocation.objects.filter(
             invoice__customer_code=code
         ).aggregate(total=Sum('allocated_amount'))['total'] or 0
-        # Opening balance (debit - credit)
-        ob = OpeningBalance.objects.filter(
-            customer__code=code
-        ).aggregate(
-            debit=Sum('debit_amount'),
-            credit=Sum('credit_amount')
-        )
-        ob_net = (ob['debit'] or 0) - (ob['credit'] or 0)
+        # Opening balance (debit amounts - credit amounts)
+        ob_debit = OpeningBalance.objects.filter(
+            customer__code=code, balance_type='Debit'
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        ob_credit = OpeningBalance.objects.filter(
+            customer__code=code, balance_type='Credit'
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        ob_net = ob_debit - ob_credit
         balance = ob_net + inv_total - alloc_total
         customer_balance[code] = float(balance)
 
@@ -2855,6 +2855,7 @@ def opening_balance_entry(request):
                 entries = drafts_raw if isinstance(drafts_raw, list) else []
 
             now = datetime.now()
+            last_created_id = None
             for entry in entries:
                 pk = entry.get("opening_balance_id")
                 if pk is not None:
@@ -2872,40 +2873,56 @@ def opening_balance_entry(request):
                     obj = OpeningBalance()
 
                 obj.opening_date = parse_date(entry.get("opening_date")) or now.strftime('%Y-%m-%d')
-                obj.account_id = entry.get("account_id") or ""
                 customer_val = entry.get("customer") or ""
                 if customer_val:
                     party_code = customer_val.split('-')[0] if '-' in customer_val else customer_val
                     party = Parties.objects.filter(code=party_code).first()
                     if party:
                         obj.customer = party
-                obj.debit_amount = entry.get("debit_amount") or 0
-                obj.credit_amount = entry.get("credit_amount") or 0
+                obj.amount = entry.get("amount") or 0
+                obj.balance_type = entry.get("balance_type") or 'Debit'
                 obj.reference_no = entry.get("reference_no") or ""
                 obj.remarks = entry.get("remarks") or ""
                 obj.status = entry.get("status") or "Draft"
                 obj.updated_at = now
                 obj.save()
+                # Generate ob_number for new records
+                if not is_update and not obj.ob_number:
+                    date_str = str(obj.opening_date) if obj.opening_date else now.strftime('%Y%m%d')
+                    date_prefix = date_str.replace('-', '')
+                    obj.ob_number = f"OB-{date_prefix}-{obj.opening_balance_id}"
+                    obj.save(update_fields=['ob_number'])
+                last_created_id = obj.opening_balance_id
                 saved_count += 1
 
             if saved_count:
-                messages.success(request, f"{saved_count} opening balance(s) saved successfully.")
+                msg = f"{saved_count} opening balance(s) saved successfully."
+                if last_created_id:
+                    obj = OpeningBalance.objects.filter(opening_balance_id=last_created_id).first()
+                    if obj and obj.ob_number:
+                        msg += f" OB Number: {obj.ob_number}"
+                messages.success(request, msg)
         else:
             messages.error(request, "No opening balance data received.")
 
         if request.content_type == 'application/json':
             return JsonResponse({'saved_count': saved_count})
-        return redirect('opening_balance_entry')
+        url = reverse('opening_balance_entry')
+        if last_created_id:
+            obj = OpeningBalance.objects.filter(opening_balance_id=last_created_id).first()
+            ob_num = obj.ob_number if obj else ''
+            url += f'?created={last_created_id}&ob_number={ob_num}'
+        return redirect(url)
 
     balances_json = []
     for b in balances:
         balances_json.append({
             'opening_balance_id': b.opening_balance_id,
+            'ob_number': b.ob_number or '',
             'opening_date': str(b.opening_date) if b.opening_date else '',
-            'account_id': b.account_id or '',
             'customer': str(b.customer) if b.customer else '',
-            'debit_amount': str(b.debit_amount) if b.debit_amount else '',
-            'credit_amount': str(b.credit_amount) if b.credit_amount else '',
+            'amount': str(b.amount) if b.amount else '',
+            'balance_type': b.balance_type or 'Debit',
             'reference_no': b.reference_no or '',
             'remarks': b.remarks or '',
             'status': b.status or 'Draft',

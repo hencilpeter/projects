@@ -92,7 +92,7 @@
               <input type="date" name="opening_date" id="opening_date" class="form-control form-control-sm" placeholder="Opening Date">
             </div>
             <div class="col-md-3">
-              <input type="text" name="account_id" id="account_id" class="form-control form-control-sm" placeholder="Account / Ledger">
+              <input type="text" name="ob_number" id="ob_number" class="form-control form-control-sm" placeholder="OB Number (auto)" readonly>
             </div>
             <div class="col-md-3">
               <input type="text" name="customer" id="customer" class="form-control form-control-sm" placeholder="Customer" list="customer_list">
@@ -103,16 +103,19 @@
               </datalist>
             </div>
             <div class="col-md-3">
-              <input type="text" name="reference_no" id="reference_no" class="form-control form-control-sm" placeholder="Reference No">
+              <input type="number" name="amount" id="amount" step="0.01" class="form-control form-control-sm" placeholder="Amount">
             </div>
           </div>
 
           <div class="row mb-3">
             <div class="col-md-3">
-              <input type="number" name="debit_amount" id="debit_amount" step="0.01" class="form-control form-control-sm" placeholder="Debit Amount">
+              <input type="text" name="reference_no" id="reference_no" class="form-control form-control-sm" placeholder="Reference No">
             </div>
             <div class="col-md-3">
-              <input type="number" name="credit_amount" id="credit_amount" step="0.01" class="form-control form-control-sm" placeholder="Credit Amount">
+              <select name="balance_type" id="balance_type" class="form-control form-control-sm">
+                <option value="Debit">Debit</option>
+                <option value="Credit">Credit</option>
+              </select>
             </div>
             <div class="col-md-3">
               <select name="status" id="status" class="form-control form-control-sm">
@@ -159,20 +162,18 @@
               <col style="width:100px">
               <col style="width:120px">
               <col style="width:110px">
-              <col style="width:110px">
               <col style="width:100px">
               <col style="width:80px">
             </colgroup>
             <thead class="table-dark">
               <tr>
                 <th scope="col" style="width:40px"><input type="checkbox" id="select-all" onchange="toggleAllCheckboxes(this)"></th>
-                <th scope="col">OB ID</th>
+                <th scope="col">OB Number</th>
                 <th scope="col" class="col-actions">Actions</th>
                 <th scope="col">Opening Date</th>
-                <th scope="col">Account ID</th>
                 <th scope="col">Customer</th>
-                <th scope="col">Debit</th>
-                <th scope="col">Credit</th>
+                <th scope="col">Amount</th>
+                <th scope="col">Balance Type</th>
                 <th scope="col">Reference</th>
                 <th scope="col">Status</th>
               </tr>
@@ -180,15 +181,20 @@
                 <th>
                   <button type="button" class="btn btn-outline-success btn-sm" id="viewSelectedBtn" onclick="viewSelected()" disabled>View</button>
                 </th>
-                <th><input class="filter-input" placeholder="OB ID"></th>
+                <th><input class="filter-input" placeholder="OB Number"></th>
                 <th>
                   <button class="btn btn-warning btn-sm" id="clear-filters">Clear</button>
                 </th>
                 <th><input class="filter-input" placeholder="Date"></th>
-                <th><input class="filter-input" placeholder="Account"></th>
                 <th><input class="filter-input" placeholder="Customer" list="filter_customer_list"></th>
-                <th><input class="filter-input" placeholder="Debit"></th>
-                <th><input class="filter-input" placeholder="Credit"></th>
+                <th><input class="filter-input" placeholder="Amount"></th>
+                <th>
+                  <select class="filter-select">
+                    <option value="">All</option>
+                    <option value="Debit">Debit</option>
+                    <option value="Credit">Credit</option>
+                  </select>
+                </th>
                 <th><input class="filter-input" placeholder="Reference"></th>
                 <th>
                   <select class="filter-select">
@@ -204,7 +210,7 @@
               {% for b in balances %}
                 <tr>
                   <td><input type="checkbox" class="row-checkbox" value="{{ b.opening_balance_id }}" onchange="updateViewBtn()"></td>
-                  <td>{{ b.opening_balance_id }}</td>
+                  <td>{{ b.ob_number|default:b.opening_balance_id }}</td>
                   <td>
                     <a href="javascript:void(0);" onclick="loadOB('{{ b.opening_balance_id }}')" class="btn btn-sm btn-primary">
                       <i class="bi bi-pencil"></i> Edit
@@ -222,10 +228,9 @@
                     </form>
                   </td>
                   <td>{{ b.opening_date|date:"Y-m-d" }}</td>
-                  <td>{{ b.account_id|default:"" }}</td>
                   <td>{{ b.customer|default:"" }}</td>
-                  <td>{{ b.debit_amount }}</td>
-                  <td>{{ b.credit_amount }}</td>
+                  <td>{{ b.amount }}</td>
+                  <td>{{ b.balance_type }}</td>
                   <td>{{ b.reference_no|default:"" }}</td>
                   <td>{{ b.status }}</td>
                 </tr>
@@ -270,6 +275,22 @@
 var obData = {{ balances_json|safe }};
 var draftEntries = [];
 var editingId = null;
+document.addEventListener('DOMContentLoaded', function() {
+    resetForm();
+    var params = new URLSearchParams(window.location.search);
+    var createdId = params.get('created');
+    if (createdId) {
+        loadOB(createdId);
+        // Also set ob_number directly from query param as fallback
+        var obNum = params.get('ob_number');
+        if (obNum) {
+            document.getElementById('ob_number').value = obNum;
+        }
+        // Scroll to form
+        var form = document.getElementById('obForm');
+        if (form) { form.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    }
+});
 
 function addToCart() {
     var entry = getFormData();
@@ -288,11 +309,11 @@ function addToCart() {
 function getFormData() {
     return {
         opening_balance_id: document.getElementById('opening_balance_id').value,
+        ob_number: document.getElementById('ob_number').value,
         opening_date: document.getElementById('opening_date').value,
-        account_id: document.getElementById('account_id').value,
         customer: document.getElementById('customer').value,
-        debit_amount: document.getElementById('debit_amount').value,
-        credit_amount: document.getElementById('credit_amount').value,
+        amount: document.getElementById('amount').value,
+        balance_type: document.getElementById('balance_type').value,
         reference_no: document.getElementById('reference_no').value,
         remarks: document.getElementById('remarks').value,
         status: document.getElementById('status').value,
@@ -314,7 +335,7 @@ function renderDrafts() {
         badge.className = 'badge bg-info text-dark p-2 m-1';
         badge.style.cursor = 'pointer';
         badge.textContent = (i + 1) + '. ' + (e.opening_date || '') + ' - ' + (e.customer || 'No Customer');
-        badge.title = 'Debit: ' + (e.debit_amount || '0') + ' | Credit: ' + (e.credit_amount || '0');
+        badge.title = (e.balance_type || 'Debit') + ': ' + (e.amount || '0');
         badge.onclick = function() { loadDraft(i); };
         container.appendChild(badge);
     });
@@ -323,11 +344,11 @@ function renderDrafts() {
 function loadDraft(index) {
     var e = draftEntries[index];
     document.getElementById('opening_balance_id').value = e.opening_balance_id || '';
+    document.getElementById('ob_number').value = e.ob_number || '';
     document.getElementById('opening_date').value = e.opening_date || '';
-    document.getElementById('account_id').value = e.account_id || '';
     document.getElementById('customer').value = e.customer || '';
-    document.getElementById('debit_amount').value = e.debit_amount || '';
-    document.getElementById('credit_amount').value = e.credit_amount || '';
+    document.getElementById('amount').value = e.amount || '';
+    document.getElementById('balance_type').value = e.balance_type || 'Debit';
     document.getElementById('reference_no').value = e.reference_no || '';
     document.getElementById('remarks').value = e.remarks || '';
     document.getElementById('status').value = e.status || 'Draft';
@@ -338,11 +359,11 @@ function loadDraft(index) {
 
 function resetForm() {
     document.getElementById('opening_balance_id').value = '';
+    document.getElementById('ob_number').value = '';
     document.getElementById('opening_date').value = new Date().toISOString().slice(0,10);
-    document.getElementById('account_id').value = '';
     document.getElementById('customer').value = '';
-    document.getElementById('debit_amount').value = '';
-    document.getElementById('credit_amount').value = '';
+    document.getElementById('amount').value = '';
+    document.getElementById('balance_type').value = 'Debit';
     document.getElementById('reference_no').value = '';
     document.getElementById('remarks').value = '';
     document.getElementById('status').value = 'Draft';
@@ -386,11 +407,11 @@ function loadOB(id) {
     var item = obData.find(function(b) { return String(b.opening_balance_id) === String(id); });
     if (!item) return;
     document.getElementById('opening_balance_id').value = item.opening_balance_id;
+    document.getElementById('ob_number').value = item.ob_number || '';
     document.getElementById('opening_date').value = item.opening_date;
-    document.getElementById('account_id').value = item.account_id;
     document.getElementById('customer').value = item.customer;
-    document.getElementById('debit_amount').value = item.debit_amount;
-    document.getElementById('credit_amount').value = item.credit_amount;
+    document.getElementById('amount').value = item.amount;
+    document.getElementById('balance_type').value = item.balance_type || 'Debit';
     document.getElementById('reference_no').value = item.reference_no;
     document.getElementById('remarks').value = item.remarks;
     document.getElementById('status').value = item.status;
@@ -402,10 +423,10 @@ function cloneOB(id) {
     var item = obData.find(function(b) { return String(b.opening_balance_id) === String(id); });
     if (!item) return;
     resetForm();
-    document.getElementById('account_id').value = item.account_id;
+    document.getElementById('ob_number').value = '';
     document.getElementById('customer').value = item.customer;
-    document.getElementById('debit_amount').value = item.debit_amount;
-    document.getElementById('credit_amount').value = item.credit_amount;
+    document.getElementById('amount').value = item.amount;
+    document.getElementById('balance_type').value = item.balance_type || 'Debit';
     document.getElementById('reference_no').value = item.reference_no;
     document.getElementById('remarks').value = item.remarks;
     var form = document.getElementById('obForm');
@@ -425,11 +446,11 @@ function updateViewBtn() {
 function viewSelected() {
     var checked = document.querySelectorAll('.row-checkbox:checked');
     var body = document.getElementById('listModalBody');
-    var html = '<table class="table table-sm table-bordered"><thead><tr><th>#</th><th>OB ID</th><th>Date</th><th>Customer</th><th>Debit</th><th>Credit</th><th>Status</th></tr></thead><tbody>';
+    var html = '<table class="table table-sm table-bordered"><thead><tr><th>#</th><th>OB Number</th><th>Date</th><th>Customer</th><th>Amount</th><th>Balance Type</th><th>Status</th></tr></thead><tbody>';
     checked.forEach(function(cb, i) {
         var b = obData.find(function(x) { return String(x.opening_balance_id) === String(cb.value); });
         if (b) {
-            html += '<tr><td>' + (i+1) + '</td><td>' + (b.opening_balance_id || '') + '</td><td>' + (b.opening_date || '') + '</td><td>' + (b.customer || '') + '</td><td>' + (b.debit_amount || '') + '</td><td>' + (b.credit_amount || '') + '</td><td>' + (b.status || '') + '</td></tr>';
+            html += '<tr><td>' + (i+1) + '</td><td>' + (b.ob_number || b.opening_balance_id || '') + '</td><td>' + (b.opening_date || '') + '</td><td>' + (b.customer || '') + '</td><td>' + (b.amount || '') + '</td><td>' + (b.balance_type || 'Debit') + '</td><td>' + (b.status || '') + '</td></tr>';
         }
     });
     html += '</tbody></table>';
@@ -481,18 +502,6 @@ function viewList() {
         document.querySelectorAll('#ob-filter-row select').forEach(function(s) { s.value = ''; s.dispatchEvent(new Event('change')); });
     });
 
-    document.querySelectorAll('input[type="date"]').forEach(function(el) {
-        if (!el.value) {
-            el.type = 'text';
-            el.placeholder = el.placeholder || 'YYYY-MM-DD';
-        }
-        el.addEventListener('focus', function() {
-            if (this.type === 'text') { this.type = 'date'; this.value = ''; }
-        });
-        el.addEventListener('blur', function() {
-            if (!this.value) { this.type = 'text'; this.placeholder = 'YYYY-MM-DD'; }
-        });
-    });
 })();
 </script>
 {% endblock %}
