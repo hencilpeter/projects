@@ -2610,6 +2610,7 @@ def payment_allocation_entry(request):
                 if alloc:
                     invoice = alloc.invoice
                     expense_obj = alloc.expense
+                    ob = alloc.opening_balance
                     alloc.delete()
                     if invoice:
                         update_invoice_payment_status(invoice)
@@ -2654,6 +2655,7 @@ def payment_allocation_entry(request):
             saved = 0
             affected_invoices = set()
             affected_expenses = set()
+            affected_obs = set()
 
             for i, inv_no in enumerate(invoice_nos):
                 amt_str = alloc_amts[i] if i < len(alloc_amts) else ""
@@ -2668,8 +2670,17 @@ def payment_allocation_entry(request):
 
                 remaining_amt = amt
 
-                # Determine if this is an expense or invoice
-                if inv_no.startswith('EXP-'):
+                # Determine if this is an opening balance, expense, or invoice
+                if inv_no.startswith('OBAL-'):
+                    ob_id = inv_no.replace('OBAL-', '')
+                    ob_obj = OpeningBalance.objects.filter(opening_balance_id=ob_id).first()
+                    if not ob_obj:
+                        continue
+                    affected_obs.add(ob_obj)
+                    target_invoice = None
+                    target_expense = None
+                    target_ob = ob_obj
+                elif inv_no.startswith('EXP-'):
                     exp_id = inv_no.replace('EXP-', '')
                     expense_obj = Expense.objects.filter(expense_id=exp_id).first()
                     if not expense_obj:
@@ -2677,6 +2688,7 @@ def payment_allocation_entry(request):
                     affected_expenses.add(expense_obj)
                     target_invoice = None
                     target_expense = expense_obj
+                    target_ob = None
                 else:
                     invoice_obj = Invoice.objects.filter(invoice_number=inv_no).first()
                     if not invoice_obj:
@@ -2684,6 +2696,7 @@ def payment_allocation_entry(request):
                     affected_invoices.add(invoice_obj)
                     target_invoice = invoice_obj
                     target_expense = None
+                    target_ob = None
 
                 # Allocate from receipts in order
                 for pid in sorted_pids:
@@ -2696,14 +2709,20 @@ def payment_allocation_entry(request):
                     receipt_obj = PaymentReceipt.objects.get(payment_id=pid)
 
                     filter_kwargs = {'payment': receipt_obj}
-                    if target_expense:
+                    if target_ob:
+                        filter_kwargs['opening_balance'] = target_ob
+                        filter_kwargs['invoice__isnull'] = True
+                        filter_kwargs['expense__isnull'] = True
+                    elif target_expense:
                         filter_kwargs['expense'] = target_expense
                         filter_kwargs['invoice__isnull'] = True
+                        filter_kwargs['opening_balance__isnull'] = True
                     else:
                         filter_kwargs['invoice'] = target_invoice
                         filter_kwargs['expense__isnull'] = True
+                        filter_kwargs['opening_balance__isnull'] = True
 
-                    # Use filter-based get_or_create since invoice/expense can be null
+                    # Use filter-based get_or_create since nullable FKs
                     existing = PaymentAllocation.objects.filter(**filter_kwargs).first()
                     if existing:
                         alloc = existing
@@ -2714,6 +2733,7 @@ def payment_allocation_entry(request):
                             payment=receipt_obj,
                             invoice=target_invoice,
                             expense=target_expense,
+                            opening_balance=target_ob,
                             allocated_amount=take,
                             allocation_date=parse_date(allocation_date) or now.strftime('%Y-%m-%d'),
                         )
@@ -2743,6 +2763,7 @@ def payment_allocation_entry(request):
                 update_invoice_payment_status(inv)
             for exp in affected_expenses:
                 update_expense_payment_status(exp)
+            # Opening balances don't have a status field to update
 
             if saved:
                 messages.success(request, f"{saved} allocation(s) saved.")
@@ -2769,8 +2790,31 @@ def payment_allocation_entry(request):
                 'available': str(available),
             })
 
-    invoices_qs = Invoice.objects.all()
     invoice_data = []
+
+    # Opening balances first (top of right panel)
+    ob_qs = OpeningBalance.objects.all()
+    for ob in ob_qs:
+        total_alloc = PaymentAllocation.objects.filter(
+            opening_balance=ob
+        ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+        balance = ob.amount - total_alloc
+        if balance > 0:
+            ob_num = ob.ob_number or f"OBAL-{ob.opening_balance_id}"
+            customer_code = ob.customer.code if ob.customer else ''
+            invoice_data.append({
+                'invoice_number': f'OBAL-{ob.opening_balance_id}',
+                'invoice_date': str(ob.opening_date) if ob.opening_date else '',
+                'customer_code': customer_code,
+                'gross_total': str(ob.amount),
+                'balance': str(balance),
+                'type': 'opening_balance',
+                'ob_id': ob.opening_balance_id,
+                'ob_number': ob_num,
+            })
+
+    # Then invoices
+    invoices_qs = Invoice.objects.all()
     for inv in invoices_qs:
         total_alloc = PaymentAllocation.objects.filter(
             invoice=inv
@@ -2786,7 +2830,7 @@ def payment_allocation_entry(request):
                 'type': 'invoice',
             })
 
-    # Also include customer expenses (bill_to=Customer) with outstanding balance
+    # Then customer expenses (bill_to=Customer) with outstanding balance
     expense_qs = Expense.objects.filter(bill_to='Customer')
     for e in expense_qs:
         total_alloc = PaymentAllocation.objects.filter(
@@ -2794,7 +2838,6 @@ def payment_allocation_entry(request):
         ).aggregate(total=Sum('allocated_amount'))['total'] or 0
         balance = e.expense_amount - total_alloc
         if balance > 0:
-            # Extract customer code from vendor field (format: "CODE-Name" or just "Not Applicable")
             vendor = e.vendor or ''
             customer_code = ''
             if vendor and vendor != 'Not Applicable':
@@ -2811,7 +2854,7 @@ def payment_allocation_entry(request):
             })
 
     # Existing allocations for reference
-    existing_allocations = PaymentAllocation.objects.select_related('payment', 'invoice', 'expense').all()
+    existing_allocations = PaymentAllocation.objects.select_related('payment', 'invoice', 'expense', 'opening_balance').all()
 
     return render(request, 'marania_invoice_app/payment_allocation_entry.html', {
         'parties': parties,

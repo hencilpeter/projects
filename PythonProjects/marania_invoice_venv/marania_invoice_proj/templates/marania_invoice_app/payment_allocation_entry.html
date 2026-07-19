@@ -197,16 +197,36 @@
     <div class="mt-5">
       <h5><i class="bi bi-list"></i> Existing Allocations</h5>
       <div class="table-responsive" style="max-height:400px;overflow:auto;border:1px solid #ddd;">
-        <table class="table table-sm table-bordered table-striped">
+        <table class="table table-sm table-bordered table-striped" id="existing-alloc-table">
+          <colgroup>
+            <col style="width:80px">
+            <col style="width:130px">
+            <col style="width:130px">
+            <col style="width:100px">
+            <col style="width:100px">
+            <col style="width:100px">
+            <col style="width:80px">
+          </colgroup>
           <thead class="table-dark">
             <tr>
               <th>Alloc ID</th>
               <th>Receipt</th>
-              <th>Invoice</th>
+              <th>Invoice / Ref</th>
+              <th>Customer</th>
               <th>Amount</th>
               <th>Date</th>
-              <th>Remarks</th>
               <th>Action</th>
+            </tr>
+            <tr id="existing-alloc-filter-row">
+              <th><input class="filter-input" placeholder="ID"></th>
+              <th><input class="filter-input" placeholder="Receipt"></th>
+              <th><input class="filter-input" placeholder="Invoice / Ref"></th>
+              <th><input class="filter-input" placeholder="Customer" list="customer_list"></th>
+              <th><input class="filter-input" placeholder="Amount"></th>
+              <th><input class="filter-input" placeholder="Date"></th>
+              <th>
+                <button class="btn btn-warning btn-sm" id="clear-existing-alloc-filters">Clear</button>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -214,10 +234,10 @@
             <tr>
               <td>{{ a.allocation_id }}</td>
               <td>{{ a.payment.receipt_no }}</td>
-              <td>{% if a.invoice %}{{ a.invoice.invoice_number }}{% else %}{{ a.expense.expense_category }} (EXP-{{ a.expense.expense_id }}){% endif %}</td>
+              <td>{% if a.invoice %}{{ a.invoice.invoice_number }}{% elif a.expense %}{{ a.expense.expense_category }} (EXP-{{ a.expense.expense_id }}){% elif a.opening_balance %}{{ a.opening_balance.ob_number|default:a.opening_balance.opening_balance_id }} (OB){% endif %}</td>
+              <td>{% if a.payment.customer %}{{ a.payment.customer.code }}-{{ a.payment.customer.name }}{% elif a.invoice and a.invoice.customer_code %}{{ a.invoice.customer_code }}{% elif a.opening_balance and a.opening_balance.customer %}{{ a.opening_balance.customer.code }}-{{ a.opening_balance.customer.name }}{% endif %}</td>
               <td>{{ a.allocated_amount }}</td>
               <td>{{ a.allocation_date|date:"Y-m-d" }}</td>
-              <td>{{ a.remarks|default:"" }}</td>
               <td>
                 <form method="POST" action="{% url 'payment_allocation_entry' %}" style="display:inline;" onsubmit="return confirm('Delete this allocation?')">
                   {% csrf_token %}
@@ -340,12 +360,18 @@ function renderInvoices() {
     countBadge.textContent = filteredInvoices.length;
     var html = '';
     filteredInvoices.forEach(function(inv) {
-        var isExpense = inv.type === 'expense';
         var invNum = inv.invoice_number || '';
-        var dateOrCat = isExpense ? (inv.expense_category || 'Expense') : (inv.invoice_date || '');
+        var label = invNum;
+        var dateOrCat = inv.invoice_date || '';
+        if (inv.type === 'expense') {
+            dateOrCat = inv.expense_category || 'Expense';
+        } else if (inv.type === 'opening_balance') {
+            label = inv.ob_number || invNum;
+            dateOrCat = 'Opening Balance';
+        }
         html += '<tr>'
             + '<td><input type="checkbox" class="invoice-checkbox" checked onchange="distribute()"></td>'
-            + '<td>' + invNum + '</td>'
+            + '<td>' + label + '</td>'
             + '<td>' + dateOrCat + '</td>'
             + '<td>' + (inv.gross_total || '') + '</td>'
             + '<td class="balance-cell">' + (inv.balance || '') + '</td>'
@@ -526,5 +552,41 @@ function validateAllocations() {
     document.getElementById('selected_payment_ids').value = selectedIds.join(',');
     return confirm('Save these allocations?');
 }
+
+// Existing allocations table filters
+(function() {
+    var tbody = document.querySelector('#existing-alloc-table tbody');
+    if (!tbody) return;
+
+    function applyFilters() {
+        var filterThs = document.querySelectorAll('#existing-alloc-filter-row th');
+        var filters = [];
+        filterThs.forEach(function(th) {
+            var input = th.querySelector('input, select');
+            filters.push(input ? input.value.toLowerCase() : '');
+        });
+        tbody.querySelectorAll('tr').forEach(function(row) {
+            var cells = row.querySelectorAll('td');
+            var show = true;
+            filters.forEach(function(filter, index) {
+                if (!filter) return;
+                if (!cells[index] || !cells[index].textContent.toLowerCase().includes(filter)) {
+                    show = false;
+                }
+            });
+            row.style.display = show ? '' : 'none';
+        });
+    }
+
+    document.querySelectorAll('#existing-alloc-filter-row input, #existing-alloc-filter-row select')
+        .forEach(function(el) { el.addEventListener('input', applyFilters); });
+    document.querySelectorAll('#existing-alloc-filter-row select')
+        .forEach(function(el) { el.addEventListener('change', applyFilters); });
+
+    document.getElementById('clear-existing-alloc-filters').addEventListener('click', function() {
+        document.querySelectorAll('#existing-alloc-filter-row input').forEach(function(i) { i.value = ''; i.dispatchEvent(new Event('input')); });
+        document.querySelectorAll('#existing-alloc-filter-row select').forEach(function(s) { s.value = ''; s.dispatchEvent(new Event('change')); });
+    });
+})();
 </script>
 {% endblock %}

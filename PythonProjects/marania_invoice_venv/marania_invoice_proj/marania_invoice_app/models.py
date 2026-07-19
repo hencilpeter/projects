@@ -479,13 +479,24 @@ class PaymentAllocation(models.Model):
         'Expense', on_delete=models.DO_NOTHING,
         related_name='payment_allocations', db_constraint=False,
         null=True, blank=True)
+    opening_balance = models.ForeignKey(
+        'OpeningBalance', on_delete=models.DO_NOTHING,
+        related_name='payment_allocations', db_constraint=False,
+        null=True, blank=True)
     allocated_amount = models.DecimalField(max_digits=18, decimal_places=2)
     allocation_date = models.DateField()
     remarks = models.TextField(blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        target = self.invoice.invoice_number if self.invoice else f"EXP-{self.expense.expense_id}" if self.expense else "?"
+        if self.invoice:
+            target = self.invoice.invoice_number
+        elif self.expense:
+            target = f"EXP-{self.expense.expense_id}"
+        elif self.opening_balance:
+            target = self.opening_balance.ob_number or f"OBAL-{self.opening_balance.opening_balance_id}"
+        else:
+            target = "?"
         return f"Alloc {self.allocation_id} - {self.payment.receipt_no} - {target}"
 
     class Meta:
