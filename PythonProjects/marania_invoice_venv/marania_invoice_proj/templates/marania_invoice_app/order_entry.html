@@ -270,7 +270,7 @@
                   <td>{{ order.last_status_date|date:"Y-m-d" }}</td>
                   <td>{{ order.customer }}</td>
                   <td>{{ order.twine }}</td>
-                  <td>{% with spec=order.specifications.first %}{{ spec.mesh_size }}MM-{% if "MD" in spec.mesh_depth|upper %}{{ spec.mesh_depth }}{% else %}{{ spec.mesh_depth }}MD{% endif %}-{% if "SEL" in spec.salvage|upper %}{{ spec.salvage }}{% else %}{{ spec.salvage }}Sel{% endif %}{% endwith %}</td>
+                  <td>{% with spec=order.specifications.first %}{{ spec.mesh_size }}MM-{% if "MD" in spec.mesh_depth|upper %}{{ spec.mesh_depth }}{% else %}{{ spec.mesh_depth }}MD{% endif %}-{% if "SEL" in spec.salvage|upper %}{{ spec.salvage }}{% else %}{{ spec.salvage }}Sel{% endif %}{% if spec.piece_weight %}-PW({{ spec.piece_weight }}){% endif %}{% endwith %}</td>
                   <td>{{ order.specifications.first.colour }}</td>
                   <td>{{ order.quantity }}</td>
                   <td>{{ order.quantity_unit }}</td>
