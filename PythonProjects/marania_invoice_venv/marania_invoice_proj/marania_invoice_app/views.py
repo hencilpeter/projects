@@ -2225,6 +2225,7 @@ def order_entry(request):
 
     parties = Parties.objects.all()
     products = Product.objects.all()
+    colours_list = list(OrderSpecification.objects.exclude(colour__isnull=True).exclude(colour='').values_list('colour', flat=True).distinct().order_by('colour'))
 
     context = {
         "orders": orders,
@@ -2232,6 +2233,7 @@ def order_entry(request):
         "next_order_sequence": next_order_sequence,
         "parties": parties,
         "products": products,
+        "colours_list": colours_list,
     }
     return render(request, "marania_invoice_app/order_entry.html", context)
 
@@ -2438,6 +2440,69 @@ def copy_order_to_sales(request, order_key):
     sales.save()
 
     messages.success(request, f"Order {order.order_number} copied to Sales as {sales.order_no}.")
+    return redirect('order_entry')
+
+
+def copy_orders_to_sales(request):
+    if request.method == 'POST':
+        import json
+        try:
+            data = json.loads(request.body)
+            order_keys = data.get('order_keys', [])
+        except (json.JSONDecodeError, TypeError):
+            order_keys = request.POST.getlist('order_keys')
+
+        if not order_keys:
+            messages.error(request, "No orders selected.")
+            return redirect('order_entry')
+
+        copied_count = 0
+        for ok in order_keys:
+            try:
+                order = Order.objects.prefetch_related('specifications').get(order_key=ok)
+            except Order.DoesNotExist:
+                continue
+
+            spec = order.specifications.first()
+            mesh_size = spec.mesh_size if spec else ''
+            mesh_depth = spec.mesh_depth if spec else ''
+            salvage = spec.salvage if spec else ''
+            md_disp = mesh_depth if mesh_depth and 'MD' in mesh_depth.upper() else (mesh_depth + 'MD' if mesh_depth else '')
+            sal_disp = salvage if salvage and 'SEL' in salvage.upper() else (salvage + 'Sel' if salvage else '')
+            spec_text = f"{mesh_size}MM-{md_disp}-{sal_disp}" if mesh_size or md_disp or sal_disp else ""
+
+            now = datetime.now()
+            seq = (Sales.objects.aggregate(max_seq=Max('sales_sequence'))['max_seq'] or 0) + 1
+
+            party = Parties.objects.filter(code=order.customer).first()
+            settings = CompanySettings.objects.get(id=1)
+            if party and party.is_within_state:
+                gst_rate = (settings.cgst or 0) + (settings.sgst or 0)
+            else:
+                gst_rate = settings.igst or 0
+
+            unit_price = order.unit_price
+            if order.is_gst_included and order.unit_price and gst_rate:
+                unit_price = round(order.unit_price / (1 + gst_rate / 100), 2)
+
+            sales = Sales(
+                sales_sequence=seq,
+                order_no=order.order_number or f"{order.twine}-{seq}",
+                sales_entry_date=now.strftime('%Y-%m-%d'),
+                customer=order.customer or "",
+                twine=order.twine or "",
+                speification=spec_text,
+                colour=spec.colour if spec else "White",
+                piece_weight=spec.piece_weight if spec else "",
+                piece_count=spec.no_of_pcs if spec else None,
+                unit_price=unit_price,
+                gst_rate=gst_rate,
+                status='ON_HOLD_PROCESSING',
+            )
+            sales.save()
+            copied_count += 1
+
+        messages.success(request, f"{copied_count} order(s) copied to Sales successfully.")
     return redirect('order_entry')
 
 

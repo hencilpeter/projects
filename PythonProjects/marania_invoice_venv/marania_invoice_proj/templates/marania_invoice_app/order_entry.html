@@ -204,32 +204,34 @@
 
     <div class="order-list mt-4">
       {% if orders %}
-        <div class="table-responsive invoice-table-wrapper">
+        <div class="invoice-table-wrapper" style="width:100%;overflow-x:auto;">
           <table id="order-table" class="table table-striped table-hover table-bordered table-sm align-middle">
             <thead class="table-dark">
               <tr>
-                <th scope="col">Order #</th>
-                <th scope="col">O.Date</th>
-                <th scope="col">Status Upd Date</th>
-                <th scope="col">Customer</th>
+                <th scope="col" style="width:30px"></th>
+                <th scope="col" style="width:65px;">Order #</th>
+                <th scope="col" style="width:85px;">O.Date</th>
+                <th scope="col" style="width:85px;">Status Date</th>
+                <th scope="col" style="width:150px;">Customer</th>
                 <th scope="col">Twine</th>
                 <th scope="col" class="col-orderspec">OrderSpec</th>
                 <th scope="col">Colour</th>
                 <th scope="col">Qty</th>
                 <th scope="col">Unit</th>
-                <th scope="col" class="col-amount">Unit Price</th>
+                <th scope="col" class="col-amount" style="width:75px;">Unit Price</th>
                 <th scope="col">Status</th>
                 <th scope="col">GST</th>
                 <th scope="col" class="col-actions">Actions</th>
               </tr>
               <tr id="order-filter-row">
+                <th style="text-align:center;vertical-align:middle;"><input type="checkbox" id="select-all-orders" onchange="toggleAllOrderCheckboxes(this)"></th>
                 <th><input class="filter-input" placeholder="Order #"></th>
                 <th><input class="filter-input" placeholder="O.Date"></th>
                 <th><input class="filter-input" placeholder="Status Upd Date"></th>
-                <th><input class="filter-input" placeholder="Customer"></th>
-                <th><input class="filter-input" placeholder="Twine"></th>
+                <th><input class="filter-input" placeholder="Customer" list="customer_list_filter"></th>
+                <th><input class="filter-input" placeholder="Twine" list="twine_list_filter"></th>
                 <th><input class="filter-input" placeholder="OrderSpec"></th>
-                <th><input class="filter-input" placeholder="Colour"></th>
+                <th><input class="filter-input" placeholder="Colour" list="colour_list_filter"></th>
                 <th><input class="filter-input" placeholder="Qty"></th>
                 <th><input class="filter-input" placeholder="Unit"></th>
                 <th><input class="filter-input" placeholder="Price"></th>
@@ -255,12 +257,14 @@
                 </th>
                 <th>
                   <button class="btn btn-warning btn-sm" id="clear-order-filters">Clear</button>
+                  <button type="button" class="btn btn-outline-success btn-sm ms-1" id="copySelectedOrdersBtn" onclick="copySelectedOrders()" disabled><i class="bi bi-arrow-right-circle"></i> Copy to Sales</button>
                 </th>
               </tr>
             </thead>
             <tbody>
               {% for order in orders %}
                 <tr>
+                  <td><input type="checkbox" class="order-checkbox" value="{{ order.order_key }}" onchange="updateCopyOrdersBtn()"></td>
                   <td>{{ order.order_number }}</td>
                   <td>{{ order.order_date|date:"Y-m-d" }}</td>
                   <td>{{ order.last_status_date|date:"Y-m-d" }}</td>
@@ -307,6 +311,23 @@
     </div>
 
   </div>
+
+<datalist id="customer_list_filter">
+  {% for party in parties %}
+    <option value="{{ party.code }}-{{ party.name }}">
+  {% endfor %}
+</datalist>
+<datalist id="twine_list_filter">
+  {% for prod in products %}
+    <option value="{{ prod.code }}">
+  {% endfor %}
+</datalist>
+<datalist id="colour_list_filter">
+  {% for colour in colours_list %}
+    <option value="{{ colour }}">
+  {% endfor %}
+</datalist>
+
 </main>
 
 <!-- View Order List Modal -->
@@ -778,7 +799,7 @@ if (orderTable) {
     const orderTbody = orderTable.querySelector('tbody');
 
     function applyOrderFilters() {
-        const filterInputs = document.querySelectorAll('#order-filter-row input, #order-filter-row select');
+        const filterInputs = document.querySelectorAll('#order-filter-row input.filter-input, #order-filter-row select.filter-select');
         const filters = Array.from(filterInputs).map(i => i.value.toLowerCase());
 
         orderTbody.querySelectorAll('tr').forEach(row => {
@@ -786,7 +807,7 @@ if (orderTable) {
             let show = true;
             filters.forEach((filter, index) => {
                 if (!filter) return;
-                if (!cells[index] || !cells[index].textContent.toLowerCase().includes(filter)) {
+                if (!cells[index + 1] || !cells[index + 1].textContent.toLowerCase().includes(filter)) {
                     show = false;
                 }
             });
@@ -794,19 +815,56 @@ if (orderTable) {
         });
     }
 
-    document.querySelectorAll('#order-filter-row input, #order-filter-row select')
+    document.querySelectorAll('#order-filter-row input.filter-input, #order-filter-row select.filter-select')
         .forEach(el => el.addEventListener('input', applyOrderFilters));
-    document.querySelectorAll('#order-filter-row select')
+    document.querySelectorAll('#order-filter-row select.filter-select')
         .forEach(el => el.addEventListener('change', applyOrderFilters));
 
     document.getElementById('clear-order-filters')
         .addEventListener('click', () => {
-            document.querySelectorAll('#order-filter-row input')
+            document.querySelectorAll('#order-filter-row input.filter-input')
                 .forEach(i => i.value = '');
-            document.querySelectorAll('#order-filter-row select')
+            document.querySelectorAll('#order-filter-row select.filter-select')
                 .forEach(s => s.value = '');
             applyOrderFilters();
         });
+}
+
+function toggleAllOrderCheckboxes(master) {
+    document.querySelectorAll('.order-checkbox').forEach(function(cb) {
+        cb.checked = master.checked;
+    });
+    updateCopyOrdersBtn();
+}
+
+function updateCopyOrdersBtn() {
+    var checked = document.querySelectorAll('.order-checkbox:checked').length;
+    var btn = document.getElementById('copySelectedOrdersBtn');
+    if (btn) btn.disabled = checked === 0;
+}
+
+function copySelectedOrders() {
+    var checked = document.querySelectorAll('.order-checkbox:checked');
+    if (checked.length === 0) return;
+    var keys = [];
+    checked.forEach(function(cb) { keys.push(cb.value); });
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "copy_orders_to_sales" %}';
+    var csrf = document.createElement('input');
+    csrf.type = 'hidden';
+    csrf.name = 'csrfmiddlewaretoken';
+    csrf.value = '{{ csrf_token }}';
+    form.appendChild(csrf);
+    keys.forEach(function(k) {
+        var inp = document.createElement('input');
+        inp.type = 'hidden';
+        inp.name = 'order_keys';
+        inp.value = k;
+        form.appendChild(inp);
+    });
+    document.body.appendChild(form);
+    form.submit();
 }
 </script>
 
