@@ -190,6 +190,9 @@
         <a href="{% url 'payment_allocation_entry' %}" class="btn btn-secondary btn-lg ms-2">
           <i class="bi bi-arrow-counterclockwise"></i> Refresh
         </a>
+        <button type="button" class="btn btn-info btn-lg ms-2" onclick="showBalanceHistory()">
+          <i class="bi bi-graph-up"></i> Outstanding Summary
+        </button>
       </div>
     </form>
 
@@ -258,12 +261,29 @@
   </div>
 </main>
 
+<!-- Balance History Modal -->
+<div class="modal fade" id="balanceHistoryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-graph-up"></i> Outstanding Summary</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="balanceHistoryBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
 var paymentData = {{ payment_data_json|safe }};
 var invoiceData = {{ invoice_data_json|safe }};
+var balanceHistoryData = {{ balance_history_json|safe }};
 
 var filteredPayments = [];
 var filteredInvoices = [];
@@ -322,7 +342,7 @@ function renderPayments() {
         html += '<tr class="payment-row" data-payment-id="' + p.payment_id + '">'
             + '<td><input type="checkbox" class="payment-checkbox" checked onchange="distribute()"></td>'
             + '<td>' + (p.payment_date || '') + '</td>'
-            + '<td>' + (p.receipt_no || '') + '</td>'
+            + '<td>' + (p.display_label || p.receipt_no || '') + '</td>'
             + '<td>' + (p.total_received || '') + '</td>'
             + '<td>' + (p.available || '') + '</td>'
             + '</tr>';
@@ -551,6 +571,138 @@ function validateAllocations() {
     }
     document.getElementById('selected_payment_ids').value = selectedIds.join(',');
     return confirm('Save these allocations?');
+}
+
+function showBalanceHistory() {
+    var val = document.getElementById('alloc_customer').value.trim().toLowerCase();
+    var code = val.split('-')[0].trim();
+    if (code.length < 2) {
+        alert('Select a customer first.');
+        return;
+    }
+
+    var entries = [];
+
+    // Selected payments -> Cr entries
+    document.querySelectorAll('.payment-checkbox:checked').forEach(function(cb) {
+        var row = cb.closest('tr');
+        if (!row) return;
+        var pid = parseInt(row.getAttribute('data-payment-id'));
+        var p = paymentData.find(function(p) { return parseInt(p.payment_id) === pid; });
+        if (!p) return;
+        var avail = parseFloat(p.available) || 0;
+        if (avail > 0) {
+            var ttype = p.transaction_type || 'Payment';
+            var desc;
+            var entryType;
+            if (ttype === 'Payment') {
+                desc = 'Payment Received (' + p.receipt_no + ')';
+                entryType = 'Cr';
+            } else if (ttype === 'Adjustment(Cr)') {
+                desc = 'Payment Adjustment(Cr) (' + p.receipt_no + ')';
+                entryType = 'Cr';
+            } else if (ttype === 'Adjustment(Dr)') {
+                desc = 'Payment Adjustment(Dr) (' + p.receipt_no + ')';
+                entryType = 'Dr';
+            } else {
+                desc = 'Received Payment (' + p.receipt_no + ')';
+                entryType = 'Cr';
+            }
+            entries.push({
+                entry_date: p.payment_date,
+                description: desc,
+                type: entryType,
+                amount: avail,
+            });
+        }
+    });
+
+    // Selected invoices/expenses/opening balances -> Dr entries
+    document.querySelectorAll('.invoice-checkbox:checked').forEach(function(cb) {
+        var row = cb.closest('tr');
+        if (!row) return;
+        var hiddenInput = row.querySelector('input[name="invoice_number[]"]');
+        if (!hiddenInput) return;
+        var invNum = hiddenInput.value;
+        var inv = invoiceData.find(function(i) { return i.invoice_number === invNum; });
+        if (!inv) return;
+        var bal = parseFloat(inv.balance) || 0;
+        if (bal > 0) {
+            var desc;
+            var isOB = inv.type === 'opening_balance';
+            if (inv.type === 'expense') {
+                desc = 'Expense (' + invNum + ')';
+            } else if (isOB) {
+                desc = 'Opening Balance (' + (inv.ob_number || invNum) + ')';
+            } else {
+                desc = 'Invoice (' + invNum + ')';
+            }
+            entries.push({
+                entry_date: inv.invoice_date,
+                description: desc,
+                type: 'Dr',
+                amount: bal,
+                isOB: isOB,
+            });
+        }
+    });
+
+    // Sort by date, opening balance rows first for same date
+    entries.sort(function(a, b) {
+        var d = (a.entry_date || '').localeCompare(b.entry_date || '');
+        if (d !== 0) return d;
+        return (b.isOB ? 1 : 0) - (a.isOB ? 1 : 0);
+    });
+
+    // Compute running balance
+    var running = 0.0;
+    entries.forEach(function(e) {
+        if (e.type === 'Dr') {
+            running += e.amount;
+        } else {
+            running -= e.amount;
+        }
+        e.running_balance = Math.round(running * 100) / 100;
+    });
+
+    var body = document.getElementById('balanceHistoryBody');
+    var customerName = val;
+    var parts = val.split('-');
+    if (parts.length > 1) customerName = parts.slice(1).join('-').trim().toUpperCase();
+    var today = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+    var headerHtml = '<div class="d-flex justify-content-between align-items-center mb-2 p-2 rounded text-white" style="background:linear-gradient(135deg,#1a237e,#283593);font-size:0.9rem;">'
+        + '<strong><i class="bi bi-person-circle"></i> ' + customerName + '</strong>'
+        + '<span><i class="bi bi-calendar3"></i> ' + today + '</span>'
+        + '</div>';
+
+    if (entries.length === 0) {
+        body.innerHTML = headerHtml + '<p class="text-muted text-center">No selected items with outstanding balance.</p>';
+    } else {
+        var html = headerHtml + '<table class="table table-sm table-bordered" style="border-color:#c0c0c0;">'
+            + '<thead><tr style="background:linear-gradient(135deg,#1a237e,#283593);color:#fff;font-size:0.85rem;">'
+            + '<th style="padding:5px 4px;">#</th><th style="padding:5px 4px;">Date</th><th style="padding:5px 4px;">Description</th><th style="padding:5px 4px;">Dr/Cr</th><th style="padding:5px 4px;text-align:right;">Amount</th><th style="padding:5px 4px;text-align:right;">Balance</th></tr></thead><tbody>';
+        entries.forEach(function(e, i) {
+            var rowBg = i % 2 === 0 ? '#ffffff' : '#f0f4ff';
+            var amtClass = e.type === 'Cr' ? 'text-success' : 'text-danger';
+            html += '<tr style="background:' + rowBg + ';font-size:0.85rem;">'
+                + '<td style="padding:4px 5px;">' + (i+1) + '</td>'
+                + '<td style="padding:4px 5px;">' + (e.entry_date || '') + '</td>'
+                + '<td style="padding:4px 5px;">' + e.description + '</td>'
+                + '<td style="padding:4px 5px;">' + e.type + '</td>'
+                + '<td style="padding:4px 5px;text-align:right;" class="fw-bold ' + amtClass + '">' + e.amount.toFixed(2) + '</td>'
+                + '<td style="padding:4px 5px;text-align:right;" class="fw-bold text-danger">' + e.running_balance.toFixed(2) + '</td>'
+                + '</tr>';
+        });
+        html += '</tbody></table>';
+        var lastBalance = entries.length > 0 ? entries[entries.length - 1].running_balance : 0;
+        var label = lastBalance >= 0 ? 'Dr' : 'Cr';
+        html += '<div class="text-end mt-2 p-2 rounded text-white" style="background:linear-gradient(135deg,#1a237e,#283593);font-size:0.9rem;">'
+            + '<strong>Balance Amount(Rs): <span>' + Math.abs(lastBalance).toFixed(2) + ' (' + label + ')</span></strong>'
+            + '</div>';
+        body.innerHTML = html;
+    }
+    var modal = new bootstrap.Modal(document.getElementById('balanceHistoryModal'));
+    modal.show();
 }
 
 // Existing allocations table filters
