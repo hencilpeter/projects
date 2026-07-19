@@ -12,6 +12,7 @@
 
 #sales-table {
     table-layout: fixed;
+    font-size: 0.8rem;
 }
 
 .col-narrow { text-align: center; white-space: nowrap; }
@@ -48,7 +49,7 @@
 /* Row status background colors (very light pastels) */
 tr.row-status-paid { background-color: #d4edda !important; }
 tr.row-status-partially_paid { background-color: #d1ecf1 !important; }
-tr.row-status-pending { background-color: #fff3cd !important; }
+tr.row-status-pending { background-color: #fdcdff !important; }
 tr.row-status-no_payment { background-color: #f8d7da !important; }
 tr.row-status-on_hold_stock { background-color: #e2e3e5 !important; }
 tr.row-status-on_hold_processing { background-color: #fff3cd !important; }
@@ -87,6 +88,11 @@ tr.row-status-on_hold_processing td {
   background: linear-gradient(to bottom, #f9c60a, #d4a500) !important;
   transform: translateY(3px);
   box-shadow: 0 1px 0 #caa600 inset !important;
+}
+
+.bg-pending {
+    background-color: #8B2252 !important;
+    color: #fff !important;
 }
 </style>
 
@@ -169,7 +175,7 @@ tr.row-status-on_hold_processing td {
               <select name="status" id="status" class="form-control form-control-sm">
                 <option value="PAID" style="background-color:#198754;color:#fff;">PAID</option>
                 <option value="PARTIALLY_PAID" style="background-color:#0dcaf0;color:#000;">PARTIALLY PAID</option>
-                <option value="PENDING" style="background-color:#ffc107;color:#000;">PENDING</option>
+                <option value="PENDING" style="background-color:#8B2252;color:#fff;">PENDING</option>
                 <option value="NO_PAYMENT" style="background-color:#dc3545;color:#fff;">NO PAYMENT</option>
                 <option value="ON_HOLD_STOCK" style="background-color:#6c757d;color:#fff;">ON HOLD(Item On Stock)</option>
                 <option value="ON_HOLD_PROCESSING" style="background-color:#ffc107;color:#000;" selected>ON HOLD(PROCESSING)</option>
@@ -212,21 +218,21 @@ tr.row-status-on_hold_processing td {
         <div class="table-responsive invoice-table-wrapper">
           <table id="sales-table" class="table table-striped table-hover table-bordered table-sm align-middle">
             <colgroup>
+              <col style="width:50px">
               <col style="width:60px">
-              <col style="width:80px">
-              <col style="width:160px">
-              <col style="width:90px">
-              <col style="width:120px">
-              <col style="width:90px">
-              <col style="width:200px">
-              <col style="width:90px">
-              <col style="width:90px">
-              <col style="width:90px">
-              <col style="width:90px">
-              <col style="width:90px">
-              <col style="width:90px">
-              <col style="width:90px">
-              <col style="width:90px">
+              <col style="width:150px">
+              <col style="width:85px">
+              <col style="width:140px">
+              <col style="width:60px">
+              <col style="width:150px">
+              <col style="width:65px">
+              <col style="width:65px">
+              <col style="width:65px">
+              <col style="width:65px">
+              <col style="width:65px">
+              <col style="width:70px">
+              <col style="width:60px">
+              <col style="width:65px">
               <col style="width:90px">
               <col style="width:130px">
               <col style="width:90px">
@@ -278,7 +284,7 @@ tr.row-status-on_hold_processing td {
                     <option value="">All</option>
                     <option value="PAID" style="background-color:#198754;color:#fff;">PAID</option>
                     <option value="PARTIALLY PAID" style="background-color:#0dcaf0;color:#000;">PARTIALLY PAID</option>
-                    <option value="PENDING" style="background-color:#ffc107;color:#000;">PENDING</option>
+<option value="PENDING" style="background-color:#8B2252;color:#fff;">PENDING</option>
                     <option value="NO PAYMENT" style="background-color:#dc3545;color:#fff;">NO PAYMENT</option>
                     <option value="ON HOLD(Item On Stock)" style="background-color:#6c757d;color:#fff;">ON HOLD(STOCK)</option>
                     <option value="ON HOLD(PROCESSING)" style="background-color:#ffc107;color:#000;">ON HOLD(PROCESSING)</option>
@@ -322,7 +328,7 @@ tr.row-status-on_hold_processing td {
                   <td>{{ sale.total_amount|default:"" }}</td>
                   <td>{{ sale.delivery_date|default:""|date:"Y-m-d" }}</td>
                   <td>
-                    <span class="badge {% if sale.status == 'PAID' %}bg-success{% elif sale.status == 'PARTIALLY_PAID' %}bg-info text-dark{% elif sale.status == 'PENDING' %}bg-warning text-dark{% elif sale.status == 'NO_PAYMENT' %}bg-danger{% elif sale.status == 'ON_HOLD_STOCK' %}bg-secondary{% elif sale.status == 'ON_HOLD_PROCESSING' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                    <span class="badge {% if sale.status == 'PAID' %}bg-success{% elif sale.status == 'PARTIALLY_PAID' %}bg-info text-dark{% elif sale.status == 'PENDING' %}bg-pending{% elif sale.status == 'NO_PAYMENT' %}bg-danger{% elif sale.status == 'ON_HOLD_STOCK' %}bg-secondary{% elif sale.status == 'ON_HOLD_PROCESSING' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
                       {{ sale.get_status_display }}
                     </span>
                   </td>
@@ -422,10 +428,10 @@ calcFields.forEach(function(id) {
 // Status color sync
 function updateStatusStyle(select) {
     var val = select.value;
-    select.classList.remove('bg-success', 'bg-info', 'bg-warning', 'bg-danger', 'bg-secondary', 'text-dark');
+    select.classList.remove('bg-success', 'bg-info', 'bg-warning', 'bg-danger', 'bg-secondary', 'bg-pending', 'text-dark');
     if (val === 'PAID') select.classList.add('bg-success');
     else if (val === 'PARTIALLY_PAID') select.classList.add('bg-info', 'text-dark');
-    else if (val === 'PENDING') select.classList.add('bg-warning', 'text-dark');
+    else if (val === 'PENDING') select.classList.add('bg-pending');
     else if (val === 'NO_PAYMENT') select.classList.add('bg-danger');
     else if (val === 'ON_HOLD_STOCK') select.classList.add('bg-secondary');
     else if (val === 'ON_HOLD_PROCESSING') select.classList.add('bg-warning', 'text-dark');
