@@ -72,6 +72,7 @@ from .models import (
     PaymentReceipt,
     PaymentAllocation,
     OpeningBalance,
+    Expense,
 
 )
 
@@ -831,6 +832,21 @@ def update_invoice_payment_status(invoice):
     else:
         invoice.payment_status = 'Pending'
     invoice.save(update_fields=['payment_status'])
+
+def update_expense_payment_status(expense):
+    """Recalculate payment_status for an expense based on allocations vs expense_amount."""
+    total_alloc = PaymentAllocation.objects.filter(
+        expense=expense
+    ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+    balance = expense.expense_amount - total_alloc
+    if balance <= 0:
+        expense.payment_status = 'Paid'
+    elif total_alloc > 0:
+        expense.payment_status = 'Partially Paid'
+    else:
+        expense.payment_status = 'Pending'
+    expense.balance_amount = balance
+    expense.save(update_fields=['payment_status', 'balance_amount'])
 
 def decimal_to_str(value):
     return format(Decimal(str(value)).normalize(), 'f')
@@ -2593,9 +2609,12 @@ def payment_allocation_entry(request):
                 alloc = PaymentAllocation.objects.filter(allocation_id=pk).first()
                 if alloc:
                     invoice = alloc.invoice
+                    expense_obj = alloc.expense
                     alloc.delete()
                     if invoice:
                         update_invoice_payment_status(invoice)
+                    if expense_obj:
+                        update_expense_payment_status(expense_obj)
                 messages.success(request, "Payment allocation deleted.")
             return redirect('payment_allocation_entry')
 
@@ -2634,6 +2653,7 @@ def payment_allocation_entry(request):
             sorted_pids = sorted(receipt_avail.keys())
             saved = 0
             affected_invoices = set()
+            affected_expenses = set()
 
             for i, inv_no in enumerate(invoice_nos):
                 amt_str = alloc_amts[i] if i < len(alloc_amts) else ""
@@ -2646,12 +2666,25 @@ def payment_allocation_entry(request):
                 if amt <= 0:
                     continue
 
-                invoice = Invoice.objects.filter(invoice_number=inv_no).first()
-                if not invoice:
-                    continue
-                affected_invoices.add(invoice)
-
                 remaining_amt = amt
+
+                # Determine if this is an expense or invoice
+                if inv_no.startswith('EXP-'):
+                    exp_id = inv_no.replace('EXP-', '')
+                    expense_obj = Expense.objects.filter(expense_id=exp_id).first()
+                    if not expense_obj:
+                        continue
+                    affected_expenses.add(expense_obj)
+                    target_invoice = None
+                    target_expense = expense_obj
+                else:
+                    invoice_obj = Invoice.objects.filter(invoice_number=inv_no).first()
+                    if not invoice_obj:
+                        continue
+                    affected_invoices.add(invoice_obj)
+                    target_invoice = invoice_obj
+                    target_expense = None
+
                 # Allocate from receipts in order
                 for pid in sorted_pids:
                     if remaining_amt <= 0:
@@ -2662,17 +2695,28 @@ def payment_allocation_entry(request):
                     take = min(remaining_amt, avail)
                     receipt_obj = PaymentReceipt.objects.get(payment_id=pid)
 
-                    alloc, created = PaymentAllocation.objects.get_or_create(
-                        payment=receipt_obj,
-                        invoice=invoice,
-                        defaults={
-                            'allocated_amount': take,
-                            'allocation_date': parse_date(allocation_date) or now.strftime('%Y-%m-%d'),
-                        }
-                    )
-                    if not created:
+                    filter_kwargs = {'payment': receipt_obj}
+                    if target_expense:
+                        filter_kwargs['expense'] = target_expense
+                        filter_kwargs['invoice__isnull'] = True
+                    else:
+                        filter_kwargs['invoice'] = target_invoice
+                        filter_kwargs['expense__isnull'] = True
+
+                    # Use filter-based get_or_create since invoice/expense can be null
+                    existing = PaymentAllocation.objects.filter(**filter_kwargs).first()
+                    if existing:
+                        alloc = existing
                         alloc.allocated_amount = (alloc.allocated_amount or 0) + take
                         alloc.allocation_date = parse_date(allocation_date) or now.strftime('%Y-%m-%d')
+                    else:
+                        alloc = PaymentAllocation(
+                            payment=receipt_obj,
+                            invoice=target_invoice,
+                            expense=target_expense,
+                            allocated_amount=take,
+                            allocation_date=parse_date(allocation_date) or now.strftime('%Y-%m-%d'),
+                        )
                     alloc.remarks = remarks
                     alloc.updated_at = now
                     alloc.save()
@@ -2697,6 +2741,8 @@ def payment_allocation_entry(request):
             # Update payment_status for all affected invoices
             for inv in affected_invoices:
                 update_invoice_payment_status(inv)
+            for exp in affected_expenses:
+                update_expense_payment_status(exp)
 
             if saved:
                 messages.success(request, f"{saved} allocation(s) saved.")
@@ -2737,10 +2783,35 @@ def payment_allocation_entry(request):
                 'customer_code': inv.customer_code or '',
                 'gross_total': str(inv.gross_total),
                 'balance': str(balance),
+                'type': 'invoice',
+            })
+
+    # Also include customer expenses (bill_to=Customer) with outstanding balance
+    expense_qs = Expense.objects.filter(bill_to='Customer')
+    for e in expense_qs:
+        total_alloc = PaymentAllocation.objects.filter(
+            expense=e
+        ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+        balance = e.expense_amount - total_alloc
+        if balance > 0:
+            # Extract customer code from vendor field (format: "CODE-Name" or just "Not Applicable")
+            vendor = e.vendor or ''
+            customer_code = ''
+            if vendor and vendor != 'Not Applicable':
+                customer_code = vendor.split('-')[0].strip()
+            invoice_data.append({
+                'invoice_number': f'EXP-{e.expense_id}',
+                'invoice_date': str(e.expense_date) if e.expense_date else '',
+                'customer_code': customer_code,
+                'gross_total': str(e.expense_amount),
+                'balance': str(balance),
+                'type': 'expense',
+                'expense_id': e.expense_id,
+                'expense_category': e.expense_category or '',
             })
 
     # Existing allocations for reference
-    existing_allocations = PaymentAllocation.objects.select_related('payment', 'invoice').all()
+    existing_allocations = PaymentAllocation.objects.select_related('payment', 'invoice', 'expense').all()
 
     return render(request, 'marania_invoice_app/payment_allocation_entry.html', {
         'parties': parties,
@@ -2843,5 +2914,107 @@ def opening_balance_entry(request):
     return render(request, 'marania_invoice_app/opening_balance_entry.html', {
         'balances': balances,
         'balances_json': json.dumps(balances_json),
+        'parties': parties,
+    })
+
+
+def expense_entry(request):
+    from datetime import date
+    expenses = Expense.objects.all()
+    parties = Parties.objects.all()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "delete":
+            pk = request.POST.get("expense_id")
+            if pk:
+                Expense.objects.filter(expense_id=pk).delete()
+                messages.success(request, "Expense deleted.")
+            return redirect('expense_entry')
+
+        drafts_raw = request.POST.get("drafts_data")
+        if not drafts_raw and request.content_type == 'application/json':
+            try:
+                body = json.loads(request.body)
+                drafts_raw = body.get('drafts_data')
+            except (json.JSONDecodeError, AttributeError):
+                drafts_raw = None
+
+        saved_count = 0
+        if drafts_raw:
+            if isinstance(drafts_raw, str):
+                try:
+                    entries = json.loads(drafts_raw)
+                    if not isinstance(entries, list):
+                        entries = []
+                except json.JSONDecodeError:
+                    entries = []
+            else:
+                entries = drafts_raw if isinstance(drafts_raw, list) else []
+
+            now = datetime.now()
+            for entry in entries:
+                pk = entry.get("expense_id")
+                if pk is not None:
+                    pk = str(pk).strip()
+                else:
+                    pk = ""
+                is_update = bool(pk)
+
+                if is_update:
+                    try:
+                        obj = Expense.objects.get(expense_id=pk)
+                    except Expense.DoesNotExist:
+                        obj = Expense()
+                else:
+                    obj = Expense()
+
+                obj.expense_date = parse_date(entry.get("expense_date")) or now.strftime('%Y-%m-%d')
+                obj.expense_category = entry.get("expense_category") or "Miscellaneous"
+                obj.expense_amount = Decimal(str(entry.get("expense_amount") or 0))
+                obj.description = entry.get("description") or ""
+                obj.payment_method = entry.get("payment_method") or "Cash"
+                obj.vendor = entry.get("vendor") or ""
+                obj.amount_paid = Decimal(str(entry.get("amount_paid") or 0))
+                obj.balance_amount = obj.expense_amount - obj.amount_paid
+                if obj.balance_amount <= 0:
+                    obj.payment_status = 'Paid'
+                elif obj.amount_paid > 0:
+                    obj.payment_status = 'Partially Paid'
+                else:
+                    obj.payment_status = 'Pending'
+                obj.bill_to = entry.get("bill_to") or "Company"
+                obj.updated_at = now
+                obj.save()
+                saved_count += 1
+
+            if saved_count:
+                messages.success(request, f"{saved_count} expense(s) saved successfully.")
+        else:
+            messages.error(request, "No expense data received.")
+
+        if request.content_type == 'application/json':
+            return JsonResponse({'saved_count': saved_count})
+        return redirect('expense_entry')
+
+    expenses_json = []
+    for e in expenses:
+        expenses_json.append({
+            'expense_id': e.expense_id,
+            'expense_date': str(e.expense_date) if e.expense_date else '',
+            'expense_category': e.expense_category or '',
+            'expense_amount': str(e.expense_amount) if e.expense_amount else '',
+            'description': e.description or '',
+            'payment_method': e.payment_method or '',
+            'vendor': e.vendor or '',
+            'amount_paid': str(e.amount_paid) if e.amount_paid else '',
+            'balance_amount': str(e.balance_amount) if e.balance_amount else '',
+            'payment_status': e.payment_status or 'Pending',
+            'bill_to': e.bill_to or 'Company',
+        })
+
+    return render(request, 'marania_invoice_app/expense_entry.html', {
+        'expenses': expenses,
+        'expenses_json': json.dumps(expenses_json),
         'parties': parties,
     })

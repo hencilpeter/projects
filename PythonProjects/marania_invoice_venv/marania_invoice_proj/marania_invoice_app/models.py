@@ -474,14 +474,19 @@ class PaymentAllocation(models.Model):
     invoice = models.ForeignKey(
         Invoice, on_delete=models.DO_NOTHING,
         related_name='payment_allocations', db_constraint=False,
-        to_field='invoice_number')
+        to_field='invoice_number', null=True, blank=True)
+    expense = models.ForeignKey(
+        'Expense', on_delete=models.DO_NOTHING,
+        related_name='payment_allocations', db_constraint=False,
+        null=True, blank=True)
     allocated_amount = models.DecimalField(max_digits=18, decimal_places=2)
     allocation_date = models.DateField()
     remarks = models.TextField(blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Alloc {self.allocation_id} - {self.payment.receipt_no} - {self.invoice.invoice_number}"
+        target = self.invoice.invoice_number if self.invoice else f"EXP-{self.expense.expense_id}" if self.expense else "?"
+        return f"Alloc {self.allocation_id} - {self.payment.receipt_no} - {target}"
 
     class Meta:
         ordering = ['-allocation_date']
@@ -510,4 +515,49 @@ class OpeningBalance(models.Model):
 
     class Meta:
         ordering = ['-opening_date']
+
+
+class Expense(models.Model):
+    CATEGORY_CHOICES = [
+        ('Employee Salary', 'Employee Salary'),
+        ('Mechanic Salary', 'Mechanic Salary'),
+        ('Miscellaneous', 'Miscellaneous'),
+        ('Electricity', 'Electricity'),
+        ('Spare Parts', 'Spare Parts'),
+        ('Transportation', 'Transportation'),
+        ('Net Processing', 'Net Processing'),
+    ]
+    PAYMENT_METHOD_CHOICES = [
+        ('Cash', 'Cash'),
+        ('Bank Transfer', 'Bank Transfer'),
+        ('Other', 'Other'),
+    ]
+    PAYMENT_STATUS_CHOICES = [
+        ('Paid', 'Paid'),
+        ('Pending', 'Pending'),
+        ('Partially Paid', 'Partially Paid'),
+    ]
+    BILL_TO_CHOICES = [
+        ('Customer', 'Customer'),
+        ('Company', 'Company'),
+    ]
+
+    expense_id = models.AutoField(primary_key=True)
+    expense_date = models.DateField()
+    expense_category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    expense_amount = models.DecimalField(max_digits=18, decimal_places=2)
+    description = models.TextField(blank=True, null=True)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='Cash')
+    vendor = models.CharField(max_length=200, blank=True, null=True)
+    amount_paid = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    balance_amount = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='Pending')
+    bill_to = models.CharField(max_length=20, choices=BILL_TO_CHOICES, default='Company')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"EXP-{self.expense_id} - {self.expense_category} - {self.expense_date}"
+
+    class Meta:
+        ordering = ['-expense_date']
 

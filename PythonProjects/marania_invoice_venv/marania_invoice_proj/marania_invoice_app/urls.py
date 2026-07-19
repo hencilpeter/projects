@@ -81,6 +81,9 @@ path('payment-allocations', views.payment_allocation_entry, name='payment_alloca
 # opening balance
 path('opening-balances', views.opening_balance_entry, name='opening_balance_entry'),
 
+# expense
+path('expenses', views.expense_entry, name='expense_entry'),
+
 # excel 
 path('sheets/salesview', views.sheet_sales_view, name="sheet_sales_view"),
 path('sheets/salessave', views.sheet_sales_save, name="sheet_sales_save"),

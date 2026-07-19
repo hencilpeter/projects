@@ -164,9 +164,9 @@
                 <thead class="table-light">
                   <tr>
                     <th style="width:40px"><input type="checkbox" id="select-all-invoices" checked onchange="toggleAllInvoices()"></th>
-                    <th>Invoice #</th>
-                    <th>Date</th>
-                    <th>Invoice Amt</th>
+                    <th>Inv # / Exp</th>
+                    <th>Date / Category</th>
+                    <th>Amount</th>
                     <th>Balance</th>
                     <th>Allocate</th>
                   </tr>
@@ -214,7 +214,7 @@
             <tr>
               <td>{{ a.allocation_id }}</td>
               <td>{{ a.payment.receipt_no }}</td>
-              <td>{{ a.invoice.invoice_number }}</td>
+              <td>{% if a.invoice %}{{ a.invoice.invoice_number }}{% else %}{{ a.expense.expense_category }} (EXP-{{ a.expense.expense_id }}){% endif %}</td>
               <td>{{ a.allocated_amount }}</td>
               <td>{{ a.allocation_date|date:"Y-m-d" }}</td>
               <td>{{ a.remarks|default:"" }}</td>
@@ -340,14 +340,17 @@ function renderInvoices() {
     countBadge.textContent = filteredInvoices.length;
     var html = '';
     filteredInvoices.forEach(function(inv) {
+        var isExpense = inv.type === 'expense';
+        var invNum = inv.invoice_number || '';
+        var dateOrCat = isExpense ? (inv.expense_category || 'Expense') : (inv.invoice_date || '');
         html += '<tr>'
             + '<td><input type="checkbox" class="invoice-checkbox" checked onchange="distribute()"></td>'
-            + '<td>' + (inv.invoice_number || '') + '</td>'
-            + '<td>' + (inv.invoice_date || '') + '</td>'
+            + '<td>' + invNum + '</td>'
+            + '<td>' + dateOrCat + '</td>'
             + '<td>' + (inv.gross_total || '') + '</td>'
             + '<td class="balance-cell">' + (inv.balance || '') + '</td>'
             + '<td>'
-            + '<input type="hidden" name="invoice_number[]" value="' + inv.invoice_number + '">'
+            + '<input type="hidden" name="invoice_number[]" value="' + invNum + '">'
             + '<input type="number" name="allocated_amount[]" class="form-control form-control-sm alloc-input" step="0.01" min="0" placeholder="0.00" oninput="updateTotalAllocating()">'
             + '</td>'
             + '</tr>';
