@@ -70,6 +70,9 @@ path('orders', views.order_entry, name='order_entry'),
 path('orders/copy-to-sales/<int:order_key>/', views.copy_order_to_sales, name='copy_order_to_sales'),
 path('orders/copy-orders-to-sales/', views.copy_orders_to_sales, name='copy_orders_to_sales'),
 
+# purchases
+path('purchases', views.purchase_entry, name='purchase_entry'),
+
 # sales
 path('sales', views.sales_entry, name='sales_entry'),
 

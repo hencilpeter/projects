@@ -379,6 +379,48 @@ class OrderSpecification(models.Model):
         return f"Spec #{self.pk}"
 
 
+class Purchase(models.Model):
+    UNIT_CHOICES = [
+        ('number', 'Number'),
+        ('meter', 'Meter'),
+        ('weight', 'Weight'),
+    ]
+    PAYMENT_STATUS_CHOICES = [
+        ('PENDING', 'PENDING'),
+        ('PARTIALLY_PAID', 'PARTIALLY PAID'),
+        ('PAID', 'PAID'),
+    ]
+
+    purchase_key = models.AutoField(primary_key=True)
+    invoice_no = models.CharField(max_length=100, blank=True, null=True)
+    delivery_date = models.DateField(blank=True, null=True)
+    payment_due_date = models.DateField(blank=True, null=True)
+    payment_date = models.DateField(blank=True, null=True)
+    vendor = models.CharField(max_length=255)
+    is_twine = models.BooleanField(default=True)
+    material = models.CharField(max_length=255, blank=True, null=True)
+    order_description = models.TextField(blank=True, null=True)
+    quantity_weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    unit = models.CharField(max_length=10, choices=UNIT_CHOICES, default='weight')
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    gst_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    gst_amount = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    amount_paid = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='PENDING')
+    balance = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    comments = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.invoice_no or 'N/A'} - {self.vendor}"
+
+    class Meta:
+        ordering = ['-delivery_date', '-purchase_key']
+
+
 class ExcelSheet(models.Model):
     name = models.CharField(max_length=100)
     data = models.JSONField(default=list)

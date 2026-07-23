@@ -224,8 +224,7 @@ tr.row-status-on_hold_processing td {
               <col style="width:85px">
               <col style="width:140px">
               <col style="width:60px">
-              <col style="width:150px">
-              <col style="width:65px">
+              <col style="width:210px">
               <col style="width:65px">
               <col style="width:65px">
               <col style="width:65px">
@@ -247,7 +246,6 @@ tr.row-status-on_hold_processing td {
                 <th scope="col">Twine</th>
                 <th scope="col" class="col-spec">Specification</th>
                 <th scope="col">Colour</th>
-                <th scope="col" class="col-narrow">Piece Wt</th>
                 <th scope="col" class="col-narrow">Piece Ct</th>
                 <th scope="col" class="col-narrow">Init Wt</th>
                 <th scope="col" class="col-narrow">Proc Wt</th>
@@ -271,7 +269,6 @@ tr.row-status-on_hold_processing td {
                 <th><input class="filter-input" placeholder="Twine" list="twine_list"></th>
                 <th><input class="filter-input" placeholder="Spec"></th>
                 <th><input class="filter-input" placeholder="Colour"></th>
-                <th><input class="filter-input" placeholder="Piece Wt"></th>
                 <th><input class="filter-input" placeholder="Piece Ct"></th>
                 <th><input class="filter-input" placeholder="Init Wt"></th>
                 <th><input class="filter-input" placeholder="Proc Wt"></th>
@@ -317,9 +314,8 @@ tr.row-status-on_hold_processing td {
                   <td>{{ sale.sales_entry_date|date:"Y-m-d" }}</td>
                   <td>{{ sale.customer }}</td>
                   <td>{{ sale.twine }}</td>
-                  <td>{{ sale.speification }}</td>
+                  <td>{{ sale.speification }}{% if sale.piece_weight %}-PW({{ sale.piece_weight }}){% endif %}</td>
                   <td>{{ sale.colour }}</td>
-                  <td>{{ sale.piece_weight }}</td>
                   <td>{{ sale.piece_count|default:"" }}</td>
                   <td>{{ sale.initial_weight|default:"" }}</td>
                   <td>{{ sale.processed_weight|default:"" }}</td>

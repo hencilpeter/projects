@@ -1,0 +1,494 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block main %}
+
+<style>
+.invoice-table-wrapper {
+    max-height: 820px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+}
+
+#purchase-table {
+    table-layout: fixed;
+    width: 100%;
+    font-size: 0.8rem;
+}
+
+#purchase-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    white-space: nowrap;
+}
+
+#purchase-table th input.filter-input,
+#purchase-table th select.filter-select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 2px 4px;
+    font-size: 0.85rem;
+    margin-bottom: 2px;
+}
+</style>
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container-fluid my-5">
+
+    <h2 class="mb-4">Purchases</h2>
+
+    <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#purchaseForm" aria-expanded="false" aria-controls="purchaseForm">
+      New Purchase
+    </button>
+
+    <div class="collapse" id="purchaseForm">
+      <form method="POST" action="{% url 'purchase_entry' %}" id="purchaseFormTag">
+        {% csrf_token %}
+
+        <div class="card shadow-sm p-3">
+
+          <div class="row mb-3">
+            <div class="col-md-2">
+              <input type="text" name="invoice_no" id="invoice_no" class="form-control form-control-sm" placeholder="Invoice No.">
+            </div>
+            <div class="col-md-2">
+              <input type="date" name="delivery_date" id="delivery_date" class="form-control form-control-sm" value="{% now 'Y-m-d' %}">
+            </div>
+            <div class="col-md-2">
+              <input type="date" name="payment_date" id="payment_date" class="form-control form-control-sm" placeholder="Payment Date">
+            </div>
+            <div class="col-md-3">
+              <input type="text" name="vendor" id="vendor" class="form-control form-control-sm" placeholder="Vendor" list="vendor_list">
+              <datalist id="vendor_list">
+                {% for party in parties %}
+                  <option value="{{ party.code }}-{{ party.name }}">
+                {% endfor %}
+              </datalist>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-2 d-flex align-items-center">
+              <div class="form-check">
+                <input type="checkbox" name="is_twine" id="is_twine" class="form-check-input" checked onchange="toggleMaterialField()">
+                <label class="form-check-label" for="is_twine">Is Twine?</label>
+              </div>
+            </div>
+            <div class="col-md-3" id="material_field" style="display:none;">
+              <input type="text" name="material" id="material" class="form-control form-control-sm" placeholder="Material" list="material_list">
+              <datalist id="material_list">
+                {% for mat in materials_list %}
+                  <option value="{{ mat }}">
+                {% endfor %}
+              </datalist>
+            </div>
+            <div class="col-md-7">
+              <input type="text" name="order_description" id="order_description" class="form-control form-control-sm" placeholder="Order Description">
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-2">
+              <input type="number" name="quantity_weight" id="quantity_weight" step="0.01" class="form-control form-control-sm" placeholder="Qty/Weight" oninput="calcTotals()">
+            </div>
+            <div class="col-md-2">
+              <select name="unit" id="unit" class="form-control form-control-sm" onchange="calcTotals()">
+                <option value="number">Number</option>
+                <option value="meter">Meter</option>
+                <option value="weight" selected>Weight</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <input type="number" name="unit_price" id="unit_price" step="0.01" class="form-control form-control-sm" placeholder="Unit Price" oninput="calcTotals()">
+            </div>
+            <div class="col-md-2">
+              <input type="number" name="subtotal" id="subtotal" step="0.01" class="form-control form-control-sm" placeholder="Subtotal" readonly>
+            </div>
+            <div class="col-md-2">
+              <input type="number" name="gst_percent" id="gst_percent" step="0.01" class="form-control form-control-sm" placeholder="GST %" value="18" oninput="calcTotals()">
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-2">
+              <input type="number" name="gst_amount" id="gst_amount" step="0.01" class="form-control form-control-sm" placeholder="GST Amount" readonly>
+            </div>
+            <div class="col-md-2">
+              <input type="number" name="total_amount" id="total_amount" step="0.01" class="form-control form-control-sm" placeholder="Total Amount" readonly>
+            </div>
+            <div class="col-md-2">
+              <input type="number" name="amount_paid" id="amount_paid" step="0.01" class="form-control form-control-sm" placeholder="Amount Paid" oninput="calcTotals()">
+            </div>
+            <div class="col-md-2">
+              <input type="text" name="balance" id="balance" class="form-control form-control-sm" placeholder="Balance" readonly>
+            </div>
+            <div class="col-md-2">
+              <select name="payment_status" id="payment_status" class="form-control form-control-sm">
+                <option value="PENDING" style="background-color:#8B2252;color:#fff;">PENDING</option>
+                <option value="PARTIALLY_PAID" style="background-color:#0dcaf0;color:#000;">PARTIALLY PAID</option>
+                <option value="PAID" style="background-color:#198754;color:#fff;">PAID</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-12">
+              <textarea name="comments" id="comments" class="form-control form-control-sm" rows="2" placeholder="Comments"></textarea>
+            </div>
+          </div>
+
+          <input type="hidden" name="drafts_data" id="drafts_data" value="">
+
+          <div class="text-center">
+            <button type="button" class="btn btn-info me-2" onclick="addToCart()">Add to Cart</button>
+            <button type="button" class="btn btn-success me-2" onclick="submitCart()">Submit Cart</button>
+            <button type="reset" class="btn btn-secondary" onclick="resetForm()">Clear</button>
+          </div>
+
+          <div id="draft-list" class="mt-3" style="display:none;">
+            <hr>
+            <h6 class="text-muted">Draft Purchases (<span id="draft-count">0</span>)</h6>
+            <div id="draft-items" class="d-flex flex-wrap gap-2"></div>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <div class="purchase-list mt-4">
+      {% if purchases %}
+        <div class="invoice-table-wrapper" style="width:100%;overflow-x:auto;">
+          <table id="purchase-table" class="table table-striped table-hover table-bordered table-sm align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th scope="col">Invoice No</th>
+                <th scope="col">Delivery Date</th>
+                <th scope="col">Payment Date</th>
+                <th scope="col">Vendor</th>
+                <th scope="col">Material</th>
+                <th scope="col">Description</th>
+                <th scope="col">Qty/Wt</th>
+                <th scope="col">Unit</th>
+                <th scope="col">Unit Price</th>
+                <th scope="col">Subtotal</th>
+                <th scope="col">GST %</th>
+                <th scope="col">GST Amt</th>
+                <th scope="col">Total</th>
+                <th scope="col">Paid</th>
+                <th scope="col">Balance</th>
+                <th scope="col">Status</th>
+                <th scope="col">Actions</th>
+              </tr>
+              <tr id="purchase-filter-row">
+                <th><input class="filter-input" placeholder="Invoice"></th>
+                <th><input class="filter-input" placeholder="Delivery"></th>
+                <th><input class="filter-input" placeholder="Payment"></th>
+                <th><input class="filter-input" placeholder="Vendor" list="vendor_list_filter"></th>
+                <th><input class="filter-input" placeholder="Material" list="material_list_filter"></th>
+                <th><input class="filter-input" placeholder="Description"></th>
+                <th><input class="filter-input" placeholder="Qty"></th>
+                <th><input class="filter-input" placeholder="Unit"></th>
+                <th><input class="filter-input" placeholder="Price"></th>
+                <th><input class="filter-input" placeholder="Subtotal"></th>
+                <th><input class="filter-input" placeholder="GST%"></th>
+                <th><input class="filter-input" placeholder="GST Amt"></th>
+                <th><input class="filter-input" placeholder="Total"></th>
+                <th><input class="filter-input" placeholder="Paid"></th>
+                <th><input class="filter-input" placeholder="Balance"></th>
+                <th>
+                  <select class="filter-select">
+                    <option value="">All</option>
+                    <option value="PENDING" style="background-color:#8B2252;color:#fff;">PENDING</option>
+                    <option value="PARTIALLY PAID" style="background-color:#0dcaf0;color:#000;">PARTIALLY PAID</option>
+                    <option value="PAID" style="background-color:#198754;color:#fff;">PAID</option>
+                  </select>
+                </th>
+                <th>
+                  <button class="btn btn-warning btn-sm" id="clear-purchase-filters">Clear</button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in purchases %}
+                <tr>
+                  <td>{{ p.invoice_no|default:"" }}</td>
+                  <td>{{ p.delivery_date|date:"Y-m-d" }}</td>
+                  <td>{{ p.payment_date|date:"Y-m-d" }}</td>
+                  <td>{{ p.vendor }}</td>
+                  <td>{{ p.material|default:"" }}</td>
+                  <td>{{ p.order_description|default:"" }}</td>
+                  <td>{{ p.quantity_weight|default:"" }}</td>
+                  <td>{{ p.unit }}</td>
+                  <td>{{ p.unit_price|default:"" }}</td>
+                  <td>{{ p.subtotal|default:"" }}</td>
+                  <td>{{ p.gst_percent|default:"0" }}</td>
+                  <td>{{ p.gst_amount|default:"" }}</td>
+                  <td>{{ p.total_amount|default:"" }}</td>
+                  <td>{{ p.amount_paid|default:"0" }}</td>
+                  <td>{{ p.balance|default:"" }}</td>
+                  <td>
+                    <span class="badge {% if p.payment_status == 'PAID' %}bg-success{% elif p.payment_status == 'PARTIALLY_PAID' %}bg-info text-dark{% elif p.payment_status == 'PENDING' %}" style="background-color:#8B2252;color:#fff;"{% else %}bg-secondary{% endif %}">
+                      {{ p.get_payment_status_display }}
+                    </span>
+                  </td>
+                  <td>
+                    <a href="javascript:void(0);" onclick="loadPurchase('{{ p.purchase_key }}')" class="btn btn-sm btn-primary d-inline-flex align-items-center">
+                      <i class="bi bi-pencil me-1"></i> Edit
+                    </a>
+                    <a href="javascript:void(0);" onclick="clonePurchase('{{ p.purchase_key }}')" class="btn btn-sm btn-info d-inline-flex align-items-center">
+                      <i class="bi bi-copy me-1"></i> Clone
+                    </a>
+                    <form method="POST" action="{% url 'purchase_entry' %}" style="display:inline;" onsubmit="return confirm('Delete this purchase?')">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete">
+                      <input type="hidden" name="purchase_key" value="{{ p.purchase_key }}">
+                      <button type="submit" class="btn btn-sm btn-danger d-inline-flex align-items-center">
+                        <i class="bi bi-trash"></i> Del
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-muted">No purchases found.</p>
+      {% endif %}
+    </div>
+
+  </div>
+
+<datalist id="vendor_list_filter">
+  {% for party in parties %}
+    <option value="{{ party.code }}-{{ party.name }}">
+  {% endfor %}
+</datalist>
+<datalist id="material_list_filter">
+  {% for mat in materials_list %}
+    <option value="{{ mat }}">
+  {% endfor %}
+</datalist>
+
+</main>
+
+<script>
+let drafts = [];
+let draftIdCounter = 0;
+
+function getFormData() {
+    return {
+        draft_id: '',
+        invoice_no: document.getElementById('invoice_no').value.trim(),
+        delivery_date: document.getElementById('delivery_date').value,
+        payment_date: document.getElementById('payment_date').value,
+        vendor: document.getElementById('vendor').value.trim(),
+        is_twine: document.getElementById('is_twine').checked,
+        material: document.getElementById('material').value.trim(),
+        order_description: document.getElementById('order_description').value.trim(),
+        quantity_weight: document.getElementById('quantity_weight').value,
+        unit: document.getElementById('unit').value,
+        unit_price: document.getElementById('unit_price').value,
+        subtotal: document.getElementById('subtotal').value,
+        gst_percent: document.getElementById('gst_percent').value,
+        gst_amount: document.getElementById('gst_amount').value,
+        total_amount: document.getElementById('total_amount').value,
+        amount_paid: document.getElementById('amount_paid').value,
+        payment_status: document.getElementById('payment_status').value,
+        balance: document.getElementById('balance').value,
+        comments: document.getElementById('comments').value.trim(),
+    };
+}
+
+function setFormData(data) {
+    document.getElementById('invoice_no').value = data.invoice_no || '';
+    document.getElementById('delivery_date').value = data.delivery_date || '{% now "Y-m-d" %}';
+    document.getElementById('payment_date').value = data.payment_date || '';
+    document.getElementById('vendor').value = data.vendor || '';
+    document.getElementById('is_twine').checked = data.is_twine ? true : false;
+    toggleMaterialField();
+    document.getElementById('material').value = data.material || '';
+    document.getElementById('order_description').value = data.order_description || '';
+    document.getElementById('quantity_weight').value = data.quantity_weight || '';
+    document.getElementById('unit').value = data.unit || 'weight';
+    document.getElementById('unit_price').value = data.unit_price || '';
+    document.getElementById('subtotal').value = data.subtotal || '';
+    document.getElementById('gst_percent').value = data.gst_percent || '18';
+    document.getElementById('gst_amount').value = data.gst_amount || '';
+    document.getElementById('total_amount').value = data.total_amount || '';
+    document.getElementById('amount_paid').value = data.amount_paid || '';
+    document.getElementById('payment_status').value = data.payment_status || 'PENDING';
+    document.getElementById('balance').value = data.balance || '';
+    document.getElementById('comments').value = data.comments || '';
+
+    var collapseEl = document.getElementById("purchaseForm");
+    var bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, {toggle: false});
+    if (!collapseEl.classList.contains("show")) {
+        bsCollapse.show();
+    }
+}
+
+const purchasesData = JSON.parse('{{ purchases_json|escapejs }}' || '[]');
+
+function loadPurchase(purchaseKey) {
+    var p = purchasesData.find(function(o) { return String(o.purchase_key) === String(purchaseKey); });
+    if (!p) return;
+    drafts = [];
+    renderDrafts();
+    setFormData(p);
+}
+
+function clonePurchase(purchaseKey) {
+    var p = purchasesData.find(function(o) { return String(o.purchase_key) === String(purchaseKey); });
+    if (!p) return;
+    drafts = [];
+    renderDrafts();
+    var clone = JSON.parse(JSON.stringify(p));
+    delete clone.purchase_key;
+    clone.invoice_no = '';
+    setFormData(clone);
+}
+
+function resetForm() {
+    document.getElementById('invoice_no').value = '';
+    document.getElementById('delivery_date').value = '{% now "Y-m-d" %}';
+
+    document.getElementById('payment_date').value = '';
+    document.getElementById('vendor').value = '';
+    document.getElementById('is_twine').checked = true;
+    toggleMaterialField();
+    document.getElementById('material').value = '';
+    document.getElementById('order_description').value = '';
+    document.getElementById('quantity_weight').value = '';
+    document.getElementById('unit').value = 'weight';
+    document.getElementById('unit_price').value = '';
+    document.getElementById('subtotal').value = '';
+    document.getElementById('gst_percent').value = '18';
+    document.getElementById('gst_amount').value = '';
+    document.getElementById('total_amount').value = '';
+    document.getElementById('amount_paid').value = '';
+    document.getElementById('payment_status').value = 'PENDING';
+    document.getElementById('balance').value = '';
+    document.getElementById('comments').value = '';
+    document.getElementById('drafts_data').value = '';
+}
+
+function toggleMaterialField() {
+    var isTwine = document.getElementById('is_twine').checked;
+    document.getElementById('material_field').style.display = isTwine ? 'none' : 'block';
+    if (isTwine) document.getElementById('material').value = '';
+}
+
+function calcTotals() {
+    var qty = parseFloat(document.getElementById('quantity_weight').value) || 0;
+    var price = parseFloat(document.getElementById('unit_price').value) || 0;
+    var gstPct = parseFloat(document.getElementById('gst_percent').value) || 0;
+    var paid = parseFloat(document.getElementById('amount_paid').value) || 0;
+
+    var subtotal = qty * price;
+    var gstAmt = subtotal * (gstPct / 100);
+    var total = subtotal + gstAmt;
+    var balance = total - paid;
+
+    document.getElementById('subtotal').value = subtotal.toFixed(2);
+    document.getElementById('gst_amount').value = gstAmt.toFixed(2);
+    document.getElementById('total_amount').value = total.toFixed(2);
+    document.getElementById('balance').value = balance.toFixed(2);
+
+    // Auto-update payment status
+    var statusSelect = document.getElementById('payment_status');
+    if (total > 0 && paid >= total) {
+        statusSelect.value = 'PAID';
+    } else if (paid > 0) {
+        statusSelect.value = 'PARTIALLY_PAID';
+    } else {
+        statusSelect.value = 'PENDING';
+    }
+}
+
+function addToCart() {
+    var vendor = document.getElementById('vendor').value.trim();
+    if (!vendor) { alert('Vendor is required.'); return; }
+    var data = getFormData();
+    data.draft_id = ++draftIdCounter;
+    drafts.push(data);
+    renderDrafts();
+    resetForm();
+}
+
+function renderDrafts() {
+    var container = document.getElementById('draft-items');
+    var countEl = document.getElementById('draft-count');
+    var listEl = document.getElementById('draft-list');
+    if (drafts.length === 0) {
+        listEl.style.display = 'none';
+        return;
+    }
+    listEl.style.display = 'block';
+    countEl.textContent = drafts.length;
+    var html = '';
+    drafts.forEach(function(d, i) {
+        html += '<span class="badge bg-primary" style="cursor:pointer;font-size:0.85rem;padding:6px 10px;" onclick="editDraft(' + i + ')">'
+            + (d.invoice_no || 'No Inv') + ' - ' + (d.vendor || '') + ' <span class="ms-2 text-light" style="cursor:pointer;" onclick="event.stopPropagation();removeDraft(' + i + ')">&times;</span>'
+            + '</span> ';
+    });
+    container.innerHTML = html;
+}
+
+function editDraft(idx) {
+    var d = drafts[idx];
+    if (d) setFormData(d);
+}
+
+function removeDraft(idx) {
+    drafts.splice(idx, 1);
+    renderDrafts();
+}
+
+function submitCart() {
+    if (drafts.length === 0) { alert('Cart is empty. Add items first.'); return; }
+    document.getElementById('drafts_data').value = JSON.stringify(drafts);
+    document.getElementById('purchaseFormTag').submit();
+}
+
+// Filter functionality
+(function() {
+    var table = document.getElementById('purchase-table');
+    if (!table) return;
+    var tbody = table.querySelector('tbody');
+
+    function applyFilters() {
+        var filterInputs = document.querySelectorAll('#purchase-filter-row input.filter-input, #purchase-filter-row select.filter-select');
+        var filters = Array.from(filterInputs).map(function(i) { return i.value.toLowerCase(); });
+
+        tbody.querySelectorAll('tr').forEach(function(row) {
+            var cells = row.querySelectorAll('td');
+            var show = true;
+            filters.forEach(function(filter, index) {
+                if (!filter) return;
+                if (!cells[index] || !cells[index].textContent.toLowerCase().includes(filter)) {
+                    show = false;
+                }
+            });
+            row.style.display = show ? '' : 'none';
+        });
+    }
+
+    document.querySelectorAll('#purchase-filter-row input.filter-input, #purchase-filter-row select.filter-select')
+        .forEach(function(el) { el.addEventListener('input', applyFilters); });
+    document.querySelectorAll('#purchase-filter-row select.filter-select')
+        .forEach(function(el) { el.addEventListener('change', applyFilters); });
+
+    document.getElementById('clear-purchase-filters')
+        .addEventListener('click', function() {
+            document.querySelectorAll('#purchase-filter-row input.filter-input')
+                .forEach(function(i) { i.value = ''; });
+            document.querySelectorAll('#purchase-filter-row select.filter-select')
+                .forEach(function(s) { s.value = ''; });
+            applyFilters();
+        });
+})();
+</script>
+
+{% endblock %}

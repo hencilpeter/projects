@@ -74,6 +74,7 @@ from .models import (
     PaymentAllocation,
     OpeningBalance,
     Expense,
+    Purchase,
 
 )
 
@@ -2504,6 +2505,98 @@ def copy_orders_to_sales(request):
 
         messages.success(request, f"{copied_count} order(s) copied to Sales successfully.")
     return redirect('order_entry')
+
+
+def purchase_entry(request):
+    purchases = Purchase.objects.all()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "delete":
+            pk = request.POST.get("purchase_key")
+            if pk:
+                Purchase.objects.filter(purchase_key=pk).delete()
+                messages.success(request, "Purchase deleted successfully.")
+            return redirect('purchase_entry')
+
+        drafts_raw = request.POST.get("drafts_data")
+        saved_count = 0
+        if drafts_raw:
+            try:
+                entries = json.loads(drafts_raw)
+                if not isinstance(entries, list):
+                    entries = []
+            except json.JSONDecodeError:
+                entries = []
+
+            for entry in entries:
+                vendor = (entry.get("vendor") or "").strip()
+                if not vendor:
+                    continue
+
+                subtotal = entry.get("subtotal") or 0
+                gst_percent = entry.get("gst_percent") or 0
+                gst_amount = entry.get("gst_amount") or 0
+                total_amount = entry.get("total_amount") or 0
+                amount_paid = entry.get("amount_paid") or 0
+                try:
+                    subtotal = float(subtotal)
+                    gst_percent = float(gst_percent)
+                    gst_amount = float(gst_amount)
+                    total_amount = float(total_amount)
+                    amount_paid = float(amount_paid)
+                except (ValueError, TypeError):
+                    subtotal = gst_amount = total_amount = amount_paid = 0
+
+                balance = total_amount - amount_paid
+                payment_status = entry.get("payment_status") or "PENDING"
+                if total_amount > 0 and amount_paid >= total_amount:
+                    payment_status = "PAID"
+                elif amount_paid > 0:
+                    payment_status = "PARTIALLY_PAID"
+
+                Purchase.objects.create(
+                    invoice_no=entry.get("invoice_no") or "",
+                    delivery_date=entry.get("delivery_date") or None,
+                    payment_date=entry.get("payment_date") or None,
+                    vendor=vendor,
+                    is_twine=entry.get("is_twine") in (True, "True", "true", "on"),
+                    material=entry.get("material") or "",
+                    order_description=entry.get("order_description") or "",
+                    quantity_weight=entry.get("quantity_weight") or None,
+                    unit=entry.get("unit") or "weight",
+                    unit_price=entry.get("unit_price") or None,
+                    subtotal=subtotal,
+                    gst_percent=gst_percent,
+                    gst_amount=gst_amount,
+                    total_amount=total_amount,
+                    amount_paid=amount_paid,
+                    payment_status=payment_status,
+                    balance=balance,
+                    comments=entry.get("comments") or "",
+                )
+                saved_count += 1
+
+        if saved_count:
+            messages.success(request, f'{saved_count} purchase(s) saved successfully.')
+        return redirect('purchase_entry')
+
+    parties = Parties.objects.all()
+    materials = list(Purchase.objects.exclude(material__isnull=True).exclude(material='').values_list('material', flat=True).distinct().order_by('material'))
+    purchases_json = json.dumps(list(purchases.values(
+        'purchase_key', 'invoice_no', 'delivery_date', 'payment_date', 'vendor',
+        'is_twine', 'material', 'order_description', 'quantity_weight', 'unit',
+        'unit_price', 'subtotal', 'gst_percent', 'gst_amount', 'total_amount',
+        'amount_paid', 'payment_status', 'balance', 'comments',
+    )), default=str)
+
+    context = {
+        "purchases": purchases,
+        "purchases_json": purchases_json,
+        "parties": parties,
+        "materials_list": materials,
+    }
+    return render(request, "marania_invoice_app/purchase_entry.html", context)
 
 
 def payment_receipt_entry(request):
