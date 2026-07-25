@@ -1,0 +1,372 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block main %}
+
+<style>
+.pl-table-wrapper {
+    max-height: 820px;
+    overflow: auto;
+    border: 1px solid #ddd;
+}
+
+#profit-loss-table {
+    min-width: 1700px;
+    font-size: 0.8rem;
+}
+
+#profit-loss-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    white-space: nowrap;
+}
+
+#profit-loss-table th input.filter-input,
+#profit-loss-table th select.filter-select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 2px 4px;
+    font-size: 0.85rem;
+    margin-bottom: 2px;
+}
+
+.bg-pl-profit {
+    background-color: #d4edda !important;
+    color: #155724 !important;
+}
+
+.bg-pl-loss {
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
+}
+
+.bg-pl-neutral {
+    background-color: #e2e3e5 !important;
+    color: #383d41 !important;
+}
+
+.row-status-profit {
+    background-color: #d4edda !important;
+}
+
+.row-status-loss {
+    background-color: #f8d7da !important;
+}
+
+.row-status-neutral {
+    background-color: #e2e3e5 !important;
+}
+
+.pl-field-group {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 8px;
+}
+
+.pl-field-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #6c757d;
+    margin-bottom: 1px;
+}
+
+.pl-field-value {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.pl-row-divider {
+    border-top: 2px solid #dee2e6;
+    margin: 8px 0;
+}
+
+.pl-total-row {
+    background-color: #e9ecef;
+}
+</style>
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container-fluid my-5">
+
+    <h2 class="mb-4">Profit & Loss</h2>
+
+    <div class="card shadow-sm p-3 mb-4">
+
+      <form method="POST" action="{% url 'profit_loss_entry' %}" id="plFormTag">
+        {% csrf_token %}
+        <input type="hidden" name="action" id="pl_form_action" value="">
+        <input type="hidden" name="pl_key" id="pl_key" value="">
+
+      <div class="row mb-3 align-items-end">
+        <div class="col-md-2">
+          <label class="form-label" style="font-size:0.75rem;margin-bottom:1px;">Month / Year</label>
+          <input type="month" name="month_year" id="pl_month_year" class="form-control form-control-sm">
+        </div>
+        <div class="col-md-2">
+          <button type="button" class="btn btn-primary btn-sm w-100" onclick="generatePL()">Generate</button>
+        </div>
+        <div class="col-md-2">
+          <button type="button" class="btn btn-success btn-sm w-100" onclick="savePL()">Save Entry</button>
+        </div>
+        <div class="col-md-2">
+          <button type="button" class="btn btn-secondary btn-sm w-100" onclick="resetPL()">Clear</button>
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="pl-field-group">
+        <div class="row">
+          <div class="col-md-3">
+            <div class="pl-field-label">Sales Revenue (Rs)</div>
+            <div class="pl-field-value">
+              <input type="number" name="sales_revenue" id="pl_sales_revenue" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="pl-field-label">Other Income (Rs)</div>
+            <div class="pl-field-value">
+              <input type="number" name="other_income" id="pl_other_income" step="0.01" class="form-control form-control-sm" value="0.00" oninput="recalcPL()">
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="pl-field-label" style="color:#155724;border-bottom:2px solid #198754;">TOTAL INCOME (Rs)</div>
+            <div class="pl-field-value" style="font-weight:bold;">
+              <input type="number" name="total_income" id="pl_total_income" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pl-field-group">
+        <div class="row">
+          <div class="col-md-3">
+            <div class="pl-field-label">Salary Expense (Rs)</div>
+            <div class="pl-field-value">
+              <input type="number" name="salary_expense" id="pl_salary_expense" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="pl-field-label">Purchase Expense (Rs)</div>
+            <div class="pl-field-value">
+              <input type="number" name="purchase_expense" id="pl_purchase_expense" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="pl-field-label">Other Expenses (Rs)</div>
+            <div class="pl-field-value">
+              <input type="number" name="other_expenses" id="pl_other_expenses" step="0.01" class="form-control form-control-sm" value="0.00" oninput="recalcPL()">
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="pl-field-label">In-House Material Value (Rs)</div>
+            <div class="pl-field-value">
+              <input type="number" name="inhouse_material_value" id="pl_inhouse_material_value" step="0.01" class="form-control form-control-sm" value="0.00" oninput="recalcPL()">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pl-field-group pl-total-row">
+        <div class="row">
+          <div class="col-md-3">
+            <div class="pl-field-label" style="font-weight:bold;">TOTAL EXPENSES (Rs)</div>
+            <div class="pl-field-value" style="font-weight:bold;">
+              <input type="number" name="total_expenses" id="pl_total_expenses" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="pl-field-label" style="font-weight:bold;">Profit / Loss Amount (Rs)</div>
+            <div class="pl-field-value" style="font-weight:bold;">
+              <input type="number" name="profit_loss_amount" id="pl_profit_loss_amount" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="pl-field-label" style="font-weight:bold;">Profit / Loss Status</div>
+            <div class="pl-field-value" style="font-weight:bold;">
+              <input type="text" id="pl_profit_loss_status" class="form-control form-control-sm" readonly>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      </form>
+    </div>
+
+    <div class="pl-list mt-4">
+      {% if profit_losses %}
+        <div class="pl-table-wrapper">
+          <table id="profit-loss-table" class="table table-striped table-hover table-bordered table-sm align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Actions</th>
+                <th scope="col">Month / Year</th>
+                <th scope="col">Sales Revenue (Rs)</th>
+                <th scope="col">Other Income (Rs)</th>
+                <th scope="col">Salary Expense (Rs)</th>
+                <th scope="col">Purchase Expense (Rs)</th>
+                <th scope="col">Other Expenses (Rs)</th>
+                <th scope="col">Material Value (Rs)</th>
+                <th scope="col">Total Income (Rs)</th>
+                <th scope="col">Total Expenses (Rs)</th>
+                <th scope="col">Profit / Loss Amount (Rs)</th>
+                <th scope="col">Status</th>
+              </tr>
+              <tr id="pl-filter-row">
+                <th></th>
+                <th></th>
+                <th><input class="filter-input" placeholder="Month / Year"></th>
+                <th><input class="filter-input" placeholder="Sales Rev"></th>
+                <th><input class="filter-input" placeholder="Other Inc"></th>
+                <th><input class="filter-input" placeholder="Salary"></th>
+                <th><input class="filter-input" placeholder="Purchase"></th>
+                <th><input class="filter-input" placeholder="Other Exp"></th>
+                <th><input class="filter-input" placeholder="Material"></th>
+                <th><input class="filter-input" placeholder="Total Inc"></th>
+                <th><input class="filter-input" placeholder="Total Exp"></th>
+                <th><input class="filter-input" placeholder="PL Amount"></th>
+                <th>
+                  <select class="filter-select">
+                    <option value="">All</option>
+                    <option value="PROFIT">PROFIT</option>
+                    <option value="LOSS">LOSS</option>
+                    <option value="NO PROFIT / NO LOSS">NEUTRAL</option>
+                  </select>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for pl in profit_losses %}
+                <tr class="row-status-{{ pl.profit_loss_status|lower }}">
+                  <td>{{ forloop.counter }}</td>
+                  <td style="white-space:nowrap;">
+                    <a href="javascript:void(0);" onclick="loadPL('{{ pl.pl_key }}')" class="btn btn-primary py-1 px-2" style="font-size:0.85rem;">
+                      <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <form method="POST" action="{% url 'profit_loss_entry' %}" style="display:inline;" onsubmit="return confirm('Delete this entry?')">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete">
+                      <input type="hidden" name="pl_key" value="{{ pl.pl_key }}">
+                      <button type="submit" class="btn btn-danger py-1 px-2" style="font-size:0.85rem;">
+                        <i class="bi bi-trash"></i> Del
+                      </button>
+                    </form>
+                  </td>
+                  <td>{{ pl.month_year|default:"" }}</td>
+                  <td class="text-end">{{ pl.sales_revenue }}</td>
+                  <td class="text-end">{{ pl.other_income }}</td>
+                  <td class="text-end">{{ pl.salary_expense }}</td>
+                  <td class="text-end">{{ pl.purchase_expense }}</td>
+                  <td class="text-end">{{ pl.other_expenses }}</td>
+                  <td class="text-end">{{ pl.inhouse_material_value }}</td>
+                  <td class="text-end">{{ pl.total_income }}</td>
+                  <td class="text-end">{{ pl.total_expenses }}</td>
+                  <td class="text-end">{{ pl.profit_loss_amount }}</td>
+                  <td>
+                    <span class="badge {% if pl.profit_loss_status == 'PROFIT' %}bg-pl-profit{% elif pl.profit_loss_status == 'LOSS' %}bg-pl-loss{% else %}bg-pl-neutral{% endif %}">
+                      {{ pl.profit_loss_status }}
+                    </span>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-muted">No Profit & Loss entries found. Select a month and year, then click Generate.</p>
+      {% endif %}
+    </div>
+
+  </div>
+
+</main>
+
+<script>
+const plData = JSON.parse('{{ pl_json|escapejs }}' || '[]');
+var editingPLKey = '';
+
+populateForm();
+
+function generatePL() {
+    var monthYear = document.getElementById('pl_month_year').value;
+    if (!monthYear) { alert('Please select Month / Year.'); return; }
+    document.getElementById('pl_form_action').value = 'generate';
+    document.getElementById('plFormTag').submit();
+}
+
+function savePL() {
+    document.getElementById('pl_form_action').value = 'save';
+    document.getElementById('plFormTag').submit();
+}
+
+function populateForm() {
+    if (plData.length > 0) {
+        setFormData(plData[0]);
+    }
+}
+
+function setFormData(data) {
+    document.getElementById('pl_key').value = data.pl_key || '';
+    document.getElementById('pl_month_year').value = data.month_year || '';
+    document.getElementById('pl_sales_revenue').value = data.sales_revenue || '0';
+    document.getElementById('pl_other_income').value = data.other_income || '0';
+    document.getElementById('pl_salary_expense').value = data.salary_expense || '0';
+    document.getElementById('pl_purchase_expense').value = data.purchase_expense || '0';
+    document.getElementById('pl_other_expenses').value = data.other_expenses || '0';
+    document.getElementById('pl_inhouse_material_value').value = data.inhouse_material_value || '0';
+    recalcPL();
+
+    var collapseEl = document.getElementById("plForm");
+    var bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, {toggle: false});
+    if (!collapseEl.classList.contains("show")) {
+        bsCollapse.show();
+    }
+}
+
+function recalcPL() {
+    var sales = parseFloat(document.getElementById('pl_sales_revenue').value) || 0;
+    var other = parseFloat(document.getElementById('pl_other_income').value) || 0;
+    var salary = parseFloat(document.getElementById('pl_salary_expense').value) || 0;
+    var purchase = parseFloat(document.getElementById('pl_purchase_expense').value) || 0;
+    var otherExp = parseFloat(document.getElementById('pl_other_expenses').value) || 0;
+    var material = parseFloat(document.getElementById('pl_inhouse_material_value').value) || 0;
+
+    var totalIncome = sales + other;
+    var totalExpenses = salary + purchase + otherExp + material;
+    var plAmount = totalIncome - totalExpenses;
+    var status = 'NO PROFIT / NO LOSS';
+    if (plAmount > 0) status = 'PROFIT';
+    else if (plAmount < 0) status = 'LOSS';
+
+    document.getElementById('pl_total_income').value = totalIncome.toFixed(2);
+    document.getElementById('pl_total_expenses').value = totalExpenses.toFixed(2);
+    document.getElementById('pl_profit_loss_amount').value = plAmount.toFixed(2);
+    document.getElementById('pl_profit_loss_status').value = status;
+}
+
+function loadPL(plKey) {
+    var pl = plData.find(function(o) { return String(o.pl_key) === String(plKey); });
+    if (!pl) return;
+    editingPLKey = plKey;
+    setFormData(pl);
+}
+
+function resetPL() {
+    editingPLKey = '';
+    document.getElementById('pl_key').value = '';
+    document.getElementById('pl_month_year').value = '';
+    document.getElementById('pl_sales_revenue').value = '0.00';
+    document.getElementById('pl_other_income').value = '0.00';
+    document.getElementById('pl_salary_expense').value = '0.00';
+    document.getElementById('pl_purchase_expense').value = '0.00';
+    document.getElementById('pl_other_expenses').value = '0.00';
+    document.getElementById('pl_inhouse_material_value').value = '0.00';
+    recalcPL();
+}
+</script>
+
+{% endblock %}

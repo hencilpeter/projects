@@ -383,7 +383,7 @@ class Purchase(models.Model):
     UNIT_CHOICES = [
         ('number', 'Number'),
         ('meter', 'Meter'),
-        ('weight', 'Weight'),
+        ('KG', 'KG'),
     ]
     PAYMENT_STATUS_CHOICES = [
         ('PENDING', 'PENDING'),
@@ -401,7 +401,7 @@ class Purchase(models.Model):
     material = models.CharField(max_length=255, blank=True, null=True)
     order_description = models.TextField(blank=True, null=True)
     quantity_weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    unit = models.CharField(max_length=10, choices=UNIT_CHOICES, default='weight')
+    unit = models.CharField(max_length=10, choices=UNIT_CHOICES, default='KG')
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     gst_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
@@ -419,6 +419,53 @@ class Purchase(models.Model):
 
     class Meta:
         ordering = ['-delivery_date', '-purchase_key']
+
+
+class ProfitLoss(models.Model):
+    pl_key = models.AutoField(primary_key=True)
+    month = models.IntegerField(choices=[(i, i) for i in range(1, 13)], null=True, blank=True)
+    year = models.IntegerField(null=True, blank=True)
+    sales_revenue = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    other_income = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    salary_expense = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    purchase_expense = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    other_expenses = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    inhouse_material_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_income = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_expenses = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    profit_loss_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    profit_loss_status = models.CharField(max_length=20, default='NO PROFIT / NO LOSS')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        self.total_income = self.sales_revenue + self.other_income
+        self.total_expenses = (
+            self.salary_expense
+            + self.purchase_expense
+            + self.other_expenses
+            + self.inhouse_material_value
+        )
+        self.profit_loss_amount = self.total_income - self.total_expenses
+        if self.profit_loss_amount > 0:
+            self.profit_loss_status = 'PROFIT'
+        elif self.profit_loss_amount < 0:
+            self.profit_loss_status = 'LOSS'
+        else:
+            self.profit_loss_status = 'NO PROFIT / NO LOSS'
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Profit/Loss - {self.month}/{self.year}"
+
+    @property
+    def month_year(self):
+        month_names = {1:"Jan",2:"Feb",3:"Mar",4:"Apr",5:"May",6:"Jun",7:"Jul",8:"Aug",9:"Sep",10:"Oct",11:"Nov",12:"Dec"}
+        m = month_names.get(self.month, "")
+        return f"{self.year}-{m}" if (self.year and m) else ""
+
+    class Meta:
+        ordering = ['-year', '-month', '-pl_key']
 
 
 class ExcelSheet(models.Model):

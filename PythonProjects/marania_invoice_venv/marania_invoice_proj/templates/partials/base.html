@@ -234,12 +234,6 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
                     Expenses
                   </a>
                 </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="{% url 'dashboard' %}">
-                    <span data-feather="bar-chart-2"></span>
-                    Profit & Loss (TODO)
-                  </a>
-                </li>
               </ul>
             </div>
           </li>
@@ -278,6 +272,12 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
                   <a class="nav-link" href="{% url 'dashboard' %}">
                     <span data-feather="activity"></span>
                     Purchase Reports (TODO)
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'profit_loss_entry' %}">
+                    <span data-feather="bar-chart-2"></span>
+                    Profit & Loss
                   </a>
                 </li>
                 <li class="nav-item">

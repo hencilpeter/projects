@@ -75,6 +75,7 @@ from .models import (
     OpeningBalance,
     Expense,
     Purchase,
+    ProfitLoss,
 
 )
 
@@ -3360,3 +3361,196 @@ def expense_entry(request):
         'expenses_json': json.dumps(expenses_json),
         'parties': parties,
     })
+
+
+def profit_loss_entry(request):
+    profit_losses = ProfitLoss.objects.all()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "delete":
+            pk = request.POST.get("pl_key")
+            if pk:
+                ProfitLoss.objects.filter(pl_key=pk).delete()
+                messages.success(request, "Profit/Loss entry deleted successfully.")
+            return redirect("profit_loss_entry")
+
+        if action == "generate":
+            month_year_raw = request.POST.get("month_year") or ""
+            month = None
+            year = None
+            if month_year_raw:
+                try:
+                    parts = month_year_raw.split("-")
+                    year = int(parts[0])
+                    month = int(parts[1])
+                except (ValueError, IndexError, TypeError):
+                    month = year = None
+
+            sales_revenue = Decimal("0")
+            other_income = Decimal("0")
+            salary_expense = Decimal("0")
+            purchase_expense = Decimal("0")
+            other_expenses = Decimal("0")
+            inhouse_material_value = Decimal("0")
+
+            if month and year:
+                sales_start = datetime(year, month, 1)
+                if month == 12:
+                    sales_end = datetime(year + 1, 1, 1)
+                else:
+                    sales_end = datetime(year, month + 1, 1)
+
+                sales_qs = Sales.objects.filter(
+                    sales_entry_date__gte=sales_start,
+                    sales_entry_date__lt=sales_end,
+                )
+
+                sales_revenue = sales_qs.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+
+                salary_categories = ['Employee Salary', 'Mechanic Salary']
+                expense_qs = Expense.objects.filter(
+                    expense_date__gte=sales_start,
+                    expense_date__lt=sales_end,
+                    expense_category__in=salary_categories,
+                )
+                salary_expense = expense_qs.aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
+
+                purchase_qs = Purchase.objects.filter(
+                    delivery_date__gte=sales_start,
+                    delivery_date__lt=sales_end,
+                )
+                purchase_expense = purchase_qs.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+
+                non_salary_categories = ['Miscellaneous', 'Electricity', 'Spare Parts', 'Transportation', 'Net Processing']
+                other_qs = Expense.objects.filter(
+                    expense_date__gte=sales_start,
+                    expense_date__lt=sales_end,
+                    expense_category__in=non_salary_categories,
+                )
+                other_expenses = other_qs.aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
+
+                inhouse_material_value = purchase_expense
+
+            pl_json = json.dumps([{
+                "pl_key": "",
+                "month": month,
+                "year": year,
+                "month_year": month_year_raw,
+                "sales_revenue": str(sales_revenue),
+                "other_income": "0",
+                "salary_expense": str(salary_expense),
+                "purchase_expense": str(purchase_expense),
+                "other_expenses": str(other_expenses),
+                "inhouse_material_value": str(inhouse_material_value),
+                "total_income": str(sales_revenue),
+                "total_expenses": str(salary_expense + purchase_expense + other_expenses + inhouse_material_value),
+                "profit_loss_amount": str(sales_revenue - (salary_expense + purchase_expense + other_expenses + inhouse_material_value)),
+                "profit_loss_status": "NO PROFIT / NO LOSS",
+            }])
+
+            return render(request, "marania_invoice_app/profit_loss_entry.html", {
+                "profit_losses": profit_losses,
+                "pl_json": pl_json,
+            })
+
+        month_year_raw = request.POST.get("month_year") or ""
+        pl_key = request.POST.get("pl_key") or ""
+        month = None
+        year = None
+        if month_year_raw:
+            try:
+                parts = month_year_raw.split("-")
+                year = int(parts[0])
+                month = int(parts[1])
+            except (ValueError, IndexError, TypeError):
+                month = year = None
+
+        sales_revenue = Decimal(request.POST.get("sales_revenue") or "0")
+        other_income = Decimal(request.POST.get("other_income") or "0")
+        salary_expense = Decimal(request.POST.get("salary_expense") or "0")
+        purchase_expense = Decimal(request.POST.get("purchase_expense") or "0")
+        other_expenses = Decimal(request.POST.get("other_expenses") or "0")
+        inhouse_material_value = Decimal(request.POST.get("inhouse_material_value") or "0")
+
+        try:
+            month = int(month) if month else None
+            year = int(year) if year else None
+        except (ValueError, TypeError):
+            month = year = None
+
+        try:
+            sales_revenue = Decimal(sales_revenue)
+            other_income = Decimal(other_income)
+            salary_expense = Decimal(salary_expense)
+            purchase_expense = Decimal(purchase_expense)
+            other_expenses = Decimal(other_expenses)
+            inhouse_material_value = Decimal(inhouse_material_value)
+        except Exception:
+            sales_revenue = other_income = salary_expense = purchase_expense = other_expenses = inhouse_material_value = Decimal("0")
+
+        total_income = sales_revenue + other_income
+        total_expenses = salary_expense + purchase_expense + other_expenses + inhouse_material_value
+        profit_loss_amount = total_income - total_expenses
+
+        if profit_loss_amount > 0:
+            profit_loss_status = "PROFIT"
+        elif profit_loss_amount < 0:
+            profit_loss_status = "LOSS"
+        else:
+            profit_loss_status = "NO PROFIT / NO LOSS"
+
+        data = {
+            "month": month,
+            "year": year,
+            "sales_revenue": sales_revenue,
+            "other_income": other_income,
+            "salary_expense": salary_expense,
+            "purchase_expense": purchase_expense,
+            "other_expenses": other_expenses,
+            "inhouse_material_value": inhouse_material_value,
+            "total_income": total_income,
+            "total_expenses": total_expenses,
+            "profit_loss_amount": profit_loss_amount,
+            "profit_loss_status": profit_loss_status,
+        }
+
+        if pl_key:
+            ProfitLoss.objects.filter(pl_key=pl_key).update(**data)
+        else:
+            ProfitLoss.objects.create(**data)
+
+        messages.success(request, "Profit/Loss entry saved successfully.")
+        return redirect("profit_loss_entry")
+
+    pl_data = []
+    for pl in profit_losses:
+        month_name = ""
+        if pl.month:
+            month_names = {1:"Jan",2:"Feb",3:"Mar",4:"Apr",5:"May",6:"Jun",7:"Jul",8:"Aug",9:"Sep",10:"Oct",11:"Nov",12:"Dec"}
+            month_name = month_names.get(pl.month, "")
+        pl_data.append({
+            "pl_key": pl.pl_key,
+            "month": pl.month,
+            "year": pl.year,
+            "month_year": f"{pl.year}-{month_name}" if (pl.year and month_name) else "",
+            "sales_revenue": str(pl.sales_revenue),
+            "other_income": str(pl.other_income),
+            "salary_expense": str(pl.salary_expense),
+            "purchase_expense": str(pl.purchase_expense),
+            "other_expenses": str(pl.other_expenses),
+            "inhouse_material_value": str(pl.inhouse_material_value),
+            "total_income": str(pl.total_income),
+            "total_expenses": str(pl.total_expenses),
+            "profit_loss_amount": str(pl.profit_loss_amount),
+            "profit_loss_status": pl.profit_loss_status,
+        })
+
+    pl_json = json.dumps(pl_data)
+
+    return render(request, "marania_invoice_app/profit_loss_entry.html", {
+        "profit_losses": profit_losses,
+        "pl_json": pl_json,
+    })
+
