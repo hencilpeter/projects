@@ -45,6 +45,18 @@
     background-color: #d4edda !important;
     color: #155724 !important;
 }
+
+.row-status-pending {
+    background-color: #f8d7da !important;
+}
+
+.row-status-partially_paid {
+    background-color: #d1ecf1 !important;
+}
+
+.row-status-paid {
+    background-color: #d4edda !important;
+}
 </style>
 
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
@@ -57,8 +69,10 @@
     </button>
 
     <div class="collapse" id="purchaseForm">
-      <form method="POST" action="{% url 'purchase_entry' %}" id="purchaseFormTag">
+        <form method="POST" action="{% url 'purchase_entry' %}" id="purchaseFormTag">
         {% csrf_token %}
+        <input type="hidden" name="purchase_key" id="purchase_key" value="">
+
 
         <div class="card shadow-sm p-3">
 
@@ -118,7 +132,7 @@
               <select name="unit" id="unit" class="form-control form-control-sm" onchange="calcTotals()">
                 <option value="number">Number</option>
                 <option value="meter">Meter</option>
-                <option value="weight" selected>Weight</option>
+                 <option value="KG" selected>KG</option>
               </select>
             </div>
             <div class="col-md-2">
@@ -242,7 +256,7 @@
             </thead>
             <tbody>
               {% for p in purchases %}
-                <tr>
+                <tr class="row-status-{{ p.payment_status|lower }}">
                   <td>{{ p.invoice_no|default:"" }}</td>
                   <td style="white-space:nowrap;">
                     <a href="javascript:void(0);" onclick="loadPurchase('{{ p.purchase_key }}')" class="btn btn-primary py-1 px-2" style="font-size:0.85rem;">
@@ -311,6 +325,7 @@ let draftIdCounter = 0;
 function getFormData() {
     return {
         draft_id: '',
+        purchase_key: document.getElementById('purchase_key').value || '',
         invoice_no: document.getElementById('invoice_no').value.trim(),
         delivery_date: document.getElementById('delivery_date').value,
         payment_date: document.getElementById('payment_date').value,
@@ -334,6 +349,7 @@ function getFormData() {
 
 function setFormData(data) {
     document.getElementById('invoice_no').value = data.invoice_no || '';
+    document.getElementById('purchase_key').value = data.purchase_key || '';
     document.getElementById('delivery_date').value = data.delivery_date || '{% now "Y-m-d" %}';
     document.getElementById('payment_date').value = data.payment_date || '';
     document.getElementById('vendor').value = data.vendor || '';
@@ -342,7 +358,7 @@ function setFormData(data) {
     document.getElementById('material').value = data.material || '';
     document.getElementById('order_description').value = data.order_description || '';
     document.getElementById('quantity_weight').value = data.quantity_weight || '';
-    document.getElementById('unit').value = data.unit || 'weight';
+    document.getElementById('unit').value = data.unit || 'KG';
     document.getElementById('unit_price').value = data.unit_price || '';
     document.getElementById('subtotal').value = data.subtotal || '';
     document.getElementById('gst_percent').value = data.gst_percent || '18';
@@ -383,6 +399,7 @@ function clonePurchase(purchaseKey) {
 
 function resetForm() {
     document.getElementById('invoice_no').value = '';
+    document.getElementById('purchase_key').value = '';
     document.getElementById('delivery_date').value = '{% now "Y-m-d" %}';
 
     document.getElementById('payment_date').value = '';
@@ -392,7 +409,7 @@ function resetForm() {
     document.getElementById('material').value = '';
     document.getElementById('order_description').value = '';
     document.getElementById('quantity_weight').value = '';
-    document.getElementById('unit').value = 'weight';
+    document.getElementById('unit').value = 'KG';
     document.getElementById('unit_price').value = '';
     document.getElementById('subtotal').value = '';
     document.getElementById('gst_percent').value = '18';

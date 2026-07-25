@@ -2555,26 +2555,49 @@ def purchase_entry(request):
                 elif amount_paid > 0:
                     payment_status = "PARTIALLY_PAID"
 
-                Purchase.objects.create(
-                    invoice_no=entry.get("invoice_no") or "",
-                    delivery_date=entry.get("delivery_date") or None,
-                    payment_date=entry.get("payment_date") or None,
-                    vendor=vendor,
-                    is_twine=entry.get("is_twine") in (True, "True", "true", "on"),
-                    material=entry.get("material") or "",
-                    order_description=entry.get("order_description") or "",
-                    quantity_weight=entry.get("quantity_weight") or None,
-                    unit=entry.get("unit") or "weight",
-                    unit_price=entry.get("unit_price") or None,
-                    subtotal=subtotal,
-                    gst_percent=gst_percent,
-                    gst_amount=gst_amount,
-                    total_amount=total_amount,
-                    amount_paid=amount_paid,
-                    payment_status=payment_status,
-                    balance=balance,
-                    comments=entry.get("comments") or "",
-                )
+                purchase_key = entry.get("purchase_key") or ""
+                if purchase_key:
+                    Purchase.objects.filter(purchase_key=purchase_key).update(
+                        invoice_no=entry.get("invoice_no") or "",
+                        delivery_date=entry.get("delivery_date") or None,
+                        payment_date=entry.get("payment_date") or None,
+                        vendor=vendor,
+                        is_twine=entry.get("is_twine") in (True, "True", "true", "on"),
+                        material=entry.get("material") or "",
+                        order_description=entry.get("order_description") or "",
+                        quantity_weight=entry.get("quantity_weight") or None,
+                        unit=entry.get("unit") or "KG",
+                        unit_price=entry.get("unit_price") or None,
+                        subtotal=subtotal,
+                        gst_percent=gst_percent,
+                        gst_amount=gst_amount,
+                        total_amount=total_amount,
+                        amount_paid=amount_paid,
+                        payment_status=payment_status,
+                        balance=balance,
+                        comments=entry.get("comments") or "",
+                    )
+                else:
+                    Purchase.objects.create(
+                        invoice_no=entry.get("invoice_no") or "",
+                        delivery_date=entry.get("delivery_date") or None,
+                        payment_date=entry.get("payment_date") or None,
+                        vendor=vendor,
+                        is_twine=entry.get("is_twine") in (True, "True", "true", "on"),
+                        material=entry.get("material") or "",
+                        order_description=entry.get("order_description") or "",
+                        quantity_weight=entry.get("quantity_weight") or None,
+                        unit=entry.get("unit") or "KG",
+                        unit_price=entry.get("unit_price") or None,
+                        subtotal=subtotal,
+                        gst_percent=gst_percent,
+                        gst_amount=gst_amount,
+                        total_amount=total_amount,
+                        amount_paid=amount_paid,
+                        payment_status=payment_status,
+                        balance=balance,
+                        comments=entry.get("comments") or "",
+                    )
                 saved_count += 1
 
         if saved_count:
