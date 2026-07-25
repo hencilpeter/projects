@@ -3559,3 +3559,189 @@ def profit_loss_entry(request):
         "pl_json": pl_json,
     })
 
+
+
+def twine_inventory_entry(request):
+    from .models import TwineInventory
+    from datetime import datetime, timedelta
+    from decimal import Decimal
+
+    twine_inventories = TwineInventory.objects.all()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "delete":
+            pk = request.POST.get("ti_key")
+            if pk:
+                TwineInventory.objects.filter(ti_key=pk).delete()
+                messages.success(request, "Twine Inventory entry deleted successfully.")
+            return redirect("twine_inventory_entry")
+
+        if action == "carry_forward":
+            month_year_raw = request.POST.get("month_year") or ""
+            if month_year_raw:
+                try:
+                    parts = month_year_raw.split("-")
+                    year = int(parts[0])
+                    month = int(parts[1])
+                except (ValueError, IndexError, TypeError):
+                    month = year = None
+            
+            if month and year:
+                # Calculate previous month and year
+                prev_month = month - 1
+                prev_year = year
+                if prev_month == 0:
+                    prev_month = 12
+                    prev_year = year - 1
+                
+                # Get all entries from previous month
+                prev_entries = TwineInventory.objects.filter(month=prev_month, year=prev_year)
+                
+                if prev_entries.exists():
+                    # Carry forward each entry
+                    for prev_ti in prev_entries:
+                        # Check if entry already exists for current month and twine
+                        existing_ti = TwineInventory.objects.filter(month=month, year=year, twine=prev_ti.twine).first()
+                        if not existing_ti:
+                            # Create new entry with previous month's balance as opening stock
+                            TwineInventory.objects.create(
+                                month=month,
+                                year=year,
+                                twine=prev_ti.twine,
+                                opening_stock=prev_ti.balance,
+                                stock_in=Decimal("0"),
+                                sales_out=Decimal("0"),
+                                waste_used=Decimal("0"),
+                                daily_usage=prev_ti.daily_usage,
+                                usage_basis=prev_ti.usage_basis,
+                                days_left=None,
+                                est_stock_out_date=None,
+                                remark=f"Carried forward from {prev_year}-{prev_month:02d}"
+                            )
+                    messages.success(request, f"Carried forward {prev_entries.count()} entries from previous month.")
+                else:
+                    messages.warning(request, "No entries found in previous month to carry forward.")
+            else:
+                messages.error(request, "Invalid Year-Month selected.")
+            return redirect("twine_inventory_entry")
+
+        month_year_raw = request.POST.get("month_year") or ""
+        ti_key = request.POST.get("ti_key") or ""
+        month = None
+        year = None
+        if month_year_raw:
+            try:
+                parts = month_year_raw.split("-")
+                year = int(parts[0])
+                month = int(parts[1])
+            except (ValueError, IndexError, TypeError):
+                month = year = None
+
+        twine = request.POST.get("twine") or ""
+        opening_stock = Decimal(request.POST.get("opening_stock") or "0")
+        stock_in = Decimal(request.POST.get("stock_in") or "0")
+        sales_out = Decimal(request.POST.get("sales_out") or "0")
+        waste_used = Decimal(request.POST.get("waste_used") or "0")
+        daily_usage = Decimal(request.POST.get("daily_usage") or "0")
+        usage_basis = request.POST.get("usage_basis") or "Average"
+        days_left = request.POST.get("days_left") or None
+        est_stock_out_date = request.POST.get("est_stock_out_date") or None
+        remark = request.POST.get("remark") or ""
+
+        try:
+            month = int(month) if month else None
+            year = int(year) if year else None
+        except (ValueError, TypeError):
+            month = year = None
+
+        try:
+            opening_stock = Decimal(opening_stock)
+            stock_in = Decimal(stock_in)
+            sales_out = Decimal(sales_out)
+            waste_used = Decimal(waste_used)
+            daily_usage = Decimal(daily_usage)
+        except Exception:
+            opening_stock = stock_in = sales_out = waste_used = daily_usage = Decimal("0")
+
+        try:
+            days_left = int(days_left) if days_left else None
+        except (ValueError, TypeError):
+            days_left = None
+
+        if est_stock_out_date:
+            try:
+                est_stock_out_date = datetime.strptime(est_stock_out_date, "%Y-%m-%d").date()
+            except (ValueError, TypeError):
+                est_stock_out_date = None
+
+        data = {
+            "month": month,
+            "year": year,
+            "twine": twine,
+            "opening_stock": opening_stock,
+            "stock_in": stock_in,
+            "sales_out": sales_out,
+            "waste_used": waste_used,
+            "daily_usage": daily_usage,
+            "usage_basis": usage_basis,
+            "days_left": days_left,
+            "est_stock_out_date": est_stock_out_date,
+            "remark": remark,
+        }
+
+        if ti_key:
+            TwineInventory.objects.filter(ti_key=ti_key).update(**data)
+        else:
+            # Check if a record with the same month, year, and twine already exists
+            existing_ti = TwineInventory.objects.filter(month=month, year=year, twine=twine).first()
+            if existing_ti:
+                TwineInventory.objects.filter(ti_key=existing_ti.ti_key).update(**data)
+            else:
+                # Carry-forward logic: Get previous month's balance as opening stock
+                if month and year and twine:
+                    # Calculate previous month and year
+                    prev_month = month - 1
+                    prev_year = year
+                    if prev_month == 0:
+                        prev_month = 12
+                        prev_year = year - 1
+                    
+                    # Get previous month's entry for the same twine
+                    prev_ti = TwineInventory.objects.filter(month=prev_month, year=prev_year, twine=twine).first()
+                    if prev_ti:
+                        # Use previous month's balance as opening stock
+                        data["opening_stock"] = prev_ti.balance
+                
+                TwineInventory.objects.create(**data)
+
+        messages.success(request, "Twine Inventory entry saved successfully.")
+        return redirect("twine_inventory_entry")
+
+    ti_data = []
+    for ti in twine_inventories:
+        ti_data.append({
+            "ti_key": ti.ti_key,
+            "month": ti.month,
+            "year": ti.year,
+            "month_year": f"{ti.year}-{ti.month:02d}" if (ti.year and ti.month) else "",
+            "twine": ti.twine or "",
+            "opening_stock": str(ti.opening_stock),
+            "stock_in": str(ti.stock_in),
+            "sales_out": str(ti.sales_out),
+            "waste_used": str(ti.waste_used),
+            "balance": str(ti.balance),
+            "daily_usage": str(ti.daily_usage),
+            "usage_basis": ti.usage_basis,
+            "days_left": ti.days_left,
+            "est_stock_out_date": ti.est_stock_out_date.strftime("%Y-%m-%d") if ti.est_stock_out_date else "",
+            "remark": ti.remark or "",
+        })
+
+    ti_json = json.dumps(ti_data)
+
+    return render(request, "marania_invoice_app/twine_inventory_entry.html", {
+        "twine_inventories": twine_inventories,
+        "ti_json": ti_json,
+    })

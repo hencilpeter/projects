@@ -91,6 +91,9 @@ path('expenses', views.expense_entry, name='expense_entry'),
 # profit & loss
 path('profit-loss', views.profit_loss_entry, name='profit_loss_entry'),
 
+# twine inventory
+path('twine-inventory', views.twine_inventory_entry, name='twine_inventory_entry'),
+
 # excel 
 path('sheets/salesview', views.sheet_sales_view, name="sheet_sales_view"),
 path('sheets/salessave', views.sheet_sales_save, name="sheet_sales_save"),

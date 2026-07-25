@@ -467,6 +467,41 @@ class ProfitLoss(models.Model):
         unique_together = [('month', 'year')]
 
 
+class TwineInventory(models.Model):
+    ti_key = models.AutoField(primary_key=True)
+    month = models.IntegerField(choices=[(i, i) for i in range(1, 13)], null=True, blank=True)
+    year = models.IntegerField(null=True, blank=True)
+    twine = models.CharField(max_length=255, null=True, blank=True)
+    opening_stock = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    stock_in = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    sales_out = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    waste_used = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    daily_usage = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    usage_basis = models.CharField(max_length=50, default='Average')
+    days_left = models.IntegerField(null=True, blank=True)
+    est_stock_out_date = models.DateField(null=True, blank=True)
+    remark = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        # Calculate balance: Opening Stock + Stock In - Sales Out - Waste Used
+        self.balance = self.opening_stock + self.stock_in - self.sales_out - self.waste_used
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Twine Inventory - {self.twine} ({self.month}/{self.year})"
+
+    @property
+    def month_year(self):
+        return f"{self.year}-{self.month:02d}" if (self.year and self.month) else ""
+
+    class Meta:
+        ordering = ['-year', '-month', '-ti_key']
+        unique_together = [('month', 'year', 'twine')]
+
+
 class ExcelSheet(models.Model):
     name = models.CharField(max_length=100)
     data = models.JSONField(default=list)
