@@ -11,7 +11,7 @@
 }
 
 #profit-loss-table {
-    min-width: 1700px;
+    min-width: 1400px;
     font-size: 0.8rem;
 }
 
@@ -102,7 +102,7 @@
 
       <div class="row mb-3 align-items-end">
         <div class="col-md-2">
-          <label class="form-label" style="font-size:0.75rem;margin-bottom:1px;">Month / Year</label>
+          <label class="form-label" style="font-size:0.75rem;margin-bottom:1px;">Year-Month</label>
           <input type="month" name="month_year" id="pl_month_year" class="form-control form-control-sm">
         </div>
         <div class="col-md-2">
@@ -158,7 +158,7 @@
           <div class="col-md-3">
             <div class="pl-field-label">Other Expenses (Rs)</div>
             <div class="pl-field-value">
-              <input type="number" name="other_expenses" id="pl_other_expenses" step="0.01" class="form-control form-control-sm" value="0.00" oninput="recalcPL()">
+              <input type="number" name="other_expenses" id="pl_other_expenses" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
             </div>
           </div>
           <div class="col-md-3">
@@ -200,26 +200,41 @@
       {% if profit_losses %}
         <div class="pl-table-wrapper">
           <table id="profit-loss-table" class="table table-striped table-hover table-bordered table-sm align-middle">
-            <thead class="table-dark">
+            <colgroup>
+            <col style="width:30px">
+            <col style="width:60px">
+            <col style="width:80px">
+            <col style="width:100px">
+            <col style="width:100px">
+            <col style="width:100px">
+            <col style="width:100px">
+            <col style="width:100px">
+            <col style="width:100px">
+            <col style="width:100px">
+            <col style="width:100px">
+            <col style="width:100px">
+            <col style="width:110px">
+          </colgroup>
+          <thead class="table-dark">
               <tr>
                 <th scope="col">#</th>
                 <th scope="col">Actions</th>
-                <th scope="col">Month / Year</th>
-                <th scope="col">Sales Revenue (Rs)</th>
-                <th scope="col">Other Income (Rs)</th>
-                <th scope="col">Salary Expense (Rs)</th>
-                <th scope="col">Purchase Expense (Rs)</th>
-                <th scope="col">Other Expenses (Rs)</th>
-                <th scope="col">Material Value (Rs)</th>
-                <th scope="col">Total Income (Rs)</th>
-                <th scope="col">Total Expenses (Rs)</th>
-                <th scope="col">Profit / Loss Amount (Rs)</th>
+                <th scope="col">Year-Month</th>
+                <th scope="col">Sales Rev(Rs)</th>
+                <th scope="col">Other Inc(Rs)</th>
+                <th scope="col">Salary Exp(Rs)</th>
+                <th scope="col">Purchase Exp(Rs)</th>
+                <th scope="col">Other Exp(Rs)</th>
+                <th scope="col">Material Value(Rs)</th>
+                <th scope="col">Total Income(Rs)</th>
+                <th scope="col">Total Exp(Rs)</th>
+                <th scope="col">Profit/Loss Amount(Rs)</th>
                 <th scope="col">Status</th>
               </tr>
               <tr id="pl-filter-row">
                 <th></th>
                 <th></th>
-                <th><input class="filter-input" placeholder="Month / Year"></th>
+                <th><input class="filter-input" placeholder="Year-Month"></th>
                 <th><input class="filter-input" placeholder="Sales Rev"></th>
                 <th><input class="filter-input" placeholder="Other Inc"></th>
                 <th><input class="filter-input" placeholder="Salary"></th>
@@ -293,7 +308,7 @@ populateForm();
 
 function generatePL() {
     var monthYear = document.getElementById('pl_month_year').value;
-    if (!monthYear) { alert('Please select Month / Year.'); return; }
+    if (!monthYear) { alert('Please select Year-Month.'); return; }
     document.getElementById('pl_form_action').value = 'generate';
     document.getElementById('plFormTag').submit();
 }
