@@ -3437,7 +3437,7 @@ def profit_loss_entry(request):
                 "pl_key": "",
                 "month": month,
                 "year": year,
-                "month_year": month_year_raw,
+                "month_year": f"{year}-{month:02d}" if (year and month) else "",
                 "sales_revenue": str(sales_revenue),
                 "other_income": "0",
                 "salary_expense": str(salary_expense),
@@ -3519,7 +3519,12 @@ def profit_loss_entry(request):
         if pl_key:
             ProfitLoss.objects.filter(pl_key=pl_key).update(**data)
         else:
-            ProfitLoss.objects.create(**data)
+            # Check if a record with the same month and year already exists
+            existing_pl = ProfitLoss.objects.filter(month=month, year=year).first()
+            if existing_pl:
+                ProfitLoss.objects.filter(pl_key=existing_pl.pl_key).update(**data)
+            else:
+                ProfitLoss.objects.create(**data)
 
         messages.success(request, "Profit/Loss entry saved successfully.")
         return redirect("profit_loss_entry")
@@ -3534,7 +3539,7 @@ def profit_loss_entry(request):
             "pl_key": pl.pl_key,
             "month": pl.month,
             "year": pl.year,
-            "month_year": f"{pl.year}-{month_name}" if (pl.year and month_name) else "",
+            "month_year": f"{pl.year}-{pl.month:02d}" if (pl.year and pl.month) else "",
             "sales_revenue": str(pl.sales_revenue),
             "other_income": str(pl.other_income),
             "salary_expense": str(pl.salary_expense),

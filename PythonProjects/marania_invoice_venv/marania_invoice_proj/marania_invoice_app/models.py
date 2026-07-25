@@ -460,12 +460,11 @@ class ProfitLoss(models.Model):
 
     @property
     def month_year(self):
-        month_names = {1:"Jan",2:"Feb",3:"Mar",4:"Apr",5:"May",6:"Jun",7:"Jul",8:"Aug",9:"Sep",10:"Oct",11:"Nov",12:"Dec"}
-        m = month_names.get(self.month, "")
-        return f"{self.year}-{m}" if (self.year and m) else ""
+        return f"{self.year}-{self.month:02d}" if (self.year and self.month) else ""
 
     class Meta:
         ordering = ['-year', '-month', '-pl_key']
+        unique_together = [('month', 'year')]
 
 
 class ExcelSheet(models.Model):

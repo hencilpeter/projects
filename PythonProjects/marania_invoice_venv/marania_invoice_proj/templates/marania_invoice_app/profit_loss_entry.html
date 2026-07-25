@@ -86,6 +86,30 @@
 .pl-total-row {
     background-color: #e9ecef;
 }
+
+.btn-3d-yellow {
+  background: linear-gradient(to bottom, #ffeb3b, #f9c60a) !important;
+  color: #212529 !important;
+  border: 1px solid #e0b800 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 0 #caa600, 0 6px 12px rgba(0, 0, 0, 0.15) !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease-in-out;
+  padding: 4px 10px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-3d-yellow:hover {
+  background: linear-gradient(to bottom, #ffe600, #f9b208) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #caa600, 0 10px 16px rgba(0, 0, 0, 0.2) !important;
+}
+.btn-3d-yellow:active {
+  background: linear-gradient(to bottom, #f9c60a, #d4a500) !important;
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #caa600 inset !important;
+}
 </style>
 
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
@@ -233,7 +257,7 @@
               </tr>
               <tr id="pl-filter-row">
                 <th></th>
-                <th></th>
+                <th><button type="button" class="btn-3d-yellow btn-sm" onclick="clearFilters()" style="font-size:0.75rem;">Clear</button></th>
                 <th><input class="filter-input" placeholder="Year-Month"></th>
                 <th><input class="filter-input" placeholder="Sales Rev"></th>
                 <th><input class="filter-input" placeholder="Other Inc"></th>
@@ -381,6 +405,17 @@ function resetPL() {
     document.getElementById('pl_other_expenses').value = '0.00';
     document.getElementById('pl_inhouse_material_value').value = '0.00';
     recalcPL();
+}
+
+function clearFilters() {
+    var filterInputs = document.querySelectorAll('#pl-filter-row .filter-input');
+    filterInputs.forEach(function(input) {
+        input.value = '';
+    });
+    var filterSelects = document.querySelectorAll('#pl-filter-row .filter-select');
+    filterSelects.forEach(function(select) {
+        select.selectedIndex = 0;
+    });
 }
 </script>
 
