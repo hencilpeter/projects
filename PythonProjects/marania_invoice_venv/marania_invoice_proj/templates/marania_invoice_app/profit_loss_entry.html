@@ -416,6 +416,47 @@ function clearFilters() {
     filterSelects.forEach(function(select) {
         select.selectedIndex = 0;
     });
+    applyFilters();
+}
+
+(function() {
+    var table = document.getElementById('profit-loss-table');
+    if (!table) return;
+    var tbody = table.querySelector('tbody');
+
+    function applyFilters() {
+        var filterThs = document.querySelectorAll('#pl-filter-row th');
+        var filters = [];
+        filterThs.forEach(function(th) {
+            var input = th.querySelector('input, select');
+            filters.push(input ? input.value.toLowerCase() : '');
+        });
+
+        tbody.querySelectorAll('tr').forEach(function(row) {
+            var cells = row.querySelectorAll('td');
+            var show = true;
+            filters.forEach(function(filter, index) {
+                if (!filter) return;
+                if (!cells[index] || !cells[index].textContent.toLowerCase().includes(filter)) {
+                    show = false;
+                }
+            });
+            row.style.display = show ? '' : 'none';
+        });
+    }
+
+    document.querySelectorAll('#pl-filter-row input, #pl-filter-row select')
+        .forEach(function(el) { el.addEventListener('input', applyFilters); });
+    document.querySelectorAll('#pl-filter-row select')
+        .forEach(function(el) { el.addEventListener('change', applyFilters); });
+})();
+
+function clearFilters() {
+    var filterInputs = document.querySelectorAll('#pl-filter-row .filter-input');
+    filterInputs.forEach(function(input) { input.value = ''; });
+    var filterSelects = document.querySelectorAll('#pl-filter-row .filter-select');
+    filterSelects.forEach(function(select) { select.selectedIndex = 0; });
+    applyFilters();
 }
 </script>
 
