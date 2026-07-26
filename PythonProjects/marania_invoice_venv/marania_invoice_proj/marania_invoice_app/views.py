@@ -1920,9 +1920,21 @@ def backup_sync(request):
 
 # report functions 
 def report_page(request):
+    from datetime import datetime, timedelta
+    
     report_key = request.GET.get("report", "invoice")
     start_date = request.GET.get("start_date")
     end_date = request.GET.get("end_date")
+
+    # Set default date range to one month if not provided
+    if not start_date or not end_date:
+        today = datetime.now().date()
+        # Default to previous month to current month (one month gap)
+        # Or current month start to current month end
+        start_date = (today.replace(day=1)).strftime("%Y-%m-%d")
+        # Get first day of next month, then subtract one day to get last day of current month
+        next_month = today.replace(day=28) + timedelta(days=4)  # Go to next month
+        end_date = (next_month.replace(day=1) - timedelta(days=1)).strftime("%Y-%m-%d")
 
     config = REPORT_CONFIG[report_key]
     qs = get_report_queryset(report_key, start_date, end_date)
