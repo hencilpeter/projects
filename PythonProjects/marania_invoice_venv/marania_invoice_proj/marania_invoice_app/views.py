@@ -1557,7 +1557,10 @@ def load_material(request, pk):
 def import_data_no_unique_key(model_name, file_type, file):
     model = MODEL_REGISTRY[model_name]
 
-    AUTO_FIELDS = {"id", "created_at", "updated_at", "order_key", "sales_key", "purchase_key"}
+    AUTO_FIELDS = {"id", "created_at", "updated_at", "sales_key", "purchase_key"}
+    # Allow order_key to be imported for Order model
+    if model_name != 'Order':
+        AUTO_FIELDS.add("order_key")
 
     model_fields = {
         f.name: f
@@ -1602,10 +1605,10 @@ def import_data_no_unique_key(model_name, file_type, file):
                             clean[key] = ""
                         else:
                             # Look up Order by order_number, then assign the Order object
-                            order_obj = rel_model.objects.get(order_number=lookup_value)
+                            order_obj = rel_model.objects.get(order_key=lookup_value)
                             clean[key] = order_obj
                     except rel_model.DoesNotExist:
-                        raise ValueError(f"Invalid FK value '{value}' for {key}. Order with order_number '{lookup_value}' not found.")
+                        raise ValueError(f"Invalid FK value '{value}' for {key}. Order with order_key '{lookup_value}' not found.")
                     continue
                 elif rel_field =="id": # TODO- fix the issue later
                     rel_field = "code"
@@ -1682,12 +1685,12 @@ def import_data_no_unique_key(model_name, file_type, file):
 def import_data(model_name, file_type, file):
     model = MODEL_REGISTRY[model_name]
 
-    AUTO_FIELDS = {"id", "created_at", "updated_at", "order_key", "sales_key", "purchase_key"}
+    AUTO_FIELDS = {"id", "created_at", "updated_at", "sales_key", "purchase_key"}
     UNIQUE_KEY = "code"  # explicitly use 'code' as lookup
     if model_name == 'Invoice':
         UNIQUE_KEY = "invoice_number"
     elif model_name == 'Order':
-        UNIQUE_KEY = "order_number"
+        UNIQUE_KEY = "order_key"  # Use order_key as unique key since order_number is not unique
 
 
     IMPORT_STRATEGY = getattr(model, "IMPORT_STRATEGY", "update_or_create")
@@ -1720,18 +1723,19 @@ def import_data(model_name, file_type, file):
                 
                 # Special handling for Order foreign key in OrderSpecification
                 if model_name == 'OrderSpecification' and key == 'order':
-                    # Order ForeignKey targets order_key (primary key), but we have order_number
-                    # Need to look up Order by order_number first
+                    # Order ForeignKey targets order_key (primary key)
+                    # CSV now contains order_key (PK) values directly
                     lookup_value = str(value).strip()
                     try:
                         if lookup_value == "":
                             clean[key] = ""
                         else:
-                            # Look up Order by order_number, then assign the Order object
-                            order_obj = rel_model.objects.get(order_number=lookup_value)
+                            # Look up Order by order_key (PK)
+                            order_obj = rel_model.objects.get(order_key=lookup_value)
                             clean[key] = order_obj
                     except rel_model.DoesNotExist:
-                        raise ValueError(f"Invalid FK value '{value}' for {key}. Order with order_number '{lookup_value}' not found.")
+                        raise ValueError(f"Invalid FK value '{value}' for {key}. Order with order_key '{lookup_value}' not found.")
+                    continue
                     continue
                 elif rel_field == "id": #TODO - temp fix 
                     rel_field = 'code'
@@ -1785,7 +1789,7 @@ def import_data(model_name, file_type, file):
 
     def save(record):
         #print(f'save called witih record {record}')
-      
+
         clean = normalize(record)
         if UNIQUE_KEY not in clean:
             raise ValueError(f"Missing unique key '{UNIQUE_KEY}' in row: {record}")
