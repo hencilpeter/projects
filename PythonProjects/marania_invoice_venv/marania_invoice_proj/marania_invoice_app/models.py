@@ -365,7 +365,7 @@ class Order(models.Model):
 
 
 class OrderSpecification(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='specifications', null=True, blank=True)
+    order = models.ForeignKey(Order, to_field= "order_key",on_delete=models.CASCADE, related_name='specifications', null=True, blank=True)
     mesh_size = models.IntegerField(blank=True, null=True)
     mesh_depth = models.CharField(max_length=50, blank=True, null=True)
     salvage = models.CharField(max_length=255, blank=True, null=True)

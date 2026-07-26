@@ -30,7 +30,7 @@ UNIQUE_KEY_MODEL = {
     "Transportation": "",
     "Configuration": "",
     "CompanySettings": "",
-    "Order": "order_number",
+    "Order": "",
     "OrderSpecification": "",
     "Sales": "",
     "Purchase": "",

@@ -11,6 +11,13 @@ def export_data(model_name, file_type):
     queryset = model.objects.all()
     fields = [f.name for f in model._meta.fields]
 
+    # For ForeignKey fields, determine what value to export
+    # For OrderSpecification.order, export order_key (PK) instead of order_number
+    fk_export_map = {
+        'OrderSpecification': {'order': 'order_key'},
+        # Add other FK mappings here if needed
+    }
+
     if file_type == "csv":
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = f'attachment; filename="{model_name}.csv"'
@@ -18,15 +25,34 @@ def export_data(model_name, file_type):
         writer = csv.writer(response)
         writer.writerow(fields)
 
+        fk_export_fields = fk_export_map.get(model_name, {})
+
         for obj in queryset:
-            writer.writerow([getattr(obj, f) for f in fields])
+            row = []
+            for f in fields:
+                value = getattr(obj, f)
+                # For ForeignKey fields with export mapping, get the related field value
+                if f in fk_export_fields and value is not None:
+                    related_field = fk_export_fields[f]
+                    value = getattr(value, related_field, '')
+                row.append(value if value is not None else '')
+            writer.writerow(row)
 
         return response
 
     if file_type == "json":
         data = []
+        fk_export_fields = fk_export_map.get(model_name, {})
+
         for obj in queryset:
-            record = {f: getattr(obj, f) for f in fields}
+            record = {}
+            for f in fields:
+                value = getattr(obj, f)
+                # For ForeignKey fields with export mapping, get the related field value
+                if f in fk_export_fields and value is not None:
+                    related_field = fk_export_fields[f]
+                    value = getattr(value, related_field, '')
+                record[f] = value if value is not None else ''
             data.append(record)
 
         response = HttpResponse(
