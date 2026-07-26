@@ -209,6 +209,7 @@
             <thead class="table-dark">
               <tr>
                 <th scope="col" style="width:30px"></th>
+                <th scope="col" class="col-actions">Actions</th>
                 <th scope="col" style="width:65px;">Order #</th>
                 <th scope="col" style="width:85px;">O.Date</th>
                 <th scope="col" style="width:85px;">Status Date</th>
@@ -221,10 +222,13 @@
                 <th scope="col" class="col-amount" style="width:75px;">Unit Price</th>
                 <th scope="col" style="width:75px;">Status</th>
                 <th scope="col">GST</th>
-                <th scope="col" class="col-actions">Actions</th>
               </tr>
               <tr id="order-filter-row">
                 <th style="text-align:center;vertical-align:middle;"><input type="checkbox" id="select-all-orders" onchange="toggleAllOrderCheckboxes(this)"></th>
+                <th>
+                  <button class="btn btn-warning btn-sm" id="clear-order-filters">Clear</button>
+                  <button type="button" class="btn btn-outline-success btn-sm ms-1" id="copySelectedOrdersBtn" onclick="copySelectedOrders()" disabled><i class="bi bi-arrow-right-circle"></i> Copy to Sales</button>
+                </th>
                 <th><input class="filter-input" placeholder="Order #"></th>
                 <th><input class="filter-input" placeholder="O.Date"></th>
                 <th><input class="filter-input" placeholder="Status Upd Date"></th>
@@ -255,16 +259,28 @@
                     <option value="No">No</option>
                   </select>
                 </th>
-                <th>
-                  <button class="btn btn-warning btn-sm" id="clear-order-filters">Clear</button>
-                  <button type="button" class="btn btn-outline-success btn-sm ms-1" id="copySelectedOrdersBtn" onclick="copySelectedOrders()" disabled><i class="bi bi-arrow-right-circle"></i> Copy to Sales</button>
-                </th>
               </tr>
             </thead>
             <tbody>
               {% for order in orders %}
                 <tr>
                   <td><input type="checkbox" class="order-checkbox" value="{{ order.order_key }}" onchange="updateCopyOrdersBtn()"></td>
+                  <td>
+                    <a href="javascript:void(0);" onclick="loadOrder('{{ order.order_key }}')" class="btn btn-sm btn-primary d-inline-flex align-items-center">
+                      <i class="bi bi-pencil me-1"></i> Edit
+                    </a>
+                    <a href="javascript:void(0);" onclick="cloneOrder('{{ order.order_key }}')" class="btn btn-sm btn-info d-inline-flex align-items-center">
+                      <i class="bi bi-copy me-1"></i> Clone
+                    </a>
+                    <form method="POST" action="{% url 'order_entry' %}" style="display:inline;" onsubmit="return confirm('Delete this order?')">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete">
+                      <input type="hidden" name="order_key" value="{{ order.order_key }}">
+                      <button type="submit" class="btn btn-sm btn-danger d-inline-flex align-items-center">
+                        <i class="bi bi-trash me-1"></i> Del
+                      </button>
+                    </form>
+                  </td>
                   <td>{{ order.order_number }}</td>
                   <td>{{ order.order_date|date:"Y-m-d" }}</td>
                   <td>{{ order.last_status_date|date:"Y-m-d" }}</td>
@@ -281,23 +297,6 @@
                     </span>
                   </td>
                   <td>{% if order.is_gst_included %}Yes{% else %}No{% endif %}</td>
-                  <td>
-                    <a href="javascript:void(0);" onclick="loadOrder('{{ order.order_key }}')" class="btn btn-sm btn-primary d-inline-flex align-items-center">
-                      <i class="bi bi-pencil me-1"></i> Edit
-                    </a>
-                    <a href="javascript:void(0);" onclick="cloneOrder('{{ order.order_key }}')" class="btn btn-sm btn-info d-inline-flex align-items-center">
-                      <i class="bi bi-copy me-1"></i> Clone
-                    </a>
-                    <form method="POST" action="{% url 'order_entry' %}" style="display:inline;" onsubmit="return confirm('Delete this order?')">
-                      {% csrf_token %}
-                      <input type="hidden" name="action" value="delete">
-                      <input type="hidden" name="order_key" value="{{ order.order_key }}">
-                      <button type="submit" class="btn btn-sm btn-danger d-inline-flex align-items-center">
-                        <i class="bi bi-trash me-1"></i> Del
-                      </button>
-                    </form>
-
-                  </td>
                 </tr>
               {% endfor %}
             </tbody>

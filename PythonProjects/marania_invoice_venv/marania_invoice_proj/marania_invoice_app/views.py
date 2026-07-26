@@ -1653,13 +1653,23 @@ def import_data_no_unique_key(model_name, file_type, file):
 
         reader = csv.DictReader(io.StringIO(decoded))
         model.objects.all().delete()
-        for row in reader:
+        
+        # Check if file has data rows (beyond headers)
+        rows = list(reader)
+        if not rows:
+            return  # Empty file - table already cleared
+        
+        for row in rows:
             save(row)
 
     # ---------- JSON ----------
     elif file_type == "json":
         records = json.load(file)
         model.objects.all().delete()
+        
+        if not records:
+            return  # Empty file - table already cleared
+        
         for record in records:
             save(record)
 
@@ -1790,12 +1800,10 @@ def import_data(model_name, file_type, file):
     # ---------- CSV ----------
     if file_type == "csv":
         raw = file.read()
-        # print(f'raw file {raw}')
         decoded = None
         for enc in ("utf-8-sig", "utf-16", "cp1252", "latin1"):
             try:
                 decoded = raw.decode(enc)
-                #print(f'decoded {decoded}')
                 break
             except UnicodeDecodeError:
                 continue
@@ -1803,14 +1811,23 @@ def import_data(model_name, file_type, file):
             raise ValueError("Unable to decode CSV file")
 
         reader = csv.DictReader(io.StringIO(decoded))
-        for row in reader:
-            #print(f'row {row}')
+        records = list(reader)
+        
+        # Clear table first (even for empty file - user requirement)
+        model.objects.all().delete()
+        
+        if not records:
+            return  # Empty file - table already cleared
+        
+        for row in records:
             save(row)
-        #print("call done...")
 
     # ---------- JSON ----------
     elif file_type == "json":
         records = json.load(file)
+        model.objects.all().delete()
+        if not records:
+            return  # Empty file - table already cleared
         for record in records:
             save(record)
 
