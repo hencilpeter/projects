@@ -1557,7 +1557,7 @@ def load_material(request, pk):
 def import_data_no_unique_key(model_name, file_type, file):
     model = MODEL_REGISTRY[model_name]
 
-    AUTO_FIELDS = {"id", "created_at", "updated_at"}
+    AUTO_FIELDS = {"id", "created_at", "updated_at", "order_key", "sales_key", "purchase_key"}
 
     model_fields = {
         f.name: f
@@ -1591,9 +1591,25 @@ def import_data_no_unique_key(model_name, file_type, file):
                 fk = fk_fields[key]
                 rel_model = fk.remote_field.model
                 rel_field = fk.target_field.name  # e.g. "code"
-                if rel_field =="id": # TODO- fix the issue later
+                
+                # Special handling for Order foreign key in OrderSpecification
+                if model_name == 'OrderSpecification' and key == 'order':
+                    # Order ForeignKey targets order_key (primary key), but we have order_number
+                    # Need to look up Order by order_number first
+                    lookup_value = str(value).strip()
+                    try:
+                        if lookup_value == "":
+                            clean[key] = ""
+                        else:
+                            # Look up Order by order_number, then assign the Order object
+                            order_obj = rel_model.objects.get(order_number=lookup_value)
+                            clean[key] = order_obj
+                    except rel_model.DoesNotExist:
+                        raise ValueError(f"Invalid FK value '{value}' for {key}. Order with order_number '{lookup_value}' not found.")
+                    continue
+                elif rel_field =="id": # TODO- fix the issue later
                     rel_field = "code"
-                value = value.split("-", 1)[0]
+                    value = value.split("-", 1)[0]
 
                 try:
                     #clean[key] = rel_model.objects.get( **{rel_field: value}).first()
@@ -1656,10 +1672,12 @@ def import_data_no_unique_key(model_name, file_type, file):
 def import_data(model_name, file_type, file):
     model = MODEL_REGISTRY[model_name]
 
-    AUTO_FIELDS = {"id", "created_at", "updated_at"}
+    AUTO_FIELDS = {"id", "created_at", "updated_at", "order_key", "sales_key", "purchase_key"}
     UNIQUE_KEY = "code"  # explicitly use 'code' as lookup
     if model_name == 'Invoice':
         UNIQUE_KEY = "invoice_number"
+    elif model_name == 'Order':
+        UNIQUE_KEY = "order_number"
 
 
     IMPORT_STRATEGY = getattr(model, "IMPORT_STRATEGY", "update_or_create")
@@ -1689,23 +1707,41 @@ def import_data(model_name, file_type, file):
                 fk = fk_fields[key]
                 rel_model = fk.remote_field.model
                 rel_field = fk.target_field.name  # e.g. "code"
-                if rel_field == "id": #TODO - temp fix 
-                    rel_field = 'code' 
-                # elif model_name == 'Invoice':
-                #     rel_field = "invoice_number"
                 
-
-                # Extract code from CSV like "LINGF-LINGESWARI FILAMENTS"
-                if  str(value) != "":
-                    code_value = str(value).split("-", 1)[0].strip()
+                # Special handling for Order foreign key in OrderSpecification
+                if model_name == 'OrderSpecification' and key == 'order':
+                    # Order ForeignKey targets order_key (primary key), but we have order_number
+                    # Need to look up Order by order_number first
+                    lookup_value = str(value).strip()
+                    try:
+                        if lookup_value == "":
+                            clean[key] = ""
+                        else:
+                            # Look up Order by order_number, then assign the Order object
+                            order_obj = rel_model.objects.get(order_number=lookup_value)
+                            clean[key] = order_obj
+                    except rel_model.DoesNotExist:
+                        raise ValueError(f"Invalid FK value '{value}' for {key}. Order with order_number '{lookup_value}' not found.")
+                    continue
+                elif rel_field == "id": #TODO - temp fix 
+                    rel_field = 'code'
+                    # Extract code from CSV like "LINGF-LINGESWARI FILAMENTS"
+                    if  str(value) != "":
+                        lookup_value = str(value).split("-", 1)[0].strip()
+                    else:
+                        lookup_value =""
                 else:
-                    code_value =""
+                    # Extract code from CSV like "LINGF-LINGESWARI FILAMENTS"
+                    if  str(value) != "":
+                        lookup_value = str(value).split("-", 1)[0].strip()
+                    else:
+                        lookup_value =""
 
                 try:
-                    if code_value == "":
+                    if lookup_value == "":
                         clean[key] = ""    
                     else:
-                        clean[key] = rel_model.objects.get(**{rel_field: code_value})
+                        clean[key] = rel_model.objects.get(**{rel_field: lookup_value})
                 except rel_model.DoesNotExist:
                     raise ValueError(f"Invalid FK value '{value}' for {key}.{rel_field}")
                 continue
@@ -2378,6 +2414,7 @@ def sales_entry(request):
                     obj = Sales()
 
                 obj.order_no = entry.get("order_no") or ""
+                obj.invoice_no = entry.get("invoice_no") or ""
                 obj.sales_entry_date = parse_date(entry.get("sales_entry_date")) or now.strftime('%Y-%m-%d')
                 obj.customer = entry.get("customer") or ""
                 obj.twine = twine
@@ -2418,6 +2455,7 @@ def sales_entry(request):
         sales_json.append({
             'sales_key': s.sales_key,
             'order_no': s.order_no,
+            'invoice_no': s.invoice_no or '',
             'sales_entry_date': str(s.sales_entry_date) if s.sales_entry_date else '',
             'customer': s.customer or '',
             'twine': s.twine or '',

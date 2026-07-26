@@ -524,6 +524,7 @@ class Sales(models.Model):
     sales_key = models.AutoField(primary_key=True)
     sales_sequence = models.IntegerField(default=0)
     order_no = models.CharField(max_length=100)
+    invoice_no = models.CharField(max_length=100, blank=True, null=True)
     sales_entry_date = models.DateField(default=date.today)
     customer = models.CharField(max_length=255)
     twine = models.CharField(max_length=255, blank=True, null=True)

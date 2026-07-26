@@ -113,10 +113,13 @@ tr.row-status-on_hold_processing td {
 
           <div class="row mb-3">
             <input type="hidden" name="sales_key" id="sales_key" value="">
-            <div class="col-md-3">
+            <div class="col-md-2">
               <input type="date" name="sales_entry_date" id="sales_entry_date" class="form-control form-control-sm" value="{% now 'Y-m-d' %}" placeholder="Sales Entry Date">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
+              <input type="text" name="invoice_no" id="invoice_no" class="form-control form-control-sm" placeholder="Invoice No">
+            </div>
+            <div class="col-md-2">
               <input type="text" name="order_no" id="order_no" class="form-control form-control-sm" placeholder="Order #" value="NA">
             </div>
             <div class="col-md-3">
@@ -220,10 +223,11 @@ tr.row-status-on_hold_processing td {
             <colgroup>
               <col style="width:50px">
               <col style="width:60px">
+              <col style="width:100px">
               <col style="width:150px">
               <col style="width:85px">
               <col style="width:140px">
-              <col style="width:60px">
+              <col style="width:150px">
               <col style="width:210px">
               <col style="width:65px">
               <col style="width:65px">
@@ -240,6 +244,7 @@ tr.row-status-on_hold_processing td {
               <tr>
                 <th scope="col" style="width:40px"><input type="checkbox" id="select-all" onchange="toggleAllCheckboxes(this)"></th>
                 <th scope="col">Order No</th>
+                <th scope="col">Invoice No</th>
                 <th scope="col" class="col-actions">Actions</th>
                 <th scope="col">Entry Date</th>
                 <th scope="col">Customer</th>
@@ -261,6 +266,7 @@ tr.row-status-on_hold_processing td {
                   <button type="button" class="btn btn-outline-success btn-sm" id="viewSelectedSalesBtn" onclick="viewSelectedSales()" disabled>View</button>
                 </th>
                 <th><input class="filter-input" placeholder="Order No"></th>
+                <th><input class="filter-input" placeholder="Invoice"></th>
                 <th>
                   <button class="btn btn-warning btn-sm" id="clear-sales-filters">Clear</button>
                 </th>
@@ -295,6 +301,7 @@ tr.row-status-on_hold_processing td {
                 <tr class="row-status-{{ sale.status|lower }}">
                   <td><input type="checkbox" class="row-checkbox" value="{{ sale.sales_key }}" onchange="updateViewSalesBtn()"></td>
                   <td>{{ sale.order_no }}</td>
+                  <td>{{ sale.invoice_no|default:"" }}</td>
                   <td>
                     <a href="javascript:void(0);" onclick="loadSale('{{ sale.sales_key }}')" class="btn btn-sm btn-primary">
                       <i class="bi bi-pencil"></i> Edit
@@ -483,6 +490,7 @@ function setFormData(data) {
 
 function resetSalesForm() {
     document.getElementById('sales_key').value = '';
+    document.getElementById('invoice_no').value = '';
     document.getElementById('order_no').value = 'NA';
     document.getElementById('sales_entry_date').value = '{% now "Y-m-d" %}';
     document.getElementById('customer').value = '';

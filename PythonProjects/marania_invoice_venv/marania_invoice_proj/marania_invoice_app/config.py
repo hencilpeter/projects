@@ -40,6 +40,7 @@ REPORT_CONFIG = {
         "date_field": "sales_entry_date",
         "columns": [
             ("sales_entry_date", "Date"),
+            ("invoice_no", "Invoice No"),
             ("order_no", "Order No"),
             ("customer", "Customer"),
             ("twine", "Twine"),
