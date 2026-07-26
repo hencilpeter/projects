@@ -76,6 +76,7 @@ from .models import (
     Expense,
     Purchase,
     ProfitLoss,
+    TwineInventory,
 
 )
 
@@ -465,12 +466,38 @@ def dashboard(request):
     total_products = Product.objects.count()
     total_price_catalogs = PriceCatalog.objects.count()
     total_invoices = Invoice.objects.count()
+    total_sales = Sales.objects.count()
+    total_purchases = Purchase.objects.count()
+    total_twine_inventory = TwineInventory.objects.count()
+
+    # -------- TWINE INVENTORY SUMMARY --------
+    from datetime import datetime
+    current_month = datetime.now().month
+    current_year = datetime.now().year
+    twine_inventory_current = TwineInventory.objects.filter(month=current_month, year=current_year)
+    total_twine_balance = sum(ti.balance for ti in twine_inventory_current)
+
+    # -------- SALES SUMMARY --------
+    sales_current_month = Sales.objects.filter(sales_entry_date__month=current_month, sales_entry_date__year=current_year)
+    total_sales_amount = sum(s.total_amount for s in sales_current_month if s.total_amount)
+    pending_sales = Sales.objects.filter(status='PENDING').count()
+
+    # -------- PURCHASE SUMMARY --------
+    purchase_current_month = Purchase.objects.filter(delivery_date__month=current_month, delivery_date__year=current_year)
+    total_purchase_amount = sum(p.total_amount for p in purchase_current_month if p.total_amount)
+    pending_purchases = Purchase.objects.filter(payment_status='PENDING').count()
 
     # -------- LATEST CUSTOMERS --------
     latest_customers = Parties.objects.order_by("-created_at")[:5]
 
     # -------- RECENT INVOICES --------
     recent_invoices = Invoice.objects.order_by("-invoice_date")[:5]
+
+    # -------- RECENT SALES --------
+    recent_sales = Sales.objects.order_by("-sales_entry_date")[:5]
+
+    # -------- RECENT PURCHASES --------
+    recent_purchases = Purchase.objects.order_by("-delivery_date")[:5]
 
     # -------- INVOICE CHART: INVOICES PER MONTH --------
     # invoice_data = (
@@ -525,9 +552,14 @@ def dashboard(request):
         "total_products": total_products,
         "total_price_catalogs": total_price_catalogs,
         "total_invoices": total_invoices,
+        "total_sales": total_sales,
+        "total_purchases": total_purchases,
+        "total_twine_inventory": total_twine_inventory,
 
         "latest_customers": latest_customers,
         "recent_invoices": recent_invoices,
+        "recent_sales": recent_sales,
+        "recent_purchases": recent_purchases,
 
         "invoice_months": invoice_months,
         "invoice_counts": invoice_counts,
@@ -536,6 +568,12 @@ def dashboard(request):
 
         "catalog_groups": catalog_groups,
         "catalog_group_counts": catalog_group_counts,
+
+        "total_twine_balance": total_twine_balance,
+        "total_sales_amount": total_sales_amount,
+        "pending_sales": pending_sales,
+        "total_purchase_amount": total_purchase_amount,
+        "pending_purchases": pending_purchases,
     }
 
     #TODO - check customer price catalog
