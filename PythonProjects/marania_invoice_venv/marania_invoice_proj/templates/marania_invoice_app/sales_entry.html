@@ -216,6 +216,42 @@ tr.row-status-on_hold_processing td {
       </form>
     </div>
 
+    <div id="salesSummaryPanel" class="card mb-3 shadow-sm border-primary" style="display:none;">
+      <div class="card-body py-2 px-3">
+        <div class="row">
+          <div class="col-12">
+            <h6 class="card-title mb-2 text-primary fw-bold"><i class="bi bi-bar-chart-fill me-1"></i>Sales Summary</h6>
+          </div>
+        </div>
+        <div class="row g-2 text-center">
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted">Filtered Orders</div>
+            <div class="fw-bold fs-6" id="summary-filtered-orders">0</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted">Total Initial Wt</div>
+            <div class="fw-bold fs-6" id="summary-total-init-wt">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted">Total Processed Wt</div>
+            <div class="fw-bold fs-6" id="summary-total-proc-wt">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted">Total Actual Amt</div>
+            <div class="fw-bold fs-6" id="summary-total-actual">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted">Total GST</div>
+            <div class="fw-bold fs-6" id="summary-total-gst">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4">
+            <div class="small text-muted">Grand Total</div>
+            <div class="fw-bold fs-6 text-success" id="summary-grand-total">0.00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="sales-list mt-4">
       {% if sales %}
         <div class="table-responsive invoice-table-wrapper">
@@ -298,7 +334,7 @@ tr.row-status-on_hold_processing td {
             </thead>
             <tbody>
               {% for sale in sales %}
-                <tr class="row-status-{{ sale.status|lower }}">
+                <tr class="row-status-{{ sale.status|lower }}" data-sales-key="{{ sale.sales_key }}">
                   <td><input type="checkbox" class="row-checkbox" value="{{ sale.sales_key }}" onchange="updateViewSalesBtn()"></td>
                   <td>
                     <a href="javascript:void(0);" onclick="loadSale('{{ sale.sales_key }}')" class="btn btn-sm btn-primary">
@@ -685,6 +721,54 @@ function cloneSale(salesKey) {
     setFormData(clone);
 }
 
+function updateSalesSummary() {
+    const panel = document.getElementById('salesSummaryPanel');
+    if (!panel) return;
+
+    const salesTbody = document.querySelector('#sales-table tbody');
+    if (!salesTbody) { panel.style.display = 'none'; return; }
+
+    let filteredCount = 0;
+    let totalActualAmount = 0;
+    let totalGSTAmount = 0;
+    let totalInitWeight = 0;
+    let totalProcWeight = 0;
+
+    salesTbody.querySelectorAll('tr').forEach(function(row) {
+        if (row.style.display === 'none') return;
+        filteredCount++;
+        var salesKey = row.getAttribute('data-sales-key');
+        if (!salesKey) return;
+        var sale = salesData.find(function(s) { return s.sales_key == salesKey; });
+        if (!sale) return;
+
+        var initWt = parseFloat(sale.initial_weight) || 0;
+        var procWt = parseFloat(sale.processed_weight) || 0;
+        var unitPrice = parseFloat(sale.unit_price) || 0;
+        var gstRate = parseFloat(sale.gst_rate) || 0;
+
+        var selectedWeight = procWt > 0 ? procWt : (initWt > 0 ? initWt : 0);
+        var actualAmount = unitPrice * selectedWeight;
+        var gstAmount = actualAmount * (gstRate / 100);
+
+        totalActualAmount += actualAmount;
+        totalGSTAmount += gstAmount;
+        totalInitWeight += initWt;
+        totalProcWeight += procWt;
+    });
+
+    var grandTotal = totalActualAmount + totalGSTAmount;
+
+    document.getElementById('summary-filtered-orders').textContent = filteredCount;
+    document.getElementById('summary-total-actual').textContent = totalActualAmount.toFixed(2);
+    document.getElementById('summary-total-gst').textContent = totalGSTAmount.toFixed(2);
+    document.getElementById('summary-grand-total').textContent = grandTotal.toFixed(2);
+    document.getElementById('summary-total-init-wt').textContent = totalInitWeight.toFixed(2);
+    document.getElementById('summary-total-proc-wt').textContent = totalProcWeight.toFixed(2);
+
+    panel.style.display = filteredCount > 0 ? '' : 'none';
+}
+
 const salesTable = document.getElementById('sales-table');
 if (salesTable) {
     const salesTbody = salesTable.querySelector('tbody');
@@ -708,6 +792,7 @@ if (salesTable) {
             });
             row.style.display = show ? '' : 'none';
         });
+        updateSalesSummary();
     }
 
     document.querySelectorAll('#sales-filter-row input, #sales-filter-row select')
@@ -722,6 +807,9 @@ if (salesTable) {
             document.querySelectorAll('#sales-filter-row select')
                 .forEach(s => { s.value = ''; s.dispatchEvent(new Event('change')); });
         });
+
+    // Initial summary calculation
+    updateSalesSummary();
 }
 
 // Placeholder fallback for date inputs

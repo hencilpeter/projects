@@ -2123,8 +2123,7 @@ def order_entry(request):
             now = datetime.now()
             saved_count = 0
 
-            # Determine batch order_number and collect existing order_keys
-            submitted_keys = set()
+            # Determine batch order_number
             for entry in entries:
                 twine = (entry.get("twine") or "").strip()
                 if not twine:
@@ -2132,21 +2131,15 @@ def order_entry(request):
                 order_key = entry.get("order_key")
                 if order_key is not None:
                     order_key = str(order_key).strip()
-                    if order_key:
-                        submitted_keys.add(order_key)
-                        if batch_order_number is None:
-                            try:
-                                batch_order_number = Order.objects.values_list('order_number', flat=True).get(order_key=order_key)
-                            except Order.DoesNotExist:
-                                pass
+                    if order_key and batch_order_number is None:
+                        try:
+                            batch_order_number = Order.objects.values_list('order_number', flat=True).get(order_key=order_key)
+                        except Order.DoesNotExist:
+                            pass
                 if batch_order_number is None:
                     on = (entry.get("order_number") or "").strip()
                     if on:
                         batch_order_number = on
-
-            # Remove old orders with same order_number that are not in the submitted set
-            if batch_order_number:
-                Order.objects.filter(order_number=batch_order_number).exclude(order_key__in=submitted_keys).delete()
 
             batch_sequence = None
             base_twine = None
