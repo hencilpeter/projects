@@ -330,9 +330,9 @@ class Order(models.Model):
 
     STATUS_CHOICES = [
         ('Ordered', 'Ordered'),
-        ('ProductionQueue', 'P Queue'),
+        ('ProductionQueue', 'P.Queue'),
         ('InProduction', 'In Prod'),
-        ('ProductionCompleted', 'P Completed'),
+        ('ProductionCompleted', 'P.Completed'),
         ('Completed', 'Completed'),
         ('Cancelled', 'Cancelled'),
         ('OnHold', 'On Hold'),

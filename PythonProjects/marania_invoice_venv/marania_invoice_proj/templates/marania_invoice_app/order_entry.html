@@ -62,6 +62,23 @@
   transform: translateY(3px);
   box-shadow: 0 1px 0 #caa600 inset !important;
 }
+
+.row-status-productionqueue {
+    background-color: #e3f2fd !important;
+}
+.row-status-productionqueue td {
+    color: #1565c0 !important;
+}
+
+#status option[value="Ordered"]          { background-color: #0d6efd; color: #fff; }
+#status option[value="ProductionQueue"]  { background-color: #0d6efd; color: #fff; }
+#status option[value="InProduction"]     { background-color: #ffc107; color: #212529; }
+#status option[value="ProductionCompleted"] { background-color: #17a2b8; color: #212529; }
+#status option[value="Completed"]        { background-color: #198754; color: #fff; }
+#status option[value="Cancelled"]        { background-color: #dc3545; color: #fff; }
+#status option[value="OnHold"]           { background-color: #ffc107; color: #212529; }
+#status option[value="Rejected"]         { background-color: #dc3545; color: #fff; }
+
 </style>
 
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
@@ -243,7 +260,7 @@
                   <select class="filter-select">
                     <option value="">All</option>
                     <option value="Ordered">Ordered</option>
-                    <option value="ProductionQueue">Prod Queue</option>
+                    <option value="ProductionQueue">P.Queue</option>
                     <option value="InProduction">In Prod</option>
                     <option value="ProductionCompleted">Prod Completed</option>
                     <option value="Completed">Completed</option>
@@ -291,8 +308,8 @@
                   <td>{{ order.quantity }}</td>
                   <td>{{ order.quantity_unit }}</td>
                   <td>{{ order.unit_price }}</td>
-                  <td>
-                    <span class="badge {% if order.status == 'Completed' %}bg-success{% elif order.status == 'InProduction' %}bg-warning text-dark{% elif order.status == 'ProductionCompleted' %}bg-info text-dark{% elif order.status == 'ProductionQueue' %}bg-secondary{% elif order.status == 'Cancelled' or order.status == 'Rejected' %}bg-danger{% elif order.status == 'OnHold' %}bg-warning text-dark{% else %}bg-primary{% endif %}">
+                  <td data-status="{{ order.status }}">
+                    <span class="badge {% if order.status == 'Completed' %}bg-success{% elif order.status == 'InProduction' %}bg-warning text-dark{% elif order.status == 'ProductionCompleted' %}bg-info text-dark{% elif order.status == 'ProductionQueue' %}bg-primary{% elif order.status == 'Cancelled' or order.status == 'Rejected' %}bg-danger{% elif order.status == 'OnHold' %}bg-warning text-dark{% else %}bg-primary{% endif %}">
                       {{ order.get_status_display }}
                     </span>
                   </td>
@@ -795,6 +812,9 @@ const orderTable = document.getElementById('order-table');
 if (orderTable) {
     const orderTbody = orderTable.querySelector('tbody');
 
+    // Map filter array index to table column index (skip checkbox col 0 and actions col 2)
+    const filterColMap = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+
     function applyOrderFilters() {
         const filterInputs = document.querySelectorAll('#order-filter-row input.filter-input, #order-filter-row select.filter-select');
         const filters = Array.from(filterInputs).map(i => i.value.toLowerCase());
@@ -804,8 +824,21 @@ if (orderTable) {
             let show = true;
             filters.forEach((filter, index) => {
                 if (!filter) return;
-                if (!cells[index + 1] || !cells[index + 1].textContent.toLowerCase().includes(filter)) {
+                const colIdx = filterColMap[index];
+                if (!cells[colIdx]) {
                     show = false;
+                    return;
+                }
+                // Status filter (index 10) uses data-status attribute for exact matching
+                if (index === 10) {
+                    const statusValue = cells[colIdx].getAttribute('data-status') || '';
+                    if (!statusValue.toLowerCase().includes(filter)) {
+                        show = false;
+                    }
+                } else {
+                    if (!cells[colIdx].textContent.toLowerCase().includes(filter)) {
+                        show = false;
+                    }
                 }
             });
             row.style.display = show ? '' : 'none';
@@ -843,6 +876,10 @@ function updateCopyOrdersBtn() {
 function copySelectedOrders() {
     var checked = document.querySelectorAll('.order-checkbox:checked');
     if (checked.length === 0) return;
+    if (checked.length > 25) {
+        alert('Maximum 25 orders can be copied at once. Please select fewer orders.');
+        return;
+    }
     var keys = [];
     checked.forEach(function(cb) { keys.push(cb.value); });
     var form = document.createElement('form');
@@ -863,6 +900,30 @@ function copySelectedOrders() {
     document.body.appendChild(form);
     form.submit();
 }
+
+const statusColors = {
+    Ordered:            { bg: '#0d6efd', fg: '#fff' },
+    ProductionQueue:    { bg: '#0d6efd', fg: '#fff' },
+    InProduction:       { bg: '#ffc107', fg: '#212529' },
+    ProductionCompleted:{ bg: '#17a2b8', fg: '#212529' },
+    Completed:          { bg: '#198754', fg: '#fff' },
+    Cancelled:          { bg: '#dc3545', fg: '#fff' },
+    OnHold:             { bg: '#ffc107', fg: '#212529' },
+    Rejected:           { bg: '#dc3545', fg: '#fff' },
+};
+
+function colorStatusSelect() {
+    const sel = document.getElementById('status');
+    if (!sel) return;
+    const c = statusColors[sel.value];
+    if (c) {
+        sel.style.backgroundColor = c.bg;
+        sel.style.color = c.fg;
+    }
+}
+
+document.getElementById('status').addEventListener('change', colorStatusSelect);
+colorStatusSelect();
 </script>
 
 {% endblock %}
