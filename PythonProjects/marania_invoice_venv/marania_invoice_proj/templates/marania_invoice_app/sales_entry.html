@@ -254,6 +254,7 @@ tr.row-status-on_hold_processing td {
             <colgroup>
               <col style="width:50px">
               <col style="width:150px">
+              <col style="width:130px">
               <col style="width:90px">
               <col style="width:110px">
               <col style="width:85px">
@@ -268,13 +269,13 @@ tr.row-status-on_hold_processing td {
               <col style="width:60px">
               <col style="width:65px">
               <col style="width:90px">
-              <col style="width:130px">
               <col style="width:90px">
             </colgroup>
             <thead class="table-dark">
               <tr>
                 <th scope="col" style="width:40px"><input type="checkbox" id="select-all" onchange="toggleAllCheckboxes(this)"></th>
                 <th scope="col" class="col-actions">Actions</th>
+                <th scope="col">Status</th>
                 <th scope="col">Order No</th>
                 <th scope="col">Invoice No</th>
                 <th scope="col">Entry Date</th>
@@ -289,7 +290,6 @@ tr.row-status-on_hold_processing td {
                 <th scope="col" class="col-narrow">GST Rate</th>
                 <th scope="col" class="col-narrow">Total Amt</th>
                 <th scope="col">Delivery Date</th>
-                <th scope="col">Status</th>
                 <th scope="col">Payment Date</th>
               </tr>
               <tr id="sales-filter-row">
@@ -298,6 +298,17 @@ tr.row-status-on_hold_processing td {
                 </th>
                 <th>
                   <button class="btn btn-warning btn-sm" id="clear-sales-filters">Clear</button>
+                </th>
+                <th>
+                  <select class="filter-select">
+                    <option value="">All</option>
+                    <option value="PAID" style="background-color:#198754;color:#fff;">PAID</option>
+                    <option value="PARTIALLY PAID" style="background-color:#0dcaf0;color:#000;">PARTIALLY PAID</option>
+<option value="PENDING" style="background-color:#8B2252;color:#fff;">PENDING</option>
+                    <option value="NO PAYMENT" style="background-color:#dc3545;color:#fff;">NO PAYMENT</option>
+                    <option value="ON HOLD(Item On Stock)" style="background-color:#6c757d;color:#fff;">ON HOLD(STOCK)</option>
+                    <option value="ON HOLD(PROCESSING)" style="background-color:#ffc107;color:#000;">ON HOLD(PROCESSING)</option>
+                  </select>
                 </th>
                 <th><input class="filter-input" placeholder="Order No"></th>
                 <th><input class="filter-input" placeholder="Invoice"></th>
@@ -313,17 +324,6 @@ tr.row-status-on_hold_processing td {
                 <th><input class="filter-input" placeholder="GST Rate"></th>
                 <th><input class="filter-input" placeholder="Total"></th>
                 <th><input class="filter-input" placeholder="Delivery"></th>
-                <th>
-                  <select class="filter-select">
-                    <option value="">All</option>
-                    <option value="PAID" style="background-color:#198754;color:#fff;">PAID</option>
-                    <option value="PARTIALLY PAID" style="background-color:#0dcaf0;color:#000;">PARTIALLY PAID</option>
-<option value="PENDING" style="background-color:#8B2252;color:#fff;">PENDING</option>
-                    <option value="NO PAYMENT" style="background-color:#dc3545;color:#fff;">NO PAYMENT</option>
-                    <option value="ON HOLD(Item On Stock)" style="background-color:#6c757d;color:#fff;">ON HOLD(STOCK)</option>
-                    <option value="ON HOLD(PROCESSING)" style="background-color:#ffc107;color:#000;">ON HOLD(PROCESSING)</option>
-                  </select>
-                </th>
                 <th><input class="filter-input" placeholder="Payment"></th>
               </tr>
             </thead>
@@ -347,6 +347,11 @@ tr.row-status-on_hold_processing td {
                       </button>
                     </form>
                   </td>
+                  <td>
+                    <span class="badge {% if sale.status == 'PAID' %}bg-success{% elif sale.status == 'PARTIALLY_PAID' %}bg-info text-dark{% elif sale.status == 'PENDING' %}bg-pending{% elif sale.status == 'NO_PAYMENT' %}bg-danger{% elif sale.status == 'ON_HOLD_STOCK' %}bg-secondary{% elif sale.status == 'ON_HOLD_PROCESSING' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                      {{ sale.get_status_display }}
+                    </span>
+                  </td>
                   <td>{{ sale.order_no }}</td>
                   <td>{{ sale.invoice_no|default:"" }}</td>
                   <td>{{ sale.sales_entry_date|date:"Y-m-d" }}</td>
@@ -361,11 +366,6 @@ tr.row-status-on_hold_processing td {
                   <td>{{ sale.gst_rate|default:"" }}</td>
                   <td>{{ sale.total_amount|default:"" }}</td>
                   <td>{{ sale.delivery_date|default:""|date:"Y-m-d" }}</td>
-                  <td>
-                    <span class="badge {% if sale.status == 'PAID' %}bg-success{% elif sale.status == 'PARTIALLY_PAID' %}bg-info text-dark{% elif sale.status == 'PENDING' %}bg-pending{% elif sale.status == 'NO_PAYMENT' %}bg-danger{% elif sale.status == 'ON_HOLD_STOCK' %}bg-secondary{% elif sale.status == 'ON_HOLD_PROCESSING' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                      {{ sale.get_status_display }}
-                    </span>
-                  </td>
                   <td>{{ sale.payment_date|default:""|date:"Y-m-d" }}</td>
                 </tr>
               {% endfor %}
