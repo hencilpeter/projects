@@ -3,6 +3,8 @@
 
 {% block main %}
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
 <style>
 .invoice-table-wrapper {
     max-height: 820px;
@@ -13,6 +15,21 @@
 #sales-table {
     table-layout: fixed;
     font-size: 0.8rem;
+}
+
+.date-filter-container {
+    display: flex;
+    gap: 2px;
+}
+.date-filter-container .form-control {
+    min-width: 0;
+    flex: 1;
+}
+.date-filter-container .btn {
+    flex-shrink: 0;
+    line-height: 1.2;
+    padding: 1px 4px;
+    font-size: 0.75rem;
 }
 
 .col-narrow { text-align: center; white-space: nowrap; }
@@ -257,7 +274,7 @@ tr.row-status-on_hold_processing td {
               <col style="width:130px">
               <col style="width:90px">
               <col style="width:110px">
-              <col style="width:85px">
+              <col style="width:160px">
               <col style="width:130px">
               <col style="width:150px">
               <col style="width:210px">
@@ -268,7 +285,7 @@ tr.row-status-on_hold_processing td {
               <col style="width:70px">
               <col style="width:60px">
               <col style="width:65px">
-              <col style="width:90px">
+              <col style="width:160px">
               <col style="width:90px">
             </colgroup>
             <thead class="table-dark">
@@ -312,7 +329,25 @@ tr.row-status-on_hold_processing td {
                 </th>
                 <th><input class="filter-input" placeholder="Order No"></th>
                 <th><input class="filter-input" placeholder="Invoice"></th>
-                <th><input class="filter-input" placeholder="Entry Date"></th>
+                <th>
+                  <div class="date-filter-container">
+                    <input type="text" id="entryDateFilter" class="form-control form-control-sm" placeholder="Date range...">
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-secondary dropdown-toggle py-0" data-bs-toggle="dropdown" title="Quick date filters"><i class="bi bi-clock"></i></button>
+                      <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('today');return false;">Today</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('thisweek');return false;">This Week</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('thismonth');return false;">This Month</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('thisyear');return false;">This Year</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('lastmonth');return false;">Last Month</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('lastyear');return false;">Last Year</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="clearDateFilter();return false;">Clear</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </th>
                 <th><input class="filter-input" placeholder="Customer" list="customer_list"></th>
                 <th><input class="filter-input" placeholder="Twine" list="twine_list"></th>
                 <th><input class="filter-input" placeholder="Spec"></th>
@@ -323,7 +358,25 @@ tr.row-status-on_hold_processing td {
                 <th><input class="filter-input" placeholder="U Price"></th>
                 <th><input class="filter-input" placeholder="GST Rate"></th>
                 <th><input class="filter-input" placeholder="Total"></th>
-                <th><input class="filter-input" placeholder="Delivery"></th>
+                <th>
+                  <div class="date-filter-container">
+                    <input type="text" id="deliveryDateFilter" class="form-control form-control-sm" placeholder="Delivery date...">
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-secondary dropdown-toggle py-0" data-bs-toggle="dropdown" title="Quick date filters"><i class="bi bi-clock"></i></button>
+                      <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('today');return false;">Today</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('thisweek');return false;">This Week</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('thismonth');return false;">This Month</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('thisyear');return false;">This Year</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('lastmonth');return false;">Last Month</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('lastyear');return false;">Last Year</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="clearDeliveryDateFilter();return false;">Clear</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </th>
                 <th><input class="filter-input" placeholder="Payment"></th>
               </tr>
             </thead>
@@ -628,7 +681,6 @@ function addToCart() {
     if (!twine) { alert("Twine (Product Code) is required."); return; }
     if (!customer) { alert("Customer is required."); return; }
     let data = getFormData();
-    delete data.sales_key;
     data.draft_id = ++draftIdCounter;
     drafts.push(data);
     renderDrafts();
@@ -764,6 +816,175 @@ function updateSalesSummary() {
     panel.style.display = filteredCount > 0 ? '' : 'none';
 }
 
+// --- Date filter state ---
+var dateFilterState = null; // { from: "YYYY-MM-DD", to: "YYYY-MM-DD" } or null
+
+function initDatePicker() {
+    var input = document.getElementById('entryDateFilter');
+    if (!input || input._flatpickr) return;
+    flatpickr(input, {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        onChange: function(selectedDates, dateStr) {
+            if (selectedDates.length === 2) {
+                dateFilterState = {
+                    from: this.formatDate(selectedDates[0], "Y-m-d"),
+                    to: this.formatDate(selectedDates[1], "Y-m-d")
+                };
+            } else if (selectedDates.length === 1) {
+                var d = this.formatDate(selectedDates[0], "Y-m-d");
+                dateFilterState = { from: d, to: d };
+            } else {
+                dateFilterState = null;
+            }
+            applySalesFilters();
+        },
+        onClear: function() {
+            dateFilterState = null;
+            applySalesFilters();
+        }
+    });
+}
+
+function setDateFilterQuick(range) {
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = now.getMonth();
+    var d = now.getDate();
+
+    function fmt(date) {
+        return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
+    }
+
+    var from, to;
+    switch (range) {
+        case 'today':
+            from = to = now;
+            break;
+        case 'thisweek': {
+            var dayOfWeek = now.getDay();
+            var diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+            from = new Date(now.getFullYear(), now.getMonth(), diff);
+            to = new Date(from);
+            to.setDate(to.getDate() + 6);
+            break;
+        }
+        case 'thismonth':
+            from = new Date(y, m, 1);
+            to = new Date(y, m + 1, 0);
+            break;
+        case 'thisyear':
+            from = new Date(y, 0, 1);
+            to = new Date(y, 11, 31);
+            break;
+        case 'lastmonth':
+            from = new Date(y, m - 1, 1);
+            to = new Date(y, m, 0);
+            break;
+        case 'lastyear':
+            from = new Date(y - 1, 0, 1);
+            to = new Date(y - 1, 11, 31);
+            break;
+    }
+
+    dateFilterState = { from: fmt(from), to: fmt(to) };
+    var fp = document.getElementById('entryDateFilter')._flatpickr;
+    if (fp) {
+        fp.setDate([from, to], true);
+    }
+    applySalesFilters();
+}
+
+function clearDateFilter() {
+    dateFilterState = null;
+    var fp = document.getElementById('entryDateFilter')._flatpickr;
+    if (fp) fp.clear();
+    applySalesFilters();
+}
+
+// --- Delivery Date filter state ---
+var deliveryDateFilterState = null;
+
+function initDeliveryDatePicker() {
+    var input = document.getElementById('deliveryDateFilter');
+    if (!input || input._flatpickr) return;
+    flatpickr(input, {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        onChange: function(selectedDates) {
+            if (selectedDates.length === 2) {
+                deliveryDateFilterState = {
+                    from: this.formatDate(selectedDates[0], "Y-m-d"),
+                    to: this.formatDate(selectedDates[1], "Y-m-d")
+                };
+            } else if (selectedDates.length === 1) {
+                var d = this.formatDate(selectedDates[0], "Y-m-d");
+                deliveryDateFilterState = { from: d, to: d };
+            } else {
+                deliveryDateFilterState = null;
+            }
+            applySalesFilters();
+        },
+        onClear: function() {
+            deliveryDateFilterState = null;
+            applySalesFilters();
+        }
+    });
+}
+
+function setDeliveryDateFilterQuick(range) {
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = now.getMonth();
+
+    function fmt(date) {
+        return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
+    }
+
+    var from, to;
+    switch (range) {
+        case 'today':
+            from = to = now;
+            break;
+        case 'thisweek': {
+            var dayOfWeek = now.getDay();
+            var diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+            from = new Date(now.getFullYear(), now.getMonth(), diff);
+            to = new Date(from);
+            to.setDate(to.getDate() + 6);
+            break;
+        }
+        case 'thismonth':
+            from = new Date(y, m, 1);
+            to = new Date(y, m + 1, 0);
+            break;
+        case 'thisyear':
+            from = new Date(y, 0, 1);
+            to = new Date(y, 11, 31);
+            break;
+        case 'lastmonth':
+            from = new Date(y, m - 1, 1);
+            to = new Date(y, m, 0);
+            break;
+        case 'lastyear':
+            from = new Date(y - 1, 0, 1);
+            to = new Date(y - 1, 11, 31);
+            break;
+    }
+
+    deliveryDateFilterState = { from: fmt(from), to: fmt(to) };
+    var fp = document.getElementById('deliveryDateFilter')._flatpickr;
+    if (fp) fp.setDate([from, to], true);
+    applySalesFilters();
+}
+
+function clearDeliveryDateFilter() {
+    deliveryDateFilterState = null;
+    var fp = document.getElementById('deliveryDateFilter')._flatpickr;
+    if (fp) fp.clear();
+    applySalesFilters();
+}
+
 const salesTable = document.getElementById('sales-table');
 if (salesTable) {
     const salesTbody = salesTable.querySelector('tbody');
@@ -780,11 +1001,27 @@ if (salesTable) {
             var cells = row.querySelectorAll('td');
             var show = true;
             filters.forEach(function(filter, index) {
-                if (!filter) return;
+                if (!filter && !(index === 5 && dateFilterState) && !(index === 16 && deliveryDateFilterState)) return;
                 if (!cells[index]) { show = false; return; }
+                var cellText = cells[index].textContent.toLowerCase();
+                // Entry Date column uses range filtering
+                if (index === 5 && dateFilterState) {
+                    var cellDate = cellText.trim();
+                    if (cellDate < dateFilterState.from || cellDate > dateFilterState.to) {
+                        show = false;
+                    }
+                    return;
+                }
+                // Delivery Date column uses range filtering
+                if (index === 16 && deliveryDateFilterState) {
+                    var cellDate = cellText.trim();
+                    if (cellDate < deliveryDateFilterState.from || cellDate > deliveryDateFilterState.to) {
+                        show = false;
+                    }
+                    return;
+                }
                 var filterInput = filterThs[index].querySelector('input, select');
                 var isSelect = filterInput && filterInput.tagName === 'SELECT';
-                var cellText = cells[index].textContent.toLowerCase();
                 if (isSelect) {
                     if (cellText.trim() !== filter) show = false;
                 } else {
@@ -807,9 +1044,13 @@ if (salesTable) {
                 .forEach(i => { i.value = ''; i.dispatchEvent(new Event('input')); });
             document.querySelectorAll('#sales-filter-row select')
                 .forEach(s => { s.value = ''; s.dispatchEvent(new Event('change')); });
+            clearDateFilter();
+            clearDeliveryDateFilter();
         });
 
-    // Initial summary calculation
+    // Initial date pickers and summary
+    initDatePicker();
+    initDeliveryDatePicker();
     updateSalesSummary();
 }
 
@@ -878,7 +1119,13 @@ resetSalesForm = function() {
     // Clear filters
     document.querySelectorAll('#sales-filter-row input').forEach(function(i) { i.value = ''; i.dispatchEvent(new Event('input')); });
     document.querySelectorAll('#sales-filter-row select').forEach(function(s) { s.value = ''; s.dispatchEvent(new Event('change')); });
+    clearDateFilter();
+    clearDeliveryDateFilter();
 };
 </script>
 
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 {% endblock %}
