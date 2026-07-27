@@ -216,37 +216,32 @@ tr.row-status-on_hold_processing td {
       </form>
     </div>
 
-    <div id="salesSummaryPanel" class="card mb-3 shadow-sm border-primary" style="display:none;">
-      <div class="card-body py-2 px-3">
-        <div class="row">
-          <div class="col-12">
-            <h6 class="card-title mb-2 text-primary fw-bold"><i class="bi bi-bar-chart-fill me-1"></i>Sales Summary</h6>
-          </div>
-        </div>
-        <div class="row g-2 text-center">
+    <div id="salesSummaryPanel" class="card mb-2 shadow-sm border-primary" style="display:none;">
+      <div class="card-body py-1 px-3">
+        <div class="row g-1 text-center">
           <div class="col-md-2 col-sm-4 border-end">
-            <div class="small text-muted">Filtered Orders</div>
-            <div class="fw-bold fs-6" id="summary-filtered-orders">0</div>
+            <div class="small text-muted lh-1">Filtered Orders</div>
+            <div class="fw-bold lh-1" id="summary-filtered-orders">0</div>
           </div>
           <div class="col-md-2 col-sm-4 border-end">
-            <div class="small text-muted">Total Initial Wt</div>
-            <div class="fw-bold fs-6" id="summary-total-init-wt">0.00</div>
+            <div class="small text-muted lh-1">Total Initial Wt</div>
+            <div class="fw-bold lh-1" id="summary-total-init-wt">0.00</div>
           </div>
           <div class="col-md-2 col-sm-4 border-end">
-            <div class="small text-muted">Total Processed Wt</div>
-            <div class="fw-bold fs-6" id="summary-total-proc-wt">0.00</div>
+            <div class="small text-muted lh-1">Total Processed Wt</div>
+            <div class="fw-bold lh-1" id="summary-total-proc-wt">0.00</div>
           </div>
           <div class="col-md-2 col-sm-4 border-end">
-            <div class="small text-muted">Total Actual Amt</div>
-            <div class="fw-bold fs-6" id="summary-total-actual">0.00</div>
+            <div class="small text-muted lh-1">Total Actual Amt</div>
+            <div class="fw-bold lh-1" id="summary-total-actual">0.00</div>
           </div>
           <div class="col-md-2 col-sm-4 border-end">
-            <div class="small text-muted">Total GST</div>
-            <div class="fw-bold fs-6" id="summary-total-gst">0.00</div>
+            <div class="small text-muted lh-1">Total GST</div>
+            <div class="fw-bold lh-1" id="summary-total-gst">0.00</div>
           </div>
           <div class="col-md-2 col-sm-4">
-            <div class="small text-muted">Grand Total</div>
-            <div class="fw-bold fs-6 text-success" id="summary-grand-total">0.00</div>
+            <div class="small text-muted lh-1">Grand Total</div>
+            <div class="fw-bold lh-1 text-success" id="summary-grand-total">0.00</div>
           </div>
         </div>
       </div>
@@ -786,8 +781,14 @@ if (salesTable) {
             var show = true;
             filters.forEach(function(filter, index) {
                 if (!filter) return;
-                if (!cells[index] || !cells[index].textContent.toLowerCase().includes(filter)) {
-                    show = false;
+                if (!cells[index]) { show = false; return; }
+                var filterInput = filterThs[index].querySelector('input, select');
+                var isSelect = filterInput && filterInput.tagName === 'SELECT';
+                var cellText = cells[index].textContent.toLowerCase();
+                if (isSelect) {
+                    if (cellText.trim() !== filter) show = false;
+                } else {
+                    if (!cellText.includes(filter)) show = false;
                 }
             });
             row.style.display = show ? '' : 'none';
