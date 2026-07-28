@@ -2371,7 +2371,7 @@ def parse_date(value):
         return None
 
 def sales_entry(request):
-    sales_list = Sales.objects.all()
+    sales_list = Sales.objects.all().order_by('-sales_entry_date', '-order_no')
     products = Product.objects.all()
     parties = Parties.objects.all()
 
@@ -2407,25 +2407,24 @@ def sales_entry(request):
                 entries = drafts_raw if isinstance(drafts_raw, list) else []
 
             now = datetime.now()
+            order_nos = []
+            for entry in entries:
+                twine = (entry.get("twine") or "").strip()
+                if not twine:
+                    continue
+                ono = entry.get("order_no") or ""
+                if ono:
+                    order_nos.append(ono)
+
+            if order_nos:
+                Sales.objects.filter(order_no__in=order_nos).delete()
+
             for entry in entries:
                 twine = (entry.get("twine") or "").strip()
                 if not twine:
                     continue
 
-                sales_key = entry.get("sales_key")
-                if sales_key is not None:
-                    sales_key = str(sales_key).strip()
-                else:
-                    sales_key = ""
-                is_update = bool(sales_key)
-
-                if is_update:
-                    try:
-                        obj = Sales.objects.get(sales_key=sales_key)
-                    except Sales.DoesNotExist:
-                        obj = Sales()
-                else:
-                    obj = Sales()
+                obj = Sales()
 
                 obj.order_no = entry.get("order_no") or ""
                 obj.invoice_no = entry.get("invoice_no") or ""
@@ -2449,9 +2448,8 @@ def sales_entry(request):
                 obj.status = entry.get("status") or "ON_HOLD_PROCESSING"
                 obj.payment_date = parse_date(entry.get("payment_date"))
                 obj.remarks = entry.get("remarks") or ""
+                obj.created_at = now
                 obj.updated_at = now
-                if not is_update:
-                    obj.created_at = now
                 obj.save()
                 saved_count += 1
 

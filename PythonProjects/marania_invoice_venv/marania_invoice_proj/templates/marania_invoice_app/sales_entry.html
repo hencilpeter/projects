@@ -171,7 +171,7 @@ tr.row-status-on_hold_processing td {
               <input type="number" name="piece_count" id="piece_count" step="1" class="form-control form-control-sm" placeholder="Pcs">
             </div>
             <div class="col-md-2">
-              <input type="date" name="delivery_date" id="delivery_date" class="form-control form-control-sm" placeholder="Delivery Date">
+              <input type="text" name="delivery_date" id="delivery_date" class="form-control form-control-sm text-end" placeholder="Delivery Date">
             </div>
             <div class="col-md-2">
               <input type="number" name="initial_weight" id="initial_weight" step="0.01" class="form-control form-control-sm" placeholder="Initial Weight">
@@ -202,7 +202,7 @@ tr.row-status-on_hold_processing td {
               </select>
             </div>
             <div class="col-md-2">
-              <input type="date" name="payment_date" id="payment_date" class="form-control form-control-sm" placeholder="Payment Date">
+              <input type="text" name="payment_date" id="payment_date" class="form-control form-control-sm text-end" placeholder="Payment Date">
             </div>
           </div>
 
@@ -217,8 +217,6 @@ tr.row-status-on_hold_processing td {
           <div class="text-center">
             <button type="button" class="btn btn-info me-2" onclick="addToCart()">Add to Cart</button>
             <button type="button" class="btn btn-warning me-2" onclick="submitCart()">Submit Cart</button>
-            <button type="button" class="btn btn-success me-2" onclick="submitOrder()">Submit Sales</button>
-            <button type="button" class="btn btn-primary me-2" onclick="submitAll()">Submit All</button>
             <button type="reset" class="btn btn-secondary" onclick="resetSalesForm()">Clear</button>
             <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="viewSalesList()">View Sales List</button>
           </div>
@@ -435,14 +433,14 @@ tr.row-status-on_hold_processing td {
 
 <!-- View Sales List Modal -->
 <div class="modal fade" id="salesListModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-xl">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Sales List</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <pre id="sales-list-content" style="font-family:monospace; font-size:14px; white-space:pre-wrap; background:#f8f9fa; padding:15px; border-radius:4px;"></pre>
+        <div id="sales-list-content"></div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -459,11 +457,12 @@ const productNames = {
 };
 let drafts = [];
 let draftIdCounter = 0;
+let cartSeq = 0;
+const cartColors = ['bg-primary', 'bg-success', 'bg-info text-dark', 'bg-warning text-dark', 'bg-danger', 'bg-secondary', 'bg-dark'];
 
 function getDateValue(id) {
     var el = document.getElementById(id);
     if (!el) return '';
-    if (el.type === 'text') return '';
     return el.value;
 }
 
@@ -529,20 +528,6 @@ if (statusSelect) {
     updateStatusStyle(statusSelect);
 }
 
-function setDateField(id, value) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    el.type = 'date';
-    el.value = value || '';
-    if (!el.value) {
-        el.type = 'text';
-        el.value = el.placeholder;
-        el.classList.add('text-muted');
-    } else {
-        el.classList.remove('text-muted');
-    }
-}
-
 function setFormData(data) {
     document.getElementById('sales_key').value = data.sales_key || '';
     document.getElementById('order_no').value = data.order_no || 'NA';
@@ -558,10 +543,12 @@ function setFormData(data) {
     document.getElementById('unit_price').value = data.unit_price || '';
     document.getElementById('gst_rate').value = data.gst_rate || '';
     document.getElementById('total_amount').value = data.total_amount || '';
-    setDateField('delivery_date', data.delivery_date);
+    var ddEl = document.getElementById('delivery_date');
+    if (ddEl && ddEl._flatpickr) ddEl._flatpickr.setDate(data.delivery_date || '', true);
     document.getElementById('status').value = data.status || 'ON_HOLD_PROCESSING';
     if (statusSelect) updateStatusStyle(statusSelect);
-    setDateField('payment_date', data.payment_date);
+    var pdEl = document.getElementById('payment_date');
+    if (pdEl && pdEl._flatpickr) pdEl._flatpickr.setDate(data.payment_date || '', true);
     document.getElementById('remarks').value = data.remarks || '';
 
     const collapseEl = document.getElementById("salesForm");
@@ -588,10 +575,12 @@ function resetSalesForm() {
     document.getElementById('unit_price').value = '';
     document.getElementById('gst_rate').value = '';
     document.getElementById('total_amount').value = '';
-    setDateField('delivery_date', '');
+    var ddEl = document.getElementById('delivery_date');
+    if (ddEl && ddEl._flatpickr) ddEl._flatpickr.clear();
     document.getElementById('status').value = 'ON_HOLD_PROCESSING';
     if (statusSelect) updateStatusStyle(statusSelect);
-    setDateField('payment_date', '');
+    var pdEl = document.getElementById('payment_date');
+    if (pdEl && pdEl._flatpickr) pdEl._flatpickr.clear();
     document.getElementById('remarks').value = '';
 }
 
@@ -606,12 +595,14 @@ function renderDrafts() {
     }
     list.style.display = 'block';
     count.textContent = drafts.length;
+    const colors = cartColors;
     drafts.forEach((d, i) => {
         const badge = document.createElement('span');
-        badge.className = 'badge bg-secondary py-2 px-3 text-start';
+        const color = colors[i % colors.length];
+        badge.className = 'badge ' + color + ' py-2 px-3 text-start';
         badge.style.cursor = 'pointer';
         badge.style.fontSize = '13px';
-        badge.textContent = (d.order_no || '?') + ' | ' + (d.customer || '?') + ' | ' + (d.speification || '').substring(0, 30);
+        badge.textContent = (d.cart_seq || (i + 1)) + '- ' + (d.order_no || '?') + ' | ' + (d.customer || '?') + ' | ' + (d.speification || '').substring(0, 30);
         badge.title = 'Click to edit';
         badge.onclick = function() { loadDraft(d.draft_id); };
         container.appendChild(badge);
@@ -619,58 +610,107 @@ function renderDrafts() {
     document.getElementById('drafts_data').value = JSON.stringify(drafts);
 }
 
+function buildViewTable(items, columns, date, title) {
+    var container = document.getElementById('sales-list-content');
+
+    var heading = document.createElement('h6');
+    heading.className = 'mt-2';
+    heading.textContent = date + '  ' + title;
+    container.appendChild(heading);
+
+    var table = document.createElement('table');
+    table.className = 'table table-sm table-bordered mb-4';
+    table.style.fontSize = '13px';
+    table.style.tableLayout = 'fixed';
+
+    var colgroup = document.createElement('colgroup');
+    var col = document.createElement('col');
+    col.style.width = '40px';
+    colgroup.appendChild(col);
+    columns.forEach(function(colDef) {
+        var col = document.createElement('col');
+        if (colDef.width) col.style.width = colDef.width;
+        colgroup.appendChild(col);
+    });
+    table.appendChild(colgroup);
+
+    var thead = document.createElement('thead');
+    thead.className = 'table-light';
+    var tr = document.createElement('tr');
+    var th = document.createElement('th');
+    th.textContent = '#';
+    tr.appendChild(th);
+    columns.forEach(function(col) {
+        var th = document.createElement('th');
+        th.textContent = col.label;
+        tr.appendChild(th);
+    });
+    thead.appendChild(tr);
+    table.appendChild(thead);
+
+    var tbody = document.createElement('tbody');
+    items.forEach(function(d, idx) {
+        var note = ((d.colour || 'White') + ' | ' + (d.remarks || '')).replace(/\s*\|\s*$/, '');
+        var row = document.createElement('tr');
+        var td = document.createElement('td');
+        td.textContent = idx + 1;
+        row.appendChild(td);
+        columns.forEach(function(col) {
+            var td = document.createElement('td');
+            var val = '';
+            if (col.key === 'note') val = note;
+            else if (col.key === 'speification') {
+                val = (d.speification || '') + (d.piece_weight ? '-PW(' + d.piece_weight + ')' : '');
+            }
+            else val = d[col.key] || '';
+            td.textContent = val;
+            row.appendChild(td);
+        });
+        tbody.appendChild(row);
+    });
+    table.appendChild(tbody);
+    container.appendChild(table);
+}
+
 function viewSalesList() {
+    document.getElementById('sales-list-content').innerHTML = '';
+    const date = document.getElementById('sales_entry_date').value;
     const orderNo = document.getElementById('order_no').value.trim();
+    let allItems = [];
+
     if (!orderNo) {
         if (drafts.length === 0) return;
-        let lines = [];
-        const twine = document.getElementById('twine').value.trim();
-        const date = document.getElementById('sales_entry_date').value;
-        if (twine) {
-            const header = '*' + twine + ' Sales(Date: ' + date + ')*';
-            lines.push(header);
-            lines.push('='.repeat(header.length));
-        }
-        drafts.forEach((d, idx) => {
-            lines.push('(' + (idx + 1) + ') _' + (d.twine || '') + '-' + (d.order_no || '') + '_');
-            lines.push('   Customer: ' + (d.customer || ''));
-            lines.push('   Spec: ' + (d.speification || '') + ', Colour: ' + (d.colour || 'White') + ', PW: ' + (d.piece_weight || '') + ', PCs: ' + (d.piece_count || ''));
-            lines.push('   InitWt: ' + (d.initial_weight || '') + ', ProcWt: ' + (d.processed_weight || '') + ', Price: ' + (d.unit_price || '') + ', GST: ' + (d.gst_rate || '') + '%, Total: ' + (d.total_amount || ''));
+        allItems = drafts.slice();
+    } else {
+        const saved = salesData.filter(function(s) { return s.order_no === orderNo; });
+        const savedKeys = new Set(saved.map(function(s) { return String(s.sales_key); }));
+        allItems = saved.slice();
+        drafts.forEach(function(d) {
+            if (!savedKeys.has(String(d.sales_key))) {
+                allItems.push(d);
+            }
         });
-        lines.push('='.repeat(50));
-        document.getElementById('sales-list-content').textContent = lines.join('\n');
-        var modal = new bootstrap.Modal(document.getElementById('salesListModal'));
-        modal.show();
-        return;
     }
 
-    const saved = salesData.filter(s => s.order_no === orderNo);
-    const allItems = [...saved];
-    const savedKeys = new Set(saved.map(s => String(s.sales_key)));
-    drafts.forEach(d => {
-        if (!savedKeys.has(String(d.sales_key))) {
-            allItems.push(d);
-        }
-    });
+    var salesCols = [
+        { label: 'Customer', key: 'customer' , width: '35px'},
+        { label: 'Net Spec', key: 'speification' , width: '50px'},
+        { label: 'Piece Count', key: 'piece_count', width: '50px' },
+        { label: 'Initial Weight (KG)', key: 'initial_weight', width: '70px' },
+        { label: 'Processed Weight (KG)', key: 'processed_weight', width: '50px' },
+        { label: 'Note', key: 'note' , width: '50px'}
+    ];
+    var procCols = [
+        { label: 'Customer', key: 'customer', width: '35px' },
+        { label: 'Net Spec', key: 'speification' , width: '50px'},
+        { label: 'Piece Count', key: 'piece_count', width: '50px' },
+        { label: 'Weight(KG)', key: 'initial_weight', width: '70px' },
+        { label: 'Note', key: 'note', width: '50px' }
+    ];
 
-    if (allItems.length === 0) return;
+    buildViewTable(allItems, procCols, date, 'Marania Processing List');
+    buildViewTable(allItems, salesCols, date, 'Marania Sales List');
 
-    let lines = [];
-    const twine = document.getElementById('twine').value.trim();
-    const date = document.getElementById('sales_entry_date').value;
-    if (twine) {
-        const header = '*' + twine + ' Sales(Date: ' + date + ', Order# ' + orderNo + ')*';
-        lines.push(header);
-        lines.push('='.repeat(header.length));
-    }
-    allItems.forEach((d, idx) => {
-        lines.push('(' + (idx + 1) + ') _' + (d.twine || '') + '-' + (d.order_no || '') + '_');
-        lines.push('   Customer: ' + (d.customer || ''));
-        lines.push('   Spec: ' + (d.speification || '') + ', Colour: ' + (d.colour || 'White') + ', PW: ' + (d.piece_weight || '') + ', PCs: ' + (d.piece_count || ''));
-        lines.push('   InitWt: ' + (d.initial_weight || '') + ', ProcWt: ' + (d.processed_weight || '') + ', Price: ' + (d.unit_price || '') + ', GST: ' + (d.gst_rate || '') + '%, Total: ' + (d.total_amount || ''));
-    });
-    lines.push('='.repeat(50));
-    document.getElementById('sales-list-content').textContent = lines.join('\n');
     var modal = new bootstrap.Modal(document.getElementById('salesListModal'));
     modal.show();
 }
@@ -682,6 +722,7 @@ function addToCart() {
     if (!customer) { alert("Customer is required."); return; }
     let data = getFormData();
     data.draft_id = ++draftIdCounter;
+    data.cart_seq = ++cartSeq;
     drafts.push(data);
     renderDrafts();
 }
@@ -694,42 +735,14 @@ function loadDraft(draftId) {
     renderDrafts();
 }
 
-function submitOrder() {
-    const current = getFormData();
-    if (!current.twine) { alert("Twine (Product Code) is required."); return; }
-    if (!current.customer) { alert("Customer is required."); return; }
-    let entry = {...current};
-    delete entry.draft_id;
-    document.getElementById('drafts_data').value = JSON.stringify([entry]);
-    document.getElementById('salesFormTag').submit();
-}
-
 function submitCart() {
     if (drafts.length === 0) { alert("Cart is empty. Add items to cart first."); return; }
     let allEntries = drafts.map(d => {
         let copy = {...d};
         delete copy.draft_id;
+        delete copy.cart_seq;
         return copy;
     });
-    document.getElementById('drafts_data').value = JSON.stringify(allEntries);
-    document.getElementById('salesFormTag').submit();
-}
-
-function submitAll() {
-    let allEntries = drafts.map(d => {
-        let copy = {...d};
-        delete copy.draft_id;
-        return copy;
-    });
-    const current = getFormData();
-    if (current.twine || current.customer) {
-        if (!current.twine) { alert("Twine (Product Code) is required."); return; }
-        if (!current.customer) { alert("Customer is required."); return; }
-        let currentCopy = {...current};
-        delete currentCopy.draft_id;
-        allEntries.push(currentCopy);
-    }
-    if (allEntries.length === 0) { alert("Add at least one sale entry or draft."); return; }
     document.getElementById('drafts_data').value = JSON.stringify(allEntries);
     document.getElementById('salesFormTag').submit();
 }
@@ -746,6 +759,7 @@ function loadSale(salesKey) {
     siblings.forEach(s => {
         let d = {...s};
         d.draft_id = ++draftIdCounter;
+        d.cart_seq = ++cartSeq;
         drafts.push(d);
     });
     renderDrafts();
@@ -932,6 +946,23 @@ function initDeliveryDatePicker() {
     });
 }
 
+function initFormDatePickers() {
+    var dd = document.getElementById('delivery_date');
+    if (dd && !dd._flatpickr) {
+        flatpickr(dd, {
+            dateFormat: 'Y-m-d',
+            allowInput: true,
+        });
+    }
+    var pd = document.getElementById('payment_date');
+    if (pd && !pd._flatpickr) {
+        flatpickr(pd, {
+            dateFormat: 'Y-m-d',
+            allowInput: true,
+        });
+    }
+}
+
 function setDeliveryDateFilterQuick(range) {
     var now = new Date();
     var y = now.getFullYear();
@@ -1051,11 +1082,12 @@ if (salesTable) {
     // Initial date pickers and summary
     initDatePicker();
     initDeliveryDatePicker();
+    initFormDatePickers();
     updateSalesSummary();
 }
 
 // Placeholder fallback for date inputs
-['sales_entry_date', 'delivery_date', 'payment_date'].forEach(function(id) {
+['sales_entry_date'].forEach(function(id) {
     var el = document.getElementById(id);
     if (!el) return;
     var placeholder = el.placeholder;
@@ -1089,21 +1121,29 @@ function viewSelectedSales() {
     checked.forEach(function(cb) { keys.push(cb.value); });
     var filtered = salesData.filter(function(s) { return keys.indexOf(String(s.sales_key)) !== -1; });
     if (filtered.length === 0) return;
-    var lines = [];
-    var twine = filtered[0].twine || '';
+
     var date = filtered[0].sales_entry_date || '';
-    if (twine) {
-        var header = '*' + twine + ' Sales(Date: ' + date + ')*';
-        lines.push(header);
-        lines.push('='.repeat(header.length));
-    }
-    filtered.forEach(function(d, idx) {
-        lines.push('(' + (idx + 1) + ') _' + (d.twine || '') + '-' + (d.order_no || '') + '_');
-        lines.push('   Customer: ' + (d.customer || '') + ', Spec: ' + (d.speification || '') + ', Colour: ' + (d.colour || 'White') + ', PW: ' + (d.piece_weight || '') + ', PCs: ' + (d.piece_count || ''));
-        lines.push('   InitWt: ' + (d.initial_weight || '') + ', ProcWt: ' + (d.processed_weight || '') + ', Price: ' + (d.unit_price || '') + ', GST: ' + (d.gst_rate || '') + '%, Total: ' + (d.total_amount || ''));
-    });
-    lines.push('='.repeat(50));
-    document.getElementById('sales-list-content').textContent = lines.join('\n');
+
+    var salesCols = [
+        { label: 'Customer', key: 'customer', width: '200px'  },
+        { label: 'Net Spec', key: 'speification', width: '230px' },
+        { label: 'Piece Count', key: 'piece_count', width: '50px' },
+        { label: 'Initial Weight(KG)', key: 'initial_weight', width: '80px' },
+        { label: 'Processed Weight(KG)', key: 'processed_weight', width: '80px'  },
+        { label: 'Note', key: 'note', width: '250px' }
+    ];
+    var procCols = [
+        { label: 'Customer', key: 'customer', width: '200px' },
+        { label: 'Net Spec', key: 'speification', width: '230px'},
+        { label: 'Piece Count', key: 'piece_count', width: '50px' },
+        { label: 'Weight(KG)', key: 'initial_weight', width: '80px' },
+        { label: 'Note', key: 'note', width: '250px' }
+    ];
+
+    document.getElementById('sales-list-content').innerHTML = '';
+    buildViewTable(filtered, procCols, date, 'Marania Processing List');
+    buildViewTable(filtered, salesCols, date, 'Marania Sales List');
+
     var modal = new bootstrap.Modal(document.getElementById('salesListModal'));
     modal.show();
 }
