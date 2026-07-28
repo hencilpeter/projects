@@ -36,6 +36,21 @@
 .col-actions { text-align: center; white-space: nowrap; }
 .col-spec { white-space: nowrap; }
 
+.date-placeholder {
+    position: absolute;
+    right: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #6c757d;
+    font-size: 0.875rem;
+    z-index: 5;
+    white-space: nowrap;
+}
+.date-placeholder.hidden {
+    display: none;
+}
+
 #sales-table thead th {
     position: sticky;
     top: 0;
@@ -111,6 +126,26 @@ tr.row-status-on_hold_processing td {
     background-color: #8B2252 !important;
     color: #fff !important;
 }
+
+/* View table styling */
+.view-table thead th {
+    background: linear-gradient(to bottom, #4a6fa5, #2c3e70) !important;
+    color: #fff !important;
+    font-weight: 700 !important;
+    white-space: nowrap;
+}
+.view-table tbody tr:nth-child(even) {
+    background-color: #eef3fa;
+}
+.view-table tbody tr:nth-child(odd) {
+    background-color: #ffffff;
+}
+.view-table tbody tr:hover {
+    background-color: #d4e0f0 !important;
+}
+.view-table .col-center {
+    text-align: center;
+}
 </style>
 
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
@@ -170,8 +205,9 @@ tr.row-status-on_hold_processing td {
             <div class="col-md-1">
               <input type="number" name="piece_count" id="piece_count" step="1" class="form-control form-control-sm" placeholder="Pcs">
             </div>
-            <div class="col-md-2">
-              <input type="text" name="delivery_date" id="delivery_date" class="form-control form-control-sm text-end" placeholder="Delivery Date">
+            <div class="col-md-2 position-relative">
+              <input type="date" name="delivery_date" id="delivery_date" class="form-control form-control-sm" placeholder="Delivery Date">
+              <span class="date-placeholder" data-for="delivery_date">Delivery Date</span>
             </div>
             <div class="col-md-2">
               <input type="number" name="initial_weight" id="initial_weight" step="0.01" class="form-control form-control-sm" placeholder="Initial Weight">
@@ -201,8 +237,9 @@ tr.row-status-on_hold_processing td {
                 <option value="ON_HOLD_PROCESSING" style="background-color:#ffc107;color:#000;" selected>ON HOLD(PROCESSING)</option>
               </select>
             </div>
-            <div class="col-md-2">
-              <input type="text" name="payment_date" id="payment_date" class="form-control form-control-sm text-end" placeholder="Payment Date">
+            <div class="col-md-2 position-relative">
+              <input type="date" name="payment_date" id="payment_date" class="form-control form-control-sm" placeholder="Payment Date">
+              <span class="date-placeholder" data-for="payment_date">Payment Date</span>
             </div>
           </div>
 
@@ -463,6 +500,7 @@ const cartColors = ['bg-primary', 'bg-success', 'bg-info text-dark', 'bg-warning
 function getDateValue(id) {
     var el = document.getElementById(id);
     if (!el) return '';
+    if (el.type === 'text') return '';
     return el.value;
 }
 
@@ -528,6 +566,25 @@ if (statusSelect) {
     updateStatusStyle(statusSelect);
 }
 
+function setDateField(id, value) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.type = 'date';
+    el.value = value || '';
+    toggleDateOverlay(id);
+}
+
+function toggleDateOverlay(id) {
+    var el = document.getElementById(id);
+    var overlay = document.querySelector('.date-placeholder[data-for="' + id + '"]');
+    if (!el || !overlay) return;
+    if (el.value) {
+        overlay.classList.add('hidden');
+    } else {
+        overlay.classList.remove('hidden');
+    }
+}
+
 function setFormData(data) {
     document.getElementById('sales_key').value = data.sales_key || '';
     document.getElementById('order_no').value = data.order_no || 'NA';
@@ -543,12 +600,10 @@ function setFormData(data) {
     document.getElementById('unit_price').value = data.unit_price || '';
     document.getElementById('gst_rate').value = data.gst_rate || '';
     document.getElementById('total_amount').value = data.total_amount || '';
-    var ddEl = document.getElementById('delivery_date');
-    if (ddEl && ddEl._flatpickr) ddEl._flatpickr.setDate(data.delivery_date || '', true);
+    setDateField('delivery_date', data.delivery_date);
     document.getElementById('status').value = data.status || 'ON_HOLD_PROCESSING';
     if (statusSelect) updateStatusStyle(statusSelect);
-    var pdEl = document.getElementById('payment_date');
-    if (pdEl && pdEl._flatpickr) pdEl._flatpickr.setDate(data.payment_date || '', true);
+    setDateField('payment_date', data.payment_date);
     document.getElementById('remarks').value = data.remarks || '';
 
     const collapseEl = document.getElementById("salesForm");
@@ -575,12 +630,10 @@ function resetSalesForm() {
     document.getElementById('unit_price').value = '';
     document.getElementById('gst_rate').value = '';
     document.getElementById('total_amount').value = '';
-    var ddEl = document.getElementById('delivery_date');
-    if (ddEl && ddEl._flatpickr) ddEl._flatpickr.clear();
+    setDateField('delivery_date', '');
     document.getElementById('status').value = 'ON_HOLD_PROCESSING';
     if (statusSelect) updateStatusStyle(statusSelect);
-    var pdEl = document.getElementById('payment_date');
-    if (pdEl && pdEl._flatpickr) pdEl._flatpickr.clear();
+    setDateField('payment_date', '');
     document.getElementById('remarks').value = '';
 }
 
@@ -619,7 +672,7 @@ function buildViewTable(items, columns, date, title) {
     container.appendChild(heading);
 
     var table = document.createElement('table');
-    table.className = 'table table-sm table-bordered mb-4';
+    table.className = 'table table-sm table-bordered view-table mb-4';
     table.style.fontSize = '13px';
     table.style.tableLayout = 'fixed';
 
@@ -635,14 +688,19 @@ function buildViewTable(items, columns, date, title) {
     table.appendChild(colgroup);
 
     var thead = document.createElement('thead');
-    thead.className = 'table-light';
     var tr = document.createElement('tr');
     var th = document.createElement('th');
+    th.className = 'col-center';
     th.textContent = '#';
+    th.style.fontWeight = '700';
     tr.appendChild(th);
     columns.forEach(function(col) {
         var th = document.createElement('th');
         th.textContent = col.label;
+        th.style.fontWeight = '700';
+        if (col.key === 'piece_count' || col.key === 'initial_weight' || col.key === 'processed_weight') {
+            th.className = 'col-center';
+        }
         tr.appendChild(th);
     });
     thead.appendChild(tr);
@@ -653,6 +711,7 @@ function buildViewTable(items, columns, date, title) {
         var note = ((d.colour || 'White') + ' | ' + (d.remarks || '')).replace(/\s*\|\s*$/, '');
         var row = document.createElement('tr');
         var td = document.createElement('td');
+        td.className = 'col-center';
         td.textContent = idx + 1;
         row.appendChild(td);
         columns.forEach(function(col) {
@@ -664,6 +723,9 @@ function buildViewTable(items, columns, date, title) {
             }
             else val = d[col.key] || '';
             td.textContent = val;
+            if (col.key === 'piece_count' || col.key === 'initial_weight' || col.key === 'processed_weight') {
+                td.className = 'col-center';
+            }
             row.appendChild(td);
         });
         tbody.appendChild(row);
@@ -693,19 +755,19 @@ function viewSalesList() {
     }
 
     var salesCols = [
-        { label: 'Customer', key: 'customer' , width: '35px'},
-        { label: 'Net Spec', key: 'speification' , width: '50px'},
-        { label: 'Piece Count', key: 'piece_count', width: '50px' },
-        { label: 'Initial Weight (KG)', key: 'initial_weight', width: '70px' },
-        { label: 'Processed Weight (KG)', key: 'processed_weight', width: '50px' },
-        { label: 'Note', key: 'note' , width: '50px'}
+        { label: 'Customer', key: 'customer' , width: '200px'},
+        { label: 'Net Spec', key: 'speification' , width: '230px'},
+        { label: 'Piece Count', key: 'piece_count', width: '70px' },
+        { label: 'Ini.Weight(KG)', key: 'initial_weight', width: '90px' },
+        { label: 'Proc.Weight(KG)', key: 'processed_weight', width: '95px' },
+        { label: 'Note', key: 'note' , width: '250px'}
     ];
     var procCols = [
-        { label: 'Customer', key: 'customer', width: '35px' },
-        { label: 'Net Spec', key: 'speification' , width: '50px'},
-        { label: 'Piece Count', key: 'piece_count', width: '50px' },
-        { label: 'Weight(KG)', key: 'initial_weight', width: '70px' },
-        { label: 'Note', key: 'note', width: '50px' }
+        { label: 'Customer', key: 'customer', width: '200px' },
+        { label: 'Net Spec', key: 'speification' , width: '230px'},
+        { label: 'Piece Count', key: 'piece_count', width: '60px' },
+        { label: 'Weight(KG)', key: 'initial_weight', width: '60px' },
+        { label: 'Note', key: 'note', width: '250px' }
     ];
 
     buildViewTable(allItems, procCols, date, 'Marania Processing List');
@@ -946,23 +1008,6 @@ function initDeliveryDatePicker() {
     });
 }
 
-function initFormDatePickers() {
-    var dd = document.getElementById('delivery_date');
-    if (dd && !dd._flatpickr) {
-        flatpickr(dd, {
-            dateFormat: 'Y-m-d',
-            allowInput: true,
-        });
-    }
-    var pd = document.getElementById('payment_date');
-    if (pd && !pd._flatpickr) {
-        flatpickr(pd, {
-            dateFormat: 'Y-m-d',
-            allowInput: true,
-        });
-    }
-}
-
 function setDeliveryDateFilterQuick(range) {
     var now = new Date();
     var y = now.getFullYear();
@@ -1082,23 +1127,20 @@ if (salesTable) {
     // Initial date pickers and summary
     initDatePicker();
     initDeliveryDatePicker();
-    initFormDatePickers();
     updateSalesSummary();
 }
 
-// Placeholder fallback for date inputs
-['sales_entry_date'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    var placeholder = el.placeholder;
-    el.addEventListener('focus', function() {
-        if (el.type === 'text') { el.type = 'date'; el.value = ''; el.classList.remove('text-muted'); }
+// Date overlay toggle for delivery/payment date inputs
+(function() {
+    ['delivery_date', 'payment_date'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        toggleDateOverlay(id);
+        el.addEventListener('focus', function() { toggleDateOverlay(id); });
+        el.addEventListener('blur', function() { toggleDateOverlay(id); });
+        el.addEventListener('change', function() { toggleDateOverlay(id); });
     });
-    el.addEventListener('blur', function() {
-        if (!el.value) { el.type = 'text'; el.value = placeholder; el.classList.add('text-muted'); }
-    });
-    if (!el.value) { el.type = 'text'; el.value = placeholder; el.classList.add('text-muted'); }
-});
+})();
 
 // Checkbox helpers
 function toggleAllCheckboxes(master) {
@@ -1127,16 +1169,16 @@ function viewSelectedSales() {
     var salesCols = [
         { label: 'Customer', key: 'customer', width: '200px'  },
         { label: 'Net Spec', key: 'speification', width: '230px' },
-        { label: 'Piece Count', key: 'piece_count', width: '50px' },
-        { label: 'Initial Weight(KG)', key: 'initial_weight', width: '80px' },
-        { label: 'Processed Weight(KG)', key: 'processed_weight', width: '80px'  },
+        { label: 'Piece Count', key: 'piece_count', width: '70px' },
+        { label: 'Ini.Weight(KG)', key: 'initial_weight', width: '90px' },
+        { label: 'Proc.Weight(KG)', key: 'processed_weight', width: '95px'  },
         { label: 'Note', key: 'note', width: '250px' }
     ];
     var procCols = [
         { label: 'Customer', key: 'customer', width: '200px' },
         { label: 'Net Spec', key: 'speification', width: '230px'},
-        { label: 'Piece Count', key: 'piece_count', width: '50px' },
-        { label: 'Weight(KG)', key: 'initial_weight', width: '80px' },
+        { label: 'Piece Count', key: 'piece_count', width: '60px' },
+        { label: 'Weight(KG)', key: 'initial_weight', width: '60px' },
         { label: 'Note', key: 'note', width: '250px' }
     ];
 
