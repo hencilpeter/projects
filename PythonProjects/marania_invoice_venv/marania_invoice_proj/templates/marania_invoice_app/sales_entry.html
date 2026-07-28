@@ -33,23 +33,6 @@
 }
 
 .col-narrow { text-align: center; white-space: nowrap; }
-.col-actions { text-align: center; white-space: nowrap; }
-.col-spec { white-space: nowrap; }
-
-.date-placeholder {
-    position: absolute;
-    right: 30px;
-    top: 50%;
-    transform: translateY(-50%);
-    pointer-events: none;
-    color: #6c757d;
-    font-size: 0.875rem;
-    z-index: 5;
-    white-space: nowrap;
-}
-.date-placeholder.hidden {
-    display: none;
-}
 
 #sales-table thead th {
     position: sticky;
@@ -166,16 +149,20 @@ tr.row-status-on_hold_processing td {
           <div class="row mb-3">
             <input type="hidden" name="sales_key" id="sales_key" value="">
             <div class="col-md-2">
-              <input type="date" name="sales_entry_date" id="sales_entry_date" class="form-control form-control-sm" value="{% now 'Y-m-d' %}" placeholder="Sales Entry Date">
+              <input type="date" name="sales_entry_date" id="sales_entry_date" class="form-control form-control-sm" value="{% now 'Y-m-d' %}" placeholder="">
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Sales Entry Date</small>
             </div>
             <div class="col-md-2">
               <input type="text" name="invoice_no" id="invoice_no" class="form-control form-control-sm" placeholder="Invoice No">
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Invoice No</small>
             </div>
             <div class="col-md-2">
               <input type="text" name="order_no" id="order_no" class="form-control form-control-sm" placeholder="Order #" value="NA">
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Order #</small>
             </div>
             <div class="col-md-3">
               <input type="text" name="customer" id="customer" class="form-control form-control-sm" placeholder="Customer" list="customer_list">
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Customer</small>
               <datalist id="customer_list">
                 {% for party in parties %}
                   <option value="{{ party.code }}-{{ party.name }}">
@@ -184,6 +171,7 @@ tr.row-status-on_hold_processing td {
             </div>
             <div class="col-md-3">
               <input type="text" name="twine" id="twine" class="form-control form-control-sm" placeholder="Twine (Product Code)" list="twine_list">
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Twine (Product Code)</small>
               <datalist id="twine_list">
                 {% for product in products %}
                   <option value="{{ product.code }}">
@@ -195,37 +183,46 @@ tr.row-status-on_hold_processing td {
           <div class="row mb-3">
             <div class="col-md-3">
               <input type="text" name="speification" id="speification" class="form-control form-control-sm" placeholder="Specification">
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Specification</small>
             </div>
             <div class="col-md-2">
               <input type="text" name="colour" id="colour" class="form-control form-control-sm" placeholder="Colour" value="White">
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Colour</small>
             </div>
             <div class="col-md-2">
               <input type="text" name="piece_weight" id="piece_weight" class="form-control form-control-sm" placeholder="Piece Weight">
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Piece Weight</small>
             </div>
             <div class="col-md-1">
               <input type="number" name="piece_count" id="piece_count" step="1" class="form-control form-control-sm" placeholder="Pcs">
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Pcs</small>
             </div>
-            <div class="col-md-2 position-relative">
-              <input type="date" name="delivery_date" id="delivery_date" class="form-control form-control-sm" placeholder="Delivery Date">
-              <span class="date-placeholder" data-for="delivery_date">Delivery Date</span>
+            <div class="col-md-2">
+              <input type="date" name="delivery_date" id="delivery_date" class="form-control form-control-sm" placeholder="">
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Delivery Date</small>
             </div>
             <div class="col-md-2">
               <input type="number" name="initial_weight" id="initial_weight" step="0.01" class="form-control form-control-sm" placeholder="Initial Weight">
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Initial Weight</small>
             </div>
           </div>
 
           <div class="row mb-3">
             <div class="col-md-2">
               <input type="number" name="processed_weight" id="processed_weight" step="0.01" class="form-control form-control-sm" placeholder="Processed Weight">
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Processed Weight</small>
             </div>
             <div class="col-md-2">
               <input type="number" name="unit_price" id="unit_price" step="0.01" class="form-control form-control-sm" placeholder="Unit Price">
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Unit Price</small>
             </div>
             <div class="col-md-2">
               <input type="number" name="gst_rate" id="gst_rate" step="0.01" class="form-control form-control-sm" placeholder="GST Rate">
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">GST Rate</small>
             </div>
             <div class="col-md-2">
               <input type="number" name="total_amount" id="total_amount" step="0.01" class="form-control form-control-sm" placeholder="Total Amount" readonly>
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Total Amount</small>
             </div>
             <div class="col-md-2">
               <select name="status" id="status" class="form-control form-control-sm">
@@ -236,16 +233,18 @@ tr.row-status-on_hold_processing td {
                 <option value="ON_HOLD_STOCK" style="background-color:#6c757d;color:#fff;">ON HOLD(Item On Stock)</option>
                 <option value="ON_HOLD_PROCESSING" style="background-color:#ffc107;color:#000;" selected>ON HOLD(PROCESSING)</option>
               </select>
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Status</small>
             </div>
-            <div class="col-md-2 position-relative">
-              <input type="date" name="payment_date" id="payment_date" class="form-control form-control-sm" placeholder="Payment Date">
-              <span class="date-placeholder" data-for="payment_date">Payment Date</span>
+            <div class="col-md-2">
+              <input type="date" name="payment_date" id="payment_date" class="form-control form-control-sm" placeholder="">
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Payment Date</small>
             </div>
           </div>
 
           <div class="row mb-3">
             <div class="col-md-12">
               <textarea name="remarks" id="remarks" class="form-control form-control-sm" rows="2" placeholder="Remarks"></textarea>
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Remarks</small>
             </div>
           </div>
 
@@ -254,7 +253,7 @@ tr.row-status-on_hold_processing td {
           <div class="text-center">
             <button type="button" class="btn btn-info me-2" onclick="addToCart()">Add to Cart</button>
             <button type="button" class="btn btn-warning me-2" onclick="submitCart()">Submit Cart</button>
-            <button type="reset" class="btn btn-secondary" onclick="resetSalesForm()">Clear</button>
+            <button type="button" class="btn btn-secondary" onclick="resetSalesForm()">Clear</button>
             <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="viewSalesList()">View Sales List</button>
           </div>
 
@@ -500,7 +499,6 @@ const cartColors = ['bg-primary', 'bg-success', 'bg-info text-dark', 'bg-warning
 function getDateValue(id) {
     var el = document.getElementById(id);
     if (!el) return '';
-    if (el.type === 'text') return '';
     return el.value;
 }
 
@@ -567,22 +565,7 @@ if (statusSelect) {
 }
 
 function setDateField(id, value) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    el.type = 'date';
-    el.value = value || '';
-    toggleDateOverlay(id);
-}
-
-function toggleDateOverlay(id) {
-    var el = document.getElementById(id);
-    var overlay = document.querySelector('.date-placeholder[data-for="' + id + '"]');
-    if (!el || !overlay) return;
-    if (el.value) {
-        overlay.classList.add('hidden');
-    } else {
-        overlay.classList.remove('hidden');
-    }
+    document.getElementById(id).value = value || '';
 }
 
 function setFormData(data) {
@@ -1129,18 +1112,6 @@ if (salesTable) {
     initDeliveryDatePicker();
     updateSalesSummary();
 }
-
-// Date overlay toggle for delivery/payment date inputs
-(function() {
-    ['delivery_date', 'payment_date'].forEach(function(id) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        toggleDateOverlay(id);
-        el.addEventListener('focus', function() { toggleDateOverlay(id); });
-        el.addEventListener('blur', function() { toggleDateOverlay(id); });
-        el.addEventListener('change', function() { toggleDateOverlay(id); });
-    });
-})();
 
 // Checkbox helpers
 function toggleAllCheckboxes(master) {
