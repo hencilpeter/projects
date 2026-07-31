@@ -2501,48 +2501,54 @@ def copy_order_to_sales(request, order_key):
         messages.error(request, "Order not found.")
         return redirect('order_entry')
 
-    spec = order.specifications.first()
-    mesh_size = spec.mesh_size if spec else ''
-    mesh_depth = spec.mesh_depth if spec else ''
-    salvage = spec.salvage if spec else ''
-    md_disp = mesh_depth if mesh_depth and 'MD' in mesh_depth.upper() else (mesh_depth + 'MD' if mesh_depth else '')
-    sal_disp = salvage if salvage and 'SEL' in salvage.upper() else (salvage + 'Sel' if salvage else '')
-    spec_text = f"{mesh_size}MM-{md_disp}-{sal_disp}" if mesh_size or md_disp or sal_disp else ""
+    specs = order.specifications.all()
+    if not specs:
+        messages.error(request, "No specifications found for this order.")
+        return redirect('order_entry')
 
-    now = datetime.now()
-    seq = (Sales.objects.aggregate(max_seq=Max('sales_sequence'))['max_seq'] or 0) + 1
+    # Generate base sequence from max existing sales_sequence
+    base_seq = (Sales.objects.aggregate(max_seq=Max('sales_sequence'))['max_seq'] or 0) + 1
+    created_count = 0
 
-    # Determine GST rate from party/company settings
-    party = Parties.objects.filter(code=order.customer).first()
-    settings = CompanySettings.objects.get(id=1)
-    if party and party.is_within_state:
-        gst_rate = (settings.cgst or 0) + (settings.sgst or 0)
-    else:
-        gst_rate = settings.igst or 0
+    for index, spec in enumerate(specs, start=1):
+        seq = base_seq + index - 1
 
-    # Calculate unit price (exclude GST if is_gst_included)
-    unit_price = order.unit_price
-    if order.is_gst_included and order.unit_price and gst_rate:
-        unit_price = round(order.unit_price / (1 + gst_rate / 100), 2)
+        mesh_size = spec.mesh_size if spec else ''
+        mesh_depth = spec.mesh_depth if spec else ''
+        salvage = spec.salvage if spec else ''
+        md_disp = mesh_depth if mesh_depth and 'MD' in mesh_depth.upper() else (mesh_depth + 'MD' if mesh_depth else '')
+        sal_disp = salvage if salvage and 'SEL' in salvage.upper() else (salvage + 'Sel' if salvage else '')
+        spec_text = f"{mesh_size}MM-{md_disp}-{sal_disp}" if mesh_size or md_disp or sal_disp else ""
 
-    sales = Sales(
-        sales_sequence=seq,
-        order_no=order.order_number or f"{order.twine}-{seq}",
-        sales_entry_date=now.strftime('%Y-%m-%d'),
-        customer=order.customer or "",
-        twine=order.twine or "",
-        speification=spec_text,
-        colour=spec.colour if spec else "White",
-        piece_weight=spec.piece_weight if spec else "",
-        piece_count=spec.no_of_pcs if spec else None,
-        unit_price=unit_price,
-        gst_rate=gst_rate,
-        status='ON_HOLD_PROCESSING',
-    )
-    sales.save()
+        # Determine GST rate from party/company settings
+        party = Parties.objects.filter(code=order.customer).first()
+        settings = CompanySettings.objects.get(id=1)
+        if party and party.is_within_state:
+            gst_rate = (settings.cgst or 0) + (settings.sgst or 0)
+        else:
+            gst_rate = settings.igst or 0
 
-    messages.success(request, f"Order {order.order_number} copied to Sales as {sales.order_no}.")
-    return redirect('order_entry')
+        # Calculate unit price (exclude GST if is_gst_included)
+        unit_price = order.unit_price
+        if order.is_gst_included and order.unit_price and gst_rate:
+            unit_price = round(order.unit_price / (1 + gst_rate / 100), 2)
+
+        sales = Sales(
+            sales_sequence=seq,
+            order_no=order.order_number or f"{order.twine}-{seq}",
+            sales_entry_date=now.strftime('%Y-%m-%d'),
+            customer=order.customer or "",
+            twine=order.twine or "",
+            speification=spec_text,
+            colour=spec.colour if spec else "White",
+            piece_weight=spec.piece_weight if spec else "",
+            piece_count=spec.no_of_pcs if spec else None,
+            unit_price=unit_price,
+            gst_rate=gst_rate,
+            status='ON_HOLD_PROCESSING',
+        )
+        sales.save()
+        created_count += 1
 
 
 def copy_orders_to_sales(request):
@@ -2565,44 +2571,52 @@ def copy_orders_to_sales(request):
             except Order.DoesNotExist:
                 continue
 
-            spec = order.specifications.first()
-            mesh_size = spec.mesh_size if spec else ''
-            mesh_depth = spec.mesh_depth if spec else ''
-            salvage = spec.salvage if spec else ''
-            md_disp = mesh_depth if mesh_depth and 'MD' in mesh_depth.upper() else (mesh_depth + 'MD' if mesh_depth else '')
-            sal_disp = salvage if salvage and 'SEL' in salvage.upper() else (salvage + 'Sel' if salvage else '')
-            spec_text = f"{mesh_size}MM-{md_disp}-{sal_disp}" if mesh_size or md_disp or sal_disp else ""
+            specs = order.specifications.all()
+            if not specs:
+                continue
 
-            now = datetime.now()
-            seq = (Sales.objects.aggregate(max_seq=Max('sales_sequence'))['max_seq'] or 0) + 1
+            # Generate base sequence from max existing sales_sequence
+            base_seq = (Sales.objects.aggregate(max_seq=Max('sales_sequence'))['max_seq'] or 0) + 1
 
-            party = Parties.objects.filter(code=order.customer).first()
-            settings = CompanySettings.objects.get(id=1)
-            if party and party.is_within_state:
-                gst_rate = (settings.cgst or 0) + (settings.sgst or 0)
-            else:
-                gst_rate = settings.igst or 0
+            for index, spec in enumerate(specs, start=1):
+                seq = base_seq + index - 1
 
-            unit_price = order.unit_price
-            if order.is_gst_included and order.unit_price and gst_rate:
-                unit_price = round(order.unit_price / (1 + gst_rate / 100), 2)
+                mesh_size = spec.mesh_size if spec else ''
+                mesh_depth = spec.mesh_depth if spec else ''
+                salvage = spec.salvage if spec else ''
+                md_disp = mesh_depth if mesh_depth and 'MD' in mesh_depth.upper() else (mesh_depth + 'MD' if mesh_depth else '')
+                sal_disp = salvage if salvage and 'SEL' in salvage.upper() else (salvage + 'Sel' if salvage else '')
+                spec_text = f"{mesh_size}MM-{md_disp}-{sal_disp}" if mesh_size or md_disp or sal_disp else ""
 
-            sales = Sales(
-                sales_sequence=seq,
-                order_no=order.order_number or f"{order.twine}-{seq}",
-                sales_entry_date=now.strftime('%Y-%m-%d'),
-                customer=order.customer or "",
-                twine=order.twine or "",
-                speification=spec_text,
-                colour=spec.colour if spec else "White",
-                piece_weight=spec.piece_weight if spec else "",
-                piece_count=spec.no_of_pcs if spec else None,
-                unit_price=unit_price,
-                gst_rate=gst_rate,
-                status='ON_HOLD_PROCESSING',
-            )
-            sales.save()
-            copied_count += 1
+                now = datetime.now()
+
+                party = Parties.objects.filter(code=order.customer).first()
+                settings = CompanySettings.objects.get(id=1)
+                if party and party.is_within_state:
+                    gst_rate = (settings.cgst or 0) + (settings.sgst or 0)
+                else:
+                    gst_rate = settings.igst or 0
+
+                unit_price = order.unit_price
+                if order.is_gst_included and order.unit_price and gst_rate:
+                    unit_price = round(order.unit_price / (1 + gst_rate / 100), 2)
+
+                sales = Sales(
+                    sales_sequence=seq,
+                    order_no=order.order_number or f"{order.twine}-{seq}",
+                    sales_entry_date=now.strftime('%Y-%m-%d'),
+                    customer=order.customer or "",
+                    twine=order.twine or "",
+                    speification=spec_text,
+                    colour=spec.colour if spec else "White",
+                    piece_weight=spec.piece_weight if spec else "",
+                    piece_count=spec.no_of_pcs if spec else None,
+                    unit_price=unit_price,
+                    gst_rate=gst_rate,
+                    status='ON_HOLD_PROCESSING',
+                )
+                sales.save()
+                copied_count += 1
 
         messages.success(request, f"{copied_count} order(s) copied to Sales successfully.")
     return redirect('order_entry')
