@@ -304,7 +304,7 @@ tr.row-status-on_hold_processing td {
           <table id="sales-table" class="table table-striped table-hover table-bordered table-sm align-middle">
             <colgroup>
               <col style="width:50px">
-              <col style="width:200px">
+              <col style="width:220px">
               <col style="width:130px">
               <col style="width:90px">
               <col style="width:110px">
@@ -419,6 +419,9 @@ tr.row-status-on_hold_processing td {
                 <tr class="row-status-{{ sale.status|lower }}" data-sales-key="{{ sale.sales_key }}">
                   <td><input type="checkbox" class="row-checkbox" value="{{ sale.sales_key }}" onchange="updateViewSalesBtn()"></td>
                   <td>
+                    <a href="javascript:void(0);" onclick="loadEditMode('{{ sale.sales_key }}')" class="btn btn-sm btn-warning me-1">
+                      <i class="bi bi-pencil"></i> Edit
+                    </a>
                     <a href="javascript:void(0);" onclick="loadSale('{{ sale.sales_key }}')" class="btn btn-sm btn-primary">
                       <i class="bi bi-pencil"></i> G.Edit
                     </a>
@@ -494,6 +497,7 @@ const productNames = {
 let drafts = [];
 let draftIdCounter = 0;
 let cartSeq = 0;
+let editMode = 'single_edit'; // Default mode
 const cartColors = ['bg-primary', 'bg-success', 'bg-info text-dark', 'bg-warning text-dark', 'bg-danger', 'bg-secondary', 'bg-dark'];
 
 function getDateValue(id) {
@@ -782,13 +786,37 @@ function loadDraft(draftId) {
 
 function submitCart() {
     if (drafts.length === 0) { alert("Cart is empty. Add items to cart first."); return; }
+    
     let allEntries = drafts.map(d => {
         let copy = {...d};
         delete copy.draft_id;
         delete copy.cart_seq;
         return copy;
     });
-    document.getElementById('drafts_data').value = JSON.stringify(allEntries);
+    
+    // For single_edit mode: only update the cart items, don't touch other orders
+    // For group_edit mode: existing behavior - delete and replace all orders for the order_no
+    if (editMode === 'single_edit') {
+        // In single_edit mode, only update the cart items
+        // Delete existing orders by sales_key for items in cart
+        let cartSalesKeys = drafts.map(d => d.sales_key).filter(key => key);
+        if (cartSalesKeys.length > 0) {
+            let deleteUrl = "{% url 'sales_entry' %}";
+            fetch(deleteUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: 'action=delete_cart_items&sales_keys=' + JSON.stringify(cartSalesKeys)
+            }).catch(error => console.log('Failed to delete cart items:', error));
+        }
+        document.getElementById('drafts_data').value = JSON.stringify(allEntries);
+    } else if (editMode === 'group_edit') {
+        // In group_edit mode, keep existing behavior
+        document.getElementById('drafts_data').value = JSON.stringify(allEntries);
+    }
+    
     document.getElementById('salesFormTag').submit();
 }
 
@@ -810,6 +838,9 @@ function loadSale(salesKey) {
     renderDrafts();
 
     setFormData(sale);
+    
+    // Set group_edit mode flag
+    editMode = 'group_edit';
 }
 
 function cloneSale(salesKey) {
@@ -1127,38 +1158,65 @@ function updateViewSalesBtn() {
     if (btn) btn.disabled = checked === 0;
 }
 
-function viewSelectedSales() {
-    var checked = document.querySelectorAll('.row-checkbox:checked');
-    if (checked.length === 0) return;
-    var keys = [];
-    checked.forEach(function(cb) { keys.push(cb.value); });
-    var filtered = salesData.filter(function(s) { return keys.indexOf(String(s.sales_key)) !== -1; });
-    if (filtered.length === 0) return;
+function loadEditMode(salesKey) {
+    const sale = salesData.find(s => s.sales_key == salesKey);
+    if (!sale) return;
 
-    var date = filtered[0].sales_entry_date || '';
+    // Clear drafts to start fresh with only the selected order
+    drafts = [];
+    
+    setFormData(sale);
+    
+    // Set single_edit mode flag
+    editMode = 'single_edit';
+}
 
-    var salesCols = [
-        { label: 'Customer', key: 'customer', width: '200px'  },
-        { label: 'Net Spec', key: 'speification', width: '230px' },
-        { label: 'Piece Count', key: 'piece_count', width: '70px' },
-        { label: 'Ini.Weight(KG)', key: 'initial_weight', width: '90px' },
-        { label: 'Proc.Weight(KG)', key: 'processed_weight', width: '95px'  },
-        { label: 'Note', key: 'note', width: '250px' }
-    ];
-    var procCols = [
-        { label: 'Customer', key: 'customer', width: '200px' },
-        { label: 'Net Spec', key: 'speification', width: '230px'},
-        { label: 'Piece Count', key: 'piece_count', width: '60px' },
-        { label: 'Weight(KG)', key: 'initial_weight', width: '60px' },
-        { label: 'Note', key: 'note', width: '250px' }
-    ];
+function updateSalesSummary() {
+    const panel = document.getElementById('salesSummaryPanel');
+    if (!panel) return;
 
-    document.getElementById('sales-list-content').innerHTML = '';
-    buildViewTable(filtered, procCols, date, 'Marania Processing List');
-    buildViewTable(filtered, salesCols, date, 'Marania Sales List');
+    salesTbody = document.getElementById('sales-table');
+    if (!salesTbody) { panel.style.display = 'none'; return; }
 
-    var modal = new bootstrap.Modal(document.getElementById('salesListModal'));
-    modal.show();
+    let filteredCount = 0;
+    let totalActualAmount = 0;
+    let totalGSTAmount = 0;
+    let totalInitWeight = 0;
+    let totalProcWeight = 0;
+
+    salesTbody.querySelectorAll('tr').forEach(function(row) {
+        if (row.style.display === 'none') return;
+        filteredCount++;
+        var salesKey = row.getAttribute('data-sales-key');
+        if (!salesKey) return;
+        var sale = salesData.find(function(s) { return s.sales_key == salesKey; });
+        if (!sale) return;
+
+        var initWt = parseFloat(sale.initial_weight) || 0;
+        var procWt = parseFloat(sale.processed_weight) || 0;
+        var unitPrice = parseFloat(sale.unit_price) || 0;
+        var gstRate = parseFloat(sale.gst_rate) || 0;
+
+        var selectedWeight = procWt > 0 ? procWt : (initWt > 0 ? initWt : 0);
+        var actualAmount = unitPrice * selectedWeight;
+        var gstAmount = actualAmount * (gstRate / 100);
+
+        totalActualAmount += actualAmount;
+        totalGSTAmount += gstAmount;
+        totalInitWeight += initWt;
+        totalProcWeight += procWt;
+    });
+
+    var grandTotal = totalActualAmount + totalGSTAmount;
+
+    document.getElementById('summary-filtered-orders').textContent = filteredCount;
+    document.getElementById('summary-total-actual').textContent = totalActualAmount.toFixed(2);
+    document.getElementById('summary-total-gst').textContent = totalGSTAmount.toFixed(2);
+    document.getElementById('summary-grand-total').textContent = grandTotal.toFixed(2);
+    document.getElementById('summary-total-init-wt').textContent = totalInitWeight.toFixed(2);
+    document.getElementById('summary-total-proc-wt').textContent = totalProcWeight.toFixed(2);
+
+    panel.style.display = filteredCount > 0 ? '' : 'none';
 }
 
 // Override reset to also uncheck all

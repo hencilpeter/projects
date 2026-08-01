@@ -2385,6 +2385,17 @@ def sales_entry(request):
                 messages.success(request, "Sale deleted successfully.")
             return redirect('sales_entry')
 
+        if action == "delete_cart_items":
+            sales_keys = request.POST.get("sales_keys")
+            if sales_keys:
+                try:
+                    sales_key_list = json.loads(sales_keys)
+                    if sales_key_list:
+                        Sales.objects.filter(sales_key__in=sales_key_list).delete()
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            return redirect('sales_entry')
+
         drafts_raw = request.POST.get("drafts_data")
 
         if not drafts_raw and request.content_type == 'application/json':
@@ -2408,6 +2419,9 @@ def sales_entry(request):
 
             now = datetime.now()
             order_nos = []
+            entry_sales_keys = []
+            edit_mode = request.POST.get('edit_mode', 'single_edit')
+            
             for entry in entries:
                 twine = (entry.get("twine") or "").strip()
                 if not twine:
@@ -2415,9 +2429,12 @@ def sales_entry(request):
                 ono = entry.get("order_no") or ""
                 if ono:
                     order_nos.append(ono)
+                entry_sales_keys.append(entry.get('sales_key'))
 
-            if order_nos:
+            if edit_mode == 'group_edit' and order_nos:
                 Sales.objects.filter(order_no__in=order_nos).delete()
+            elif edit_mode == 'single_edit' and entry_sales_keys:
+                Sales.objects.filter(sales_key__in=entry_sales_keys).delete()
 
             for entry in entries:
                 twine = (entry.get("twine") or "").strip()
