@@ -340,8 +340,9 @@ tr.row-status-on_hold_processing td {
                 <th scope="col" class="col-narrow">Unit Price</th>
                 <th scope="col" class="col-narrow">GST Rate</th>
                 <th scope="col" class="col-narrow">Total Amt</th>
-                <th scope="col">Delivery Date</th>
-                <th scope="col">Payment Date</th>
+                  <th scope="col">Delivery Date</th>
+                  <th scope="col">Payment Date</th>
+                  <th scope="col">Expense Date</th>
               </tr>
               <tr id="sales-filter-row">
                 <th>
@@ -364,24 +365,27 @@ tr.row-status-on_hold_processing td {
                 <th><input class="filter-input" placeholder="Order No"></th>
                 <th><input class="filter-input" placeholder="Invoice"></th>
                 <th>
-                  <div class="date-filter-container">
-                    <input type="text" id="entryDateFilter" class="form-control form-control-sm" placeholder="Date range...">
-                    <div class="btn-group btn-group-sm">
-                      <button class="btn btn-outline-secondary dropdown-toggle py-0" data-bs-toggle="dropdown" title="Quick date filters"><i class="bi bi-clock"></i></button>
-                      <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('today');return false;">Today</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('thisweek');return false;">This Week</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('thismonth');return false;">This Month</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('thisyear');return false;">This Year</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('lastmonth');return false;">Last Month</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('lastyear');return false;">Last Year</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="#" onclick="clearDateFilter();return false;">Clear</a></li>
-                      </ul>
+                    <div class="date-filter-container">
+                      <input type="text" id="expenseDateFilter" class="form-control form-control-sm" placeholder="Expense date...">
+                      <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary dropdown-toggle py-0" data-bs-toggle="dropdown" title="Quick date filters"><i class="bi bi-clock"></i></button>
+                        <ul class="dropdown-menu">
+                          <li><a class="dropdown-item" href="#" onclick="setExpenseDateFilterQuick('today');return false;">Today</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setExpenseDateFilterQuick('thisweek');return false;">This Week</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setExpenseDateFilterQuick('thismonth');return false;">This Month</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setExpenseDateFilterQuick('thisyear');return false;">This Year</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item" href="#" onclick="setExpenseDateFilterQuick('yesterday');return false;">Yesterday</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setExpenseDateFilterQuick('lastweek');return false;">Last Week</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item" href="#" onclick="setExpenseDateFilterQuick('lastmonth');return false;">Last Month</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setExpenseDateFilterQuick('lastyear');return false;">Last Year</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item text-danger" href="#" onclick="clearExpenseDateFilter();return false;">Clear</a></li>
+                        </ul>
+                      </div>
                     </div>
-                  </div>
-                </th>
+                  </th>
                 <th><input class="filter-input" placeholder="Customer" list="customer_list"></th>
                 <th><input class="filter-input" placeholder="Twine" list="twine_list"></th>
                 <th><input class="filter-input" placeholder="Spec"></th>
@@ -392,26 +396,51 @@ tr.row-status-on_hold_processing td {
                 <th><input class="filter-input" placeholder="U Price"></th>
                 <th><input class="filter-input" placeholder="GST Rate"></th>
                 <th><input class="filter-input" placeholder="Total"></th>
-                <th>
-                  <div class="date-filter-container">
-                    <input type="text" id="deliveryDateFilter" class="form-control form-control-sm" placeholder="Delivery date...">
-                    <div class="btn-group btn-group-sm">
-                      <button class="btn btn-outline-secondary dropdown-toggle py-0" data-bs-toggle="dropdown" title="Quick date filters"><i class="bi bi-clock"></i></button>
-                      <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('today');return false;">Today</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('thisweek');return false;">This Week</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('thismonth');return false;">This Month</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('thisyear');return false;">This Year</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('lastmonth');return false;">Last Month</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('lastyear');return false;">Last Year</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="#" onclick="clearDeliveryDateFilter();return false;">Clear</a></li>
-                      </ul>
+                  <th>
+                    <div class="date-filter-container">
+                      <input type="text" id="deliveryDateFilter" class="form-control form-control-sm" placeholder="Delivery date...">
+                      <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary dropdown-toggle py-0" data-bs-toggle="dropdown" title="Quick date filters"><i class="bi bi-clock"></i></button>
+                        <ul class="dropdown-menu">
+                          <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('today');return false;">Today</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('thisweek');return false;">This Week</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('thismonth');return false;">This Month</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('thisyear');return false;">This Year</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('yesterday');return false;">Yesterday</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('lastweek');return false;">Last Week</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('lastmonth');return false;">Last Month</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('lastyear');return false;">Last Year</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item text-danger" href="#" onclick="clearDeliveryDateFilter();return false;">Clear</a></li>
+                        </ul>
+                      </div>
                     </div>
-                  </div>
-                </th>
-                <th><input class="filter-input" placeholder="Payment"></th>
+                  </th>
+                  <th>
+                    <div class="date-filter-container">
+                      <input type="text" id="paymentDateFilter" class="form-control form-control-sm" placeholder="Payment date...">
+                      <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary dropdown-toggle py-0" data-bs-toggle="dropdown" title="Quick date filters"><i class="bi bi-clock"></i></button>
+                        <ul class="dropdown-menu">
+                          <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('today');return false;">Today</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('thisweek');return false;">This Week</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('thismonth');return false;">This Month</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('thisyear');return false;">This Year</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('yesterday');return false;">Yesterday</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('lastweek');return false;">Last Week</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('lastmonth');return false;">Last Month</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('lastyear');return false;">Last Year</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item text-danger" href="#" onclick="clearPaymentDateFilter();return false;">Clear</a></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </th>
+                  <th><input class="filter-input" placeholder="Expense"></th>
               </tr>
             </thead>
             <tbody>
@@ -663,6 +692,9 @@ function buildViewTableWithSums(items, columns, date, title) {
     table.style.fontSize = '13px';
     table.style.tableLayout = 'fixed';
     table.style.borderColor = '#000';
+    table.style.borderCollapse = 'collapse';
+    table.style.width = '100%'
+
 
     var colgroup = document.createElement('colgroup');
     var col = document.createElement('col');
@@ -772,6 +804,7 @@ function buildViewTableWithSums(items, columns, date, title) {
     });
     tfoot.appendChild(tr);
     table.appendChild(tfoot);
+    
     container.appendChild(table);
 }
 
@@ -1046,6 +1079,13 @@ function clearDateFilter() {
     applySalesFilters();
 }
 
+function clearPaymentDateFilter() {
+    paymentDateFilterState = null;
+    var fp = document.getElementById('paymentDateFilter')._flatpickr;
+    if (fp) fp.clear();
+    applySalesFilters();
+}
+
 // --- Delivery Date filter state ---
 var deliveryDateFilterState = null;
 
@@ -1071,6 +1111,36 @@ function initDeliveryDatePicker() {
         },
         onClear: function() {
             deliveryDateFilterState = null;
+            applySalesFilters();
+        }
+    });
+}
+
+// --- Payment Date filter state ---
+var paymentDateFilterState = null;
+
+function initPaymentDatePicker() {
+    var input = document.getElementById('paymentDateFilter');
+    if (!input || input._flatpickr) return;
+    flatpickr(input, {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        onChange: function(selectedDates) {
+            if (selectedDates.length === 2) {
+                paymentDateFilterState = {
+                    from: this.formatDate(selectedDates[0], "Y-m-d"),
+                    to: this.formatDate(selectedDates[1], "Y-m-d")
+                };
+            } else if (selectedDates.length === 1) {
+                var d = this.formatDate(selectedDates[0], "Y-m-d");
+                paymentDateFilterState = { from: d, to: d };
+            } else {
+                paymentDateFilterState = null;
+            }
+            applySalesFilters();
+        },
+        onClear: function() {
+            paymentDateFilterState = null;
             applySalesFilters();
         }
     });
@@ -1145,7 +1215,7 @@ if (salesTable) {
             var cells = row.querySelectorAll('td');
             var show = true;
             filters.forEach(function(filter, index) {
-                if (!filter && !(index === 5 && dateFilterState) && !(index === 16 && deliveryDateFilterState)) return;
+                if (!filter && !(index === 5 && dateFilterState) && !(index === 16 && deliveryDateFilterState) && !(index === 21 && paymentDateFilterState)) return;
                 if (!cells[index]) { show = false; return; }
                 var cellText = cells[index].textContent.toLowerCase();
                 // Entry Date column uses range filtering
@@ -1160,6 +1230,14 @@ if (salesTable) {
                 if (index === 16 && deliveryDateFilterState) {
                     var cellDate = cellText.trim();
                     if (cellDate < deliveryDateFilterState.from || cellDate > deliveryDateFilterState.to) {
+                        show = false;
+                    }
+                    return;
+                }
+                // Payment Date column uses range filtering
+                if (index === 21 && paymentDateFilterState) {
+                    var cellDate = cellText.trim();
+                    if (cellDate < paymentDateFilterState.from || cellDate > paymentDateFilterState.to) {
                         show = false;
                     }
                     return;
@@ -1190,11 +1268,13 @@ if (salesTable) {
                 .forEach(s => { s.value = ''; s.dispatchEvent(new Event('change')); });
             clearDateFilter();
             clearDeliveryDateFilter();
+            clearPaymentDateFilter();
         });
 
     // Initial date pickers and summary
     initDatePicker();
     initDeliveryDatePicker();
+    initPaymentDatePicker();
     updateSalesSummary();
 }
 

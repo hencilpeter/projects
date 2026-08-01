@@ -708,7 +708,6 @@ function addToCart() {
     if (!twine) { alert("Twine (Product Code) is required."); return; }
     if (!customer) { alert("Customer is required."); return; }
     let data = getFormData();
-    delete data.order_key;
     data.draft_id = ++draftIdCounter;
     drafts.push(data);
     renderDrafts();
