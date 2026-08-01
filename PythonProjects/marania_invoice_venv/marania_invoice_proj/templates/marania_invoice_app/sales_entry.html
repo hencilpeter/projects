@@ -129,6 +129,81 @@ tr.row-status-on_hold_processing td {
 .view-table .col-center {
     text-align: center;
 }
+
+/* 3D Effect and Colorful Processing List Header */
+.processing-list-table thead th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: #fff !important;
+    font-weight: 800 !important;
+    border: 3px solid #5a67d8 !important;
+    border-radius: 8px 8px 0 0 !important;
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4), 
+                0 3px 10px rgba(118, 75, 162, 0.3) inset !important;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3) !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+}
+
+.processing-list-table thead th:first-child {
+    border-radius: 8px 0 0 0 !important;
+}
+
+.processing-list-table thead th:last-child {
+    border-radius: 0 8px 0 0 !important;
+}
+
+.processing-list-table thead th:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5) !important;
+}
+
+/* Colorful background variations for specific columns */
+.processing-list-table thead th:nth-child(2) {
+    background: linear-gradient(to bottom, #ff6b6b, #ff8787) !important;
+    border-color: #ff5252 !important;
+}
+
+.processing-list-table thead th:nth-child(3) {
+    background: linear-gradient(to bottom, #4ecdc4, #45b7af) !important;
+    border-color: #26a69a !important;
+}
+
+.processing-list-table thead th:nth-child(4),
+.processing-list-table thead th:nth-child(5) {
+    background: linear-gradient(to bottom, #ffe66d, #ffd93d) !important;
+    border-color: #ffcc02 !important;
+    color: #2d3436 !important;
+}
+
+.processing-list-table thead th:nth-child(6),
+.processing-list-table thead th:nth-child(7) {
+    background: linear-gradient(to bottom, #a8e6cf, #88d8a3) !important;
+    border-color: #7fd8a3 !important;
+}
+
+.processing-list-table thead th:nth-child(8) {
+    background: linear-gradient(to bottom, #ff9ff3, #f367e6) !important;
+    border-color: #ff6b9d !important;
+}
+
+/* 3D shadow effect for the entire table header */
+.processing-list-container {
+    border-radius: 10px !important;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2) !important;
+    overflow: hidden !important;
+}
+
+.processing-list-container .table {
+    margin-bottom: 0 !important;
+    border: 3px solid #667eea !important;
+    border-radius: 8px !important;
+}
+
+/* Add decorative elements */
+.processing-list-table thead tr {
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+}
 </style>
 
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
@@ -708,18 +783,24 @@ function buildViewTableWithSums(items, columns, date, title) {
     table.appendChild(colgroup);
 
     var thead = document.createElement('thead');
-    thead.style.backgroundColor = '#8A2BE2';
+    thead.style.background = 'linear-gradient(to bottom, #667eea, #764ba2)';
     thead.style.color = '#fff';
+    thead.style.border = '3px solid #5a67d8';
+    thead.style.textShadow = '2px 2px 4px rgba(0,0,0,0.3)';
+    thead.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
     var tr = document.createElement('tr');
     var th = document.createElement('th');
     th.className = 'col-center';
     th.textContent = '#';
-    th.style.fontWeight = '700';
+    th.style.fontWeight = '800';
+    th.style.borderRight = '2px solid rgba(255,255,255,0.3)';
     tr.appendChild(th);
     columns.forEach(function(col) {
         var th = document.createElement('th');
         th.textContent = col.label;
         th.style.fontWeight = '700';
+        th.style.borderRight = '2px solid rgba(255,255,255,0.2)';
+        th.style.background = 'linear-gradient(to bottom, rgba(255,255,255,0.1), transparent)';
         if (col.key === 'piece_count' || col.key === 'initial_weight' || col.key === 'processed_weight' || col.key === 'weight_sum') {
             th.className = 'col-center';
         }
@@ -844,7 +925,7 @@ function viewSalesList() {
         { label: 'Note', key: 'note', width: '250px' }
     ];
 
-    (allItems, procCols, date, 'Marania Processing List');
+    buildViewTableWithSums(allItems, procCols, date, 'Marania Processing List');
     buildViewTableWithSums(allItems, salesCols, date, 'Marania Sales List');
 
     var modal = new bootstrap.Modal(document.getElementById('salesListModal'));
@@ -1315,19 +1396,19 @@ function viewSelectedSales() {
     });
 
     var salesCols = [
-        { label: 'Customer', key: 'customer' , width: '200px'},
-        { label: 'Net Specification', key: 'net_spec' , width: '230px'},
+        { label: 'CUSTOMER', key: 'customer' , width: '200px'},
+        { label: 'NET SPECIFICATION', key: 'net_spec' , width: '230px'},
         { label: 'Piece Count', key: 'piece_count', width: '70px', isSum: true },
         { label: 'Ini.Weight(KG)', key: 'initial_weight', width: '90px', isSum: true },
         { label: 'Proc.Weight(KG)', key: 'processed_weight', width: '95px', isSum: true },
         { label: 'Note', key: 'note' , width: '250px'}
     ];
     var procCols = [
-        { label: 'Customer', key: 'customer', width: '200px' },
-        { label: 'Net Specification', key: 'net_spec' , width: '230px'},
-        { label: 'Piece Count', key: 'piece_count', width: '60px', isSum: true },
-        { label: 'Weight(KG)', key: 'weight_sum', width: '60px', isSum: true },
-        { label: 'Note', key: 'note', width: '250px' }
+        { label: 'CUSTOMER', key: 'customer', width: '200px' },
+        { label: 'NET SPECIFICATION', key: 'net_spec' , width: '230px'},
+        { label: 'P.COUNT', key: 'piece_count', width: '60px', isSum: true },
+        { label: 'WEIGHT(KG)', key: 'weight_sum', width: '60px', isSum: true },
+        { label: 'NOTE', key: 'note', width: '250px' }
     ];
 
     const date = document.getElementById('sales_entry_date').value;	
