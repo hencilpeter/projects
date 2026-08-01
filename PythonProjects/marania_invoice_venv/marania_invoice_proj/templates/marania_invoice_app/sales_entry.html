@@ -254,7 +254,7 @@ tr.row-status-on_hold_processing td {
             <button type="button" class="btn btn-info me-2" onclick="addToCart()">Add to Cart</button>
             <button type="button" class="btn btn-warning me-2" onclick="submitCart()">Submit Cart</button>
             <button type="button" class="btn btn-secondary" onclick="resetSalesForm()">Clear</button>
-            <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="viewSalesList()">View Sales List</button>
+            <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="viewSalesList()">View</button>
           </div>
 
           <div id="draft-list" class="mt-3" style="display:none;">
@@ -650,7 +650,7 @@ function renderDrafts() {
     document.getElementById('drafts_data').value = JSON.stringify(drafts);
 }
 
-function buildViewTable(items, columns, date, title) {
+function buildViewTableWithSums(items, columns, date, title) {
     var container = document.getElementById('sales-list-content');
 
     var heading = document.createElement('h6');
@@ -659,9 +659,10 @@ function buildViewTable(items, columns, date, title) {
     container.appendChild(heading);
 
     var table = document.createElement('table');
-    table.className = 'table table-sm table-bordered view-table mb-4';
+    table.className = 'table table-sm table-bordered mb-4';
     table.style.fontSize = '13px';
     table.style.tableLayout = 'fixed';
+    table.style.borderColor = '#000';
 
     var colgroup = document.createElement('colgroup');
     var col = document.createElement('col');
@@ -675,6 +676,8 @@ function buildViewTable(items, columns, date, title) {
     table.appendChild(colgroup);
 
     var thead = document.createElement('thead');
+    thead.style.backgroundColor = '#8A2BE2';
+    thead.style.color = '#fff';
     var tr = document.createElement('tr');
     var th = document.createElement('th');
     th.className = 'col-center';
@@ -685,7 +688,7 @@ function buildViewTable(items, columns, date, title) {
         var th = document.createElement('th');
         th.textContent = col.label;
         th.style.fontWeight = '700';
-        if (col.key === 'piece_count' || col.key === 'initial_weight' || col.key === 'processed_weight') {
+        if (col.key === 'piece_count' || col.key === 'initial_weight' || col.key === 'processed_weight' || col.key === 'weight_sum') {
             th.className = 'col-center';
         }
         tr.appendChild(th);
@@ -694,6 +697,13 @@ function buildViewTable(items, columns, date, title) {
     table.appendChild(thead);
 
     var tbody = document.createElement('tbody');
+    var columnSums = {};
+    columns.forEach(function(col) {
+        if (col.isSum) {
+            columnSums[col.key] = 0;
+        }
+    });
+    
     items.forEach(function(d, idx) {
         var note = ((d.colour || 'White') + ' | ' + (d.remarks || '')).replace(/\s*\|\s*$/, '');
         var row = document.createElement('tr');
@@ -705,12 +715,34 @@ function buildViewTable(items, columns, date, title) {
             var td = document.createElement('td');
             var val = '';
             if (col.key === 'note') val = note;
+            else if (col.key === 'net_spec') {
+                var twinePrefix = d.twine ? d.twine + '-' : '';
+                val = twinePrefix + (d.speification || '') + (d.piece_weight ? '-PW(' + d.piece_weight + ')' : '');
+            }
             else if (col.key === 'speification') {
-                val = (d.speification || '') + (d.piece_weight ? '-PW(' + d.piece_weight + ')' : '');
+                var twinePrefix = d.twine ? d.twine + '-' : '';
+                val = twinePrefix + (d.speification || '') + (d.piece_weight ? '-PW(' + d.piece_weight + ')' : '');
+            }
+            else if (col.key === 'piece_count') {
+                val = d.piece_count || '';
+                columnSums[col.key] += parseFloat(d.piece_count) || 0;
+            }
+            else if (col.key === 'initial_weight') {
+                val = d.initial_weight || '';
+                columnSums[col.key] += parseFloat(d.initial_weight) || 0;
+            }
+            else if (col.key === 'processed_weight') {
+                val = d.processed_weight || '';
+                columnSums[col.key] += parseFloat(d.processed_weight) || 0;
+            }
+            else if (col.key === 'weight_sum') {
+                var weight = d.processed_weight > 0 ? d.processed_weight : d.initial_weight || 0;
+                val = weight;
+                columnSums[col.key] += parseFloat(weight) || 0;
             }
             else val = d[col.key] || '';
             td.textContent = val;
-            if (col.key === 'piece_count' || col.key === 'initial_weight' || col.key === 'processed_weight') {
+            if (col.key === 'piece_count' || col.key === 'initial_weight' || col.key === 'processed_weight' || col.key === 'weight_sum') {
                 td.className = 'col-center';
             }
             row.appendChild(td);
@@ -718,6 +750,28 @@ function buildViewTable(items, columns, date, title) {
         tbody.appendChild(row);
     });
     table.appendChild(tbody);
+
+    var tfoot = document.createElement('tfoot');
+    var tr = document.createElement('tr');
+    var th = document.createElement('th');
+    th.className = 'col-center';
+    th.colSpan =3
+    th.textContent = 'TOTAL';
+    tr.appendChild(th);
+    
+    columns.forEach(function(col) {
+        if (col.isSum) {
+            var td = document.createElement('td');
+            td.className = 'col-center';
+            td.style.fontWeight = 'bold';
+            if (columnSums.hasOwnProperty(col.key)) {
+                td.textContent = columnSums[col.key].toFixed(2);
+            }
+            tr.appendChild(td);
+        }
+    });
+    tfoot.appendChild(tr);
+    table.appendChild(tfoot);
     container.appendChild(table);
 }
 
@@ -743,22 +797,22 @@ function viewSalesList() {
 
     var salesCols = [
         { label: 'Customer', key: 'customer' , width: '200px'},
-        { label: 'Net Spec', key: 'speification' , width: '230px'},
-        { label: 'Piece Count', key: 'piece_count', width: '70px' },
-        { label: 'Ini.Weight(KG)', key: 'initial_weight', width: '90px' },
-        { label: 'Proc.Weight(KG)', key: 'processed_weight', width: '95px' },
+        { label: 'Net Spec', key: 'net_spec' , width: '230px'},
+        { label: 'Piece Count', key: 'piece_count', width: '70px', isSum: true },
+        { label: 'Ini.Weight(KG)', key: 'initial_weight', width: '90px', isSum: true },
+        { label: 'Proc.Weight(KG)', key: 'processed_weight', width: '95px', isSum: true },
         { label: 'Note', key: 'note' , width: '250px'}
     ];
     var procCols = [
         { label: 'Customer', key: 'customer', width: '200px' },
-        { label: 'Net Spec', key: 'speification' , width: '230px'},
-        { label: 'Piece Count', key: 'piece_count', width: '60px' },
-        { label: 'Weight(KG)', key: 'initial_weight', width: '60px' },
+        { label: 'Net Spec', key: 'net_spec' , width: '230px'},
+        { label: 'Piece Count', key: 'piece_count', width: '60px', isSum: true },
+        { label: 'Weight(KG)', key: 'weight_sum', width: '60px', isSum: true },
         { label: 'Note', key: 'note', width: '250px' }
     ];
 
-    buildViewTable(allItems, procCols, date, 'Marania Processing List');
-    buildViewTable(allItems, salesCols, date, 'Marania Sales List');
+    (allItems, procCols, date, 'Marania Processing List');
+    buildViewTableWithSums(allItems, salesCols, date, 'Marania Sales List');
 
     var modal = new bootstrap.Modal(document.getElementById('salesListModal'));
     modal.show();
@@ -1152,10 +1206,56 @@ function toggleAllCheckboxes(master) {
     updateViewSalesBtn();
 }
 
+document.addEventListener('DOMContentLoaded', function() {
+    var btn = document.getElementById('viewSelectedSalesBtn');
+    if (btn) {
+        btn.addEventListener('click', viewSelectedSales);
+    }
+});
+
 function updateViewSalesBtn() {
     var checked = document.querySelectorAll('.row-checkbox:checked').length;
     var btn = document.getElementById('viewSelectedSalesBtn');
     if (btn) btn.disabled = checked === 0;
+}
+
+function viewSelectedSales() {
+    var checked = document.querySelectorAll('.row-checkbox:checked');
+    if (checked.length === 0) return;
+    
+    var body = document.getElementById('sales-list-content');
+    body.innerHTML = '';
+    
+    var filteredItems = [];
+    checked.forEach(function(cb) {
+        var s = salesData.find(function(x) { return String(x.sales_key) === String(cb.value); });
+        if (s) {
+            filteredItems.push(s);
+        }
+    });
+
+    var salesCols = [
+        { label: 'Customer', key: 'customer' , width: '200px'},
+        { label: 'Net Specification', key: 'net_spec' , width: '230px'},
+        { label: 'Piece Count', key: 'piece_count', width: '70px', isSum: true },
+        { label: 'Ini.Weight(KG)', key: 'initial_weight', width: '90px', isSum: true },
+        { label: 'Proc.Weight(KG)', key: 'processed_weight', width: '95px', isSum: true },
+        { label: 'Note', key: 'note' , width: '250px'}
+    ];
+    var procCols = [
+        { label: 'Customer', key: 'customer', width: '200px' },
+        { label: 'Net Specification', key: 'net_spec' , width: '230px'},
+        { label: 'Piece Count', key: 'piece_count', width: '60px', isSum: true },
+        { label: 'Weight(KG)', key: 'weight_sum', width: '60px', isSum: true },
+        { label: 'Note', key: 'note', width: '250px' }
+    ];
+
+    const date = document.getElementById('sales_entry_date').value;	
+    buildViewTableWithSums(filteredItems, procCols, date, '(Marania Processing List)');
+    buildViewTableWithSums(filteredItems, salesCols, date, '(Marania Sales List)');
+
+    var modal = new bootstrap.Modal(document.getElementById('salesListModal'));
+    modal.show();
 }
 
 function loadEditMode(salesKey) {
