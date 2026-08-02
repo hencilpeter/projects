@@ -615,6 +615,7 @@ function getFormData() {
         draft_id: '',
         sales_key: document.getElementById('sales_key').value.trim(),
         order_no: document.getElementById('order_no').value.trim(),
+        invoice_no: document.getElementById('invoice_no').value.trim(),
         sales_entry_date: getDateValue('sales_entry_date'),
         customer: document.getElementById('customer').value.trim(),
         twine: document.getElementById('twine').value.trim(),
@@ -679,6 +680,7 @@ function setDateField(id, value) {
 function setFormData(data) {
     document.getElementById('sales_key').value = data.sales_key || '';
     document.getElementById('order_no').value = data.order_no || 'NA';
+    document.getElementById('invoice_no').value = data.invoice_no || '';
     document.getElementById('sales_entry_date').value = data.sales_entry_date || '{% now "Y-m-d" %}';
     document.getElementById('customer').value = data.customer || '';
     document.getElementById('twine').value = data.twine || '';
