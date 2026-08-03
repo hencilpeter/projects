@@ -2511,6 +2511,200 @@ def sales_entry(request):
     })
 
 
+def submit_invoice_from_spec(request):
+    """Parse invoice specification and auto-create invoices for each customer."""
+    if request.method == 'POST':
+        try:
+            import json
+            import re
+            from decimal import Decimal, ROUND_HALF_UP
+            from datetime import date
+
+            data = json.loads(request.body)
+            spec_text = data.get('spec_text', '')
+
+            if not spec_text:
+                return JsonResponse({'success': False, 'error': 'No specification text provided'})
+
+            # Parse the specification text
+            lines = spec_text.strip().split('\n')
+            customer_groups = {}
+            current_customer = None
+            product_dict = get_product_dict()
+
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+
+                # Check if line starts with a number followed by "Customer:"
+                if re.match(r'^\d+\.\s+Customer:', line):
+                    # Extract customer code and name
+                    parts = line.split(':', 1)
+                    if len(parts) == 2:
+                        customer_info = parts[1].strip()
+                        current_customer = customer_info
+                        customer_groups[current_customer] = []
+                elif current_customer and line:
+                    # This is a specification line for the current customer
+                    # Format: TWINE CODE/MM/MD/PROCESSED WEIGHT/PRICE/COLOUR
+                    spec_parts = line.split('/')
+                    if len(spec_parts) >= 6:
+                        customer_groups[current_customer].append({
+                            'twine_code': spec_parts[0].strip(),
+                            'mm': spec_parts[1].strip(),
+                            'md': spec_parts[2].strip(),
+                            'processed_weight': spec_parts[3].strip(),
+                            'price': spec_parts[4].strip(),
+                            'colour': spec_parts[5].strip()
+                        })
+
+            # Create invoices for each customer
+            created_invoices = []
+            settings = CompanySettings.objects.get(id=1)
+
+            for customer_info, items in customer_groups.items():
+                if not items:
+                    continue
+
+                # Parse customer code (e.g., "AN-ASIAN NETS" -> code="AN", name="ASIAN NETS")
+                customer_parts = customer_info.split('-', 1)
+                customer_code = customer_parts[0].strip() if len(customer_parts) > 1 else customer_info
+                customer_name = customer_parts[1].strip() if len(customer_parts) > 1 else customer_info
+
+                # Get customer details from Parties model
+                party = Parties.objects.filter(code=customer_code).first()
+                if not party:
+                    continue
+
+                # Get next invoice number - auto genreated code disabled as its not working as expected
+                #current_invoice_num = settings.current_invoice_number
+                #invoice_number = f"INV-{current_invoice_num:04d}"
+
+                next_invoice_number = get_next_invoice_number()
+                formatted_number = f"{int(next_invoice_number):04d}"
+                invoice_number =  company_settings.invoice_prefix + "-" + formatted_number + "-" + company_settings.finance_year
+
+
+                # Create invoice
+                invoice = Invoice.objects.create(
+                    invoice_date=date.today(),
+                    invoice_number=invoice_number,
+                    customer_code=party.code,
+                    customer_name=party.name,
+                    customer_gst=party.gst or '',
+                    customer_address=party.address_bill_to or '',
+                    customer_contact=party.phone or '',
+                    customer_email=party.email or '',
+                    ship_to_customer_code=party.code,
+                    ship_to_customer_name=party.name,
+                    ship_to_customer_gst=party.gst or '',
+                    ship_to_customer_address=party.address_ship_to or party.address_bill_to or '',
+                    ship_to_customer_contact=party.phone or '',
+                    ship_to_customer_email=party.email or '',
+                    payment_status='Pending',
+                    remark='Auto-generated from Sales Invoice Specification'
+                )
+
+                # Get default transportation
+                default_transport = party.transportations.filter(is_default_transport=True).first()
+                if default_transport:
+                    invoice.dispatched_through = default_transport.transporter_name or ''
+                    invoice.destination = default_transport.delivery_place or ''
+                    invoice.vehicle_name_number = default_transport.vehicle_name_number or ''
+                    invoice.transporter_gst = default_transport.transporter_gst or ''
+                    invoice.save()
+
+                # Create invoice items
+                invoice_items = []
+                total_quantity = Decimal('0.00')
+                subtotal = Decimal('0.00')
+
+                for item in items:
+                    # Build specification from parts
+                    #spec_text = #f"{item['mm']}MM-{item['md']}MD"
+                    spec_text = f"{item['twine_code']}/{item['mm']}/{item['md']}/{item['processed_weight']}/{item['price']}/{item['colour']}"
+                    product_description = product_dict[item['twine_code']]
+                    product_description = product_description["display_name"]
+                    product_description = f"{product_description}-{item['mm']}MM/{item['md']}MD"
+                    if product_description:
+                        product_description = f"{product_description}/{item['colour']}"
+
+                    quantity = Decimal(item['processed_weight'] or '0')
+                    price = Decimal(item['price'] or '0')
+                    colour = item['colour'] or ''
+
+                    # Calculate GST
+                    if party.is_within_state:
+                        gst_rate = (settings.cgst or 0) + (settings.sgst or 0)
+                    else:
+                        gst_rate = settings.igst or 0
+
+                    item_total = quantity * price
+                    gst_amount = item_total * (Decimal(str(gst_rate)) / Decimal('100'))
+                    item_total_with_gst = item_total + gst_amount
+
+                    invoice_items.append(InvoiceItem(
+                        invoice=invoice,
+                        item_spec=spec_text,
+                        item_code=item['twine_code'],
+                        item_description= product_description, 
+                        item_mesh_size=item['mm'],
+                        item_mesh_depth=item['md'],
+                        item_quantity=str(quantity),
+                        item_price=str(price),
+                        item_colour=colour,
+                        item_hsn_code='',
+                        item_gst_amount=str(gst_amount),
+                        item_total_with_gst=str(item_total_with_gst)
+                    ))
+
+                    total_quantity += quantity
+                    subtotal += item_total
+
+                # Bulk create invoice items
+                if invoice_items:
+                    InvoiceItem.objects.bulk_create(invoice_items)
+
+                # Calculate totals
+                total_gst = subtotal * (Decimal(str(gst_rate)) / Decimal('100'))
+                gross_total = subtotal + total_gst
+                round_off = (gross_total * 100).quantize(Decimal('1'), rounding=ROUND_HALF_UP) / 100 - gross_total
+                gross_total = gross_total + round_off
+
+                # Update invoice with totals
+                invoice.quantity_total = total_quantity
+                invoice.subtotal = subtotal
+                invoice.cgst_amount = total_gst / 2 if party.is_within_state else Decimal('0.00')
+                invoice.sgst_amount = total_gst / 2 if party.is_within_state else Decimal('0.00')
+                invoice.igst_amount = total_gst if not party.is_within_state else Decimal('0.00')
+                invoice.round_off = round_off
+                invoice.gross_total = gross_total
+                invoice.save()
+
+                # Increment invoice number
+                settings.current_invoice_number += 1
+                settings.save()
+
+                created_invoices.append({
+                    'invoice_number': invoice_number,
+                    'customer': customer_name,
+                    'items_count': len(items)
+                })
+
+            return JsonResponse({
+                'success': True,
+                'message': f'Successfully created {len(created_invoices)} invoices',
+                'invoices': created_invoices
+            })
+
+        except Exception as e:
+            import traceback
+            return JsonResponse({'success': False, 'error': str(e), 'traceback': traceback.format_exc()})
+
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
 def copy_order_to_sales(request, order_key):
     try:
         order = Order.objects.prefetch_related('specifications').get(order_key=order_key)

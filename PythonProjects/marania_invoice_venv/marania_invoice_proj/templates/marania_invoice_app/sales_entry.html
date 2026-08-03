@@ -1627,10 +1627,11 @@ function showInvoiceSpec() {
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <textarea id="invoiceSpecText" class="form-control" rows="15" readonly>${specText}</textarea>
+                        <textarea id="invoiceSpecText" class="form-control" rows="15">${specText}</textarea>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-primary" onclick="copyInvoiceSpec()">Copy</button>
+                        <button type="button" class="btn btn-success" onclick="submitInvoice()">Submit Invoice</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
@@ -1657,6 +1658,73 @@ function copyInvoiceSpec() {
     specText.select();
     document.execCommand('copy');
     alert('Invoice Specification copied to clipboard!');
+}
+
+function submitInvoice() {
+    var specText = document.getElementById('invoiceSpecText').value;
+    if (!specText.trim()) {
+        alert('Please enter invoice specification before submitting.');
+        return;
+    }
+
+    if (!confirm('Are you sure you want to submit invoices based on this specification?')) {
+        return;
+    }
+
+    fetch('/invoice/sales/submit_invoice_from_spec', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            spec_text: specText
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                console.error('Server error response:', text);
+                throw new Error('Server returned ' + response.status + ': ' + text);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Server response:', data);
+        if (data.success) {
+            alert(data.message + '\n\nCreated invoices:\n' + data.invoices.map(inv => '- ' + inv.invoice_number + ' for ' + inv.customer + ' (' + inv.items_count + ' items)').join('\n'));
+            // Close the modal
+            var modal = bootstrap.Modal.getInstance(document.getElementById('invoiceSpecModal'));
+            if (modal) modal.hide();
+        } else {
+            var errorMsg = 'Error: ' + data.error;
+            if (data.traceback) {
+                errorMsg += '\n\nDetails:\n' + data.traceback;
+            }
+            console.error('Invoice submission error:', errorMsg);
+            alert(errorMsg);
+        }
+    })
+    .catch(error => {
+        console.error('Invoice submission error:', error);
+        alert('Error submitting invoice: ' + error.message);
+    });
+}
+
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
 
 function viewSelectedSales() {

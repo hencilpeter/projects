@@ -75,6 +75,7 @@ path('purchases', views.purchase_entry, name='purchase_entry'),
 
 # sales
 path('sales', views.sales_entry, name='sales_entry'),
+path('sales/submit_invoice_from_spec', views.submit_invoice_from_spec, name='submit_invoice_from_spec'),
 
 # payment receipt
 path('payment-receipts', views.payment_receipt_entry, name='payment_receipt_entry'),
