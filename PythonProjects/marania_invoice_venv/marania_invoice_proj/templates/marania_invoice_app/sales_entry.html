@@ -1056,9 +1056,9 @@ function updateSalesSummary() {
 
     salesTbody.querySelectorAll('tr').forEach(function(row) {
         if (row.style.display === 'none') return;
-        filteredCount++;
         var salesKey = row.getAttribute('data-sales-key');
         if (!salesKey) return;
+        filteredCount++;
         var sale = salesData.find(function(s) { return s.sales_key == salesKey; });
         if (!sale) return;
 
@@ -1794,11 +1794,14 @@ function updateSalesSummary() {
 
     salesTbody.querySelectorAll('tr').forEach(function(row) {
         if (row.style.display === 'none') return;
-        filteredCount++;
+        //filteredCount++;
         var salesKey = row.getAttribute('data-sales-key');
         if (!salesKey) return;
+        filteredCount++;
         var sale = salesData.find(function(s) { return s.sales_key == salesKey; });
         if (!sale) return;
+
+        
 
         var initWt = parseFloat(sale.initial_weight) || 0;
         var procWt = parseFloat(sale.processed_weight) || 0;
@@ -1815,6 +1818,7 @@ function updateSalesSummary() {
         totalProcWeight += procWt;
     });
 
+    
     var grandTotal = totalActualAmount + totalGSTAmount;
 
     document.getElementById('summary-filtered-orders').textContent = filteredCount;

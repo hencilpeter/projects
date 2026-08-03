@@ -2155,6 +2155,11 @@ def order_entry(request):
                     order_key = ""
                 is_update = bool(order_key)
 
+                # Check if order_number is provided for update
+                updated_order_number = None
+                if is_update and entry.get("order_number"):
+                    updated_order_number = str(entry.get("order_number")).strip()
+
                 if is_update:
                     try:
                         obj = Order.objects.get(order_key=order_key)
@@ -2192,6 +2197,11 @@ def order_entry(request):
                 obj.updated_at = now
                 if not is_update:
                     obj.created_at = now
+                
+                # Allow order_number to be updated on existing orders
+                if is_update and updated_order_number:
+                    obj.order_number = updated_order_number
+                    
                 obj.save()
                 saved_count += 1
 
@@ -2224,6 +2234,7 @@ def order_entry(request):
                     )
         else:
             keys = request.POST.getlist("order_key")
+            order_number = request.POST.getlist("order_number")
             order_dates = request.POST.getlist("order_date")
             twines = request.POST.getlist("twine")
             mesh_sizes = request.POST.getlist("mesh_size")
@@ -2270,6 +2281,18 @@ def order_entry(request):
                 obj.status = statuses[idx] if idx < len(statuses) else "Ordered"
                 obj.order_instructions = order_instructions[idx] if idx < len(order_instructions) else ""
                 obj.comments = comments[idx] if idx < len(comments) else ""
+                
+                # Allow order_number to be updated on existing orders
+                if is_update:
+                    updated_order_number = None
+                    if idx < len(order_number):
+                        updated_order_number = order_number[idx].strip() if order_number[idx] else None
+                    elif entry.get("order_number"):
+                        updated_order_number = str(entry.get("order_number")).strip()
+                    
+                    if updated_order_number:
+                        obj.order_number = updated_order_number
+                        
                 obj.save()
 
                 # Read spec rows from POST (indexed by spec_idx)
@@ -2305,6 +2328,10 @@ def order_entry(request):
         'twine', 'quantity', 'quantity_unit', 'unit_price', 'is_gst_included',
         'status', 'order_instructions', 'comments',
     ))
+    
+    # Ensure order_number is included in the context for templates
+    for order in orders:
+        order.order_number = order.order_number
     order_keys = [o['order_key'] for o in orders_data]
     specs = list(OrderSpecification.objects.filter(order__order_key__in=order_keys).values(
         'order_id', 'mesh_size', 'mesh_depth', 'salvage', 'piece_weight', 'colour', 'no_of_pcs',
