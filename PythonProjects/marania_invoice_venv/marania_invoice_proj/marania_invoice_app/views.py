@@ -2627,12 +2627,13 @@ def submit_invoice_from_spec(request):
                     product_description = product_dict[item['twine_code']]
                     product_description = product_description["display_name"]
                     product_description = f"{product_description}-{item['mm']}MM/{item['md']}MD"
-                    if product_description:
-                        product_description = f"{product_description}/{item['colour']}"
+                    item_colour = (item['colour']).upper()
+                    if item_colour:
+                        product_description = f"{product_description}/{item_colour}"
 
                     quantity = Decimal(item['processed_weight'] or '0')
                     price = Decimal(item['price'] or '0')
-                    colour = item['colour'] or ''
+                    colour = (item.get('colour') or '').upper() # item['colour'] or ''
 
                     # Calculate GST
                     if party.is_within_state:
