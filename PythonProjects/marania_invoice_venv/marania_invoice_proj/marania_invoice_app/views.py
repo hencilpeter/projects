@@ -2468,6 +2468,11 @@ def sales_entry(request):
                 if not twine:
                     continue
 
+                # Check if invoice_no is provided for update
+                updated_invoice_no = None
+                if entry.get("invoice_no"):
+                    updated_invoice_no = str(entry.get("invoice_no")).strip()
+
                 obj = Sales()
 
                 obj.order_no = entry.get("order_no") or ""
@@ -2494,6 +2499,11 @@ def sales_entry(request):
                 obj.remarks = entry.get("remarks") or ""
                 obj.created_at = now
                 obj.updated_at = now
+                
+                # Allow invoice_no to be updated on existing sales
+                if updated_invoice_no:
+                    obj.invoice_no = updated_invoice_no
+                    
                 obj.save()
                 saved_count += 1
 
@@ -2508,10 +2518,19 @@ def sales_entry(request):
 
     sales_json = []
     for s in sales_list:
+        # Check if invoice_no is provided for update (in the context of the form)
+        # We need to check if this specific sale is being updated
+        updated_invoice_no = None
+        
+        # If the sale has an invoice_no that is not empty, use it
+        if s.invoice_no:
+            updated_invoice_no = s.invoice_no
+        
+        # Build the sales JSON with updated invoice_no support
         sales_json.append({
             'sales_key': s.sales_key,
             'order_no': s.order_no,
-            'invoice_no': s.invoice_no or '',
+            'invoice_no': updated_invoice_no or s.invoice_no or '',
             'sales_entry_date': str(s.sales_entry_date) if s.sales_entry_date else '',
             'customer': s.customer or '',
             'twine': s.twine or '',
