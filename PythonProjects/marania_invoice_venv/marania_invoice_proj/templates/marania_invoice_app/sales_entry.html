@@ -441,22 +441,22 @@ tr.row-status-on_hold_processing td {
                 <th><input class="filter-input" placeholder="Invoice"></th>
                 <th>
                     <div class="date-filter-container">
-                      <input type="text" id="expenseDateFilter" class="form-control form-control-sm" placeholder="Expense date...">
+                      <input type="text" id="entryDateFilter" class="form-control form-control-sm" placeholder="Entry date...">
                       <div class="btn-group btn-group-sm">
                         <button class="btn btn-outline-secondary dropdown-toggle py-0" data-bs-toggle="dropdown" title="Quick date filters"><i class="bi bi-clock"></i></button>
                         <ul class="dropdown-menu">
-                          <li><a class="dropdown-item" href="#" onclick="setExpenseDateFilterQuick('today');return false;">Today</a></li>
-                          <li><a class="dropdown-item" href="#" onclick="setExpenseDateFilterQuick('thisweek');return false;">This Week</a></li>
-                          <li><a class="dropdown-item" href="#" onclick="setExpenseDateFilterQuick('thismonth');return false;">This Month</a></li>
-                          <li><a class="dropdown-item" href="#" onclick="setExpenseDateFilterQuick('thisyear');return false;">This Year</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setEntryDateFilterQuick('today');return false;">Today</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setEntryDateFilterQuick('thisweek');return false;">This Week</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setEntryDateFilterQuick('thismonth');return false;">This Month</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setEntryDateFilterQuick('thisyear');return false;">This Year</a></li>
                           <li><hr class="dropdown-divider"></li>
-                          <li><a class="dropdown-item" href="#" onclick="setExpenseDateFilterQuick('yesterday');return false;">Yesterday</a></li>
-                          <li><a class="dropdown-item" href="#" onclick="setExpenseDateFilterQuick('lastweek');return false;">Last Week</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setEntryDateFilterQuick('yesterday');return false;">Yesterday</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setEntryDateFilterQuick('lastweek');return false;">Last Week</a></li>
                           <li><hr class="dropdown-divider"></li>
-                          <li><a class="dropdown-item" href="#" onclick="setExpenseDateFilterQuick('lastmonth');return false;">Last Month</a></li>
-                          <li><a class="dropdown-item" href="#" onclick="setExpenseDateFilterQuick('lastyear');return false;">Last Year</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setEntryDateFilterQuick('lastmonth');return false;">Last Month</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setEntryDateFilterQuick('lastyear');return false;">Last Year</a></li>
                           <li><hr class="dropdown-divider"></li>
-                          <li><a class="dropdown-item text-danger" href="#" onclick="clearExpenseDateFilter();return false;">Clear</a></li>
+                          <li><a class="dropdown-item text-danger" href="#" onclick="clearEntryDateFilter();return false;">Clear</a></li>
                         </ul>
                       </div>
                     </div>
@@ -1162,6 +1162,73 @@ function clearDateFilter() {
     applySalesFilters();
 }
 
+function setEntryDateFilterQuick(range) {
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = now.getMonth();
+    var d = now.getDate();
+
+    function fmt(date) {
+        return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
+    }
+
+    var from, to;
+    switch (range) {
+        case 'today':
+            from = to = now;
+            break;
+        case 'thisweek': {
+            var dayOfWeek = now.getDay();
+            var diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+            from = new Date(now.getFullYear(), now.getMonth(), diff);
+            to = new Date(from);
+            to.setDate(to.getDate() + 6);
+            break;
+        }
+        case 'thismonth':
+            from = new Date(y, m, 1);
+            to = new Date(y, m + 1, 0);
+            break;
+        case 'thisyear':
+            from = new Date(y, 0, 1);
+            to = new Date(y, 11, 31);
+            break;
+        case 'yesterday':
+            from = to = new Date(y, m, d - 1);
+            break;
+        case 'lastweek': {
+            var dayOfWeek = now.getDay();
+            var diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) - 7;
+            from = new Date(now.getFullYear(), now.getMonth(), diff);
+            to = new Date(from);
+            to.setDate(to.getDate() + 6);
+            break;
+        }
+        case 'lastmonth':
+            from = new Date(y, m - 1, 1);
+            to = new Date(y, m, 0);
+            break;
+        case 'lastyear':
+            from = new Date(y - 1, 0, 1);
+            to = new Date(y - 1, 11, 31);
+            break;
+    }
+
+    dateFilterState = { from: fmt(from), to: fmt(to) };
+    var fp = document.getElementById('entryDateFilter')._flatpickr;
+    if (fp) {
+        fp.setDate([from, to], true);
+    }
+    applySalesFilters();
+}
+
+function clearEntryDateFilter() {
+    dateFilterState = null;
+    var fp = document.getElementById('entryDateFilter')._flatpickr;
+    if (fp) fp.clear();
+    applySalesFilters();
+}
+
 function clearPaymentDateFilter() {
     paymentDateFilterState = null;
     var fp = document.getElementById('paymentDateFilter')._flatpickr;
@@ -1282,6 +1349,66 @@ function clearDeliveryDateFilter() {
     applySalesFilters();
 }
 
+function setPaymentDateFilterQuick(range) {
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = now.getMonth();
+    var d = now.getDate();
+
+    function fmt(date) {
+        return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
+    }
+
+    var from, to;
+    switch (range) {
+        case 'today':
+            from = to = now;
+            break;
+        case 'thisweek': {
+            var dayOfWeek = now.getDay();
+            var diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+            from = new Date(now.getFullYear(), now.getMonth(), diff);
+            to = new Date(from);
+            to.setDate(to.getDate() + 6);
+            break;
+        }
+        case 'thismonth':
+            from = new Date(y, m, 1);
+            to = new Date(y, m + 1, 0);
+            break;
+        case 'thisyear':
+            from = new Date(y, 0, 1);
+            to = new Date(y, 11, 31);
+            break;
+        case 'yesterday':
+            from = to = new Date(y, m, d - 1);
+            break;
+        case 'lastweek': {
+            var dayOfWeek = now.getDay();
+            var diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) - 7;
+            from = new Date(now.getFullYear(), now.getMonth(), diff);
+            to = new Date(from);
+            to.setDate(to.getDate() + 6);
+            break;
+        }
+        case 'lastmonth':
+            from = new Date(y, m - 1, 1);
+            to = new Date(y, m, 0);
+            break;
+        case 'lastyear':
+            from = new Date(y - 1, 0, 1);
+            to = new Date(y - 1, 11, 31);
+            break;
+    }
+
+    paymentDateFilterState = { from: fmt(from), to: fmt(to) };
+    var fp = document.getElementById('paymentDateFilter')._flatpickr;
+    if (fp) {
+        fp.setDate([from, to], true);
+    }
+    applySalesFilters();
+}
+
 const salesTable = document.getElementById('sales-table');
 if (salesTable) {
     const salesTbody = salesTable.querySelector('tbody');
@@ -1298,7 +1425,7 @@ if (salesTable) {
             var cells = row.querySelectorAll('td');
             var show = true;
             filters.forEach(function(filter, index) {
-                if (!filter && !(index === 5 && dateFilterState) && !(index === 16 && deliveryDateFilterState) && !(index === 21 && paymentDateFilterState)) return;
+                if (!filter && !(index === 5 && dateFilterState) && !(index === 16 && deliveryDateFilterState) && !(index === 17 && paymentDateFilterState)) return;
                 if (!cells[index]) { show = false; return; }
                 var cellText = cells[index].textContent.toLowerCase();
                 // Entry Date column uses range filtering
@@ -1318,7 +1445,7 @@ if (salesTable) {
                     return;
                 }
                 // Payment Date column uses range filtering
-                if (index === 21 && paymentDateFilterState) {
+                if (index === 17 && paymentDateFilterState) {
                     var cellDate = cellText.trim();
                     if (cellDate < paymentDateFilterState.from || cellDate > paymentDateFilterState.to) {
                         show = false;
