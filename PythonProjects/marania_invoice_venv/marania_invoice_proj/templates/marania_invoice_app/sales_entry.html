@@ -1503,9 +1503,37 @@ if (salesTable) {
 
 // Checkbox helpers
 function toggleAllCheckboxes(master) {
-    document.querySelectorAll('.row-checkbox').forEach(function(cb) {
-        cb.checked = master.checked;
+    // Check if any filters are applied
+    var filterThs = document.querySelectorAll('#sales-filter-row th');
+    var hasFilters = false;
+    filterThs.forEach(function(th) {
+        var input = th.querySelector('input, select');
+        if (input && input.value && input.value.trim() !== '') {
+            hasFilters = true;
+        }
     });
+
+    // Also check date filters
+    if (dateFilterState || deliveryDateFilterState || paymentDateFilterState) {
+        hasFilters = true;
+    }
+
+    if (hasFilters && master.checked) {
+        // Only select visible (filtered) rows
+        document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+            var row = cb.closest('tr');
+            if (row && row.style.display !== 'none') {
+                cb.checked = true;
+            } else {
+                cb.checked = false;
+            }
+        });
+    } else {
+        // Select or deselect all checkboxes
+        document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+            cb.checked = master.checked;
+        });
+    }
     updateViewSalesBtn();
 }
 
