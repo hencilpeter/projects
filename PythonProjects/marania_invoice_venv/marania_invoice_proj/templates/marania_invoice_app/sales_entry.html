@@ -870,10 +870,9 @@ function buildViewTableWithSums(items, columns, date, title) {
     var tr = document.createElement('tr');
     var th = document.createElement('th');
     th.className = 'col-center';
-    th.colSpan =3
     th.textContent = 'TOTAL';
     tr.appendChild(th);
-    
+
     columns.forEach(function(col) {
         if (col.isSum) {
             var td = document.createElement('td');
@@ -883,8 +882,13 @@ function buildViewTableWithSums(items, columns, date, title) {
                 td.textContent = columnSums[col.key].toFixed(2);
             }
             tr.appendChild(td);
+        } else {
+            // Add empty cell for non-sum columns to maintain table structure
+            var td = document.createElement('td');
+            tr.appendChild(td);
         }
     });
+
     tfoot.appendChild(tr);
     table.appendChild(tfoot);
     
