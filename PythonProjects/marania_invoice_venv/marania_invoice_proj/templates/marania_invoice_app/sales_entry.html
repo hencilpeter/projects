@@ -868,9 +868,9 @@ function buildViewTableWithSums(items, columns, date, title) {
 
     var tfoot = document.createElement('tfoot');
     var tr = document.createElement('tr');
+
     var th = document.createElement('th');
     th.className = 'col-center';
-    th.textContent = 'TOTAL';
     tr.appendChild(th);
 
     columns.forEach(function(col) {
@@ -883,9 +883,17 @@ function buildViewTableWithSums(items, columns, date, title) {
             }
             tr.appendChild(td);
         } else {
-            // Add empty cell for non-sum columns to maintain table structure
-            var td = document.createElement('td');
-            tr.appendChild(td);
+            if (col.key === "net_spec"){
+                var th = document.createElement('th');
+                th.textContent ="TOTAL";
+                th.className = 'col-center';
+                th.className = "text-center";
+                tr.appendChild(th);
+            }
+            else {
+                var td = document.createElement('td');
+                tr.appendChild(td);
+            }
         }
     });
 
