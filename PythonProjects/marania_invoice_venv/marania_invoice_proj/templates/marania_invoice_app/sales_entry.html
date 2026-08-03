@@ -425,6 +425,7 @@ tr.row-status-on_hold_processing td {
                 </th>
                 <th>
                   <button class="btn btn-warning btn-sm" id="clear-sales-filters">Clear</button>
+                  <button type="button" class="btn btn-info btn-sm ms-1" id="invoiceSpecBtn" onclick="showInvoiceSpec()" disabled>Invoice Spec</button>
                 </th>
                 <th>
                   <select class="filter-select">
@@ -1519,6 +1520,115 @@ function updateViewSalesBtn() {
     var checked = document.querySelectorAll('.row-checkbox:checked').length;
     var btn = document.getElementById('viewSelectedSalesBtn');
     if (btn) btn.disabled = checked === 0;
+    var invoiceSpecBtn = document.getElementById('invoiceSpecBtn');
+    if (invoiceSpecBtn) invoiceSpecBtn.disabled = checked === 0;
+}
+
+function showInvoiceSpec() {
+    var checked = document.querySelectorAll('.row-checkbox:checked');
+    if (checked.length === 0) return;
+
+    var filteredItems = [];
+    checked.forEach(function(cb) {
+        var s = salesData.find(function(x) { return String(x.sales_key) === String(cb.value); });
+        if (s) {
+            filteredItems.push(s);
+        }
+    });
+
+    // Group by customer
+    var customerGroups = {};
+    filteredItems.forEach(function(item) {
+        var customerKey = item.customer || 'Unknown';
+        if (!customerGroups[customerKey]) {
+            customerGroups[customerKey] = [];
+        }
+        customerGroups[customerKey].push(item);
+    });
+
+    // Build invoice specification text
+    var specText = 'Invoice Specification:\n';
+    specText += '----------------------\n';
+
+    var customerIndex = 1;
+    for (var customer in customerGroups) {
+        if (customerGroups.hasOwnProperty(customer)) {
+            specText += (customerIndex) + '. Customer: ' + customer + '\n';
+
+            customerGroups[customer].forEach(function(item) {
+                // Format: TWINE CODE/MM/MD/PROCESSED WEIGHT/PRICE/COLOUR
+                var twine = item.twine || '';
+                var specification = item.speification || '';
+                var processedWeight = item.processed_weight || '';
+                var unitPrice = item.unit_price || '';
+                var colour = item.colour || '';
+
+                // Parse MM from specification (first part before "MM")
+                var mm = '';
+                var mmMatch = specification.match(/(\d+)MM/);
+                if (mmMatch) {
+                    mm = mmMatch[1];
+                }
+
+                // Parse MD from specification (second part before "MD")
+                var md = '';
+                var mdMatch = specification.match(/(\d+)MD/);
+                if (mdMatch) {
+                    md = mdMatch[1];
+                }
+
+                // Use processed weight if it exists, otherwise empty
+                var procWt = processedWeight || '';
+
+                var specLine = twine + '/' + mm + '/' + md + '/' + procWt + '/' + unitPrice + '/' + colour;
+                specText += specLine + '\n';
+            });
+
+            specText += '\n';
+            customerIndex++;
+        }
+    }
+
+    // Display in a modal with copy functionality
+    var modalHtml = `
+        <div class="modal fade" id="invoiceSpecModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Invoice Specification</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <textarea id="invoiceSpecText" class="form-control" rows="15" readonly>${specText}</textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" onclick="copyInvoiceSpec()">Copy</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Remove existing modal if present
+    var existingModal = document.getElementById('invoiceSpecModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // Show modal
+    var modal = new bootstrap.Modal(document.getElementById('invoiceSpecModal'));
+    modal.show();
+}
+
+function copyInvoiceSpec() {
+    var specText = document.getElementById('invoiceSpecText');
+    specText.select();
+    document.execCommand('copy');
+    alert('Invoice Specification copied to clipboard!');
 }
 
 function viewSelectedSales() {
