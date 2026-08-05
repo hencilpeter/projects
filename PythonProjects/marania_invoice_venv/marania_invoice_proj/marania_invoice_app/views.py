@@ -2098,11 +2098,13 @@ def order_entry(request):
             return redirect('order_entry')
 
         drafts_raw = request.POST.get("drafts_data")
+        edit_mode = request.POST.get("edit_mode", "single_edit")  # Get edit mode from frontend
 
         if not drafts_raw and request.content_type == 'application/json':
             try:
                 body = json.loads(request.body)
                 drafts_raw = body.get('drafts_data')
+                edit_mode = body.get('edit_mode', 'single_edit')
             except (json.JSONDecodeError, AttributeError):
                 drafts_raw = None
 
@@ -2140,6 +2142,10 @@ def order_entry(request):
                     on = (entry.get("order_number") or "").strip()
                     if on:
                         batch_order_number = on
+
+            # Handle group_edit mode: delete all orders with the same order_number before processing
+            if edit_mode == 'group_edit' and batch_order_number:
+                Order.objects.filter(order_number=batch_order_number).delete()
 
             batch_sequence = None
             base_twine = None
