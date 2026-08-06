@@ -251,7 +251,7 @@
                 <th><input class="filter-input" placeholder="Order #"></th>
                 <th><input class="filter-input" placeholder="O.Date"></th>
                 <th><input class="filter-input" placeholder="Status Upd Date"></th>
-                <th><input class="filter-input" placeholder="Customer" list="customer_list_filter"></th>
+                <th><input class="filter-input" placeholder="Customer (comma separated)" list="customer_list_filter"></th>
                 <th><input class="filter-input" placeholder="Twine" list="twine_list_filter"></th>
                 <th><input class="filter-input" placeholder="OrderSpec"></th>
                 <th><input class="filter-input" placeholder="Colour" list="colour_list_filter"></th>
@@ -259,17 +259,21 @@
                 <th><input class="filter-input" placeholder="Unit"></th>
                 <th><input class="filter-input" placeholder="Price"></th>
                 <th>
-                  <select class="filter-select">
-                    <option value="">All</option>
-                    <option value="Ordered">Ordered</option>
-                    <option value="ProductionQueue">P.Queue</option>
-                    <option value="InProduction">In Prod</option>
-                    <option value="ProductionCompleted">Prod Completed</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Cancelled">Cancelled</option>
-                    <option value="OnHold">On Hold</option>
-                    <option value="Rejected">Rejected</option>
-                  </select>
+                  <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" style="width:100%;text-align:left;font-size:12px;">
+                      Status <span id="status-filter-count">(0)</span>
+                    </button>
+                    <ul class="dropdown-menu" style="max-height:200px;overflow-y:auto;font-size:12px;">
+                      <li><label class="dropdown-item"><input type="checkbox" class="status-filter-checkbox" value="Ordered"> Ordered</label></li>
+                      <li><label class="dropdown-item"><input type="checkbox" class="status-filter-checkbox" value="ProductionQueue"> P.Queue</label></li>
+                      <li><label class="dropdown-item"><input type="checkbox" class="status-filter-checkbox" value="InProduction"> In Prod</label></li>
+                      <li><label class="dropdown-item"><input type="checkbox" class="status-filter-checkbox" value="ProductionCompleted"> Prod Completed</label></li>
+                      <li><label class="dropdown-item"><input type="checkbox" class="status-filter-checkbox" value="Completed"> Completed</label></li>
+                      <li><label class="dropdown-item"><input type="checkbox" class="status-filter-checkbox" value="Cancelled"> Cancelled</label></li>
+                      <li><label class="dropdown-item"><input type="checkbox" class="status-filter-checkbox" value="OnHold"> On Hold</label></li>
+                      <li><label class="dropdown-item"><input type="checkbox" class="status-filter-checkbox" value="Rejected"> Rejected</label></li>
+                    </ul>
+                  </div>
                 </th>
                 <th>
                   <select class="filter-select">
@@ -864,26 +868,52 @@ if (orderTable) {
 
     function applyOrderFilters() {
         const filterInputs = document.querySelectorAll('#order-filter-row input.filter-input, #order-filter-row select.filter-select');
-        const filters = Array.from(filterInputs).map(i => i.value.toLowerCase());
+        const statusCheckboxes = document.querySelectorAll('.status-filter-checkbox');
+
+        // Update status filter count
+        const checkedCount = Array.from(statusCheckboxes).filter(cb => cb.checked).length;
+        const countEl = document.getElementById('status-filter-count');
+        if (countEl) countEl.textContent = checkedCount > 0 ? `(${checkedCount})` : '(0)';
 
         orderTbody.querySelectorAll('tr').forEach(row => {
             const cells = row.querySelectorAll('td');
             let show = true;
-            filters.forEach((filter, index) => {
-                if (!filter) return;
+
+            // Handle status checkboxes
+            const selectedStatuses = Array.from(statusCheckboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value.toLowerCase());
+            if (selectedStatuses.length > 0) {
+                const statusValue = cells[12].getAttribute('data-status') || '';
+                if (!selectedStatuses.includes(statusValue.toLowerCase())) {
+                    show = false;
+                }
+            }
+
+            filterInputs.forEach((filterInput, index) => {
                 const colIdx = filterColMap[index];
                 if (!cells[colIdx]) {
                     show = false;
                     return;
                 }
-                // Status filter (index 10) uses data-status attribute for exact matching
-                if (index === 10) {
-                    const statusValue = cells[colIdx].getAttribute('data-status') || '';
-                    if (!statusValue.toLowerCase().includes(filter)) {
-                        show = false;
+
+                // Handle comma-separated values for customer (index 3)
+                if (index === 3) {
+                    const filterValue = filterInput.value.toLowerCase().trim();
+                    if (filterValue) {
+                        const customerValues = filterValue.split(',').map(v => v.trim()).filter(v => v);
+                        const cellValue = cells[colIdx].textContent.toLowerCase();
+                        if (!customerValues.some(cv => cellValue.includes(cv))) {
+                            show = false;
+                        }
                     }
-                } else {
-                    if (!cells[colIdx].textContent.toLowerCase().includes(filter)) {
+                    return;
+                }
+
+                // Handle regular text filters
+                const filterValue = filterInput.value.toLowerCase().trim();
+                if (filterValue) {
+                    if (!cells[colIdx].textContent.toLowerCase().includes(filterValue)) {
                         show = false;
                     }
                 }
@@ -896,6 +926,8 @@ if (orderTable) {
         .forEach(el => el.addEventListener('input', applyOrderFilters));
     document.querySelectorAll('#order-filter-row select.filter-select')
         .forEach(el => el.addEventListener('change', applyOrderFilters));
+    document.querySelectorAll('.status-filter-checkbox')
+        .forEach(el => el.addEventListener('change', applyOrderFilters));
 
     document.getElementById('clear-order-filters')
         .addEventListener('click', () => {
@@ -903,6 +935,10 @@ if (orderTable) {
                 .forEach(i => i.value = '');
             document.querySelectorAll('#order-filter-row select.filter-select')
                 .forEach(s => s.value = '');
+            document.querySelectorAll('.status-filter-checkbox')
+                .forEach(cb => cb.checked = false);
+            const countEl = document.getElementById('status-filter-count');
+            if (countEl) countEl.textContent = '(0)';
             applyOrderFilters();
         });
 }
