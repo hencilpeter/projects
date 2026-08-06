@@ -13,6 +13,7 @@
 #order-table {
     table-layout: fixed;
     width: 100%;
+    font-size: 12px;
 }
 
 .col-amount {
@@ -22,7 +23,7 @@
 }
 
 .col-actions {
-    width: 180px;
+    width: 230px;
     text-align: center;
     white-space: nowrap;
 }
@@ -596,7 +597,7 @@ function renderDrafts() {
             const col = s.colour || 'White';
             return (s.mesh_size || '') + 'MM-' + mdDisp + '-' + salDisp + (pcs ? '-Pcs:' + pcs : '') + '-' + col;
         }).join('/');
-        badge.textContent = (d.order_number || '?') + ' | ' + (d.customer || '?') + ' | ' + specStr + ' | ' + d.quantity + ' ' + d.quantity_unit;
+        badge.textContent = '#' + (d.draft_seq || (i + 1)) + ' | ' + (d.order_number || '?') + ' | ' + (d.customer || '?') + ' | ' + specStr + ' | ' + d.quantity + ' ' + d.quantity_unit;
         badge.title = 'Click to edit';
         badge.onclick = function() { loadDraft(d.draft_id); };
         container.appendChild(badge);
@@ -715,6 +716,9 @@ function addToCart() {
     if (!customer) { alert("Customer is required."); return; }
     let data = getFormData();
     data.draft_id = ++draftIdCounter;
+    // Calculate next draft_seq based on maximum existing draft_seq
+    const maxSeq = drafts.reduce((max, d) => Math.max(max, d.draft_seq || 0), 0);
+    data.draft_seq = maxSeq + 1; // Sequential draft order number
     drafts.push(data);
     renderDrafts();
 }
@@ -724,6 +728,7 @@ function loadDraft(draftId) {
     if (!draft) return;
     setFormData(draft);
     drafts = drafts.filter(d => d.draft_id !== draftId);
+    // Don't re-assign draft_seq - keep original numbers consistent
     renderDrafts();
 }
 
@@ -733,6 +738,7 @@ function submitOrder() {
     if (!current.customer) { alert("Customer is required."); return; }
     let entry = {...current};
     delete entry.draft_id;
+    delete entry.draft_seq; // Remove draft sequence before submission
     document.getElementById('drafts_data').value = JSON.stringify([entry]);
     document.getElementById('orderFormTag').submit();
 }
@@ -742,6 +748,7 @@ function submitCart() {
     let allEntries = drafts.map(d => {
         let copy = {...d};
         delete copy.draft_id;
+        delete copy.draft_seq; // Remove draft sequence before submission
         return copy;
     });
     document.getElementById('drafts_data').value = JSON.stringify(allEntries);
@@ -752,6 +759,7 @@ function submitAll() {
     let allEntries = drafts.map(d => {
         let copy = {...d};
         delete copy.draft_id;
+        delete copy.draft_seq; // Remove draft sequence before submission
         return copy;
     });
     const current = getFormData();
@@ -760,6 +768,7 @@ function submitAll() {
         if (!current.customer) { alert("Customer is required."); return; }
         let currentCopy = {...current};
         delete currentCopy.draft_id;
+        delete currentCopy.draft_seq; // Remove draft sequence before submission
         allEntries.push(currentCopy);
     }
     if (allEntries.length === 0) { alert("Add at least one order entry or draft."); return; }
@@ -774,8 +783,9 @@ function loadOrderEditMode(orderKey) {
     const order = ordersData.find(o => o.order_key == orderKey);
     if (!order) return;
 
-    // Clear drafts to start fresh with only the selected order
+    // Clear drafts - Edit button is for single order editing, should start fresh
     drafts = [];
+    renderDrafts(); // Update UI to reflect cleared drafts
 
     setFormData(order);
 
@@ -791,11 +801,15 @@ function loadOrderGroup(orderKey) {
     // Find sibling orders sharing the same order_number
     const siblings = ordersData.filter(o => o.order_number === order.order_number && o.order_key != orderKey);
 
-    // Clear drafts and populate with siblings
+    // Clear all existing drafts
     drafts = [];
-    siblings.forEach(s => {
+
+    // Add group to drafts with sequential numbers starting from 1
+    let currentMaxSeq = 0;
+    siblings.forEach((s) => {
         let d = {...s};
         d.draft_id = ++draftIdCounter;
+        d.draft_seq = ++currentMaxSeq; // Start from 1 for new group
         drafts.push(d);
     });
     renderDrafts();
@@ -830,8 +844,12 @@ function cloneOrder(orderKey) {
     clone.order_sequence = newSeq;
     clone.order_number = twine ? twine + '-' + newSeq : 'UNKNOWN-' + newSeq;
 
-    // Clear drafts
-    drafts = [];
+    // Don't clear drafts - preserve existing draft order numbers
+    // Add cloned order as a new draft with next available sequence number
+    clone.draft_id = ++draftIdCounter;
+    const maxExistingSeq = drafts.reduce((max, d) => Math.max(max, d.draft_seq || 0), 0);
+    clone.draft_seq = maxExistingSeq + 1;
+    drafts.push(clone);
     renderDrafts();
 
     setFormData(clone);
