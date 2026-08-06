@@ -34,6 +34,10 @@
   transform: translateY(3px);
   box-shadow: 0 1px 0 #caa600 inset !important;
 }
+
+#expenses-table {
+  table-layout: fixed;
+}
 </style>
 
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
@@ -147,22 +151,22 @@
             <colgroup>
               <col style="width:50px">
               <col style="width:80px">
-              <col style="width:150px">
-              <col style="width:100px">
+              <col style="width:180px">
+              <col style="width:90px">
               <col style="width:120px">
+              <col style="width:80px">
+              <col style="width:160px">
+              <col style="width:80px">
+              <col style="width:80px">
               <col style="width:100px">
-              <col style="width:120px">
-              <col style="width:100px">
-              <col style="width:100px">
-              <col style="width:100px">
-              <col style="width:100px">
+              <col style="width:80px">
               <col style="width:200px">
             </colgroup>
             <thead class="table-dark">
               <tr>
                 <th scope="col"><input type="checkbox" id="select-all" onchange="toggleAllCheckboxes(this)"></th>
                 <th scope="col">Exp ID</th>
-                <th scope="col" class="col-actions">Actions</th>
+                <th scope="col">Actions</th>
                 <th scope="col">Date</th>
                 <th scope="col">Category</th>
                 <th scope="col">Amount</th>
