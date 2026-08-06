@@ -3694,6 +3694,7 @@ def expense_entry(request):
                 obj.expense_category = entry.get("expense_category") or "Miscellaneous"
                 obj.expense_amount = Decimal(str(entry.get("expense_amount") or 0))
                 obj.description = entry.get("description") or ""
+                obj.display_comment = entry.get("display_comment") or ""
                 obj.payment_method = entry.get("payment_method") or "Cash"
                 obj.vendor = entry.get("vendor") or ""
                 obj.amount_paid = Decimal(str(entry.get("amount_paid") or 0))
@@ -3726,6 +3727,7 @@ def expense_entry(request):
             'expense_category': e.expense_category or '',
             'expense_amount': str(e.expense_amount) if e.expense_amount else '',
             'description': e.description or '',
+            'display_comment': e.display_comment or '',
             'payment_method': e.payment_method or '',
             'vendor': e.vendor or '',
             'amount_paid': str(e.amount_paid) if e.amount_paid else '',

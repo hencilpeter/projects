@@ -111,8 +111,11 @@
           </div>
 
           <div class="row mb-3">
-            <div class="col-md-12">
+            <div class="col-md-6">
               <textarea name="description" id="description" class="form-control form-control-sm" rows="2" placeholder="Description (optional)"></textarea>
+            </div>
+            <div class="col-md-6">
+              <input type="text" name="display_comment" id="display_comment" class="form-control form-control-sm" placeholder="Display Comment">
             </div>
           </div>
 
@@ -144,7 +147,7 @@
             <colgroup>
               <col style="width:50px">
               <col style="width:80px">
-              <col style="width:160px">
+              <col style="width:150px">
               <col style="width:100px">
               <col style="width:120px">
               <col style="width:100px">
@@ -153,6 +156,7 @@
               <col style="width:100px">
               <col style="width:100px">
               <col style="width:100px">
+              <col style="width:200px">
             </colgroup>
             <thead class="table-dark">
               <tr>
@@ -167,6 +171,7 @@
                 <th scope="col">Balance</th>
                 <th scope="col">Status</th>
                 <th scope="col">Bill To</th>
+                <th scope="col">Display Comment</th>
               </tr>
               <tr id="expenses-filter-row">
                 <th>
@@ -208,6 +213,7 @@
                     <option value="Customer">Customer</option>
                   </select>
                 </th>
+                <th><input class="filter-input" placeholder="Display Comment"></th>
               </tr>
             </thead>
             <tbody>
@@ -249,7 +255,7 @@
                   <td>{{ e.amount_paid }}</td>
                   <td>{{ e.balance_amount }}</td>
                   <td>
-                    <span class="badge 
+                    <span class="badge
                       {% if e.payment_status == 'Paid' %}bg-success
                       {% elif e.payment_status == 'Partially Paid' %}bg-warning text-dark
                       {% else %}bg-danger{% endif %}">
@@ -257,6 +263,7 @@
                     </span>
                   </td>
                   <td>{{ e.bill_to }}</td>
+                  <td>{{ e.display_comment|default:"" }}</td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -337,6 +344,7 @@ function getFormData() {
         expense_category: document.getElementById('expense_category').value,
         expense_amount: document.getElementById('expense_amount').value,
         description: document.getElementById('description').value,
+        display_comment: document.getElementById('display_comment').value,
         payment_method: document.getElementById('payment_method').value,
         vendor: document.getElementById('vendor').value,
         amount_paid: document.getElementById('amount_paid').value,
@@ -374,6 +382,7 @@ function loadDraft(index) {
     document.getElementById('expense_category').value = e.expense_category || 'Miscellaneous';
     document.getElementById('expense_amount').value = e.expense_amount || '';
     document.getElementById('description').value = e.description || '';
+    document.getElementById('display_comment').value = e.display_comment || '';
     document.getElementById('payment_method').value = e.payment_method || 'Cash';
     document.getElementById('vendor').value = e.vendor || '';
     document.getElementById('amount_paid').value = e.amount_paid || '';
@@ -391,6 +400,7 @@ function resetForm() {
     document.getElementById('expense_category').value = 'Miscellaneous';
     document.getElementById('expense_amount').value = '';
     document.getElementById('description').value = '';
+    document.getElementById('display_comment').value = '';
     document.getElementById('payment_method').value = 'Cash';
     document.getElementById('vendor').value = 'Not Applicable';
     document.getElementById('amount_paid').value = '';
@@ -441,6 +451,7 @@ function loadExpense(id) {
     document.getElementById('expense_category').value = item.expense_category;
     document.getElementById('expense_amount').value = item.expense_amount;
     document.getElementById('description').value = item.description;
+    document.getElementById('display_comment').value = item.display_comment || '';
     document.getElementById('payment_method').value = item.payment_method;
     document.getElementById('vendor').value = item.vendor;
     document.getElementById('amount_paid').value = item.amount_paid;
@@ -459,6 +470,7 @@ function cloneExpense(id) {
     document.getElementById('expense_category').value = item.expense_category;
     document.getElementById('expense_amount').value = item.expense_amount;
     document.getElementById('description').value = item.description;
+    document.getElementById('display_comment').value = item.display_comment || '';
     document.getElementById('payment_method').value = item.payment_method;
     document.getElementById('vendor').value = item.vendor;
     document.getElementById('amount_paid').value = item.amount_paid;
