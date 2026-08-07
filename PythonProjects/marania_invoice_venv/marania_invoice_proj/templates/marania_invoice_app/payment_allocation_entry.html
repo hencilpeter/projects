@@ -689,7 +689,7 @@ function showBalanceHistory() {
     if (entries.length === 0) {
         body.innerHTML = headerHtml + '<p class="text-muted text-center">No selected items with outstanding balance.</p>';
     } else {
-        var html = headerHtml + '<table class="table table-sm table-bordered" style="border-color:#c0c0c0;">'
+        var html = headerHtml + '<table class="table table-sm table-bordered" style="border-color:#c0c0c0;margin-bottom:0;">'
             + '<thead><tr style="background:linear-gradient(135deg,#1a237e,#283593);color:#fff;font-size:0.85rem;">'
             + '<th style="padding:5px 4px;">#</th><th style="padding:5px 4px;">Date</th><th style="padding:5px 4px;">Invoice/Ref #</th><th style="padding:5px 4px;">Description</th><th style="padding:5px 4px;text-align:right;">Amount</th></tr></thead><tbody>';
         entries.forEach(function(e, i) {
@@ -706,10 +706,11 @@ function showBalanceHistory() {
         });
         html += '</tbody></table>';
         var lastBalance = entries.length > 0 ? entries[entries.length - 1].running_balance : 0;
+        var balanceClass = lastBalance >= 0 ? 'text-danger' : 'text-success';
         html += '<table class="table table-sm table-bordered" style="border-color:#c0c0c0;margin-top:0;">'
             + '<tbody><tr style="background:linear-gradient(135deg,#1a237e,#283593);color:#fff;font-size:0.85rem;">'
-            + '<td colspan="4" style="padding:5px 4px;text-align:right;"><strong>Balance</strong></td>'
-            + '<td style="padding:5px 4px;text-align:right;"><strong>' + lastBalance.toFixed(2) + '</strong></td>'
+            + '<td colspan="4" style="padding:5px 4px;text-align:right;"><strong>Outstanding Balance(Rs)</strong></td>'
+            + '<td style="padding:5px 4px;text-align:right;"><strong class="' + balanceClass + '">' + lastBalance.toFixed(2) + '</strong></td>'
             + '</tr></tbody></table>';
         body.innerHTML = html;
     }
