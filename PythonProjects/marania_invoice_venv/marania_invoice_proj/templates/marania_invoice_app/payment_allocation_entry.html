@@ -595,21 +595,23 @@ function showBalanceHistory() {
             var ttype = p.transaction_type || 'Payment';
             var desc;
             var entryType;
+            var invoiceRef = p.receipt_no || '';
             if (ttype === 'Payment') {
-                desc = 'Payment Received (' + p.receipt_no + ')';
+                desc = 'Payment Received';
                 entryType = 'Cr';
             } else if (ttype === 'Adjustment(Cr)') {
-                desc = 'Payment Adjustment(Cr) (' + p.receipt_no + ')';
+                desc = 'Payment Adjustment(Cr)';
                 entryType = 'Cr';
             } else if (ttype === 'Adjustment(Dr)') {
-                desc = 'Payment Adjustment(Dr) (' + p.receipt_no + ')';
+                desc = 'Payment Adjustment(Dr)';
                 entryType = 'Dr';
             } else {
-                desc = 'Received Payment (' + p.receipt_no + ')';
+                desc = 'Received Payment';
                 entryType = 'Cr';
             }
             entries.push({
                 entry_date: p.payment_date,
+                invoice_ref: invoiceRef,
                 description: desc,
                 type: entryType,
                 amount: avail,
@@ -629,16 +631,25 @@ function showBalanceHistory() {
         var bal = parseFloat(inv.balance) || 0;
         if (bal > 0) {
             var desc;
+            var invoiceRef;
             var isOB = inv.type === 'opening_balance';
             if (inv.type === 'expense') {
-                desc = 'Expense (' + invNum + ')';
+                invoiceRef = invNum;
+                var displayComment = inv.display_comment || '';
+                desc = inv.expense_category || 'Expense';
+                if (displayComment) {
+                    desc += ' (' + displayComment + ')';
+                }
             } else if (isOB) {
-                desc = 'Opening Balance (' + (inv.ob_number || invNum) + ')';
+                invoiceRef = inv.ob_number || invNum;
+                desc = 'Opening Balance';
             } else {
-                desc = 'Invoice (' + invNum + ')';
+                invoiceRef = invNum;
+                desc = 'Invoice issued';
             }
             entries.push({
                 entry_date: inv.invoice_date,
+                invoice_ref: invoiceRef,
                 description: desc,
                 type: 'Dr',
                 amount: bal,
@@ -680,13 +691,14 @@ function showBalanceHistory() {
     } else {
         var html = headerHtml + '<table class="table table-sm table-bordered" style="border-color:#c0c0c0;">'
             + '<thead><tr style="background:linear-gradient(135deg,#1a237e,#283593);color:#fff;font-size:0.85rem;">'
-            + '<th style="padding:5px 4px;">#</th><th style="padding:5px 4px;">Date</th><th style="padding:5px 4px;">Description</th><th style="padding:5px 4px;">Dr/Cr</th><th style="padding:5px 4px;text-align:right;">Amount</th><th style="padding:5px 4px;text-align:right;">Balance</th></tr></thead><tbody>';
+            + '<th style="padding:5px 4px;">#</th><th style="padding:5px 4px;">Date</th><th style="padding:5px 4px;">Invoice/Ref #</th><th style="padding:5px 4px;">Description</th><th style="padding:5px 4px;">Dr/Cr</th><th style="padding:5px 4px;text-align:right;">Amount</th><th style="padding:5px 4px;text-align:right;">Balance</th></tr></thead><tbody>';
         entries.forEach(function(e, i) {
             var rowBg = i % 2 === 0 ? '#ffffff' : '#f0f4ff';
             var amtClass = e.type === 'Cr' ? 'text-success' : 'text-danger';
             html += '<tr style="background:' + rowBg + ';font-size:0.85rem;">'
                 + '<td style="padding:4px 5px;">' + (i+1) + '</td>'
                 + '<td style="padding:4px 5px;">' + (e.entry_date || '') + '</td>'
+                + '<td style="padding:4px 5px;">' + (e.invoice_ref || '') + '</td>'
                 + '<td style="padding:4px 5px;">' + e.description + '</td>'
                 + '<td style="padding:4px 5px;">' + e.type + '</td>'
                 + '<td style="padding:4px 5px;text-align:right;" class="fw-bold ' + amtClass + '">' + e.amount.toFixed(2) + '</td>'

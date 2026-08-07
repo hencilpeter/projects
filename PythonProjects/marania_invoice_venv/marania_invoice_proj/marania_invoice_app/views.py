@@ -3420,6 +3420,7 @@ def payment_allocation_entry(request):
                 'type': 'expense',
                 'expense_id': e.expense_id,
                 'expense_category': e.expense_category or '',
+                'display_comment': e.display_comment or '',
             })
 
     # Existing allocations for reference
