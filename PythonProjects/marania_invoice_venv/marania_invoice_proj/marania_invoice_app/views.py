@@ -3326,7 +3326,14 @@ def payment_allocation_entry(request):
                 update_invoice_payment_status(inv)
             for exp in affected_expenses:
                 update_expense_payment_status(exp)
-            # Opening balances don't have a status field to update
+            # Update opening balance amount to 0 if fully paid
+            for ob in affected_obs:
+                total_alloc = PaymentAllocation.objects.filter(
+                    opening_balance=ob
+                ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+                if total_alloc >= ob.amount:
+                    ob.amount = 0
+                    ob.save()
 
             if saved:
                 messages.success(request, f"{saved} allocation(s) saved.")
