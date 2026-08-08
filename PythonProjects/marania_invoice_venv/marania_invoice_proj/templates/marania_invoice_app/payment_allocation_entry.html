@@ -706,11 +706,21 @@ function showBalanceHistory() {
         });
         html += '</tbody></table>';
         var lastBalance = entries.length > 0 ? entries[entries.length - 1].running_balance : 0;
-        var balanceClass = lastBalance >= 0 ? 'text-danger' : 'text-success';
+        var balanceLabel, balanceBg;
+        if (lastBalance > 0) {
+            balanceLabel = 'Outstanding Balance';
+            balanceBg = 'linear-gradient(135deg,#dc3545,#c82333)';
+        } else if (lastBalance < 0) {
+            balanceLabel = 'Credit Balance';
+            balanceBg = 'linear-gradient(135deg,#198754,#157347)';
+        } else {
+            balanceLabel = 'Balance';
+            balanceBg = 'linear-gradient(135deg,#1a237e,#283593)';
+        }
         html += '<table class="table table-sm table-bordered" style="border-color:#c0c0c0;margin-top:0;">'
-            + '<tbody><tr style="background:linear-gradient(135deg,#1a237e,#283593);color:#fff;font-size:0.85rem;">'
-            + '<td colspan="4" style="padding:5px 4px;text-align:right;"><strong>Outstanding Balance(Rs)</strong></td>'
-            + '<td style="padding:5px 4px;text-align:right;"><strong class="' + balanceClass + '">' + lastBalance.toFixed(2) + '</strong></td>'
+            + '<tbody><tr style="background:' + balanceBg + ';color:#fff;font-size:0.85rem;">'
+            + '<td colspan="4" style="padding:5px 4px;text-align:right;"><strong>' + balanceLabel + '</strong></td>'
+            + '<td style="padding:5px 4px;text-align:right;"><strong>Rs ' + Math.abs(lastBalance).toFixed(2) + '</strong></td>'
             + '</tr></tbody></table>';
         body.innerHTML = html;
     }
