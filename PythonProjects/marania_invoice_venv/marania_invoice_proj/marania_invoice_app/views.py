@@ -3390,6 +3390,7 @@ def payment_allocation_entry(request):
                 'type': 'opening_balance',
                 'ob_id': ob.opening_balance_id,
                 'ob_number': ob_num,
+                'display_comment': ob.display_comment or '',
             })
 
     # Then invoices
@@ -3598,6 +3599,7 @@ def opening_balance_entry(request):
                 obj.balance_type = entry.get("balance_type") or 'Debit'
                 obj.reference_no = entry.get("reference_no") or ""
                 obj.remarks = entry.get("remarks") or ""
+                obj.display_comment = entry.get("display_comment") or ""
                 obj.status = entry.get("status") or "Draft"
                 obj.updated_at = now
                 obj.save()
@@ -3640,6 +3642,7 @@ def opening_balance_entry(request):
             'balance_type': b.balance_type or 'Debit',
             'reference_no': b.reference_no or '',
             'remarks': b.remarks or '',
+            'display_comment': b.display_comment or '',
             'status': b.status or 'Draft',
         })
 

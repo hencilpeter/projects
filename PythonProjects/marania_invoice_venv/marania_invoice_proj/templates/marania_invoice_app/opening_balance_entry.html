@@ -129,6 +129,12 @@
             </div>
           </div>
 
+          <div class="row mb-3">
+            <div class="col-md-12">
+              <input type="text" name="display_comment" id="display_comment" class="form-control form-control-sm" placeholder="Display Comment">
+            </div>
+          </div>
+
           <input type="hidden" name="drafts_data" id="drafts_data" value="">
 
           <div class="text-center">
@@ -316,6 +322,7 @@ function getFormData() {
         balance_type: document.getElementById('balance_type').value,
         reference_no: document.getElementById('reference_no').value,
         remarks: document.getElementById('remarks').value,
+        display_comment: document.getElementById('display_comment').value,
         status: document.getElementById('status').value,
     };
 }
@@ -351,6 +358,7 @@ function loadDraft(index) {
     document.getElementById('balance_type').value = e.balance_type || 'Debit';
     document.getElementById('reference_no').value = e.reference_no || '';
     document.getElementById('remarks').value = e.remarks || '';
+    document.getElementById('display_comment').value = e.display_comment || '';
     document.getElementById('status').value = e.status || 'Draft';
     editingId = e._draft_id;
     var form = document.getElementById('obForm');
@@ -366,6 +374,7 @@ function resetForm() {
     document.getElementById('balance_type').value = 'Debit';
     document.getElementById('reference_no').value = '';
     document.getElementById('remarks').value = '';
+    document.getElementById('display_comment').value = '';
     document.getElementById('status').value = 'Draft';
     editingId = null;
 }
@@ -414,6 +423,7 @@ function loadOB(id) {
     document.getElementById('balance_type').value = item.balance_type || 'Debit';
     document.getElementById('reference_no').value = item.reference_no;
     document.getElementById('remarks').value = item.remarks;
+    document.getElementById('display_comment').value = item.display_comment || '';
     document.getElementById('status').value = item.status;
     var form = document.getElementById('obForm');
     if (form) { var bs = new bootstrap.Collapse(form, {toggle:false}); bs.show(); }
@@ -429,6 +439,7 @@ function cloneOB(id) {
     document.getElementById('balance_type').value = item.balance_type || 'Debit';
     document.getElementById('reference_no').value = item.reference_no;
     document.getElementById('remarks').value = item.remarks;
+    document.getElementById('display_comment').value = item.display_comment || '';
     var form = document.getElementById('obForm');
     if (form) { var bs = new bootstrap.Collapse(form, {toggle:false}); bs.show(); }
 }

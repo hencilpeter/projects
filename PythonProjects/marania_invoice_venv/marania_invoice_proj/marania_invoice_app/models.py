@@ -647,6 +647,7 @@ class OpeningBalance(models.Model):
     balance_type = models.CharField(max_length=10, choices=BALANCE_TYPE_CHOICES, default='Debit')
     reference_no = models.CharField(max_length=100, blank=True, null=True)
     remarks = models.TextField(blank=True, null=True)
+    display_comment = models.CharField(max_length=500, blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Draft')
     updated_at = models.DateTimeField(auto_now=True)
 

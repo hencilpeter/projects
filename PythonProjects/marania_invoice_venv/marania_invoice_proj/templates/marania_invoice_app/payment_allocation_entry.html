@@ -646,7 +646,11 @@ function showBalanceHistory() {
                 }
             } else if (isOB) {
                 invoiceRef = inv.ob_number || invNum;
+                var displayComment = inv.display_comment || '';
                 desc = 'Opening Balance';
+                if (displayComment) {
+                    desc += ' (' + displayComment + ')';
+                }
             } else {
                 invoiceRef = invNum;
                 desc = 'Invoice issued';
