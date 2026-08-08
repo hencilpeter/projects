@@ -3088,6 +3088,7 @@ def payment_receipt_entry(request):
                 obj.reference_no = entry.get("reference_no") or ""
                 obj.allocation_status = entry.get("allocation_status") or "Unallocated"
                 obj.remarks = entry.get("remarks") or ""
+                obj.display_comment = entry.get("display_comment") or ""
                 obj.updated_at = now
                 # Retry save with incremented seq on unique constraint collision
                 for _ in range(3):
@@ -3125,6 +3126,7 @@ def payment_receipt_entry(request):
             'reference_no': r.reference_no or '',
             'allocation_status': r.allocation_status or 'Unallocated',
             'remarks': r.remarks or '',
+            'display_comment': r.display_comment or '',
         })
 
     # Compute outstanding balance per customer
@@ -3357,6 +3359,7 @@ def payment_allocation_entry(request):
                 'available': str(available),
                 'transaction_type': ttype,
                 'display_label': prefix + (p.receipt_no or ''),
+                'display_comment': p.display_comment or '',
             })
 
     invoice_data = []

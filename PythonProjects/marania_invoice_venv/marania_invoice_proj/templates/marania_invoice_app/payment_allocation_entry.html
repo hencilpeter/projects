@@ -596,6 +596,7 @@ function showBalanceHistory() {
             var desc;
             var entryType;
             var invoiceRef = p.receipt_no || '';
+            var displayComment = p.display_comment || '';
             if (ttype === 'Payment') {
                 desc = 'Payment Received';
                 entryType = 'Cr';
@@ -608,6 +609,9 @@ function showBalanceHistory() {
             } else {
                 desc = 'Received Payment';
                 entryType = 'Cr';
+            }
+            if (displayComment) {
+                desc += ' (' + displayComment + ')';
             }
             entries.push({
                 entry_date: p.payment_date,

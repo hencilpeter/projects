@@ -138,6 +138,12 @@
             </div>
           </div>
 
+          <div class="row mb-3">
+            <div class="col-md-12">
+              <input type="text" name="display_comment" id="display_comment" class="form-control form-control-sm" placeholder="Display Comment">
+            </div>
+          </div>
+
           <input type="hidden" name="drafts_data" id="drafts_data" value="">
 
           <div class="text-center">
@@ -372,6 +378,7 @@ function getFormData() {
         reference_no: document.getElementById('reference_no').value,
         allocation_status: document.getElementById('allocation_status').value,
         remarks: document.getElementById('remarks').value,
+        display_comment: document.getElementById('display_comment').value,
     };
 }
 
@@ -408,6 +415,7 @@ function loadDraft(index) {
     document.getElementById('reference_no').value = e.reference_no || '';
     document.getElementById('allocation_status').value = e.allocation_status || 'Unallocated';
     document.getElementById('remarks').value = e.remarks || '';
+    document.getElementById('display_comment').value = e.display_comment || '';
     editingId = e._draft_id;
     var form = document.getElementById('receiptForm');
     if (form) { var bs = new bootstrap.Collapse(form, {toggle:false}); bs.show(); }
@@ -424,6 +432,7 @@ function resetForm() {
     document.getElementById('reference_no').value = '';
     document.getElementById('allocation_status').value = 'Unallocated';
     document.getElementById('remarks').value = '';
+    document.getElementById('display_comment').value = '';
     editingId = null;
     updateOutstandingBalance();
 }
@@ -499,6 +508,7 @@ function loadReceipt(id) {
     document.getElementById('reference_no').value = item.reference_no;
     document.getElementById('allocation_status').value = item.allocation_status;
     document.getElementById('remarks').value = item.remarks;
+    document.getElementById('display_comment').value = item.display_comment || '';
     updateOutstandingBalance();
     var form = document.getElementById('receiptForm');
     if (form) { var bs = new bootstrap.Collapse(form, {toggle:false}); bs.show(); }
@@ -517,6 +527,7 @@ function cloneReceipt(id) {
     document.getElementById('reference_no').value = item.reference_no;
     document.getElementById('allocation_status').value = item.allocation_status;
     document.getElementById('remarks').value = item.remarks;
+    document.getElementById('display_comment').value = item.display_comment || '';
     updateOutstandingBalance();
     var form = document.getElementById('receiptForm');
     if (form) { var bs = new bootstrap.Collapse(form, {toggle:false}); bs.show(); }

@@ -581,6 +581,7 @@ class PaymentReceipt(models.Model):
     allocation_status = models.CharField(
         max_length=20, choices=ALLOCATION_STATUS_CHOICES, default='Unallocated')
     remarks = models.TextField(blank=True, null=True)
+    display_comment = models.CharField(max_length=500, blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
