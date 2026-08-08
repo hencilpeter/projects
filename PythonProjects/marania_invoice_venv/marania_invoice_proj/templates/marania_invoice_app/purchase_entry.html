@@ -116,7 +116,16 @@
                 {% endfor %}
               </datalist>
             </div>
-            <div class="col-md-7">
+            <div class="col-md-3" id="material_code_field">
+              <label class="form-label" style="font-size:0.75rem;margin-bottom:1px;">Material Code</label>
+              <input type="text" name="material_code" id="material_code" class="form-control form-control-sm" placeholder="" list="material_code_list">
+              <datalist id="material_code_list">
+                {% for mat in materials %}
+                  <option value="{{ mat.code }}">
+                {% endfor %}
+              </datalist>
+            </div>
+            <div class="col-md-4">
               <label class="form-label" style="font-size:0.75rem;margin-bottom:1px;">Order Description</label>
               <input type="text" name="order_description" id="order_description" class="form-control form-control-sm" placeholder="">
             </div>
@@ -212,7 +221,8 @@
                 <th scope="col">Delivery Date</th>
                 <th scope="col">Payment Date</th>
                 <th scope="col">Vendor</th>
-                <th scope="col">Material</th>
+                <th scope="col">Is Twine</th>
+                <th scope="col">Material Code</th>
                 <th scope="col">Description</th>
                 <th scope="col">Qty/Wt</th>
                 <th scope="col">Unit</th>
@@ -233,7 +243,14 @@
                 <th><input class="filter-input" placeholder="Delivery"></th>
                 <th><input class="filter-input" placeholder="Payment"></th>
                 <th><input class="filter-input" placeholder="Vendor" list="vendor_list_filter"></th>
-                <th><input class="filter-input" placeholder="Material" list="material_list_filter"></th>
+                <th>
+                  <select class="filter-select">
+                    <option value="">All</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                  </select>
+                </th>
+                <th><input class="filter-input" placeholder="Material Code" list="material_code_list_filter"></th>
                 <th><input class="filter-input" placeholder="Description"></th>
                 <th><input class="filter-input" placeholder="Qty"></th>
                 <th><input class="filter-input" placeholder="Unit"></th>
@@ -277,7 +294,8 @@
                   <td>{{ p.delivery_date|date:"Y-m-d" }}</td>
                   <td>{{ p.payment_date|date:"Y-m-d" }}</td>
                   <td>{{ p.vendor }}</td>
-                  <td>{{ p.material|default:"" }}</td>
+                  <td>{% if p.is_twine %}Yes{% else %}No{% endif %}</td>
+                  <td>{{ p.material_code|default:"" }}</td>
                   <td>{{ p.order_description|default:"" }}</td>
                   <td>{{ p.quantity_weight|default:"" }}</td>
                   <td>{{ p.unit }}</td>
@@ -315,6 +333,11 @@
     <option value="{{ mat }}">
   {% endfor %}
 </datalist>
+<datalist id="material_code_list_filter">
+  {% for mat in materials %}
+    <option value="{{ mat.code }}">
+  {% endfor %}
+</datalist>
 
 </main>
 
@@ -332,6 +355,7 @@ function getFormData() {
         vendor: document.getElementById('vendor').value.trim(),
         is_twine: document.getElementById('is_twine').checked,
         material: document.getElementById('material').value.trim(),
+        material_code: document.getElementById('material_code').value.trim(),
         order_description: document.getElementById('order_description').value.trim(),
         quantity_weight: document.getElementById('quantity_weight').value,
         unit: document.getElementById('unit').value,
@@ -356,6 +380,7 @@ function setFormData(data) {
     document.getElementById('is_twine').checked = data.is_twine ? true : false;
     toggleMaterialField();
     document.getElementById('material').value = data.material || '';
+    document.getElementById('material_code').value = data.material_code || '';
     document.getElementById('order_description').value = data.order_description || '';
     document.getElementById('quantity_weight').value = data.quantity_weight || '';
     document.getElementById('unit').value = data.unit || 'KG';
@@ -407,6 +432,7 @@ function resetForm() {
     document.getElementById('is_twine').checked = true;
     toggleMaterialField();
     document.getElementById('material').value = '';
+    document.getElementById('material_code').value = '';
     document.getElementById('order_description').value = '';
     document.getElementById('quantity_weight').value = '';
     document.getElementById('unit').value = 'KG';
@@ -426,6 +452,9 @@ function toggleMaterialField() {
     var isTwine = document.getElementById('is_twine').checked;
     document.getElementById('material_field').style.display = isTwine ? 'none' : 'block';
     if (isTwine) document.getElementById('material').value = '';
+    // Enable/disable material_code field based on is_twine
+    document.getElementById('material_code_field').style.display = isTwine ? 'block' : 'none';
+    if (!isTwine) document.getElementById('material_code').value = '';
 }
 
 function calcTotals() {
@@ -519,8 +548,20 @@ function submitCart() {
             var show = true;
             filters.forEach(function(filter, index) {
                 if (!filter) return;
-                if (!cells[index] || !cells[index].textContent.toLowerCase().includes(filter)) {
+                if (!cells[index]) {
                     show = false;
+                    return;
+                }
+                // Special handling for is_twine column (index 5) - exact match
+                if (index === 5) {
+                    var cellText = cells[index].textContent.toLowerCase().trim();
+                    if (cellText !== filter) {
+                        show = false;
+                    }
+                } else {
+                    if (!cells[index].textContent.toLowerCase().includes(filter)) {
+                        show = false;
+                    }
                 }
             });
             row.style.display = show ? '' : 'none';
@@ -537,7 +578,7 @@ function submitCart() {
             document.querySelectorAll('#purchase-filter-row input')
                 .forEach(function(i) { i.value = ''; });
             document.querySelectorAll('#purchase-filter-row select')
-                .forEach(function(s) { s.value = ''; });
+                .forEach(function(s) { s.selectedIndex = 0; });
             applyFilters();
         });
 })();

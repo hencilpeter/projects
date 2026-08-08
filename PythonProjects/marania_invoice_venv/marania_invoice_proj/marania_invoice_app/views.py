@@ -2943,6 +2943,7 @@ def purchase_entry(request):
                         vendor=vendor,
                         is_twine=entry.get("is_twine") in (True, "True", "true", "on"),
                         material=entry.get("material") or "",
+                        material_code=entry.get("material_code") or "",
                         order_description=entry.get("order_description") or "",
                         quantity_weight=entry.get("quantity_weight") or None,
                         unit=entry.get("unit") or "KG",
@@ -2964,6 +2965,7 @@ def purchase_entry(request):
                         vendor=vendor,
                         is_twine=entry.get("is_twine") in (True, "True", "true", "on"),
                         material=entry.get("material") or "",
+                        material_code=entry.get("material_code") or "",
                         order_description=entry.get("order_description") or "",
                         quantity_weight=entry.get("quantity_weight") or None,
                         unit=entry.get("unit") or "KG",
@@ -2984,10 +2986,11 @@ def purchase_entry(request):
         return redirect('purchase_entry')
 
     parties = Parties.objects.all()
-    materials = list(Purchase.objects.exclude(material__isnull=True).exclude(material='').values_list('material', flat=True).distinct().order_by('material'))
+    materials = Materials.objects.all()
+    materials_list = list(Purchase.objects.exclude(material__isnull=True).exclude(material='').values_list('material', flat=True).distinct().order_by('material'))
     purchases_json = json.dumps(list(purchases.values(
         'purchase_key', 'invoice_no', 'delivery_date', 'payment_date', 'vendor',
-        'is_twine', 'material', 'order_description', 'quantity_weight', 'unit',
+        'is_twine', 'material', 'material_code', 'order_description', 'quantity_weight', 'unit',
         'unit_price', 'subtotal', 'gst_percent', 'gst_amount', 'total_amount',
         'amount_paid', 'payment_status', 'balance', 'comments',
     )), default=str)
@@ -2996,7 +2999,8 @@ def purchase_entry(request):
         "purchases": purchases,
         "purchases_json": purchases_json,
         "parties": parties,
-        "materials_list": materials,
+        "materials": materials,
+        "materials_list": materials_list,
     }
     return render(request, "marania_invoice_app/purchase_entry.html", context)
 

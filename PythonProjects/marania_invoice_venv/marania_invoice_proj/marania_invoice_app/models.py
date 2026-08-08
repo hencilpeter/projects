@@ -399,6 +399,7 @@ class Purchase(models.Model):
     vendor = models.CharField(max_length=255)
     is_twine = models.BooleanField(default=True)
     material = models.CharField(max_length=255, blank=True, null=True)
+    material_code = models.CharField(max_length=50, blank=True, null=True)
     order_description = models.TextField(blank=True, null=True)
     quantity_weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     unit = models.CharField(max_length=10, choices=UNIT_CHOICES, default='KG')
