@@ -4398,7 +4398,7 @@ def invoice_aging_report(request):
     for invoice in invoices:
         # Calculate total allocated amount
         total_allocated = PaymentAllocation.objects.filter(
-            invoice=invoice
+            invoice__invoice_number=invoice.invoice_number
         ).aggregate(
             total=Sum('allocated_amount')
         )['total'] or Decimal('0')
