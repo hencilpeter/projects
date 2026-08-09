@@ -689,7 +689,7 @@ function showBalanceHistory() {
     var parts = val.split('-');
     if (parts.length > 1) customerName = parts.slice(1).join('-').trim().toUpperCase();
     var today = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
-    var headerHtml = '<div class="d-flex justify-content-between align-items-center mb-2 p-2 rounded text-white" style="background:linear-gradient(135deg,#1a237e,#283593);font-size:0.9rem;">'
+    var headerHtml = '<div class="d-flex justify-content-between align-items-center mb-2 p-2 rounded text-white" style="background:linear-gradient(135deg,#1a237e,#283593);font-size:0.9rem;width:700px">'
         + '<strong><i class="bi bi-person-circle"></i> ' + customerName + '</strong>'
         + '<span><i class="bi bi-calendar3"></i> ' + today + '</span>'
         + '</div>';
@@ -697,9 +697,9 @@ function showBalanceHistory() {
     if (entries.length === 0) {
         body.innerHTML = headerHtml + '<p class="text-muted text-center">No selected items with outstanding balance.</p>';
     } else {
-        var html = headerHtml + '<table class="table table-sm table-bordered" style="border-color:#c0c0c0;margin-bottom:0;table-layout:fixed;width:100%;">'
+        var html = headerHtml + '<table class="table table-sm table-bordered" style="border-color:#c0c0c0;margin-bottom:0;table-layout:fixed;width:700px;">'
             + '<thead><tr style="background:linear-gradient(135deg,#1a237e,#283593);color:#fff;font-size:0.85rem;">'
-            + '<th style="width:30px;">#</th><th style="width:90px;">Date</th><th style="width:120px;">Invoice/Ref #</th><th style="width:90;">Description</th><th style="text-align:right;width:105px;">Amount</th></tr></thead><tbody>';
+            + '<th style="width:30px;">#</th><th style="width:90px;">Date</th><th style="width:150px;">Invoice/Ref #</th><th style="width:340;">Description</th><th style="text-align:right;width:90px;">Amount</th></tr></thead><tbody>';
         entries.forEach(function(e, i) {
             var rowBg = i % 2 === 0 ? '#ffffff' : '#f0f4ff';
             var prefix = e.type === 'Cr' ? '+' : '-';
@@ -717,7 +717,7 @@ function showBalanceHistory() {
         var balanceLabel, balanceBg;
         if (lastBalance > 0) {
             balanceLabel = 'Outstanding Balance';
-            balanceBg = 'linear-gradient(135deg,#dc3545,#c82333)';
+            balanceBg = 'linear-gradient(135deg,#fd7e14,#e06b00)';
         } else if (lastBalance < 0) {
             balanceLabel = 'Credit Balance';
             balanceBg = 'linear-gradient(135deg,#198754,#157347)';
@@ -725,7 +725,7 @@ function showBalanceHistory() {
             balanceLabel = 'Balance';
             balanceBg = 'linear-gradient(135deg,#1a237e,#283593)';
         }
-        html += '<table class="table table-sm table-bordered" style="border-color:#c0c0c0;margin-top:0;">'
+        html += '<table class="table table-sm table-bordered" style="border-color:#c0c0c0;margin-top:0;width:700px;">'
             + '<tbody><tr style="background:' + balanceBg + ';color:#fff;font-size:0.85rem;">'
             + '<td colspan="4" style="padding:5px 4px;text-align:right;"><strong>' + balanceLabel + '</strong></td>'
             + '<td style="padding:5px 4px;text-align:right;"><strong>Rs ' + Math.abs(lastBalance).toFixed(2) + '</strong></td>'
