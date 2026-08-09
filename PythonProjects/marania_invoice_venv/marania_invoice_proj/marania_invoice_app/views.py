@@ -4525,3 +4525,215 @@ def invoice_aging_report(request):
         'age_bucket_totals': age_bucket_totals,
     })
 
+
+def season_trends(request):
+    from .models import Sales
+    from datetime import date, datetime
+    from decimal import Decimal
+    import csv
+    from django.http import HttpResponse
+    from django.db.models import Sum, Count
+    import re
+
+    # Get filter parameters
+    group_by = request.GET.get('group_by', 'product')  # product, specification, none
+    product_filter = request.GET.get('product', '')
+    mm_filter = request.GET.get('mm', '')
+    md_filter = request.GET.get('md', '')
+    selvage_filter = request.GET.get('selvage', '')
+    export_format = request.GET.get('export', None)  # csv, pdf, or None
+    year_filter = request.GET.get('year', '')
+
+    # Parse specification to extract MM, MD, Selvage
+    def parse_specification(spec):
+        if not spec:
+            return {'mm': '', 'md': '', 'selvage': ''}
+        
+        mm = ''
+        md = ''
+        selvage = ''
+        
+        # Extract MM (Mesh Size) - typically like "MM-50", "50MM", etc.
+        mm_match = re.search(r'MM[-\s]*(\d+)', spec, re.IGNORECASE)
+        if mm_match:
+            mm = mm_match.group(1)
+        
+        # Extract MD (Mesh Depth) - typically like "MD-15", "15MD", etc.
+        md_match = re.search(r'MD[-\s]*(\d+)', spec, re.IGNORECASE)
+        if md_match:
+            md = md_match.group(1)
+        
+        # Extract Selvage - typically like "SEL-2", "2SEL", "Selvage-2", etc.
+        selvage_match = re.search(r'(SEL|SELVAGE)[-]*(\d+)', spec, re.IGNORECASE)
+        if selvage_match:
+            selvage = selvage_match.group(2)
+        
+        return {'mm': mm, 'md': md, 'selvage': selvage}
+
+    # Fetch sales data
+    sales = Sales.objects.all()
+
+    # Apply filters
+    if year_filter:
+        sales = sales.filter(sales_entry_date__year=int(year_filter))
+    
+    if product_filter:
+        sales = sales.filter(twine__icontains=product_filter)
+
+    # Process sales data with parsed specifications
+    trends_data = []
+    for sale in sales:
+        spec_data = parse_specification(sale.speification)
+        
+        # Apply specification filters
+        if mm_filter and spec_data['mm'] != mm_filter:
+            continue
+        if md_filter and spec_data['md'] != md_filter:
+            continue
+        if selvage_filter and spec_data['selvage'] != selvage_filter:
+            continue
+        
+        trends_data.append({
+            'sales_key': sale.sales_key,
+            'sales_entry_date': sale.sales_entry_date,
+            'year': sale.sales_entry_date.year if sale.sales_entry_date else None,
+            'month': sale.sales_entry_date.month if sale.sales_entry_date else None,
+            'product_code': sale.twine or '',
+            'specification': sale.speification or '',
+            'mm': spec_data['mm'],
+            'md': spec_data['md'],
+            'selvage': spec_data['selvage'],
+            'colour': sale.colour or '',
+            'processed_weight': sale.processed_weight or Decimal('0'),
+            'total_amount': sale.total_amount or Decimal('0'),
+            'customer': sale.customer or '',
+        })
+
+    # Group data based on selection
+    if group_by == 'product':
+        grouped_data = {}
+        for item in trends_data:
+            product_key = item['product_code'] or 'Unknown'
+            if product_key not in grouped_data:
+                grouped_data[product_key] = []
+            grouped_data[product_key].append(item)
+    elif group_by == 'specification':
+        grouped_data = {}
+        for item in trends_data:
+            spec_key = f"MM:{item['mm']}-MD:{item['md']}-SEL:{item['selvage']}"
+            if spec_key not in grouped_data:
+                grouped_data[spec_key] = []
+            grouped_data[spec_key].append(item)
+    else:
+        grouped_data = None  # No grouping
+
+    # Calculate summary statistics
+    total_sales = sum(item['total_amount'] for item in trends_data)
+    total_weight = sum(item['processed_weight'] for item in trends_data)
+    total_records = len(trends_data)
+
+    # Get available years for filter
+    available_years = sorted(set(item['year'] for item in trends_data if item['year']))
+
+    # Get unique MM, MD, Selvage values for filters
+    unique_mm = sorted(set(item['mm'] for item in trends_data if item['mm']))
+    unique_md = sorted(set(item['md'] for item in trends_data if item['md']))
+    unique_selvage = sorted(set(item['selvage'] for item in trends_data if item['selvage']))
+
+    # Export to CSV
+    if export_format == 'csv':
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="season_trends.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow([
+            'Sales Date', 'Year', 'Month', 'Product Code', 'Specification',
+            'MM', 'MD', 'Selvage', 'Colour', 'Processed Weight', 'Total Amount', 'Customer'
+        ])
+
+        for item in trends_data:
+            writer.writerow([
+                item['sales_entry_date'],
+                item['year'],
+                item['month'],
+                item['product_code'],
+                item['specification'],
+                item['mm'],
+                item['md'],
+                item['selvage'],
+                item['colour'],
+                item['processed_weight'],
+                item['total_amount'],
+                item['customer'],
+            ])
+
+        return response
+
+    # Export to PDF
+    if export_format == 'pdf':
+        from django.template.loader import render_to_string
+        from weasyprint import HTML
+
+        html_string = render_to_string('marania_invoice_app/season_trends_pdf.html', {
+            'trends_data': trends_data,
+            'grouped_data': grouped_data,
+            'group_by': group_by,
+            'today': date.today(),
+            'total_sales': total_sales,
+            'total_weight': total_weight,
+            'total_records': total_records,
+        })
+
+        html = HTML(string=html_string)
+        pdf_file = html.write_pdf()
+
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="season_trends.pdf"'
+        return response
+
+    # Prepare chart data
+    chart_data = {}
+    if group_by == 'product':
+        for product, items in grouped_data.items():
+            # Group by month
+            monthly_data = {}
+            for item in items:
+                month_key = f"{item['year']}-{item['month']:02d}"
+                if month_key not in monthly_data:
+                    monthly_data[month_key] = {'weight': 0, 'amount': 0}
+                monthly_data[month_key]['weight'] += float(item['processed_weight'])
+                monthly_data[month_key]['amount'] += float(item['total_amount'])
+            chart_data[product] = monthly_data
+    elif group_by == 'specification':
+        for spec, items in grouped_data.items():
+            monthly_data = {}
+            for item in items:
+                month_key = f"{item['year']}-{item['month']:02d}"
+                if month_key not in monthly_data:
+                    monthly_data[month_key] = {'weight': 0, 'amount': 0}
+                monthly_data[month_key]['weight'] += float(item['processed_weight'])
+                monthly_data[month_key]['amount'] += float(item['total_amount'])
+            chart_data[spec] = monthly_data
+
+    # Render HTML page
+    import json
+    return render(request, 'marania_invoice_app/season_trends.html', {
+        'trends_data': trends_data,
+        'grouped_data': grouped_data,
+        'group_by': group_by,
+        'today': date.today(),
+        'total_sales': total_sales,
+        'total_weight': total_weight,
+        'total_records': total_records,
+        'available_years': available_years,
+        'unique_mm': unique_mm,
+        'unique_md': unique_md,
+        'unique_selvage': unique_selvage,
+        'chart_data_json': json.dumps(chart_data),
+        'product_filter': product_filter,
+        'mm_filter': mm_filter,
+        'md_filter': md_filter,
+        'selvage_filter': selvage_filter,
+        'year_filter': year_filter,
+    })
+

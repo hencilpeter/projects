@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Season Trends Report</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      color: #333;
+      margin-bottom: 5px;
+    }
+    .header p {
+      color: #666;
+      margin: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+      font-weight: bold;
+    }
+    .text-end {
+      text-align: right;
+    }
+    .group-header {
+      background-color: #e9ecef;
+      font-weight: bold;
+    }
+    @page {
+      size: landscape;
+      margin: 1cm;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Season Trends Report</h1>
+    <p>Report Date: {{ today|date:"Y-m-d" }}</p>
+    <p>Group By: {% if group_by == 'product' %}Product{% elif group_by == 'specification' %}Specification{% else %}No Grouping{% endif %}</p>
+    <p>Total Sales: {{ total_sales }} | Total Weight: {{ total_weight }} KG | Records: {{ total_records }}</p>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Product Code</th>
+        <th>Specification</th>
+        <th>MM</th>
+        <th>MD</th>
+        <th>Selvage</th>
+        <th>Colour</th>
+        <th class="text-end">Weight (KG)</th>
+        <th class="text-end">Amount</th>
+        <th>Customer</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if grouped_data %}
+        {% for group_name, items in grouped_data.items %}
+          <tr class="group-header">
+            <td colspan="10">{{ group_name }} ({{ items|length }} records)</td>
+          </tr>
+          {% for item in items %}
+          <tr>
+            <td>{{ item.sales_entry_date|date:"Y-m-d" }}</td>
+            <td>{{ item.product_code }}</td>
+            <td>{{ item.specification }}</td>
+            <td>{{ item.mm }}</td>
+            <td>{{ item.md }}</td>
+            <td>{{ item.selvage }}</td>
+            <td>{{ item.colour }}</td>
+            <td class="text-end">{{ item.processed_weight }}</td>
+            <td class="text-end">{{ item.total_amount }}</td>
+            <td>{{ item.customer }}</td>
+          </tr>
+          {% endfor %}
+        {% endfor %}
+      {% else %}
+        {% for item in trends_data %}
+        <tr>
+          <td>{{ item.sales_entry_date|date:"Y-m-d" }}</td>
+          <td>{{ item.product_code }}</td>
+          <td>{{ item.specification }}</td>
+          <td>{{ item.mm }}</td>
+          <td>{{ item.md }}</td>
+          <td>{{ item.selvage }}</td>
+          <td>{{ item.colour }}</td>
+          <td class="text-end">{{ item.processed_weight }}</td>
+          <td class="text-end">{{ item.total_amount }}</td>
+          <td>{{ item.customer }}</td>
+        </tr>
+        {% endfor %}
+      {% endif %}
+    </tbody>
+  </table>
+</body>
+</html>

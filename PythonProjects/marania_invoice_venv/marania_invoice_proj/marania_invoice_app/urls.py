@@ -99,6 +99,9 @@ path('get-twine-inventory-data/', views.get_twine_inventory_data, name='get_twin
 # invoice aging report
 path('invoice-aging-report', views.invoice_aging_report, name='invoice_aging_report'),
 
+# analytics
+path('season-trends', views.season_trends, name='season_trends'),
+
 # excel 
 path('sheets/salesview', views.sheet_sales_view, name="sheet_sales_view"),
 path('sheets/salessave', views.sheet_sales_save, name="sheet_sales_save"),

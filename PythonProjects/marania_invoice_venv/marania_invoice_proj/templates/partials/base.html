@@ -278,7 +278,35 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
             </div>
           </li>
 
-          <!-- 6. Administration (merged Settings + Backup + Account) -->
+          <!-- 6. Analytics -->
+          <li class="nav-item">
+            <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
+              <span>
+                <span data-feather="activity"></span>
+                Analytics
+              </span>
+              <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#AnalyticsSubmenu"
+                      aria-expanded="false"
+                      aria-controls="AnalyticsSubmenu">
+                <span class="collapse-icon" data-feather="chevron-right"></span>
+              </button>
+            </div>
+            <div class="collapse" id="AnalyticsSubmenu">
+              <ul class="nav flex-column ms-4">
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'season_trends' %}">
+                    <span data-feather="trending-up"></span>
+                    Season Trends
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </li>
+
+          <!-- 7. Administration (merged Settings + Backup + Account) -->
           <li class="nav-item">
             <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
