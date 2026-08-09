@@ -101,6 +101,7 @@ path('invoice-aging-report', views.invoice_aging_report, name='invoice_aging_rep
 
 # analytics
 path('season-trends', views.season_trends, name='season_trends'),
+path('trend-analytics', views.trend_analytics, name='trend_analytics'),
 
 # excel 
 path('sheets/salesview', views.sheet_sales_view, name="sheet_sales_view"),

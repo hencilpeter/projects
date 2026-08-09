@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Trend Analytics Report</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      color: #333;
+      margin-bottom: 5px;
+    }
+    .header p {
+      color: #666;
+      margin: 0;
+    }
+    .summary {
+      background-color: #f8f9fa;
+      padding: 15px;
+      margin-bottom: 20px;
+      border: 1px solid #dee2e6;
+    }
+    .summary h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+      font-weight: bold;
+    }
+    .text-end {
+      text-align: right;
+    }
+    .group-header {
+      background-color: #e9ecef;
+      font-weight: bold;
+    }
+    @page {
+      size: landscape;
+      margin: 1cm;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Trend Analytics Report</h1>
+    <p>Report Date: {{ today|date:"Y-m-d" }}</p>
+  </div>
+
+  <div class="summary">
+    <h3>Executive Summary</h3>
+    <p>{{ executive_summary }}</p>
+  </div>
+
+  <div class="summary">
+    <h3>Summary Statistics</h3>
+    <table>
+      <tr>
+        <td><strong>Total Orders:</strong> {{ summary.orders }}</td>
+        <td><strong>Total Sales:</strong> {{ summary.sales }}</td>
+        <td><strong>Total Weight:</strong> {{ summary.weight }} KG</td>
+        <td><strong>Total Pieces:</strong> {{ summary.pieces }}</td>
+      </tr>
+      <tr>
+        <td><strong>Active Products:</strong> {{ summary.products }}</td>
+        <td><strong>Active Specifications:</strong> {{ summary.specifications }}</td>
+        <td colspan="2"></td>
+      </tr>
+    </table>
+  </div>
+
+  <h3>Product × Specification Matrix</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>Specification</th>
+        <th>MM</th>
+        <th>MD</th>
+        <th class="text-end">Orders</th>
+        <th class="text-end">Pieces</th>
+        <th class="text-end">Weight (KG)</th>
+        <th class="text-end">Sales</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in product_spec_matrix|slice:":20" %}
+      <tr>
+        <td>{{ item.product }}</td>
+        <td>{{ item.specification }}</td>
+        <td>{{ item.mm }}</td>
+        <td>{{ item.md }}</td>
+        <td class="text-end">{{ item.orders }}</td>
+        <td class="text-end">{{ item.pieces }}</td>
+        <td class="text-end">{{ item.weight }}</td>
+        <td class="text-end">{{ item.sales }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if season_comparison %}
+  <h3>Season Comparison</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Year</th>
+        <th>Season Period</th>
+        <th class="text-end">Orders</th>
+        <th class="text-end">Weight (KG)</th>
+        <th class="text-end">Pieces</th>
+        <th class="text-end">Sales</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for year, data in season_comparison.items %}
+      <tr>
+        <td>{{ year }}</td>
+        <td>{{ data.start_date|date:'M d' }} - {{ data.end_date|date:'M d' }}</td>
+        <td class="text-end">{{ data.orders }}</td>
+        <td class="text-end">{{ data.weight }}</td>
+        <td class="text-end">{{ data.pieces }}</td>
+        <td class="text-end">{{ data.sales }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if recommendations %}
+  <h3>Recommendations</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Product</th>
+        <th>Specification</th>
+        <th class="text-end">Sales</th>
+        <th class="text-end">YoY Growth</th>
+        <th>Trend</th>
+        <th>Confidence</th>
+        <th>Seasonality</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for rec in recommendations|slice:":10" %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ rec.product }}</td>
+        <td>{{ rec.specification }}</td>
+        <td class="text-end">{{ rec.total_sales }}</td>
+        <td class="text-end">
+          {% if rec.yoy_growth %}{{ rec.yoy_growth|floatformat:1 }}%{% else %}N/A{% endif %}
+        </td>
+        <td>{{ rec.trend_classification }}</td>
+        <td>{{ rec.trend_confidence }}</td>
+        <td>{{ rec.seasonality_score|floatformat:1 }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <h3>Data Quality</h3>
+  <table>
+    <tr>
+      <td><strong>Total Records:</strong> {{ data_quality.total_records }}</td>
+      <td><strong>With Product Code:</strong> {{ data_quality.records_with_product }}</td>
+      <td><strong>Valid MM/MD:</strong> {{ data_quality.records_with_valid_spec }}</td>
+      <td><strong>Invalid Specification:</strong> {{ data_quality.records_with_invalid_spec }}</td>
+    </tr>
+  </table>
+</body>
+</html>

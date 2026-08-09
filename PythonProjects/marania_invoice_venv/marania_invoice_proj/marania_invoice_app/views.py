@@ -4526,6 +4526,389 @@ def invoice_aging_report(request):
     })
 
 
+def trend_analytics(request):
+    from datetime import date, datetime, timedelta
+    from decimal import Decimal
+    import csv
+    from django.http import HttpResponse
+    from django.core.paginator import Paginator
+    
+    from marania_invoice_app.analytics.services.product_parser import ProductParser
+    from marania_invoice_app.analytics.services.specification_parser import SpecificationParser
+    from marania_invoice_app.analytics.services.trend_analytics import TrendAnalyticsService
+    from marania_invoice_app.analytics.services.season_analyzer import SeasonAnalyzer
+    from marania_invoice_app.analytics.services.recommendation_engine import RecommendationEngine
+    from marania_invoice_app.analytics.services.models import TrendFilters
+    
+    # Initialize services
+    product_parser = ProductParser()
+    spec_parser = SpecificationParser()
+    trend_service = TrendAnalyticsService()
+    season_analyzer = SeasonAnalyzer()
+    recommendation_engine = RecommendationEngine()
+    
+    # Get filter parameters from request
+    start_date_str = request.GET.get('start_date', '')
+    end_date_str = request.GET.get('end_date', '')
+    product_codes = request.GET.getlist('product_codes')
+    mm_values = request.GET.getlist('mm_values')
+    md_values = request.GET.getlist('md_values')
+    customers = request.GET.getlist('customers')
+    metric = request.GET.get('metric', 'sales')
+    
+    # Export format
+    export_format = request.GET.get('export')
+    
+    # Pagination
+    page = request.GET.get('page', 1)
+    page_size = request.GET.get('page_size', 25)
+    
+    # Set default dates if not provided (last 6 months)
+    if not start_date_str:
+        end_date_default = date.today()
+        start_date_default = end_date_default - timedelta(days=180)
+        start_date_str = start_date_default.isoformat()
+        end_date_str = end_date_default.isoformat()
+    
+    # Parse dates
+    start_date = None
+    end_date = None
+    if start_date_str:
+        try:
+            start_date = date.fromisoformat(start_date_str)
+        except ValueError:
+            pass
+    if end_date_str:
+        try:
+            end_date = date.fromisoformat(end_date_str)
+        except ValueError:
+            pass
+    
+    # Create filters object
+    filters = TrendFilters(
+        start_date=start_date,
+        end_date=end_date,
+        product_codes=product_codes,
+        mm_values=[Decimal(mm) if mm else None for mm in mm_values],
+        md_values=[Decimal(md) if md else None for md in md_values],
+        customers=customers,
+        statuses=[],
+        metric=metric
+    )
+    
+    # Get base queryset
+    from marania_invoice_app.models import Sales
+    sales_queryset = Sales.objects.all()
+    
+    # Apply filters
+    filtered_queryset = trend_service.apply_filters(sales_queryset, filters)
+    
+    # Normalize sales data
+    normalized_sales = trend_service.normalize_sales(filtered_queryset)
+    
+    # Apply MM/MD filters (post-normalization since we need parsed values)
+    if filters.mm_values:
+        normalized_sales = [s for s in normalized_sales if s.mm in filters.mm_values]
+    if filters.md_values:
+        normalized_sales = [s for s in normalized_sales if s.md in filters.md_values]
+    
+    # Calculate analytics
+    summary = trend_service.get_summary(normalized_sales)
+    monthly_trend = trend_service.get_monthly_trend(normalized_sales, metric)
+    product_trends = trend_service.get_product_trends(normalized_sales, metric, top_n=10)
+    spec_trends = trend_service.get_specification_trends(normalized_sales, metric, top_n=10)
+    product_spec_matrix = trend_service.get_product_specification_matrix(normalized_sales)
+    data_quality = trend_service.get_data_quality(normalized_sales)
+    
+    # Calculate top 10 customers
+    customer_data = {}
+    for sale in normalized_sales:
+        if sale.customer:
+            if sale.customer not in customer_data:
+                customer_data[sale.customer] = {
+                    'customer': sale.customer,
+                    'orders': 0,
+                    'sales': Decimal('0'),
+                    'specifications': set()
+                }
+            customer_data[sale.customer]['orders'] += 1
+            customer_data[sale.customer]['sales'] += sale.total_amount
+            # Combine product code with normalized specification
+            full_spec = f"{sale.product_code}-{sale.normalized_specification}" if sale.product_code and sale.normalized_specification and sale.normalized_specification != "Unknown" else (sale.product_code or sale.normalized_specification or "Unknown")
+            customer_data[sale.customer]['specifications'].add(full_spec)
+    
+    # Convert to list and sort by orders
+    top_customers = sorted(
+        customer_data.values(),
+        key=lambda x: x['orders'],
+        reverse=True
+    )[:10]
+    
+    # Convert specifications sets to comma-separated strings
+    for customer in top_customers:
+        customer['specifications'] = ', '.join(sorted(customer['specifications']))
+    
+    # Generate recommendations (without season comparison for now)
+    recommendations = []
+    executive_summary = ""
+    
+    if product_spec_matrix:
+        # Calculate YoY growth and seasonality for each product-spec combination
+        product_spec_trends = []
+        
+        for item in product_spec_matrix[:20]:  # Top 20 for recommendations
+            # Get season data for this combination
+            combination_sales = [
+                s for s in normalized_sales
+                if s.product_code == item['product'] and s.normalized_specification == item['specification']
+            ]
+            
+            if not combination_sales:
+                continue
+            
+            # Calculate YoY growth by year
+            yoy_growth = None
+            years_in_data = sorted(set(s.sales_entry_date.year for s in combination_sales))
+            
+            if len(years_in_data) >= 2:
+                latest_year = years_in_data[-1]
+                prev_year = years_in_data[-2]
+                
+                latest_sales = sum(
+                    s.total_amount for s in combination_sales
+                    if s.sales_entry_date.year == latest_year
+                )
+                prev_sales = sum(
+                    s.total_amount for s in combination_sales
+                    if s.sales_entry_date.year == prev_year
+                )
+                
+                yoy_growth = season_analyzer.calculate_yoy_growth(latest_sales, prev_sales)
+            
+            # Calculate seasonality
+            seasonality = None
+            if combination_sales:
+                total_sales = sum(s.total_amount for s in combination_sales)
+                
+                if len(years_in_data) == 1:
+                    # Only one year of data
+                    seasonality = 100.0
+                else:
+                    # Calculate seasonality across years
+                    annual_sales = {}
+                    for year in years_in_data:
+                        annual_sales[year] = sum(
+                            s.total_amount for s in combination_sales
+                            if s.sales_entry_date.year == year
+                        )
+                    
+                    total_annual = sum(annual_sales.values())
+                    if total_annual > 0:
+                        seasonality = season_analyzer.calculate_seasonality_score(total_sales, total_annual)
+            
+            # Get peak month
+            peak_month_data = season_analyzer.get_peak_month(combination_sales)
+            peak_month = peak_month_data[0] if peak_month_data else None
+            
+            # Classify trend
+            from marania_invoice_app.analytics.services.recommendation_engine import TrendClassification, TrendConfidence
+            from marania_invoice_app.analytics.services.models import ProductSpecificationTrend
+            trend_class = recommendation_engine.classify_trend(yoy_growth)
+            confidence = recommendation_engine.calculate_confidence(len(years_in_data), item['orders'])
+            
+            product_spec_trends.append(ProductSpecificationTrend(
+                product=item['product'],
+                specification=item['specification'],
+                mm=item['mm'],
+                md=item['md'],
+                total_sales=item['sales'],
+                total_weight=item['weight'],
+                total_pieces=item['pieces'],
+                order_count=item['orders'],
+                yoy_growth=yoy_growth,
+                trend_classification=trend_class.value,
+                trend_confidence=confidence.value,
+                seasonality_score=seasonality,
+                peak_month=peak_month
+            ))
+        
+        # Generate recommendations
+        if product_spec_trends:
+            recommendations = recommendation_engine.rank_recommendations(product_spec_trends)
+            executive_summary = recommendation_engine.generate_executive_summary(product_spec_trends)
+    
+    # Get available filter values
+    all_sales = Sales.objects.all()
+    all_products = sorted(set(
+        product_parser.extract_product_code(s.twine)
+        for s in all_sales
+        if s.twine
+    ))
+    all_customers = sorted(set(s.customer for s in all_sales if s.customer))
+    
+    # Get unique MM and MD values
+    all_mm = sorted(set(
+        spec_parser.extract_mm(s.speification)
+        for s in all_sales
+        if spec_parser.extract_mm(s.speification) is not None
+    ))
+    all_md = sorted(set(
+        spec_parser.extract_md(s.speification)
+        for s in all_sales
+        if spec_parser.extract_md(s.speification) is not None
+    ))
+    
+    # Get date range
+    date_range = all_sales.aggregate(
+        min_date=models.Min('sales_entry_date'),
+        max_date=models.Max('sales_entry_date')
+    )
+    
+    # Pagination for detailed orders
+    paginator = Paginator(normalized_sales, int(page_size))
+    paginated_orders = paginator.get_page(page)
+    
+    # Export to CSV
+    if export_format == 'csv':
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="trend_analytics.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow([
+            'Order No', 'Sales Date', 'Customer', 'Product', 'Raw Specification',
+            'MM', 'MD', 'Normalized Specification', 'Colour', 'Weight', 'Pieces', 'Amount', 'Status'
+        ])
+        
+        for sale in normalized_sales:
+            writer.writerow([
+                sale.order_no,
+                sale.sales_entry_date,
+                sale.customer,
+                sale.product_code,
+                sale.raw_specification,
+                sale.mm,
+                sale.md,
+                sale.normalized_specification,
+                sale.colour,
+                sale.processed_weight,
+                sale.piece_count,
+                sale.total_amount,
+                sale.status
+            ])
+        
+        return response
+    
+    # Export to PDF
+    if export_format == 'pdf':
+        from django.template.loader import render_to_string
+        from weasyprint import HTML
+        
+        html_string = render_to_string('marania_invoice_app/trend_analytics_pdf.html', {
+            'summary': summary,
+            'monthly_trend': monthly_trend,
+            'product_trends': product_trends,
+            'spec_trends': spec_trends,
+            'product_spec_matrix': product_spec_matrix,
+            'recommendations': recommendations,
+            'executive_summary': executive_summary,
+            'data_quality': data_quality,
+            'top_customers': top_customers,
+            'today': date.today(),
+        })
+        
+        html = HTML(string=html_string)
+        pdf_file = html.write_pdf()
+        
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="trend_analytics.pdf"'
+        return response
+    
+    # Prepare chart data with top customer for each data point
+    import json
+    
+    # Calculate top customer for each month
+    monthly_chart_data = {
+        'labels': [f"{m['year']}-{m['month']:02d}" for m in monthly_trend],
+        'sales': [float(m['sales']) for m in monthly_trend],
+        'weight': [float(m['weight']) for m in monthly_trend],
+        'pieces': [m['pieces'] for m in monthly_trend],
+        'orders': [m['orders'] for m in monthly_trend],
+        'top_customers': []
+    }
+    
+    for month_data in monthly_trend:
+        month_sales = [
+            s for s in normalized_sales
+            if s.sales_entry_date.year == month_data['year'] and s.sales_entry_date.month == month_data['month']
+        ]
+        if month_sales:
+            customer_totals = {}
+            for sale in month_sales:
+                if sale.customer:
+                    customer_totals[sale.customer] = customer_totals.get(sale.customer, Decimal('0')) + sale.total_amount
+            if customer_totals:
+                top_customer = max(customer_totals.items(), key=lambda x: x[1])
+                monthly_chart_data['top_customers'].append(top_customer[0])
+            else:
+                monthly_chart_data['top_customers'].append('')
+        else:
+            monthly_chart_data['top_customers'].append('')
+    
+    # Calculate top customer for each product
+    product_chart_data = {
+        'labels': [p['product'] for p in product_trends],
+        'sales': [float(p['sales']) for p in product_trends],
+        'weight': [float(p['weight']) for p in product_trends],
+        'pieces': [p['pieces'] for p in product_trends],
+        'orders': [p['orders'] for p in product_trends],
+        'top_customers': []
+    }
+    
+    for product_data in product_trends:
+        product_sales = [
+            s for s in normalized_sales
+            if s.product_code == product_data['product']
+        ]
+        if product_sales:
+            customer_totals = {}
+            for sale in product_sales:
+                if sale.customer:
+                    customer_totals[sale.customer] = customer_totals.get(sale.customer, Decimal('0')) + sale.total_amount
+            if customer_totals:
+                top_customer = max(customer_totals.items(), key=lambda x: x[1])
+                product_chart_data['top_customers'].append(top_customer[0])
+            else:
+                product_chart_data['top_customers'].append('')
+        else:
+            product_chart_data['top_customers'].append('')
+    
+    # Reorder product_spec_matrix by Product, orders, specification
+    product_spec_matrix_sorted = sorted(product_spec_matrix, key=lambda x: (x['product'], -x['orders'], x['specification']))
+    
+    # Render HTML page
+    return render(request, 'marania_invoice_app/trend_analytics.html', {
+        'summary': summary,
+        'monthly_trend': monthly_trend,
+        'product_trends': product_trends,
+        'spec_trends': spec_trends,
+        'product_spec_matrix': product_spec_matrix_sorted,
+        'recommendations': recommendations,
+        'executive_summary': executive_summary,
+        'data_quality': data_quality,
+        'top_customers': top_customers,
+        'all_products': all_products,
+        'all_customers': all_customers,
+        'all_mm': all_mm,
+        'all_md': all_md,
+        'date_range': date_range,
+        'paginated_orders': paginated_orders,
+        'filters': filters,
+        'today': date.today(),
+        'monthly_chart_data_json': json.dumps(monthly_chart_data),
+        'product_chart_data_json': json.dumps(product_chart_data),
+    })
+
+
 def season_trends(request):
     from .models import Sales
     from datetime import date, datetime
