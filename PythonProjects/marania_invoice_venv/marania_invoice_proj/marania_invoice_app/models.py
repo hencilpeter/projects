@@ -500,7 +500,6 @@ class TwineInventory(models.Model):
 
     class Meta:
         ordering = ['-year', '-month', '-ti_key']
-        unique_together = [('month', 'year', 'twine')]
 
 
 class ExcelSheet(models.Model):

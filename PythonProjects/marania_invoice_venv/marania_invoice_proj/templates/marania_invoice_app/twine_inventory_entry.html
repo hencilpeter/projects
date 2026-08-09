@@ -80,7 +80,7 @@
         </div>
         <div class="col-md-2">
           <label class="form-label" style="font-size:0.75rem;margin-bottom:1px;">Twine</label>
-          <input type="text" name="twine" id="ti_twine" class="form-control form-control-sm" placeholder="" list="twine_list" onchange="autoPopulateValues()">
+          <input type="text" name="twine" id="ti_twine" class="form-control form-control-sm" placeholder="" list="twine_list" oninput="autoPopulateValues()">
           <datalist id="twine_list">
             {% for mat in materials %}
               <option value="{{ mat.code }}-{{ mat.displayname|default:mat.name }}">
@@ -245,9 +245,22 @@ function autoPopulateValues() {
     // Extract material code from twine selection (format: code-displayname)
     var materialCode = twine.split('-')[0].trim();
 
-    fetch('/get-twine-inventory-data/?month_year=' + monthYear + '&material_code=' + materialCode)
+    console.log('Auto-populating: monthYear=' + monthYear + ', twine=' + twine + ', materialCode=' + materialCode);
+
+    fetch('/invoice/get-twine-inventory-data/?month_year=' + monthYear + '&material_code=' + materialCode)
         .then(response => response.json())
         .then(data => {
+            console.log('Response data:', data);
+            if (data.debug) {
+                console.log('Debug info:', data.debug);
+            }
+            if (data.opening_stock !== null && data.opening_stock !== '0') {
+                // Only auto-populate opening_stock if it's not already set (for new entries)
+                var currentOpeningStock = document.getElementById('ti_opening_stock').value;
+                if (!currentOpeningStock || currentOpeningStock === '0') {
+                    document.getElementById('ti_opening_stock').value = data.opening_stock;
+                }
+            }
             if (data.stock_in !== null) {
                 document.getElementById('ti_stock_in').value = data.stock_in;
             }

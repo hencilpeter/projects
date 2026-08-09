@@ -4148,7 +4148,7 @@ def twine_inventory_entry(request):
 
 
 def get_twine_inventory_data(request):
-    from .models import Purchase, Sales, Materials
+    from .models import Purchase, Sales, Materials, TwineInventory
     from decimal import Decimal
 
     month_year = request.GET.get("month_year", "")
@@ -4156,6 +4156,8 @@ def get_twine_inventory_data(request):
 
     stock_in = Decimal("0")
     sales_out = Decimal("0")
+    opening_stock = Decimal("0")
+    debug_info = []
 
     # Parse month_year to get year and month
     try:
@@ -4165,52 +4167,146 @@ def get_twine_inventory_data(request):
     except (ValueError, IndexError, TypeError):
         year = month = None
 
+    debug_info.append(f"Request: month_year={month_year}, material_code={material_code}, parsed_year={year}, parsed_month={month}")
+
     if year and month and material_code:
+        # Material synonyms mapping (material_code -> list of synonyms)
+        # This handles materials that have different names but are the same
+        material_synonyms = {
+            '16Fida': ['DK16', '16Fida', '.16-Fida'],
+            'DK16': ['16Fida', 'DK16', '.16-Fida'],
+            'DK20': ['20JINETS', 'DK20'],
+            '20JINETS': ['DK20', '20JINETS'],
+        }
+        
+        # Get synonyms for the selected material code
+        synonyms = material_synonyms.get(material_code, [material_code])
+        
+        # Get material name for matching
+        material_name = None
+        try:
+            material = Materials.objects.get(code=material_code)
+            material_name = material.name
+            synonyms.append(material_name)
+            debug_info.append(f"Material found: code={material.code}, name={material.name}, displayname={material.displayname}")
+        except Materials.DoesNotExist:
+            debug_info.append("Material not found in Materials table")
+        
+        debug_info.append(f"Synonyms for matching: {synonyms}")
+        
         # Calculate Stock In from Purchase module
-        # Filter purchases where is_twine=True, material_code matches, and delivery_date is in the selected month
+        # Filter purchases where is_twine=True and delivery_date is in the selected month
         purchases = Purchase.objects.filter(
             is_twine=True,
-            material_code=material_code,
             delivery_date__year=year,
             delivery_date__month=month
         )
+        debug_info.append(f"Purchases in month: {purchases.count()} found")
+        
         for purchase in purchases:
-            if purchase.quantity_weight:
+            debug_info.append(f"  - purchase_key={purchase.purchase_key}, material_code={purchase.material_code}, material={purchase.material}, delivery_date={purchase.delivery_date}, quantity_weight={purchase.quantity_weight}, is_twine={purchase.is_twine}")
+            
+            # Check if purchase matches any synonym
+            match_found = False
+            if purchase.material_code and purchase.material_code in synonyms:
+                match_found = True
+                debug_info.append(f"    -> Matched by material_code")
+            elif purchase.material and any(synonym in purchase.material for synonym in synonyms):
+                match_found = True
+                debug_info.append(f"    -> Matched by material field")
+            # Also check if material_code appears in material field (partial match)
+            elif purchase.material and material_code in purchase.material:
+                match_found = True
+                debug_info.append(f"    -> Matched by material_code in material field (partial)")
+            # Also check if material name appears in material_code field
+            elif purchase.material_code and material_name and material_name in purchase.material_code:
+                match_found = True
+                debug_info.append(f"    -> Matched by material_name in material_code field")
+            
+            if match_found and purchase.quantity_weight:
                 stock_in += purchase.quantity_weight
-
-        # Also try matching by material field if material_code doesn't match
-        # Get the Material object to get its name
-        try:
-            material = Materials.objects.get(code=material_code)
-            # Also check purchases where the material field contains the material name
-            purchases_by_name = Purchase.objects.filter(
-                is_twine=True,
-                material__icontains=material.name,
-                delivery_date__year=year,
-                delivery_date__month=month
-            ).exclude(purchase_key__in=[p.purchase_key for p in purchases])
-            for purchase in purchases_by_name:
-                if purchase.quantity_weight:
-                    stock_in += purchase.quantity_weight
-        except Materials.DoesNotExist:
-            pass
+                debug_info.append(f"    -> Added quantity_weight: {purchase.quantity_weight}")
 
         # Calculate Sales Out from Sales module
-        # Filter sales where twine field contains the material code and sales_entry_date is in the selected month
+        # Filter sales where sales_entry_date is in the selected month
         sales = Sales.objects.filter(
             sales_entry_date__year=year,
             sales_entry_date__month=month
         )
+        debug_info.append(f"Sales in month: {sales.count()} found")
+        
         for sale in sales:
-            # Check if the twine field contains the material code
-            if sale.twine and material_code in sale.twine:
+            debug_info.append(f"  - sale_key={sale.sales_key}, twine={sale.twine}, speification={sale.speification}, sales_entry_date={sale.sales_entry_date}, processed_weight={sale.processed_weight}, initial_weight={sale.initial_weight}")
+            
+            # Check if the twine field contains any synonym
+            match_found = False
+            for synonym in synonyms:
+                if sale.twine and synonym in sale.twine:
+                    match_found = True
+                    debug_info.append(f"    -> Matched by synonym '{synonym}' in twine field")
+                    break
+            
+            # Also check specification field
+            if not match_found and sale.speification:
+                for synonym in synonyms:
+                    if synonym in sale.speification:
+                        match_found = True
+                        debug_info.append(f"    -> Matched by synonym '{synonym}' in speification field")
+                        break
+            
+            # Additional fallback: check if material_code appears in twine or speification (partial match)
+            if not match_found:
+                if sale.twine and material_code in sale.twine:
+                    match_found = True
+                    debug_info.append(f"    -> Matched by material_code in twine field (partial)")
+                elif sale.speification and material_code in sale.speification:
+                    match_found = True
+                    debug_info.append(f"    -> Matched by material_code in speification field (partial)")
+            
+            # Additional fallback: check if material name appears in twine or speification
+            if not match_found and material_name:
+                if sale.twine and material_name in sale.twine:
+                    match_found = True
+                    debug_info.append(f"    -> Matched by material_name in twine field")
+                elif sale.speification and material_name in sale.speification:
+                    match_found = True
+                    debug_info.append(f"    -> Matched by material_name in speification field")
+            
+            if match_found:
                 if sale.processed_weight:
                     sales_out += sale.processed_weight
+                    debug_info.append(f"    -> Added processed_weight: {sale.processed_weight}")
                 elif sale.initial_weight:
                     sales_out += sale.initial_weight
+                    debug_info.append(f"    -> Added initial_weight: {sale.initial_weight}")
+
+        # Calculate Opening Stock from previous month's Balance
+        # Calculate previous month and year
+        prev_month = month - 1
+        prev_year = year
+        if prev_month == 0:
+            prev_month = 12
+            prev_year = year - 1
+        
+        debug_info.append(f"Looking for previous month: {prev_year}-{prev_month:02d}")
+        
+        # Get previous month's inventory entry for the same twine
+        prev_inventory = TwineInventory.objects.filter(
+            year=prev_year,
+            month=prev_month,
+            twine__icontains=material_code
+        ).first()
+        
+        if prev_inventory:
+            opening_stock = prev_inventory.balance
+            debug_info.append(f"Found previous inventory: ti_key={prev_inventory.ti_key}, balance={prev_inventory.balance}")
+        else:
+            debug_info.append("No previous inventory found for this twine")
 
     return JsonResponse({
         "stock_in": str(stock_in),
         "sales_out": str(sales_out),
+        "opening_stock": str(opening_stock),
+        "debug": debug_info,
     })
 
