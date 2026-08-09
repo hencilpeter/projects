@@ -289,6 +289,13 @@ function autoPopulateValues() {
             if (data.sales_out !== null) {
                 document.getElementById('ti_sales_out').value = data.sales_out;
             }
+            if (data.daily_usage !== null && data.daily_usage !== '0') {
+                // Only auto-populate daily_usage if it's not already set
+                var currentDailyUsage = document.getElementById('ti_daily_usage').value;
+                if (!currentDailyUsage || currentDailyUsage === '0') {
+                    document.getElementById('ti_daily_usage').value = data.daily_usage;
+                }
+            }
             calcBalance();
         })
         .catch(error => {
@@ -371,6 +378,14 @@ function calcDaysLeft() {
         document.getElementById('ti_est_stock_out_date').value = '';
     }
 }
+
+// Also trigger calcDaysLeft when daily_usage changes
+document.addEventListener('DOMContentLoaded', function() {
+    var dailyUsageInput = document.getElementById('ti_daily_usage');
+    if (dailyUsageInput) {
+        dailyUsageInput.addEventListener('input', calcDaysLeft);
+    }
+});
 
 function saveTI() {
     document.getElementById('ti_form_action').value = 'save';

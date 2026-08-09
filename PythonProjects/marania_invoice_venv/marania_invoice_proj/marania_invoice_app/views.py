@@ -4356,9 +4356,11 @@ def get_twine_inventory_data(request):
             twine__icontains=material_code
         ).first()
         
+        daily_usage_prev = Decimal("0")
         if prev_inventory:
             opening_stock = prev_inventory.balance
-            debug_info.append(f"Found previous inventory: ti_key={prev_inventory.ti_key}, balance={prev_inventory.balance}")
+            daily_usage_prev = prev_inventory.daily_usage or Decimal("0")
+            debug_info.append(f"Found previous inventory: ti_key={prev_inventory.ti_key}, balance={prev_inventory.balance}, daily_usage={daily_usage_prev}")
         else:
             debug_info.append("No previous inventory found for this twine")
 
@@ -4366,6 +4368,7 @@ def get_twine_inventory_data(request):
         "stock_in": str(stock_in),
         "sales_out": str(sales_out),
         "opening_stock": str(opening_stock),
+        "daily_usage": str(daily_usage_prev),
         "debug": debug_info,
     })
 
