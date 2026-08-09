@@ -3963,6 +3963,8 @@ def twine_inventory_entry(request):
     from .models import TwineInventory, Materials
     from datetime import datetime, timedelta
     from decimal import Decimal
+    from django.http import JsonResponse
+    import json
 
     twine_inventories = TwineInventory.objects.all()
     materials = Materials.objects.all()
@@ -4025,6 +4027,64 @@ def twine_inventory_entry(request):
             else:
                 messages.error(request, "Invalid Year-Month selected.")
             return redirect("twine_inventory_entry")
+
+        if action == "carry_forward_selected":
+            selected_keys_json = request.POST.get("selected_keys") or "[]"
+            target_month = request.POST.get("target_month") or ""
+            
+            try:
+                selected_keys = json.loads(selected_keys_json)
+            except json.JSONDecodeError:
+                return JsonResponse({"success": False, "error": "Invalid selected keys format"})
+            
+            if not selected_keys:
+                return JsonResponse({"success": False, "error": "No items selected"})
+            
+            # Parse target month
+            try:
+                parts = target_month.split("-")
+                target_year = int(parts[0])
+                target_month_num = int(parts[1])
+            except (ValueError, IndexError, TypeError):
+                return JsonResponse({"success": False, "error": "Invalid target month format"})
+            
+            # Get selected inventory entries
+            selected_entries = TwineInventory.objects.filter(ti_key__in=selected_keys)
+            
+            if not selected_entries.exists():
+                return JsonResponse({"success": False, "error": "Selected entries not found"})
+            
+            carried_count = 0
+            for entry in selected_entries:
+                # Check if entry already exists for target month and twine
+                existing_ti = TwineInventory.objects.filter(
+                    month=target_month_num,
+                    year=target_year,
+                    twine=entry.twine
+                ).first()
+                
+                if not existing_ti:
+                    # Create new entry with current balance as opening stock
+                    TwineInventory.objects.create(
+                        month=target_month_num,
+                        year=target_year,
+                        twine=entry.twine,
+                        opening_stock=entry.balance,
+                        stock_in=Decimal("0"),
+                        sales_out=Decimal("0"),
+                        waste_used=Decimal("0"),
+                        daily_usage=entry.daily_usage,
+                        usage_basis=entry.usage_basis,
+                        days_left=None,
+                        est_stock_out_date=None,
+                        remark=f"Carried forward from {entry.year}-{entry.month:02d}"
+                    )
+                    carried_count += 1
+            
+            return JsonResponse({
+                "success": True,
+                "message": f"Carried forward {carried_count} entries to {target_year}-{target_month_num:02d}"
+            })
 
         month_year_raw = request.POST.get("month_year") or ""
         ti_key = request.POST.get("ti_key") or ""
