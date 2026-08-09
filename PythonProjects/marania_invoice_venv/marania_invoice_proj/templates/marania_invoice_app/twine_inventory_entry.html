@@ -76,11 +76,16 @@
       <div class="row mb-3 align-items-end">
         <div class="col-md-2">
           <label class="form-label" style="font-size:0.75rem;margin-bottom:1px;">Year-Month</label>
-          <input type="month" name="month_year" id="ti_month_year" class="form-control form-control-sm">
+          <input type="month" name="month_year" id="ti_month_year" class="form-control form-control-sm" onchange="autoPopulateValues()">
         </div>
         <div class="col-md-2">
           <label class="form-label" style="font-size:0.75rem;margin-bottom:1px;">Twine</label>
-          <input type="text" name="twine" id="ti_twine" class="form-control form-control-sm" placeholder="">
+          <input type="text" name="twine" id="ti_twine" class="form-control form-control-sm" placeholder="" list="twine_list" onchange="autoPopulateValues()">
+          <datalist id="twine_list">
+            {% for mat in materials %}
+              <option value="{{ mat.code }}-{{ mat.displayname|default:mat.name }}">
+            {% endfor %}
+          </datalist>
         </div>
         <div class="col-md-2">
           <button type="button" class="btn btn-success btn-sm w-100" onclick="saveTI()">Save Entry</button>
@@ -228,6 +233,33 @@ const tiData = JSON.parse('{{ ti_json|escapejs }}' || '[]');
 var editingTIKey = '';
 
 populateTable();
+
+function autoPopulateValues() {
+    var monthYear = document.getElementById('ti_month_year').value;
+    var twine = document.getElementById('ti_twine').value;
+
+    if (!monthYear || !twine) {
+        return;
+    }
+
+    // Extract material code from twine selection (format: code-displayname)
+    var materialCode = twine.split('-')[0].trim();
+
+    fetch('/get-twine-inventory-data/?month_year=' + monthYear + '&material_code=' + materialCode)
+        .then(response => response.json())
+        .then(data => {
+            if (data.stock_in !== null) {
+                document.getElementById('ti_stock_in').value = data.stock_in;
+            }
+            if (data.sales_out !== null) {
+                document.getElementById('ti_sales_out').value = data.sales_out;
+            }
+            calcBalance();
+        })
+        .catch(error => {
+            console.error('Error fetching inventory data:', error);
+        });
+}
 
 function populateTable() {
     var tbody = document.getElementById('ti-table-body');

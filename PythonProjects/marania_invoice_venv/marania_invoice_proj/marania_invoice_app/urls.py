@@ -94,6 +94,7 @@ path('profit-loss', views.profit_loss_entry, name='profit_loss_entry'),
 
 # twine inventory
 path('twine-inventory', views.twine_inventory_entry, name='twine_inventory_entry'),
+path('get-twine-inventory-data/', views.get_twine_inventory_data, name='get_twine_inventory_data'),
 
 # excel 
 path('sheets/salesview', views.sheet_sales_view, name="sheet_sales_view"),

@@ -3960,11 +3960,12 @@ def profit_loss_entry(request):
 
 
 def twine_inventory_entry(request):
-    from .models import TwineInventory
+    from .models import TwineInventory, Materials
     from datetime import datetime, timedelta
     from decimal import Decimal
 
     twine_inventories = TwineInventory.objects.all()
+    materials = Materials.objects.all()
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -4142,4 +4143,74 @@ def twine_inventory_entry(request):
     return render(request, "marania_invoice_app/twine_inventory_entry.html", {
         "twine_inventories": twine_inventories,
         "ti_json": ti_json,
+        "materials": materials,
     })
+
+
+def get_twine_inventory_data(request):
+    from .models import Purchase, Sales, Materials
+    from decimal import Decimal
+
+    month_year = request.GET.get("month_year", "")
+    material_code = request.GET.get("material_code", "")
+
+    stock_in = Decimal("0")
+    sales_out = Decimal("0")
+
+    # Parse month_year to get year and month
+    try:
+        parts = month_year.split("-")
+        year = int(parts[0])
+        month = int(parts[1])
+    except (ValueError, IndexError, TypeError):
+        year = month = None
+
+    if year and month and material_code:
+        # Calculate Stock In from Purchase module
+        # Filter purchases where is_twine=True, material_code matches, and delivery_date is in the selected month
+        purchases = Purchase.objects.filter(
+            is_twine=True,
+            material_code=material_code,
+            delivery_date__year=year,
+            delivery_date__month=month
+        )
+        for purchase in purchases:
+            if purchase.quantity_weight:
+                stock_in += purchase.quantity_weight
+
+        # Also try matching by material field if material_code doesn't match
+        # Get the Material object to get its name
+        try:
+            material = Materials.objects.get(code=material_code)
+            # Also check purchases where the material field contains the material name
+            purchases_by_name = Purchase.objects.filter(
+                is_twine=True,
+                material__icontains=material.name,
+                delivery_date__year=year,
+                delivery_date__month=month
+            ).exclude(purchase_key__in=[p.purchase_key for p in purchases])
+            for purchase in purchases_by_name:
+                if purchase.quantity_weight:
+                    stock_in += purchase.quantity_weight
+        except Materials.DoesNotExist:
+            pass
+
+        # Calculate Sales Out from Sales module
+        # Filter sales where twine field contains the material code and sales_entry_date is in the selected month
+        sales = Sales.objects.filter(
+            sales_entry_date__year=year,
+            sales_entry_date__month=month
+        )
+        for sale in sales:
+            # Check if the twine field contains the material code
+            if sale.twine and material_code in sale.twine:
+                if sale.processed_weight:
+                    sales_out += sale.processed_weight
+                elif sale.initial_weight:
+                    sales_out += sale.initial_weight
+
+    return JsonResponse({
+        "stock_in": str(stock_in),
+        "sales_out": str(sales_out),
+    })
+
