@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Invoice Aging Report</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      color: #333;
+      margin-bottom: 5px;
+    }
+    .header p {
+      color: #666;
+      margin: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+      font-weight: bold;
+    }
+    .text-end {
+      text-align: right;
+    }
+    .group-header {
+      background-color: #e9ecef;
+      font-weight: bold;
+    }
+    .badge-success {
+      background-color: #28a745;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+    }
+    .badge-warning {
+      background-color: #ffc107;
+      color: black;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+    }
+    .badge-danger {
+      background-color: #dc3545;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+    }
+    .badge-info {
+      background-color: #17a2b8;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+    }
+    @page {
+      size: landscape;
+      margin: 1cm;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Invoice Aging Report</h1>
+    <p>Report Date: {{ today|date:"Y-m-d" }}</p>
+    <p>Group By: {% if group_by == 'customer' %}Customer{% elif group_by == 'age' %}Age Bucket{% else %}No Grouping{% endif %}</p>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Invoice Number</th>
+        <th>Invoice Date</th>
+        <th>Customer</th>
+        <th class="text-end">Gross Total</th>
+        <th class="text-end">Total Allocated</th>
+        <th class="text-end">Outstanding</th>
+        <th class="text-end">Age Days</th>
+        <th>Age Bucket</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if grouped_data %}
+        {% for group_name, items in grouped_data.items %}
+          <tr class="group-header">
+            <td colspan="9">{{ group_name }} ({{ items|length }} invoices)</td>
+          </tr>
+          {% for item in items %}
+          <tr>
+            <td>{{ item.invoice_number }}</td>
+            <td>{{ item.invoice_date|date:"Y-m-d" }}</td>
+            <td>{{ item.customer_code }}-{{ item.customer_name }}</td>
+            <td class="text-end">{{ item.gross_total }}</td>
+            <td class="text-end">{{ item.total_allocated }}</td>
+            <td class="text-end"><strong>{{ item.outstanding }}</strong></td>
+            <td class="text-end">{{ item.age_days }}</td>
+            <td>{{ item.age_bucket }}</td>
+            <td>{{ item.payment_status }}</td>
+          </tr>
+          {% endfor %}
+        {% endfor %}
+      {% else %}
+        {% for item in aging_data %}
+        <tr>
+          <td>{{ item.invoice_number }}</td>
+          <td>{{ item.invoice_date|date:"Y-m-d" }}</td>
+          <td>{{ item.customer_code }}-{{ item.customer_name }}</td>
+          <td class="text-end">{{ item.gross_total }}</td>
+          <td class="text-end">{{ item.total_allocated }}</td>
+          <td class="text-end"><strong>{{ item.outstanding }}</strong></td>
+          <td class="text-end">{{ item.age_days }}</td>
+          <td>{{ item.age_bucket }}</td>
+          <td>{{ item.payment_status }}</td>
+        </tr>
+        {% endfor %}
+      {% endif %}
+    </tbody>
+  </table>
+</body>
+</html>

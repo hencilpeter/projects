@@ -4372,3 +4372,156 @@ def get_twine_inventory_data(request):
         "debug": debug_info,
     })
 
+
+def invoice_aging_report(request):
+    from .models import Invoice, PaymentAllocation, PaymentReceipt
+    from datetime import date, timedelta
+    from decimal import Decimal
+    import csv
+    from django.http import HttpResponse
+
+    # Get filter parameters
+    group_by = request.GET.get('group_by', 'customer')  # customer, age, none
+    export_format = request.GET.get('export', None)  # csv, pdf, or None
+
+    # Fetch pending and partially paid invoices
+    invoices = Invoice.objects.filter(
+        payment_status__in=['Pending', 'Partial']
+    ).exclude(
+        payment_status__in=['Paid', 'WrittenOff', 'Cancelled']
+    )
+
+    # Calculate aging for each invoice
+    aging_data = []
+    today = date.today()
+
+    for invoice in invoices:
+        # Calculate total allocated amount
+        total_allocated = PaymentAllocation.objects.filter(
+            invoice=invoice
+        ).aggregate(
+            total=Sum('allocated_amount')
+        )['total'] or Decimal('0')
+
+        # Calculate outstanding balance
+        outstanding = invoice.gross_total - total_allocated
+
+        # Calculate age in days
+        if invoice.invoice_date:
+            age_days = (today - invoice.invoice_date).days
+        else:
+            age_days = 0
+
+        # Determine age bucket
+        if age_days <= 30:
+            age_bucket = '0-30 Days'
+        elif age_days <= 60:
+            age_bucket = '31-60 Days'
+        elif age_days <= 90:
+            age_bucket = '61-90 Days'
+        elif age_days <= 120:
+            age_bucket = '91-120 Days'
+        else:
+            age_bucket = '120+ Days'
+
+        aging_data.append({
+            'invoice_number': invoice.invoice_number,
+            'invoice_date': invoice.invoice_date,
+            'customer_code': invoice.customer_code,
+            'customer_name': invoice.customer_name,
+            'gross_total': invoice.gross_total,
+            'total_allocated': total_allocated,
+            'outstanding': outstanding,
+            'age_days': age_days,
+            'age_bucket': age_bucket,
+            'payment_status': invoice.payment_status,
+        })
+
+    # Group data based on selection
+    if group_by == 'customer':
+        grouped_data = {}
+        for item in aging_data:
+            customer_key = f"{item['customer_code']}-{item['customer_name']}"
+            if customer_key not in grouped_data:
+                grouped_data[customer_key] = []
+            grouped_data[customer_key].append(item)
+    elif group_by == 'age':
+        grouped_data = {}
+        for item in aging_data:
+            if item['age_bucket'] not in grouped_data:
+                grouped_data[item['age_bucket']] = []
+            grouped_data[item['age_bucket']].append(item)
+    else:
+        grouped_data = None  # No grouping
+
+    # Calculate summary statistics
+    total_outstanding = sum(item['outstanding'] for item in aging_data)
+    total_invoices = len(aging_data)
+    
+    # Calculate outstanding by age buckets
+    age_bucket_totals = {
+        '0_30_Days': sum(item['outstanding'] for item in aging_data if item['age_bucket'] == '0-30 Days'),
+        '31_60_Days': sum(item['outstanding'] for item in aging_data if item['age_bucket'] == '31-60 Days'),
+        '61_90_Days': sum(item['outstanding'] for item in aging_data if item['age_bucket'] == '61-90 Days'),
+        '91_120_Days': sum(item['outstanding'] for item in aging_data if item['age_bucket'] == '91-120 Days'),
+        '120_plus_Days': sum(item['outstanding'] for item in aging_data if item['age_bucket'] == '120+ Days'),
+    }
+
+    # Export to CSV
+    if export_format == 'csv':
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="invoice_aging_report.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow([
+            'Invoice Number', 'Invoice Date', 'Customer Code', 'Customer Name',
+            'Gross Total', 'Total Allocated', 'Outstanding', 'Age Days',
+            'Age Bucket', 'Payment Status'
+        ])
+
+        for item in aging_data:
+            writer.writerow([
+                item['invoice_number'],
+                item['invoice_date'],
+                item['customer_code'],
+                item['customer_name'],
+                item['gross_total'],
+                item['total_allocated'],
+                item['outstanding'],
+                item['age_days'],
+                item['age_bucket'],
+                item['payment_status'],
+            ])
+
+        return response
+
+    # Export to PDF
+    if export_format == 'pdf':
+        from django.template.loader import render_to_string
+        from weasyprint import HTML
+
+        html_string = render_to_string('marania_invoice_app/invoice_aging_report_pdf.html', {
+            'aging_data': aging_data,
+            'grouped_data': grouped_data,
+            'group_by': group_by,
+            'today': today,
+        })
+
+        html = HTML(string=html_string)
+        pdf_file = html.write_pdf()
+
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="invoice_aging_report.pdf"'
+        return response
+
+    # Render HTML page
+    return render(request, 'marania_invoice_app/invoice_aging_report.html', {
+        'aging_data': aging_data,
+        'grouped_data': grouped_data,
+        'group_by': group_by,
+        'today': today,
+        'total_outstanding': total_outstanding,
+        'total_invoices': total_invoices,
+        'age_bucket_totals': age_bucket_totals,
+    })
+
