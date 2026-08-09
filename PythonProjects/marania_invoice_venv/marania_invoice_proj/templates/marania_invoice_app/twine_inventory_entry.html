@@ -124,7 +124,7 @@
       <div class="row mb-3">
         <div class="col-md-2">
           <label class="form-label" style="font-size:0.75rem;margin-bottom:1px;">Daily Usage</label>
-          <input type="number" name="daily_usage" id="ti_daily_usage" step="0.01" class="form-control form-control-sm" value="0.00">
+          <input type="number" name="daily_usage" id="ti_daily_usage" step="0.01" class="form-control form-control-sm" value="0.00" oninput="calcDaysLeft()">
         </div>
         <div class="col-md-2">
           <label class="form-label" style="font-size:0.75rem;margin-bottom:1px;">Usage Basis</label>
@@ -136,11 +136,11 @@
         </div>
         <div class="col-md-2">
           <label class="form-label" style="font-size:0.75rem;margin-bottom:1px;">Days Left</label>
-          <input type="number" name="days_left" id="ti_days_left" class="form-control form-control-sm" placeholder="">
+          <input type="number" name="days_left" id="ti_days_left" class="form-control form-control-sm" placeholder="" readonly>
         </div>
         <div class="col-md-2">
           <label class="form-label" style="font-size:0.75rem;margin-bottom:1px;">Est. Stock-Out Date</label>
-          <input type="date" name="est_stock_out_date" id="ti_est_stock_out_date" class="form-control form-control-sm">
+          <input type="date" name="est_stock_out_date" id="ti_est_stock_out_date" class="form-control form-control-sm" readonly>
         </div>
       </div>
 
@@ -163,12 +163,12 @@
               <th>Actions</th>
               <th>Year-Month</th>
               <th>Twine</th>
-              <th>Opening Stock</th>
-              <th>Stock In</th>
-              <th>Sales Out</th>
-              <th>Waste Used</th>
-              <th>Balance</th>
-              <th>Daily Usage</th>
+              <th>Opening Stock(KG)</th>
+              <th>Stock In(KG)</th>
+              <th>Sales Out(KG)</th>
+              <th>Waste Used(KG)</th>
+              <th>Balance(KG)</th>
+              <th>Daily Usage(KG)</th>
               <th>Usage Basis</th>
               <th>Days Left</th>
               <th>Est. Stock-Out Date</th>
@@ -233,6 +233,22 @@ const tiData = JSON.parse('{{ ti_json|escapejs }}' || '[]');
 var editingTIKey = '';
 
 populateTable();
+
+// Set default month-year to current month
+function setDefaultMonthYear() {
+    var today = new Date();
+    var year = today.getFullYear();
+    var month = String(today.getMonth() + 1).padStart(2, '0');
+    var monthYear = year + '-' + month;
+    
+    var monthYearInput = document.getElementById('ti_month_year');
+    if (monthYearInput && !monthYearInput.value) {
+        monthYearInput.value = monthYear;
+    }
+}
+
+// Call on page load
+setDefaultMonthYear();
 
 function autoPopulateValues() {
     var monthYear = document.getElementById('ti_month_year').value;
@@ -321,6 +337,31 @@ function calcBalance() {
     var wasteUsed = parseFloat(document.getElementById('ti_waste_used').value) || 0;
     var balance = opening + stockIn - salesOut - wasteUsed;
     document.getElementById('ti_balance').value = balance.toFixed(2);
+    calcDaysLeft();
+}
+
+function calcDaysLeft() {
+    var balance = parseFloat(document.getElementById('ti_balance').value) || 0;
+    var dailyUsage = parseFloat(document.getElementById('ti_daily_usage').value) || 0;
+    
+    if (dailyUsage > 0 && balance > 0) {
+        var daysLeft = balance / dailyUsage;
+        document.getElementById('ti_days_left').value = Math.ceil(daysLeft);
+        
+        // Calculate estimated stock-out date
+        var today = new Date();
+        var estDate = new Date(today);
+        estDate.setDate(today.getDate() + Math.ceil(daysLeft));
+        
+        // Format as YYYY-MM-DD
+        var year = estDate.getFullYear();
+        var month = String(estDate.getMonth() + 1).padStart(2, '0');
+        var day = String(estDate.getDate()).padStart(2, '0');
+        document.getElementById('ti_est_stock_out_date').value = year + '-' + month + '-' + day;
+    } else {
+        document.getElementById('ti_days_left').value = '';
+        document.getElementById('ti_est_stock_out_date').value = '';
+    }
 }
 
 function saveTI() {
@@ -365,6 +406,7 @@ function setFormData(data) {
     if (!collapseEl.classList.contains("show")) {
         bsCollapse.show();
     }
+    calcBalance();
 }
 
 function resetTI() {

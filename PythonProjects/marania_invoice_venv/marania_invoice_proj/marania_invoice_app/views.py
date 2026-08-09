@@ -4148,7 +4148,7 @@ def twine_inventory_entry(request):
 
 
 def get_twine_inventory_data(request):
-    from .models import Purchase, Sales, Materials, TwineInventory
+    from .models import Purchase, Sales, Materials, TwineInventory, Product
     from decimal import Decimal
 
     month_year = request.GET.get("month_year", "")
@@ -4170,28 +4170,27 @@ def get_twine_inventory_data(request):
     debug_info.append(f"Request: month_year={month_year}, material_code={material_code}, parsed_year={year}, parsed_month={month}")
 
     if year and month and material_code:
-        # Material synonyms mapping (material_code -> list of synonyms)
-        # This handles materials that have different names but are the same
-        material_synonyms = {
-            '16Fida': ['DK16', '16Fida', '.16-Fida'],
-            'DK16': ['16Fida', 'DK16', '.16-Fida'],
-            'DK20': ['20JINETS', 'DK20'],
-            '20JINETS': ['DK20', '20JINETS'],
-        }
-        
-        # Get synonyms for the selected material code
-        synonyms = material_synonyms.get(material_code, [material_code])
-        
         # Get material name for matching
         material_name = None
         try:
             material = Materials.objects.get(code=material_code)
             material_name = material.name
-            synonyms.append(material_name)
             debug_info.append(f"Material found: code={material.code}, name={material.name}, displayname={material.displayname}")
         except Materials.DoesNotExist:
             debug_info.append("Material not found in Materials table")
         
+        # Build synonyms list dynamically from Product-Material relationship
+        # Get all Product codes that reference this Material
+        synonyms = [material_code]
+        if material_name:
+            synonyms.append(material_name)
+        
+        # Find all Products that have this material as their foreign key
+        products_with_this_material = Product.objects.filter(material__code=material_code)
+        product_codes = list(products_with_this_material.values_list('code', flat=True))
+        synonyms.extend(product_codes)
+        
+        debug_info.append(f"Product codes for material {material_code}: {product_codes}")
         debug_info.append(f"Synonyms for matching: {synonyms}")
         
         # Calculate Stock In from Purchase module
