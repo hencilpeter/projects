@@ -103,13 +103,13 @@
                   <label class="form-label small mb-0">Total Meshes</label>
                   <input type="number" class="form-control form-control-sm prod-total-meshes bg-light" placeholder="Meshes" readonly>
                 </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Addl.NET Twine</label>
+                  <input type="number" step="0.1" class="form-control form-control-sm prod-addl-net-twine" placeholder="Addl Twine">
+                </div>
                 <div class="col-md-2 d-flex align-items-end gap-1">
                   <button type="button" class="btn btn-sm btn-success add-net-row">+ Net</button>
                   <button type="button" class="btn btn-sm btn-warning add-sel-row">+ Sel</button>
-                </div>
-                <div class="col-md-1 d-flex align-items-end">
-                  <button type="button" class="btn btn-outline-danger btn-sm remove-row" style="display:none;">&times;</button>
-                  <button type="button" class="btn btn-outline-primary btn-sm add-row ms-1">+</button>
                 </div>
               </div>
 
@@ -164,9 +164,11 @@
 
 {{ orders_json|json_script:"orders-data" }}
 {{ machines_json|json_script:"machines-data" }}
+{{ twine_options_json|json_script:"twine-options-data" }}
 <script>
 const ordersData = JSON.parse(document.getElementById("orders-data").textContent);
 const machinesData = JSON.parse(document.getElementById("machines-data").textContent);
+const twineOptions = JSON.parse(document.getElementById("twine-options-data").textContent);
 const productionContainer = document.getElementById("production-rows");
 
 /* Populate all orders in memory and populate dropdown */
@@ -218,28 +220,11 @@ function populateOrderFields() {
   row.querySelector(".prod-qty").value = o.quantity || "";
   row.querySelector(".prod-unit").value = o.quantity_unit || "KG";
   row.querySelector(".prod-product").value = o.product_code || "";
-  if (o.product_code) {
-    fetchConversionFactor(o.product_code, row);
-  }
   recalcRow(row);
 }
 
 document.getElementById("fetch-order-btn").addEventListener("click", populateOrderFields);
 orderSelect.addEventListener("change", populateOrderFields);
-
-/* Fetch conversion factor via API */
-function fetchConversionFactor(productCode, row) {
-  if (!productCode) return;
-  fetch(`/configuration/material-conversion-ratio?code=${encodeURIComponent(productCode)}`)
-    .then(r => r.json())
-    .then(data => {
-      if (data.conversion_ratio) {
-        row.querySelector(".prod-conv").value = data.conversion_ratio;
-        recalcRow(row);
-      }
-    })
-    .catch(() => {});
-}
 
 /* Machine change -> populate Total Meshes from shuttles */
 productionContainer.addEventListener("change", e => {
@@ -266,40 +251,52 @@ productionContainer.addEventListener("click", e => {
   addTwineRow(container, "SEL");
 });
 
+function buildTwineOptionsHTML(selectedCode) {
+  let opts = '<option value="">-- Select Twine --</option>';
+  twineOptions.forEach(t => {
+    const sel = (selectedCode && t.code === selectedCode) ? 'selected' : '';
+    opts += `<option value="${t.code}" data-ratio="${t.ratio}" ${sel}>${t.label}</option>`;
+  });
+  return opts;
+}
+
 function addTwineRow(container, type) {
   const prodRow = container.closest(".production-row") || container.parentElement.querySelector(".production-row");
   const topMM = prodRow ? prodRow.querySelector(".prod-mm").value : "";
+  const topMD = prodRow ? prodRow.querySelector(".prod-md").value : "";
   const productCode = prodRow ? prodRow.querySelector(".prod-product").value : "";
   const div = document.createElement("div");
   div.className = "row mb-2 align-items-end g-1 twine-row";
   div.dataset.type = type;
   div.innerHTML = `
     <div class="col-md-1"><span class="badge bg-${type === 'NET' ? 'success' : 'warning'} twine-label">${type}</span></div>
-    <div class="col-md-1"><input type="number" step="0.1" class="form-control form-control-sm twine-mm" placeholder="MM" value="${type === 'NET' && topMM ? topMM : ''}"></div>
-    <div class="col-md-1"><input type="number" step="0.1" class="form-control form-control-sm twine-md" placeholder="MD"></div>
+    <div class="col-md-1"><input type="number" step="0.1" class="form-control form-control-sm twine-mm" placeholder="MM" value="${topMM ? topMM : ''}"></div>
+    <div class="col-md-1"><input type="number" step="0.1" class="form-control form-control-sm twine-md" placeholder="MD" value="${type === 'NET' && topMD ? topMD : ''}"></div>
     <div class="col-md-1"><input type="number" class="form-control form-control-sm twine-pcs" placeholder="Pcs"></div>
     <div class="col-md-1"><input type="text" class="form-control form-control-sm twine-count bg-light" placeholder="Twine Count" readonly></div>
-    <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-twine" placeholder="Twine" value="${type === 'NET' && productCode ? productCode : ''}"></div>
+    <div class="col-md-2"><select class="form-select form-select-sm twine-select">${buildTwineOptionsHTML(type === 'NET' ? productCode : '')}</select></div>
     <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-conv bg-light" placeholder="Conversion Factor" readonly></div>
     <div class="col-md-1"><button type="button" class="btn btn-outline-danger btn-sm remove-twine-row">&times;</button></div>
   `;
   container.appendChild(div);
   if (type === 'NET' && productCode) {
-    fetchConversionFactorForTwine(productCode, div);
+    const ratio = twineOptions.find(t => t.code === productCode);
+    if (ratio) {
+      div.querySelector(".twine-conv").value = ratio.ratio;
+    }
   }
 }
 
-function fetchConversionFactorForTwine(productCode, twineRow) {
-  if (!productCode) return;
-  fetch(`/configuration/material-conversion-ratio?code=${encodeURIComponent(productCode)}`)
-    .then(r => r.json())
-    .then(data => {
-      if (data.conversion_ratio) {
-        twineRow.querySelector(".twine-conv").value = data.conversion_ratio;
-      }
-    })
-    .catch(() => {});
-}
+/* Twine select change -> populate conversion factor */
+productionContainer.addEventListener("change", e => {
+  if (!e.target.classList.contains("twine-select")) return;
+  const twineRow = e.target.closest(".twine-row");
+  const selectedOption = e.target.selectedOptions[0];
+  const ratio = selectedOption ? selectedOption.dataset.ratio : "";
+  twineRow.querySelector(".twine-conv").value = ratio || "";
+  const prodRow = e.target.closest(".production-row");
+  if (prodRow) recalcRow(prodRow);
+});
 
 /* Remove twine row */
 productionContainer.addEventListener("click", e => {
@@ -322,6 +319,14 @@ productionContainer.addEventListener("input", e => {
   }
 });
 
+/* Addl.NET Twine change -> update Total Twine */
+productionContainer.addEventListener("input", e => {
+  if (e.target.classList.contains("prod-addl-net-twine")) {
+    const row = e.target.closest(".production-row");
+    updateTotalTwine(row);
+  }
+});
+
 function updateTotalTwine(row) {
   if (!row) return;
   let total = 0;
@@ -331,6 +336,8 @@ function updateTotalTwine(row) {
       total += parseFloat(tr.querySelector(".twine-count").value) || 0;
     });
   }
+  const addlTwine = parseFloat(row.querySelector(".prod-addl-net-twine").value) || 0;
+  total += addlTwine;
   const totalEl = row.querySelector(".prod-total-twine");
   if (totalEl) totalEl.value = total ? total.toFixed(1) : "0";
 }
@@ -338,50 +345,28 @@ function updateTotalTwine(row) {
 /* Recalculate row */
 function recalcRow(row) {
   const qty = parseFloat(row.querySelector(".prod-qty").value) || 0;
-  const conv = parseFloat(row.querySelector(".prod-conv").value) || 0;
   const unitCost = parseFloat(row.querySelector(".prod-unit-cost").value) || 0;
-  const times = parseInt(row.querySelector(".prod-times").value) || 1;
-  const calcWt = qty * conv * times;
-  const calcCost = calcWt * unitCost;
-  row.querySelector(".prod-calc-wt").value = calcWt ? calcWt.toFixed(2) : "";
-  row.querySelector(".prod-calc-cost").value = calcCost ? calcCost.toFixed(2) : "";
+  let totalCalcWt = 0;
+  let totalCalcCost = 0;
+  const twineContainer = row.parentElement.querySelector(".twine-rows-container");
+  if (twineContainer) {
+    twineContainer.querySelectorAll(".twine-row").forEach(tr => {
+      const twineCount = parseFloat(tr.querySelector(".twine-count").value) || 0;
+      const conv = parseFloat(tr.querySelector(".twine-conv").value) || 0;
+      const rowWt = qty * conv * twineCount;
+      totalCalcWt += rowWt;
+    });
+  }
+  totalCalcCost = totalCalcWt * unitCost;
+  row.querySelector(".prod-calc-wt").value = totalCalcWt ? totalCalcWt.toFixed(2) : "";
+  row.querySelector(".prod-calc-cost").value = totalCalcCost ? totalCalcCost.toFixed(2) : "";
 }
 
 productionContainer.addEventListener("input", e => {
-  if (e.target.classList.contains("prod-qty") || e.target.classList.contains("prod-unit-cost") || e.target.classList.contains("prod-times")) {
+  if (e.target.classList.contains("prod-qty") || e.target.classList.contains("prod-unit-cost") || e.target.classList.contains("twine-md") || e.target.classList.contains("twine-pcs")) {
     const row = e.target.closest(".production-row");
     recalcRow(row);
   }
-});
-
-/* Add row */
-productionContainer.addEventListener("click", e => {
-  if (!e.target.classList.contains("add-row")) return;
-  const firstRow = productionContainer.querySelector(".production-row");
-  const newRow = firstRow.cloneNode(true);
-  newRow.querySelectorAll("input").forEach(i => {
-    if (i.classList.contains("prod-times")) { i.value = "1"; return; }
-    if (i.readOnly) { i.value = ""; return; }
-    if (!i.classList.contains("prod-unit-cost")) i.value = "";
-  });
-  newRow.querySelectorAll("select").forEach(s => s.selectedIndex = 0);
-  newRow.querySelector(".remove-row").style.display = "";
-  newRow.querySelector(".prod-total-meshes").value = "";
-  newRow.querySelector(".prod-total-twine").value = "";
-  const twineContainer = newRow.parentElement.querySelector(".twine-rows-container");
-  if (twineContainer) {
-    const clonedTwines = twineContainer.querySelectorAll(".twine-row");
-    clonedTwines.forEach(tw => tw.remove());
-  }
-  productionContainer.appendChild(newRow);
-});
-
-/* Remove row */
-productionContainer.addEventListener("click", e => {
-  if (!e.target.classList.contains("remove-row")) return;
-  const rows = productionContainer.querySelectorAll(".production-row");
-  if (rows.length <= 1) { alert("At least one row required"); return; }
-  e.target.closest(".production-row").remove();
 });
 
 /* Submit */
@@ -409,6 +394,7 @@ document.getElementById("production-form").addEventListener("submit", e => {
       calculated_cost: row.querySelector(".prod-calc-cost").value,
       remarks: row.querySelector(".prod-remarks").value,
       total_meshes: row.querySelector(".prod-total-meshes").value,
+      addl_net_twine: row.querySelector(".prod-addl-net-twine").value,
       total_twine: row.querySelector(".prod-total-twine").value,
       twine_rows: [],
     });
@@ -421,7 +407,7 @@ document.getElementById("production-form").addEventListener("submit", e => {
           md: tr.querySelector(".twine-md").value,
           pcs: tr.querySelector(".twine-pcs").value,
           twine_count: tr.querySelector(".twine-count").value,
-          twine: tr.querySelector(".twine-twine").value,
+          twine: tr.querySelector(".twine-select").value,
           conversion_factor: tr.querySelector(".twine-conv").value,
         });
       });

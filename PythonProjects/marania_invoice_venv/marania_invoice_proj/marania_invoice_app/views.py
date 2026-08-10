@@ -5423,11 +5423,16 @@ def production_entry_view(request):
     machines = MachineOperationalCost.objects.all().order_by("machine_number")
     machines_json = [{"machine_number": m.machine_number, "number_of_shuttles": m.number_of_shuttles or 0} for m in machines]
 
+    from .models import MaterialConversionRatio
+    conversion_ratios = MaterialConversionRatio.objects.all().order_by("material_code")
+    twine_options = [{"code": r.material_code, "ratio": str(r.conversion_ratio), "label": f"{r.material_code}-{r.conversion_ratio}"} for r in conversion_ratios]
+
     context = {
         "orders_json": orders_data,
         "products": products,
         "machines": machines,
         "machines_json": machines_json,
+        "twine_options_json": twine_options,
     }
     return render(request, "marania_invoice_app/production_entry.html", context)
 
