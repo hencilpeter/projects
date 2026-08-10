@@ -158,35 +158,51 @@
             <th>Date
               <input type="text" class="form-control form-control-sm text-filter" data-col="0">
             </th>
-            <th>Customer
+            <th>Reference
               <input type="text" class="form-control form-control-sm text-filter" data-col="1">
             </th>
-            <th>Specification
+            <th>Customer
               <input type="text" class="form-control form-control-sm text-filter" data-col="2">
             </th>
-            <th>Product
+            <th>Specification
               <input type="text" class="form-control form-control-sm text-filter" data-col="3">
             </th>
-            <th>Machine
+            <th>Product
               <input type="text" class="form-control form-control-sm text-filter" data-col="4">
             </th>
-            <th>MM
+            <th>Machine
               <input type="text" class="form-control form-control-sm text-filter" data-col="5">
             </th>
-            <th>MD
+            <th>Knot Cap/Day
               <input type="text" class="form-control form-control-sm text-filter" data-col="6">
             </th>
-            <th>Weight
+            <th>Total Meshes
               <input type="text" class="form-control form-control-sm text-filter" data-col="7">
             </th>
-            <th>Unit
+            <th>Est.Weight
               <input type="text" class="form-control form-control-sm text-filter" data-col="8">
             </th>
-            <th>Total Twine
+            <th>Weight
               <input type="text" class="form-control form-control-sm text-filter" data-col="9">
             </th>
-            <th>Calc Weight
+            <th>Unit
               <input type="text" class="form-control form-control-sm text-filter" data-col="10">
+            </th>
+            <th>Addl.NET Twine
+              <input type="text" class="form-control form-control-sm text-filter" data-col="11">
+            </th>
+            <th>Total Twine
+              <input type="text" class="form-control form-control-sm text-filter" data-col="12">
+            </th>
+            <th>NET Twine Details
+            </th>
+            <th>SEL Twine Details
+            </th>
+            <th>NET Addl Details
+            </th>
+            <th>Total Daily Output
+            </th>
+            <th>Required Days
             </th>
             <th>
               Action
@@ -202,16 +218,53 @@
           {% for p in productions %}
           <tr data-key="{{ p.production_key }}">
             <td>{{ p.production_date }}</td>
+            <td>{{ p.reference }}</td>
             <td>{{ p.customer }}</td>
             <td>{{ p.specification }}</td>
             <td>{{ p.product }}</td>
             <td>{{ p.machine }}</td>
-            <td>{{ p.mm }}</td>
-            <td>{{ p.md }}</td>
+            <td>{{ p.knots_capacity_per_day }}</td>
+            <td>{{ p.total_meshes }}</td>
+            <td>{{ p.est_weight }}</td>
             <td>{{ p.required_weight }}</td>
             <td>{{ p.quantity_unit }}</td>
+            <td>{{ p.addl_net_twine }}</td>
             <td>{{ p.total_twine }}</td>
-            <td>{{ p.calculated_weight }}</td>
+            <td>
+              {% if p.twine_rows %}
+                <small>
+                  {% for tr in p.twine_rows %}
+                    {% if tr.type == 'NET' %}
+                      ({{ tr.md }}x{{ tr.pcs }}={{ tr.twine_count }}, CF:{{ tr.conversion_factor }})<br>
+                    {% endif %}
+                  {% endfor %}
+                </small>
+              {% endif %}
+            </td>
+            <td>
+              {% if p.twine_rows %}
+                <small>
+                  {% for tr in p.twine_rows %}
+                    {% if tr.type == 'SEL' %}
+                      ({{ tr.md }}x{{ tr.pcs }}={{ tr.twine_count }}, CF:{{ tr.conversion_factor }})<br>
+                    {% endif %}
+                  {% endfor %}
+                </small>
+              {% endif %}
+            </td>
+            <td>
+              {% if p.twine_rows %}
+                <small>
+                  {% for tr in p.twine_rows %}
+                    {% if tr.type == 'NET' %}
+                      {{ tr.twine }} ({{ tr.md }}x{{ tr.pcs }}={{ tr.twine_count }}, CF:{{ tr.conversion_factor }})<br>
+                    {% endif %}
+                  {% endfor %}
+                </small>
+              {% endif %}
+            </td>
+            <td>{{ p.total_daily_output }}</td>
+            <td>{{ p.required_days }}</td>
             <td>
               <button type="button"
                       class="btn btn-primary btn-sm edit-production"
@@ -474,6 +527,8 @@ productionContainer.addEventListener("click", e => {
   </div>`;
   breakdownDiv.innerHTML = html;
   resultsDiv.style.display = "";
+  row.setAttribute("data-total-daily-output", totalDailyOutput.toFixed(2));
+  row.setAttribute("data-required-days", requiredDays.toFixed(1));
 });
 
 function updateTotalTwine(row) {
@@ -527,11 +582,14 @@ document.getElementById("production-form").addEventListener("submit", e => {
       pw: row.querySelector(".prod-pw").value,
       quantity: row.querySelector(".prod-qty").value,
       quantity_unit: row.querySelector(".prod-unit").value,
+      est_weight: row.querySelector(".prod-est-weight").value,
       machine: machine,
       knots_capacity_per_day: row.querySelector(".prod-knot-cap").value,
       total_meshes: row.querySelector(".prod-total-meshes").value,
       addl_net_twine: row.querySelector(".prod-addl-net-twine").value,
       total_twine: row.querySelector(".prod-total-twine").value,
+      total_daily_output: row.dataset.totalDailyOutput || "",
+      required_days: row.dataset.requiredDays || "",
       twine_rows: twineRows,
     });
   });
@@ -610,6 +668,7 @@ document.addEventListener("click", e => {
     row.querySelector(".prod-pw").value = data.pw || "";
     row.querySelector(".prod-qty").value = data.required_weight || "";
     row.querySelector(".prod-unit").value = data.quantity_unit || "KG";
+    row.querySelector(".prod-est-weight").value = data.est_weight || "";
     row.querySelector(".prod-machine").value = data.machine || "";
     row.querySelector(".prod-knot-cap").value = data.knots_capacity_per_day || "";
     row.querySelector(".prod-total-meshes").value = data.total_meshes || "";

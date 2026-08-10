@@ -5330,6 +5330,7 @@ def additional_cost_view(request):
 @login_required
 def production_entry_view(request):
     from .models import Production, Order, OrderSpecification, Product, MaterialConversionRatio, MachineOperationalCost
+    import json
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -5337,7 +5338,6 @@ def production_entry_view(request):
         if action == "save":
             entries_raw = request.POST.get("entries_data")
             if entries_raw:
-                import json
                 entries = json.loads(entries_raw) if isinstance(entries_raw, str) else entries_raw
                 saved = 0
                 for entry in entries:
@@ -5380,15 +5380,18 @@ def production_entry_view(request):
                         sel=(entry.get("sel") or "").strip(),
                         pw=(entry.get("pw") or "").strip(),
                         required_weight=quantity or None,
+                        est_weight=float(entry.get("est_weight") or 0) or None,
                         quantity_unit=(entry.get("quantity_unit") or "KG").strip(),
                         machine=(entry.get("machine") or "").strip(),
                         knots_capacity_per_day=float(entry.get("knots_capacity_per_day") or 0) or None,
                         total_meshes=int(entry.get("total_meshes") or 0) or None,
                         addl_net_twine=float(entry.get("addl_net_twine") or 0) or None,
-                        total_twine=float(entry.get("total_twine") or 0) or None,
-                        conversion_factor=conversion,
-                        calculated_weight=calc_weight or None,
-                        remarks=remarks,
+                         total_twine=float(entry.get("total_twine") or 0) or None,
+                         total_daily_output=float(entry.get("total_daily_output") or 0) or None,
+                         required_days=float(entry.get("required_days") or 0) or None,
+                         conversion_factor=conversion,
+                         calculated_weight=calc_weight or None,
+                         remarks=remarks,
                     )
                     saved += 1
                 messages.success(request, f"{saved} production entries saved.")
@@ -5452,6 +5455,7 @@ def production_entry_view(request):
             "sel": p.sel,
             "pw": p.pw,
             "required_weight": str(p.required_weight) if p.required_weight else "",
+            "est_weight": str(p.est_weight) if p.est_weight else "",
             "quantity_unit": p.quantity_unit or "KG",
             "machine": p.machine,
             "knots_capacity_per_day": str(p.knots_capacity_per_day) if p.knots_capacity_per_day else "",
@@ -5461,7 +5465,20 @@ def production_entry_view(request):
             "conversion_factor": str(p.conversion_factor) if p.conversion_factor else "",
             "calculated_weight": str(p.calculated_weight) if p.calculated_weight else "",
             "twine_rows": twine_rows,
+            "total_daily_output": str(p.knots_capacity_per_day) if p.knots_capacity_per_day else "",
+            "required_days": "",
         })
+        
+        # Calculate required days
+        if p.knots_capacity_per_day and p.total_meshes:
+            try:
+                knot_cap = float(p.knots_capacity_per_day)
+                total_mesh = int(p.total_meshes)
+                if knot_cap > 0:
+                    required_days = total_mesh / knot_cap
+                    productions_data[-1]["required_days"] = f"{required_days:.2f}"
+            except:
+                pass
 
     context = {
         "orders_json": orders_data,
@@ -5500,6 +5517,7 @@ def load_production_view(request, pk):
             "sel": production.sel,
             "pw": production.pw,
             "required_weight": str(production.required_weight) if production.required_weight else "",
+            "est_weight": str(production.est_weight) if production.est_weight else "",
             "quantity_unit": production.quantity_unit or "KG",
             "machine": production.machine,
             "knots_capacity_per_day": str(production.knots_capacity_per_day) if production.knots_capacity_per_day else "",
@@ -5534,13 +5552,14 @@ def production_detail_view(request):
             "product": p.product or "",
             "sel": p.sel or "",
             "pw": p.pw or "",
-            "required_weight": str(p.required_weight) if p.required_weight else "",
+            "est_weight": str(p.est_weight) if p.est_weight else "",
             "machine": p.machine or "",
-            "selvage_twine": p.selvage_twine or "",
-            "number_of_times": p.number_of_times,
-            "conversion_factor": str(p.conversion_factor) if p.conversion_factor else "",
-            "calculated_weight": str(p.calculated_weight) if p.calculated_weight else "",
-            "calculated_cost": str(p.calculated_cost) if p.calculated_cost else "",
+            "knots_capacity_per_day": str(p.knots_capacity_per_day) if p.knots_capacity_per_day else "",
+            "total_meshes": p.total_meshes or "",
+            "addl_net_twine": str(p.addl_net_twine) if p.addl_net_twine else "",
+            "total_twine": str(p.total_twine) if p.total_twine else "",
+            "total_daily_output": str(p.total_daily_output) if p.total_daily_output else "",
+            "required_days": str(p.required_days) if p.required_days else "",
             "remarks": p.remarks or "",
         })
 
