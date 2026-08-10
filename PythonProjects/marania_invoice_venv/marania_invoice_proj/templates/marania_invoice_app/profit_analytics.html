@@ -93,13 +93,19 @@
                   <input type="text" class="form-control form-control-sm prof-addl-total bg-light" placeholder="Additional Total" readonly>
                 </div>
                 <div class="col-md-3">
-                  <label class="form-label small mb-0">Raw Material Cost</label>
-                  <input type="number" step="0.01" class="form-control form-control-sm prof-raw-cost" placeholder="Raw Material Cost">
-                </div>
-                <div class="col-md-3">
                   <label class="form-label small mb-0 text-success fw-bold">TOTAL COST</label>
                   <input type="text" class="form-control form-control-sm prof-total-cost bg-light fw-bold" placeholder="Total Cost" readonly>
                 </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-0 text-primary fw-bold">TOTAL RAW COST</label>
+                  <input type="text" class="form-control form-control-sm prof-total-raw bg-light fw-bold" placeholder="Total Raw Cost" readonly>
+                </div>
+              </div>
+
+              <hr>
+              <h6 class="text-warning fw-bold">Raw Material / Twine</h6>
+              <div id="raw-twine-rows" class="mb-2">
+                <div class="text-muted small">Select a production to see twine details</div>
               </div>
 
               <hr>
@@ -231,8 +237,33 @@
                 data-revenue="{{ pr.total_revenue|default:'0' }}"
                 data-profit="{{ pr.total_profit|default:'0' }}"
                 data-margin="{{ pr.profit_margin_pct|default:'0' }}"
-                data-profit-kg="{{ pr.profit_per_kg|default:'0' }}">
+                data-profit-kg="{{ pr.profit_per_kg|default:'0' }}"
+                data-profit-key="{{ pr.profit_key }}"
+                data-profit-date="{{ pr.profit_date }}"
+                data-customer="{{ pr.customer }}"
+                data-product="{{ pr.product }}"
+                data-machine="{{ pr.machine }}"
+                data-est-weight="{{ pr.est_weight }}"
+                data-daily-output="{{ pr.total_daily_output }}"
+                data-req-days="{{ pr.required_days }}"
+                data-machine-cost-day="{{ pr.machine_operational_cost_per_day }}"
+                data-machine-total="{{ pr.machine_operational_total }}"
+                data-proc-cost="{{ pr.processing_cost_per_kg }}"
+                data-proc-total="{{ pr.processing_total }}"
+                data-addl-cost="{{ pr.additional_cost_per_kg }}"
+                data-addl-total="{{ pr.additional_total }}"
+                data-raw-cost="{{ pr.raw_material_cost }}"
+                data-total-cost="{{ pr.total_cost }}"
+                data-sale-price="{{ pr.sale_price_per_kg }}"
+                data-total-revenue="{{ pr.total_revenue }}"
+                data-total-profit="{{ pr.total_profit }}"
+                data-profit-kg-val="{{ pr.profit_per_kg }}"
+                data-margin-val="{{ pr.profit_margin_pct }}"
+                data-remarks="{{ pr.remarks }}"
+                data-raw-twine="{{ pr.raw_twine_data }}"
+                data-production-key="{{ pr.production.production_key|default:'' }}">
               <td>
+                <button type="button" class="btn btn-primary btn-sm edit-profit" data-key="{{ pr.profit_key }}">&#9998;</button>
                 <button type="button" class="btn btn-danger btn-sm delete-profit" data-key="{{ pr.profit_key }}">&times;</button>
               </td>
               <td><input type="checkbox" class="profit-row-check" value="{{ pr.profit_key }}"></td>
@@ -322,6 +353,29 @@ prodSelect.addEventListener("change", () => {
   row.querySelector(".prof-addl-cost").value = addlCost ? addlCost.toFixed(2) : "";
   row.dataset.addlCost = addlCost;
 
+  /* Populate raw twine rows */
+  const twineContainer = document.getElementById("raw-twine-rows");
+  twineContainer.innerHTML = "";
+  const twineRows = o.twine_rows || [];
+  row.dataset.twineRows = JSON.stringify(twineRows);
+  if (twineRows.length === 0) {
+    twineContainer.innerHTML = '<div class="text-muted small">No twine data for this production</div>';
+  } else {
+    twineRows.forEach((tr, idx) => {
+      const twineWeight = (parseFloat(tr.twine_count || 0) * parseFloat(o.est_weight || 0)) / 1000;
+      const div = document.createElement("div");
+      div.className = "row mb-1 align-items-end g-1 twine-cost-row";
+      div.innerHTML = `
+        <div class="col-md-1"><span class="badge bg-${tr.type === 'NET' ? 'success' : 'warning'} twine-type-badge">${tr.type}</span></div>
+        <div class="col-md-3"><input type="text" class="form-control form-control-sm twine-name" value="${tr.twine || ''}" placeholder="Twine/Material"></div>
+        <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-weight bg-light" value="${twineWeight.toFixed(2)}" placeholder="Weight(KG)" readonly></div>
+        <div class="col-md-2"><input type="number" step="0.01" class="form-control form-control-sm twine-cost-kg" placeholder="Cost/KG" value=""></div>
+        <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-cost-total bg-light" placeholder="Total" readonly></div>
+      `;
+      twineContainer.appendChild(div);
+    });
+  }
+
   recalcProfit(row);
 });
 
@@ -334,7 +388,7 @@ profitContainer.addEventListener("click", e => {
 
 /* Input changes -> recalculate */
 profitContainer.addEventListener("input", e => {
-  if (e.target.classList.contains("prof-raw-cost") || e.target.classList.contains("prof-sale-price")) {
+  if (e.target.classList.contains("prof-sale-price") || e.target.classList.contains("twine-cost-kg")) {
     const row = e.target.closest(".profit-row");
     recalcProfit(row);
   }
@@ -347,8 +401,18 @@ function recalcProfit(row) {
   const machineCostDay = parseFloat(row.dataset.machineCostDay) || 0;
   const procCost = parseFloat(row.dataset.procCost) || 0;
   const addlCost = parseFloat(row.dataset.addlCost) || 0;
-  const rawCost = parseFloat(row.querySelector(".prof-raw-cost").value) || 0;
   const salePrice = parseFloat(row.querySelector(".prof-sale-price").value) || 0;
+
+  /* Calculate raw material cost from twine rows */
+  let rawCost = 0;
+  const twineRows = JSON.parse(row.dataset.twineRows || "[]");
+  document.querySelectorAll("#raw-twine-rows .twine-cost-row").forEach((div, idx) => {
+    const weight = parseFloat(div.querySelector(".twine-weight").value) || 0;
+    const costKg = parseFloat(div.querySelector(".twine-cost-kg").value) || 0;
+    const total = weight * costKg;
+    div.querySelector(".twine-cost-total").value = total ? total.toFixed(2) : "";
+    rawCost += total;
+  });
 
   const machineTotal = machineCostDay * reqDays;
   const procTotal = procCost * estWt;
@@ -362,22 +426,49 @@ function recalcProfit(row) {
   row.querySelector(".prof-machine-total").value = machineTotal ? machineTotal.toFixed(2) : "";
   row.querySelector(".prof-proc-total").value = procTotal ? procTotal.toFixed(2) : "";
   row.querySelector(".prof-addl-total").value = addlTotal ? addlTotal.toFixed(2) : "";
+  row.querySelector(".prof-total-raw").value = rawCost ? rawCost.toFixed(2) : "";
   row.querySelector(".prof-total-cost").value = totalCost ? totalCost.toFixed(2) : "";
   row.querySelector(".prof-total-revenue").value = revenue ? revenue.toFixed(2) : "";
   row.querySelector(".prof-total-profit").value = profit ? profit.toFixed(2) : "";
   row.querySelector(".prof-profit-kg").value = profitKg ? profitKg.toFixed(2) : "";
   row.querySelector(".prof-margin").value = margin ? margin.toFixed(2) : "";
 
+  /* Store for submit */
+  row.dataset.rawCost = rawCost;
+  const twineCostData = [];
+  document.querySelectorAll("#raw-twine-rows .twine-cost-row").forEach(div => {
+    twineCostData.push({
+      type: div.querySelector(".twine-type-badge").textContent,
+      name: div.querySelector(".twine-name").value,
+      weight: div.querySelector(".twine-weight").value,
+      costKg: div.querySelector(".twine-cost-kg").value,
+      total: div.querySelector(".twine-cost-total").value,
+    });
+  });
+  row.dataset.twineCostData = JSON.stringify(twineCostData);
+
   /* Show breakdown */
   const breakdown = document.getElementById("profit-breakdown");
   const content = document.getElementById("breakdown-content");
   if (totalCost > 0 || revenue > 0) {
+    let twineBreakdown = "";
+    document.querySelectorAll("#raw-twine-rows .twine-cost-row").forEach(div => {
+      const type = div.querySelector(".twine-type-badge").textContent;
+      const name = div.querySelector(".twine-name").value;
+      const weight = div.querySelector(".twine-weight").value;
+      const costKg = div.querySelector(".twine-cost-kg").value || "0";
+      const total = div.querySelector(".twine-cost-total").value;
+      if (parseFloat(total) > 0) {
+        twineBreakdown += `<tr><td>&bull; ${type} ${name}: ${weight} KG x ${costKg}/KG =</td><td class="text-end">${total}</td></tr>`;
+      }
+    });
     content.innerHTML = `
       <table class="table table-sm table-borderless mb-0">
         <tr><td>Machine Cost: ${machineCostDay.toFixed(2)}/Day x ${reqDays} Days =</td><td class="text-end fw-bold">${machineTotal.toFixed(2)}</td></tr>
         <tr><td>Processing Cost: ${procCost.toFixed(2)}/KG x ${estWt} KG =</td><td class="text-end fw-bold">${procTotal.toFixed(2)}</td></tr>
         <tr><td>Additional Cost: ${addlCost.toFixed(2)}/KG x ${estWt} KG =</td><td class="text-end fw-bold">${addlTotal.toFixed(2)}</td></tr>
         <tr><td>Raw Material Cost:</td><td class="text-end fw-bold">${rawCost.toFixed(2)}</td></tr>
+        ${twineBreakdown}
         <tr class="border-top"><td><b>TOTAL COST:</b></td><td class="text-end fw-bold text-danger">${totalCost.toFixed(2)}</td></tr>
         <tr><td>Revenue: ${salePrice.toFixed(2)}/KG x ${estWt} KG =</td><td class="text-end fw-bold text-success">${revenue.toFixed(2)}</td></tr>
         <tr class="border-top border-success"><td><b>PROFIT:</b></td><td class="text-end fw-bold text-success">${profit.toFixed(2)}</td></tr>
@@ -412,6 +503,7 @@ document.getElementById("profit-form").addEventListener("submit", e => {
     if (totalCost <= 0) { alert("Please select a production and calculate profit first."); e.preventDefault(); return; }
     entries.push({
       profit_date: date,
+      profit_key: row.dataset.editProfitKey || "",
       production_key: row.dataset.productionKey || "",
       customer: row.querySelector(".prof-customer").value,
       product: row.querySelector(".prof-product").value,
@@ -425,7 +517,8 @@ document.getElementById("profit-form").addEventListener("submit", e => {
       processing_total: row.dataset.procTotal || "",
       additional_cost_per_kg: row.dataset.addlCost || "",
       additional_total: row.dataset.addlTotal || "",
-      raw_material_cost: row.querySelector(".prof-raw-cost").value,
+      raw_material_cost: row.dataset.rawCost || "",
+      raw_twine_data: row.dataset.twineCostData || "",
       total_cost: row.dataset.totalCost || "",
       sale_price_per_kg: row.querySelector(".prof-sale-price").value,
       total_revenue: row.dataset.revenue || "",
@@ -444,13 +537,97 @@ document.getElementById("profit-form").addEventListener("submit", e => {
 document.addEventListener("click", e => {
   if (!e.target.classList.contains("delete-profit")) return;
   if (!confirm("Delete this profit entry?")) return;
-  const key = e.target.dataset.key";
+  const key = e.target.dataset.key;
   const form = document.createElement("form");
   form.method = "POST";
   form.action = "{% url 'profit_analytics' %}";
   form.innerHTML = `{% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="profit_key" value="${key}">`;
   document.body.appendChild(form);
   form.submit();
+});
+
+/* Edit single */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("edit-profit")) return;
+  const tr = e.target.closest("tr");
+  if (!tr) return;
+  const row = profitContainer.querySelector(".profit-row");
+  row.dataset.editProfitKey = tr.dataset.profitKey || "";
+  row.querySelector(".prof-customer").value = tr.dataset.customer || "";
+  row.querySelector(".prof-product").value = tr.dataset.product || "";
+  row.querySelector(".prof-machine").value = tr.dataset.machine || "";
+  row.querySelector(".prof-est-wt").value = tr.dataset.estWeight || "";
+  row.querySelector(".prof-daily-output").value = tr.dataset.dailyOutput || "";
+  row.querySelector(".prof-req-days").value = tr.dataset.reqDays || "";
+  row.querySelector(".prof-machine-cost-day").value = tr.dataset.machineCostDay || "";
+  row.querySelector(".prof-machine-total").value = tr.dataset.machineTotal || "";
+  row.querySelector(".prof-proc-cost").value = tr.dataset.procCost || "";
+  row.querySelector(".prof-proc-total").value = tr.dataset.procTotal || "";
+  row.querySelector(".prof-addl-cost").value = tr.dataset.addlCost || "";
+  row.querySelector(".prof-addl-total").value = tr.dataset.addlTotal || "";
+  row.querySelector(".prof-raw-cost").value = tr.dataset.rawCost || "";
+  row.querySelector(".prof-total-cost").value = tr.dataset.totalCost || "";
+  row.querySelector(".prof-sale-price").value = tr.dataset.salePrice || "";
+  row.querySelector(".prof-total-revenue").value = tr.dataset.totalRevenue || "";
+  row.querySelector(".prof-total-profit").value = tr.dataset.totalProfit || "";
+  row.querySelector(".prof-profit-kg").value = tr.dataset.profitKgVal || "";
+  row.querySelector(".prof-margin").value = tr.dataset.marginVal || "";
+  row.querySelector(".prof-remarks").value = tr.dataset.remarks || "";
+  row.dataset.machineCostDay = tr.dataset.machineCostDay || "";
+  row.dataset.procCost = tr.dataset.procCost || "";
+  row.dataset.addlCost = tr.dataset.addlCost || "";
+  row.dataset.totalCost = tr.dataset.totalCost || "";
+  row.dataset.revenue = tr.dataset.totalRevenue || "";
+  row.dataset.profit = tr.dataset.totalProfit || "";
+  row.dataset.profitKg = tr.dataset.profitKgVal || "";
+  row.dataset.margin = tr.dataset.marginVal || "";
+  row.dataset.machineTotal = tr.dataset.machineTotal || "";
+  row.dataset.procTotal = tr.dataset.procTotal || "";
+  row.dataset.addlTotal = tr.dataset.addlTotal || "";
+  row.dataset.productionKey = tr.dataset.productionKey || "";
+  /* Load twine rows */
+  const editTwineData = JSON.parse(tr.dataset.rawTwine || "[]");
+  const twineContainerEdit = document.getElementById("raw-twine-rows");
+  twineContainerEdit.innerHTML = "";
+  if (editTwineData.length > 0) {
+    editTwineData.forEach(tw => {
+      const div = document.createElement("div");
+      div.className = "row mb-1 align-items-end g-1 twine-cost-row";
+      div.innerHTML = `
+        <div class="col-md-1"><span class="badge bg-${tw.type === 'NET' ? 'success' : 'warning'} twine-type-badge">${tw.type}</span></div>
+        <div class="col-md-3"><input type="text" class="form-control form-control-sm twine-name" value="${tw.name || ''}" placeholder="Twine/Material"></div>
+        <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-weight bg-light" value="${tw.weight || ''}" placeholder="Weight(KG)" readonly></div>
+        <div class="col-md-2"><input type="number" step="0.01" class="form-control form-control-sm twine-cost-kg" placeholder="Cost/KG" value="${tw.costKg || ''}"></div>
+        <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-cost-total bg-light" placeholder="Total" readonly value="${tw.total || ''}"></div>
+      `;
+      twineContainerEdit.appendChild(div);
+    });
+  } else {
+    twineContainerEdit.innerHTML = '<div class="text-muted small">No twine data</div>';
+  }
+  row.dataset.twineRows = JSON.stringify(editTwineData);
+  /* Show breakdown */
+  document.getElementById("profit-breakdown").style.display = "";
+  const rawCostVal = editTwineData.reduce((sum, tw) => sum + (parseFloat(tw.total) || 0), 0);
+  document.getElementById("breakdown-content").innerHTML = `
+    <table class="table table-sm table-borderless mb-0">
+      <tr><td>Machine Cost: ${tr.dataset.machineCostDay}/Day x ${tr.dataset.reqDays} Days =</td><td class="text-end fw-bold">${tr.dataset.machineTotal}</td></tr>
+      <tr><td>Processing Cost: ${tr.dataset.procCost}/KG x ${tr.dataset.estWeight} KG =</td><td class="text-end fw-bold">${tr.dataset.procTotal}</td></tr>
+      <tr><td>Additional Cost: ${tr.dataset.addlCost}/KG x ${tr.dataset.estWeight} KG =</td><td class="text-end fw-bold">${tr.dataset.addlTotal}</td></tr>
+      <tr><td>Raw Material Cost:</td><td class="text-end fw-bold">${rawCostVal.toFixed(2)}</td></tr>
+      <tr class="border-top"><td><b>TOTAL COST:</b></td><td class="text-end fw-bold text-danger">${tr.dataset.totalCost}</td></tr>
+      <tr><td>Revenue: ${tr.dataset.salePrice}/KG x ${tr.dataset.estWeight} KG =</td><td class="text-end fw-bold text-success">${tr.dataset.totalRevenue}</td></tr>
+      <tr class="border-top border-success"><td><b>PROFIT:</b></td><td class="text-end fw-bold text-success">${tr.dataset.totalProfit}</td></tr>
+      <tr><td>Profit/KG:</td><td class="text-end">${tr.dataset.profitKgVal}</td></tr>
+      <tr><td>Margin:</td><td class="text-end">${tr.dataset.marginVal}%</td></tr>
+    </table>`;
+  /* Scroll to form */
+  document.getElementById("profitForm").scrollIntoView({ behavior: "smooth" });
+  /* Open collapse if closed */
+  const collapseEl = document.getElementById("profitForm");
+  if (!collapseEl.classList.contains("show")) {
+    bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).show();
+  }
 });
 
 /* Summary & filters */

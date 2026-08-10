@@ -825,6 +825,7 @@ class ProfitAnalytics(models.Model):
     additional_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     additional_total = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     raw_material_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    raw_twine_data = models.TextField(blank=True, null=True)
     total_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
     # Revenue & Profit

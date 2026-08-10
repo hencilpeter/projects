@@ -5568,7 +5568,6 @@ def profit_analytics_view(request):
         if action == "save":
             entries_raw = request.POST.get("entries_data")
             if entries_raw:
-                import json
                 entries = json.loads(entries_raw) if isinstance(entries_raw, str) else entries_raw
                 saved = 0
                 for entry in entries:
@@ -5579,30 +5578,36 @@ def profit_analytics_view(request):
                             production_obj = Production.objects.get(pk=production_key)
                         except Production.DoesNotExist:
                             production_obj = None
-                    ProfitAnalytics.objects.create(
-                        production=production_obj,
-                        profit_date=entry.get("profit_date") or None,
-                        customer=(entry.get("customer") or "").strip(),
-                        product=(entry.get("product") or "").strip(),
-                        machine=(entry.get("machine") or "").strip(),
-                        est_weight=float(entry.get("est_weight") or 0) or None,
-                        total_daily_output=float(entry.get("total_daily_output") or 0) or None,
-                        required_days=float(entry.get("required_days") or 0) or None,
-                        machine_operational_cost_per_day=float(entry.get("machine_operational_cost_per_day") or 0) or None,
-                        machine_operational_total=float(entry.get("machine_operational_total") or 0) or None,
-                        processing_cost_per_kg=float(entry.get("processing_cost_per_kg") or 0) or None,
-                        processing_total=float(entry.get("processing_total") or 0) or None,
-                        additional_cost_per_kg=float(entry.get("additional_cost_per_kg") or 0) or None,
-                        additional_total=float(entry.get("additional_total") or 0) or None,
-                        raw_material_cost=float(entry.get("raw_material_cost") or 0) or None,
-                        total_cost=float(entry.get("total_cost") or 0) or None,
-                        sale_price_per_kg=float(entry.get("sale_price_per_kg") or 0) or None,
-                        total_revenue=float(entry.get("total_revenue") or 0) or None,
-                        total_profit=float(entry.get("total_profit") or 0) or None,
-                        profit_per_kg=float(entry.get("profit_per_kg") or 0) or None,
-                        profit_margin_pct=float(entry.get("profit_margin_pct") or 0) or None,
-                        remarks=(entry.get("remarks") or "").strip(),
-                    )
+                    profit_key = entry.get("profit_key") or None
+                    defaults = {
+                        "production": production_obj,
+                        "profit_date": entry.get("profit_date") or None,
+                        "customer": (entry.get("customer") or "").strip(),
+                        "product": (entry.get("product") or "").strip(),
+                        "machine": (entry.get("machine") or "").strip(),
+                        "est_weight": float(entry.get("est_weight") or 0) or None,
+                        "total_daily_output": float(entry.get("total_daily_output") or 0) or None,
+                        "required_days": float(entry.get("required_days") or 0) or None,
+                        "machine_operational_cost_per_day": float(entry.get("machine_operational_cost_per_day") or 0) or None,
+                        "machine_operational_total": float(entry.get("machine_operational_total") or 0) or None,
+                        "processing_cost_per_kg": float(entry.get("processing_cost_per_kg") or 0) or None,
+                        "processing_total": float(entry.get("processing_total") or 0) or None,
+                        "additional_cost_per_kg": float(entry.get("additional_cost_per_kg") or 0) or None,
+                        "additional_total": float(entry.get("additional_total") or 0) or None,
+                        "raw_material_cost": float(entry.get("raw_material_cost") or 0) or None,
+                        "raw_twine_data": entry.get("raw_twine_data", ""),
+                        "total_cost": float(entry.get("total_cost") or 0) or None,
+                        "sale_price_per_kg": float(entry.get("sale_price_per_kg") or 0) or None,
+                        "total_revenue": float(entry.get("total_revenue") or 0) or None,
+                        "total_profit": float(entry.get("total_profit") or 0) or None,
+                        "profit_per_kg": float(entry.get("profit_per_kg") or 0) or None,
+                        "profit_margin_pct": float(entry.get("profit_margin_pct") or 0) or None,
+                        "remarks": (entry.get("remarks") or "").strip(),
+                    }
+                    if profit_key:
+                        ProfitAnalytics.objects.filter(pk=profit_key).update(**defaults)
+                    else:
+                        ProfitAnalytics.objects.create(**defaults)
                     saved += 1
                 messages.success(request, f"{saved} profit analytics saved.")
 
@@ -5613,7 +5618,6 @@ def profit_analytics_view(request):
                 messages.success(request, "Profit analytics deleted.")
 
         elif action == "delete_bulk":
-            import json
             keys_raw = request.POST.get("profit_keys")
             if keys_raw:
                 keys = json.loads(keys_raw)
@@ -5635,6 +5639,7 @@ def profit_analytics_view(request):
             "est_weight": str(p.est_weight) if p.est_weight else "",
             "total_daily_output": str(p.total_daily_output) if p.total_daily_output else "",
             "required_days": str(p.required_days) if p.required_days else "",
+            "twine_rows": json.loads(p.remarks) if p.remarks else [],
         })
 
     # Get machine operational costs
@@ -5684,6 +5689,7 @@ def profit_analytics_view(request):
             "processing_total": str(pr.processing_total) if pr.processing_total else "",
             "additional_total": str(pr.additional_total) if pr.additional_total else "",
             "raw_material_cost": str(pr.raw_material_cost) if pr.raw_material_cost else "",
+            "raw_twine_data": pr.raw_twine_data or "",
             "total_cost": str(pr.total_cost) if pr.total_cost else "",
             "sale_price_per_kg": str(pr.sale_price_per_kg) if pr.sale_price_per_kg else "",
             "total_revenue": str(pr.total_revenue) if pr.total_revenue else "",
