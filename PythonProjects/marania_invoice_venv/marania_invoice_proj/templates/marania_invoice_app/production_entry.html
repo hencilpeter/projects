@@ -343,6 +343,10 @@ productionContainer.addEventListener("click", e => {
   let html = `<table class="table table-sm table-bordered table-striped mb-2">
     <thead class="table-dark"><tr><th>Type</th><th>MM</th><th>MD</th><th>Pcs</th><th>Twine Count</th><th>Conv Factor</th><th>Daily Output (KG)</th></tr></thead><tbody>`;
 
+  const topMM = parseFloat(prodRow.querySelector(".prod-mm").value) || 0;
+  const productCode = prodRow.querySelector(".prod-product").value;
+  const addlTwine = parseFloat(prodRow.querySelector(".prod-addl-net-twine").value) || 0;
+
   if (container) {
     container.querySelectorAll(".twine-row").forEach(tr => {
       const type = tr.dataset.type;
@@ -355,6 +359,21 @@ productionContainer.addEventListener("click", e => {
       totalDailyOutput += dailyOutput;
       html += `<tr><td><span class="badge bg-${type === 'NET' ? 'success' : 'warning'}">${type}</span></td><td>${mm}</td><td>${md}</td><td>${pcs}</td><td>${twineCount}</td><td>${conv}</td><td class="fw-bold">${dailyOutput.toFixed(2)}</td></tr>`;
     });
+  }
+
+  if (addlTwine > 0 && topMM > 0) {
+    let netConv = 0;
+    if (container) {
+      const netRow = [...container.querySelectorAll(".twine-row")].find(tr => tr.dataset.type === "NET");
+      if (netRow) {
+        netConv = parseFloat(netRow.querySelector(".twine-conv").value) || 0;
+      }
+    }
+    if (netConv > 0) {
+      const dailyOutput = (netConv * topMM * addlTwine * knotCap) / 1000;
+      totalDailyOutput += dailyOutput;
+      html += `<tr><td><span class="badge bg-success">NET</span></td><td>${topMM}</td><td>-</td><td>-</td><td>${addlTwine}</td><td>${netConv}</td><td class="fw-bold">${dailyOutput.toFixed(2)}</td></tr>`;
+    }
   }
 
   html += `</tbody></table>`;
