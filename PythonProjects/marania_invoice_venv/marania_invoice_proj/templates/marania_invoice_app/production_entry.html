@@ -580,14 +580,22 @@ document.addEventListener("click", e => {
   const key = e.target.dataset.key;
   
   // Fetch production data from server
-  fetch(`/production/load/${key}/`, {
+  fetch(`/invoice/production/load/${key}/`, {
     method: 'GET',
     headers: {
       'X-Requested-With': 'XMLHttpRequest',
     }
   })
-  .then(response => response.json())
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
   .then(data => {
+    if (data.error) {
+      throw new Error(data.error);
+    }
     const row = productionContainer.querySelector(".production-row");
     
     // Populate main fields
@@ -636,7 +644,7 @@ document.addEventListener("click", e => {
   })
   .catch(error => {
     console.error('Error loading production:', error);
-    alert('Failed to load production details');
+    alert('Failed to load production details: ' + error.message);
   });
 });
 
