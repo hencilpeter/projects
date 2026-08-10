@@ -5421,11 +5421,13 @@ def production_entry_view(request):
 
     products = Product.objects.all().order_by("code")
     machines = MachineOperationalCost.objects.all().order_by("machine_number")
+    machines_json = [{"machine_number": m.machine_number, "number_of_shuttles": m.number_of_shuttles or 0} for m in machines]
 
     context = {
         "orders_json": orders_data,
         "products": products,
         "machines": machines,
+        "machines_json": machines_json,
     }
     return render(request, "marania_invoice_app/production_entry.html", context)
 

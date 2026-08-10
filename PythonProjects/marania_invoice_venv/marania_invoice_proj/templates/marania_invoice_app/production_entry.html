@@ -95,25 +95,30 @@
                   <select name="machine" class="form-select form-select-sm prod-machine">
                     <option value="">-- Machine --</option>
                     {% for m in machines %}
-                    <option value="{{ m.machine_number }}">{{ m.machine_number }}</option>
+                    <option value="{{ m.machine_number }}" data-shuttles="{{ m.number_of_shuttles }}">{{ m.machine_number }}</option>
                     {% endfor %}
                   </select>
                 </div>
-                <div class="col-md-2">
-                  <label class="form-label small mb-0">Selvage Twine</label>
-                  <input type="text" name="selvage_twine" class="form-control form-control-sm prod-selvage" placeholder="Selvage Twine">
-                </div>
                 <div class="col-md-1">
-                  <label class="form-label small mb-0">No. of Times</label>
-                  <input type="number" name="number_of_times" class="form-control form-control-sm prod-times" placeholder="Times" value="1" min="1">
+                  <label class="form-label small mb-0">Total Meshes</label>
+                  <input type="number" class="form-control form-control-sm prod-total-meshes bg-light" placeholder="Meshes" readonly>
                 </div>
-                <div class="col-md-2">
-                  <label class="form-label small mb-0">Conversion Factor</label>
-                  <input type="text" name="conversion_factor" class="form-control form-control-sm prod-conv" placeholder="Conv. Factor" readonly>
+                <div class="col-md-2 d-flex align-items-end gap-1">
+                  <button type="button" class="btn btn-sm btn-success add-net-row">+ Net</button>
+                  <button type="button" class="btn btn-sm btn-warning add-sel-row">+ Sel</button>
                 </div>
                 <div class="col-md-1 d-flex align-items-end">
                   <button type="button" class="btn btn-outline-danger btn-sm remove-row" style="display:none;">&times;</button>
                   <button type="button" class="btn btn-outline-primary btn-sm add-row ms-1">+</button>
+                </div>
+              </div>
+
+              <div class="twine-rows-container"></div>
+
+              <div class="row mb-2 g-1">
+                <div class="col-md-2">
+                  <label class="form-label small mb-0 fw-bold text-primary">Total Twine</label>
+                  <input type="text" class="form-control form-control-sm prod-total-twine bg-light fw-bold" placeholder="Total Twine" readonly>
                 </div>
               </div>
 
@@ -158,8 +163,10 @@
 </main>
 
 {{ orders_json|json_script:"orders-data" }}
+{{ machines_json|json_script:"machines-data" }}
 <script>
 const ordersData = JSON.parse(document.getElementById("orders-data").textContent);
+const machinesData = JSON.parse(document.getElementById("machines-data").textContent);
 const productionContainer = document.getElementById("production-rows");
 
 /* Populate all orders in memory and populate dropdown */
@@ -234,6 +241,100 @@ function fetchConversionFactor(productCode, row) {
     .catch(() => {});
 }
 
+/* Machine change -> populate Total Meshes from shuttles */
+productionContainer.addEventListener("change", e => {
+  if (!e.target.classList.contains("prod-machine")) return;
+  const row = e.target.closest(".production-row");
+  const machineNum = e.target.value;
+  const machine = machinesData.find(m => m.machine_number === machineNum);
+  row.querySelector(".prod-total-meshes").value = machine ? machine.number_of_shuttles : "";
+});
+
+/* Add NET row */
+productionContainer.addEventListener("click", e => {
+  if (!e.target.classList.contains("add-net-row")) return;
+  const row = e.target.closest(".production-row");
+  const container = row.querySelector(".twine-rows-container") || row.parentElement.querySelector(".twine-rows-container");
+  addTwineRow(container, "NET");
+});
+
+/* Add SEL row */
+productionContainer.addEventListener("click", e => {
+  if (!e.target.classList.contains("add-sel-row")) return;
+  const row = e.target.closest(".production-row");
+  const container = row.querySelector(".twine-rows-container") || row.parentElement.querySelector(".twine-rows-container");
+  addTwineRow(container, "SEL");
+});
+
+function addTwineRow(container, type) {
+  const prodRow = container.closest(".production-row") || container.parentElement.querySelector(".production-row");
+  const topMM = prodRow ? prodRow.querySelector(".prod-mm").value : "";
+  const productCode = prodRow ? prodRow.querySelector(".prod-product").value : "";
+  const div = document.createElement("div");
+  div.className = "row mb-2 align-items-end g-1 twine-row";
+  div.dataset.type = type;
+  div.innerHTML = `
+    <div class="col-md-1"><span class="badge bg-${type === 'NET' ? 'success' : 'warning'} twine-label">${type}</span></div>
+    <div class="col-md-1"><input type="number" step="0.1" class="form-control form-control-sm twine-mm" placeholder="MM" value="${type === 'NET' && topMM ? topMM : ''}"></div>
+    <div class="col-md-1"><input type="number" step="0.1" class="form-control form-control-sm twine-md" placeholder="MD"></div>
+    <div class="col-md-1"><input type="number" class="form-control form-control-sm twine-pcs" placeholder="Pcs"></div>
+    <div class="col-md-1"><input type="text" class="form-control form-control-sm twine-count bg-light" placeholder="Twine Count" readonly></div>
+    <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-twine" placeholder="Twine" value="${type === 'NET' && productCode ? productCode : ''}"></div>
+    <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-conv bg-light" placeholder="Conversion Factor" readonly></div>
+    <div class="col-md-1"><button type="button" class="btn btn-outline-danger btn-sm remove-twine-row">&times;</button></div>
+  `;
+  container.appendChild(div);
+  if (type === 'NET' && productCode) {
+    fetchConversionFactorForTwine(productCode, div);
+  }
+}
+
+function fetchConversionFactorForTwine(productCode, twineRow) {
+  if (!productCode) return;
+  fetch(`/configuration/material-conversion-ratio?code=${encodeURIComponent(productCode)}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.conversion_ratio) {
+        twineRow.querySelector(".twine-conv").value = data.conversion_ratio;
+      }
+    })
+    .catch(() => {});
+}
+
+/* Remove twine row */
+productionContainer.addEventListener("click", e => {
+  if (!e.target.classList.contains("remove-twine-row")) return;
+  const twineRow = e.target.closest(".twine-row");
+  const parentProductionRow = e.target.closest(".production-row");
+  twineRow.remove();
+  updateTotalTwine(parentProductionRow);
+});
+
+/* Twine Count = MD x Pcs */
+productionContainer.addEventListener("input", e => {
+  if (e.target.classList.contains("twine-md") || e.target.classList.contains("twine-pcs")) {
+    const twineRow = e.target.closest(".twine-row");
+    const md = parseFloat(twineRow.querySelector(".twine-md").value) || 0;
+    const pcs = parseFloat(twineRow.querySelector(".twine-pcs").value) || 0;
+    twineRow.querySelector(".twine-count").value = (md * pcs) ? (md * pcs).toFixed(1) : "";
+    const prodRow = e.target.closest(".production-row");
+    updateTotalTwine(prodRow);
+  }
+});
+
+function updateTotalTwine(row) {
+  if (!row) return;
+  let total = 0;
+  const container = row.parentElement.querySelector(".twine-rows-container");
+  if (container) {
+    container.querySelectorAll(".twine-row").forEach(tr => {
+      total += parseFloat(tr.querySelector(".twine-count").value) || 0;
+    });
+  }
+  const totalEl = row.querySelector(".prod-total-twine");
+  if (totalEl) totalEl.value = total ? total.toFixed(1) : "0";
+}
+
 /* Recalculate row */
 function recalcRow(row) {
   const qty = parseFloat(row.querySelector(".prod-qty").value) || 0;
@@ -265,6 +366,13 @@ productionContainer.addEventListener("click", e => {
   });
   newRow.querySelectorAll("select").forEach(s => s.selectedIndex = 0);
   newRow.querySelector(".remove-row").style.display = "";
+  newRow.querySelector(".prod-total-meshes").value = "";
+  newRow.querySelector(".prod-total-twine").value = "";
+  const twineContainer = newRow.parentElement.querySelector(".twine-rows-container");
+  if (twineContainer) {
+    const clonedTwines = twineContainer.querySelectorAll(".twine-row");
+    clonedTwines.forEach(tw => tw.remove());
+  }
   productionContainer.appendChild(newRow);
 });
 
@@ -296,14 +404,28 @@ document.getElementById("production-form").addEventListener("submit", e => {
       quantity: row.querySelector(".prod-qty").value,
       quantity_unit: row.querySelector(".prod-unit").value,
       machine: machine,
-      selvage_twine: row.querySelector(".prod-selvage").value,
-      number_of_times: row.querySelector(".prod-times").value,
-      conversion_factor: row.querySelector(".prod-conv").value,
       calculated_weight: row.querySelector(".prod-calc-wt").value,
       unit_cost: row.querySelector(".prod-unit-cost").value,
       calculated_cost: row.querySelector(".prod-calc-cost").value,
       remarks: row.querySelector(".prod-remarks").value,
+      total_meshes: row.querySelector(".prod-total-meshes").value,
+      total_twine: row.querySelector(".prod-total-twine").value,
+      twine_rows: [],
     });
+    const twineContainer = row.parentElement.querySelector(".twine-rows-container");
+    if (twineContainer) {
+      twineContainer.querySelectorAll(".twine-row").forEach(tr => {
+        entries[entries.length - 1].twine_rows.push({
+          type: tr.dataset.type,
+          mm: tr.querySelector(".twine-mm").value,
+          md: tr.querySelector(".twine-md").value,
+          pcs: tr.querySelector(".twine-pcs").value,
+          twine_count: tr.querySelector(".twine-count").value,
+          twine: tr.querySelector(".twine-twine").value,
+          conversion_factor: tr.querySelector(".twine-conv").value,
+        });
+      });
+    }
   });
   if (entries.length === 0) {
     e.preventDefault();
