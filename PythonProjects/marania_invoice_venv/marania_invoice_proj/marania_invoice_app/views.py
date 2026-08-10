@@ -5404,7 +5404,7 @@ def production_entry_view(request):
 
         return redirect("production_entry")
 
-    orders = Order.objects.filter(status__in=["Ordered", "ProductionQueue", "InProduction"]).select_related().prefetch_related("specifications")
+    orders = Order.objects.exclude(status__in=["Completed", "Cancelled", "Rejected"]).select_related().prefetch_related("specifications")
     orders_data = []
     for o in orders:
         spec = o.specifications.first()
