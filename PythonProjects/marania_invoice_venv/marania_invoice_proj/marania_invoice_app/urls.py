@@ -103,6 +103,12 @@ path('invoice-aging-report', views.invoice_aging_report, name='invoice_aging_rep
 path('season-trends', views.season_trends, name='season_trends'),
 path('trend-analytics', views.trend_analytics, name='trend_analytics'),
 
+# configuration
+path('configuration/material-conversion-ratio', views.material_conversion_ratio_view, name='material_conversion_ratio'),
+path('configuration/processing-cost', views.processing_cost_view, name='processing_cost'),
+path('configuration/machine-operational-cost', views.machine_operational_cost_view, name='machine_operational_cost'),
+path('configuration/additional-cost', views.additional_cost_view, name='additional_cost'),
+
 # excel 
 path('sheets/salesview', views.sheet_sales_view, name="sheet_sales_view"),
 path('sheets/salessave', views.sheet_sales_save, name="sheet_sales_save"),

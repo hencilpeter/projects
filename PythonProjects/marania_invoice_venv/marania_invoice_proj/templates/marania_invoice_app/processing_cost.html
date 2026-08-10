@@ -1,0 +1,201 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container my-4">
+    <h3>Processing Cost</h3>
+
+    <button class="btn btn-primary mb-3" type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#costForm">
+      Manage Processing Costs
+    </button>
+
+    <div class="collapse" id="costForm">
+      <form method="POST" id="cost-form">
+        {% csrf_token %}
+        <div class="card p-4 mb-4 shadow-sm">
+
+          <div id="cost-rows">
+            <div class="row mb-2 cost-row align-items-center">
+              <div class="col-md-3">
+                <input type="text" name="material_code" class="form-control form-control-sm" placeholder="Material Code">
+              </div>
+              <div class="col-md-2">
+                <input type="number" step="0.01" name="processing_cost_per_kg" class="form-control form-control-sm" placeholder="Processing Cost/Kg">
+              </div>
+              <div class="col-md-2">
+                <input type="number" step="0.01" name="color_cost_per_kg" class="form-control form-control-sm" placeholder="Color Cost/Kg">
+              </div>
+              <div class="col-md-2">
+                <input type="number" step="0.01" name="small_size_cost_per_kg" class="form-control form-control-sm" placeholder="Small Size Cost/Kg">
+              </div>
+              <div class="col-md-3 d-flex justify-content-end gap-1">
+                <button type="button" class="btn btn-warning btn-sm clear-row">Clear</button>
+                <button type="button" class="btn btn-danger btn-sm delete-row">Delete</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <button type="button" id="add-cost" class="btn btn-secondary">
+              + Add Cost
+            </button>
+          </div>
+
+          <div class="text-center">
+            <button type="submit" name="action" value="save" class="btn btn-success">Save</button>
+            <button type="submit" name="action" value="delete" class="btn btn-danger">Delete</button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <hr>
+
+    <h5>Saved Processing Costs</h5>
+
+    {% if costs %}
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover table-sm" id="costs-table">
+        <thead class="table-dark">
+          <tr>
+            <th>Material Code
+              <select class="form-select form-select-sm column-filter" data-col="0">
+                <option value="">All</option>
+              </select>
+            </th>
+            <th>Processing Cost/Kg
+              <input type="text" class="form-control form-control-sm text-filter" data-col="1">
+            </th>
+            <th>Color Cost/Kg
+              <input type="text" class="form-control form-control-sm text-filter" data-col="2">
+            </th>
+            <th>Small Size Cost/Kg
+              <input type="text" class="form-control form-control-sm text-filter" data-col="3">
+            </th>
+            <th>
+              Action
+              <div class="mt-1">
+                <button type="button" id="clear-filters" class="btn btn-warning btn-sm">
+                  Clear
+                </button>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in costs %}
+          <tr>
+            <td>{{ c.material_code }}</td>
+            <td>{{ c.processing_cost_per_kg }}</td>
+            <td>{{ c.color_cost_per_kg }}</td>
+            <td>{{ c.small_size_cost_per_kg }}</td>
+            <td>
+              <button type="button"
+                      class="btn btn-primary btn-sm load-cost"
+                      data-material-code="{{ c.material_code }}">
+                Edit
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</main>
+
+<script>
+/* ================== COMMON ================== */
+const costContainer = document.getElementById("cost-rows");
+
+/* ================== ADD COST ================== */
+document.getElementById("add-cost").addEventListener("click", () => {
+  const firstRow = costContainer.querySelector(".cost-row");
+  const newRow = firstRow.cloneNode(true);
+
+  newRow.querySelectorAll("input").forEach(i => i.value = "");
+  newRow.querySelectorAll("select").forEach(s => s.selectedIndex = 0);
+
+  costContainer.appendChild(newRow);
+});
+
+/* ================== CLEAR ROW ================== */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("clear-row")) return;
+  const row = e.target.closest(".cost-row");
+  row.querySelectorAll("input").forEach(i => i.value = "");
+  row.querySelectorAll("select").forEach(s => s.selectedIndex = 0);
+});
+
+/* ================== DELETE ROW ================== */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("delete-row")) return;
+  const rows = document.querySelectorAll(".cost-row");
+  if (rows.length <= 1) {
+    alert("At least one row required");
+    return;
+  }
+  e.target.closest(".cost-row").remove();
+});
+
+/* ================== LOAD COST ================== */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("load-cost")) return;
+
+  const materialCode = e.target.dataset.materialCode;
+  const row = costContainer.querySelector(".cost-row");
+
+  row.querySelector('[name="material_code"]').value = materialCode;
+
+  // Find the cost from the table
+  const tableRow = e.target.closest("tr");
+  row.querySelector('[name="processing_cost_per_kg"]').value = tableRow.cells[1].innerText;
+  row.querySelector('[name="color_cost_per_kg"]').value = tableRow.cells[2].innerText;
+  row.querySelector('[name="small_size_cost_per_kg"]').value = tableRow.cells[3].innerText;
+
+  const collapseEl = document.getElementById("costForm");
+  const bs = bootstrap.Collapse.getInstance(collapseEl)
+    || new bootstrap.Collapse(collapseEl, { toggle: false });
+  bs.show();
+});
+
+/* ================== TABLE FILTERS ================== */
+const table = document.getElementById("costs-table");
+const filters = document.querySelectorAll(".column-filter, .text-filter");
+
+document.querySelectorAll(".column-filter").forEach(select => {
+  const col = select.dataset.col;
+  const values = [...new Set(
+    [...table.tBodies[0].rows].map(r => r.cells[col].innerText.trim())
+  )];
+  values.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    select.appendChild(opt);
+  });
+});
+
+filters.forEach(f => f.addEventListener("input", () => {
+  [...table.tBodies[0].rows].forEach(row => {
+    let show = true;
+    filters.forEach(f => {
+      const col = f.dataset.col;
+      if (f.value && !row.cells[col].innerText.toLowerCase().includes(f.value.toLowerCase())) {
+        show = false;
+      }
+    });
+    row.style.display = show ? "" : "none";
+  });
+}));
+
+document.getElementById("clear-filters").addEventListener("click", () => {
+  filters.forEach(f => f.value = "");
+  filters[0].dispatchEvent(new Event("input"));
+});
+</script>
+{% endblock %}

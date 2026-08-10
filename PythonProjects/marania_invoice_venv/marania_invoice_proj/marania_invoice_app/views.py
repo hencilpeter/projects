@@ -77,6 +77,10 @@ from .models import (
     Purchase,
     ProfitLoss,
     TwineInventory,
+    MaterialConversionRatio,
+    ProcessingCost,
+    MachineOperationalCost,
+    AdditionalCost,
 
 )
 
@@ -5116,11 +5120,195 @@ def season_trends(request):
         'unique_mm': unique_mm,
         'unique_md': unique_md,
         'unique_selvage': unique_selvage,
-        'chart_data_json': json.dumps(chart_data),
+        'chart_data': json.dumps(chart_data),
         'product_filter': product_filter,
         'mm_filter': mm_filter,
         'md_filter': md_filter,
         'selvage_filter': selvage_filter,
         'year_filter': year_filter,
     })
+
+
+# =======================
+# Configuration Views
+# =======================
+
+@login_required
+def material_conversion_ratio_view(request):
+    if request.method == 'POST':
+        action = request.POST.get("action")
+        
+        # SAVE / UPDATE
+        if action == "save":
+            rows = zip(
+                request.POST.getlist("material_code"),
+                request.POST.getlist("conversion_ratio"),
+            )
+            
+            for material_code, conversion_ratio in rows:
+                if not material_code:
+                    continue
+                MaterialConversionRatio.objects.update_or_create(
+                    material_code=material_code,
+                    defaults={
+                        "conversion_ratio": conversion_ratio or 0,
+                    }
+                )
+            messages.success(request, "Material Conversion Ratio saved successfully.")
+        
+        # DELETE
+        elif action == "delete":
+            codes = request.POST.getlist("material_code")
+            for code in codes:
+                if code:
+                    MaterialConversionRatio.objects.filter(material_code=code).delete()
+            messages.success(request, "Material Conversion Ratio deleted successfully.")
+    
+    context = {
+        "ratios": MaterialConversionRatio.objects.all(),
+        "materials": Materials.objects.all(),
+    }
+    return render(request, "marania_invoice_app/material_conversion_ratio.html", context)
+
+
+@login_required
+def processing_cost_view(request):
+    if request.method == 'POST':
+        action = request.POST.get("action")
+        
+        # SAVE / UPDATE
+        if action == "save":
+            rows = zip(
+                request.POST.getlist("material_code"),
+                request.POST.getlist("processing_cost_per_kg"),
+                request.POST.getlist("color_cost_per_kg"),
+                request.POST.getlist("small_size_cost_per_kg"),
+            )
+            
+            for material_code, processing_cost, color_cost, small_size_cost in rows:
+                if not material_code:
+                    continue
+                ProcessingCost.objects.update_or_create(
+                    material_code=material_code,
+                    defaults={
+                        "processing_cost_per_kg": processing_cost or 0,
+                        "color_cost_per_kg": color_cost or 0,
+                        "small_size_cost_per_kg": small_size_cost or 0,
+                    }
+                )
+            messages.success(request, "Processing Cost saved successfully.")
+        
+        # DELETE
+        elif action == "delete":
+            codes = request.POST.getlist("material_code")
+            for code in codes:
+                if code:
+                    ProcessingCost.objects.filter(material_code=code).delete()
+            messages.success(request, "Processing Cost deleted successfully.")
+    
+    context = {
+        "costs": ProcessingCost.objects.all(),
+    }
+    return render(request, "marania_invoice_app/processing_cost.html", context)
+
+
+@login_required
+def machine_operational_cost_view(request):
+    if request.method == 'POST':
+        action = request.POST.get("action")
+        
+        # SAVE / UPDATE
+        if action == "save":
+            rows = zip(
+                request.POST.getlist("machine_number"),
+                request.POST.getlist("number_of_shuttles"),
+                request.POST.getlist("running_product_code"),
+                request.POST.getlist("operator_cost_per_day"),
+                request.POST.getlist("bobbin_winder_cost_per_day"),
+                request.POST.getlist("mending_cost_per_day"),
+                request.POST.getlist("mechanic_cost_per_day"),
+                request.POST.getlist("electricity_cost_per_day"),
+                request.POST.getlist("maintenance_cost_per_day"),
+                request.POST.getlist("miscellaneous_cost_per_day"),
+            )
+            
+            for (machine_number, num_shuttles, product_code, 
+                 operator_cost, bobbin_cost, mending_cost, mechanic_cost,
+                 electricity_cost, maintenance_cost, misc_cost) in rows:
+                if not machine_number:
+                    continue
+                MachineOperationalCost.objects.update_or_create(
+                    machine_number=machine_number,
+                    defaults={
+                        "number_of_shuttles": num_shuttles or 0,
+                        "running_product_code": product_code or None,
+                        "operator_cost_per_day": operator_cost or 0,
+                        "bobbin_winder_cost_per_day": bobbin_cost or 0,
+                        "mending_cost_per_day": mending_cost or 0,
+                        "mechanic_cost_per_day": mechanic_cost or 0,
+                        "electricity_cost_per_day": electricity_cost or 0,
+                        "maintenance_cost_per_day": maintenance_cost or 0,
+                        "miscellaneous_cost_per_day": misc_cost or 0,
+                    }
+                )
+            messages.success(request, "Machine Operational Cost saved successfully.")
+        
+        # DELETE
+        elif action == "delete":
+            numbers = request.POST.getlist("machine_number")
+            for number in numbers:
+                if number:
+                    MachineOperationalCost.objects.filter(machine_number=number).delete()
+            messages.success(request, "Machine Operational Cost deleted successfully.")
+    
+    context = {
+        "costs": MachineOperationalCost.objects.all(),
+    }
+    return render(request, "marania_invoice_app/machine_operational_cost.html", context)
+
+
+@login_required
+def additional_cost_view(request):
+    if request.method == 'POST':
+        action = request.POST.get("action")
+        
+        # SAVE / UPDATE
+        if action == "save":
+            # Additional Cost is a single record model
+            transportation_cost = request.POST.get("transportation_cost_per_kg", 0)
+            packing_cost = request.POST.get("packing_cost_per_kg", 0)
+            waste_cost = request.POST.get("waste_cost_per_kg", 0)
+            
+            # Get or create the single record (id=1)
+            obj, created = AdditionalCost.objects.get_or_create(
+                id=1,
+                defaults={
+                    "transportation_cost_per_kg": transportation_cost,
+                    "packing_cost_per_kg": packing_cost,
+                    "waste_cost_per_kg": waste_cost,
+                }
+            )
+            
+            if not created:
+                obj.transportation_cost_per_kg = transportation_cost
+                obj.packing_cost_per_kg = packing_cost
+                obj.waste_cost_per_kg = waste_cost
+                obj.save()
+            
+            messages.success(request, "Additional Cost saved successfully.")
+    
+    # Get the single record or create default
+    cost_obj, _ = AdditionalCost.objects.get_or_create(
+        id=1,
+        defaults={
+            "transportation_cost_per_kg": 0,
+            "packing_cost_per_kg": 0,
+            "waste_cost_per_kg": 0,
+        }
+    )
+    
+    context = {
+        "cost": cost_obj,
+    }
+    return render(request, "marania_invoice_app/additional_cost.html", context)
 

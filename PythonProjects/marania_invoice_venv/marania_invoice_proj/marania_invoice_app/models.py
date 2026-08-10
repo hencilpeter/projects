@@ -698,8 +698,72 @@ class Expense(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"EXP-{self.expense_id} - {self.expense_category} - {self.expense_date}"
+        return f"{self.expense_date} - {self.expense_category} - {self.expense_amount}"
 
     class Meta:
         ordering = ['-expense_date']
 
+
+class MaterialConversionRatio(models.Model):
+    material_code = models.CharField(max_length=50, unique=True)
+    conversion_ratio = models.DecimalField(max_digits=20, decimal_places=10)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.material_code} - {self.conversion_ratio}"
+
+    class Meta:
+        ordering = ['material_code']
+
+
+class ProcessingCost(models.Model):
+    material_code = models.CharField(max_length=50, unique=True)
+    processing_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2)
+    color_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2)
+    small_size_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.material_code}"
+
+    class Meta:
+        ordering = ['material_code']
+
+
+class MachineOperationalCost(models.Model):
+    machine_number = models.CharField(max_length=50, unique=True)
+    number_of_shuttles = models.IntegerField()
+    running_product_code = models.CharField(max_length=50, blank=True, null=True)
+    operator_cost_per_day = models.DecimalField(max_digits=10, decimal_places=2)
+    bobbin_winder_cost_per_day = models.DecimalField(max_digits=10, decimal_places=2)
+    mending_cost_per_day = models.DecimalField(max_digits=10, decimal_places=2)
+    mechanic_cost_per_day = models.DecimalField(max_digits=10, decimal_places=2)
+    electricity_cost_per_day = models.DecimalField(max_digits=10, decimal_places=2)
+    maintenance_cost_per_day = models.DecimalField(max_digits=10, decimal_places=2)
+    miscellaneous_cost_per_day = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Machine {self.machine_number}"
+
+    class Meta:
+        ordering = ['machine_number']
+
+
+class AdditionalCost(models.Model):
+    id = models.AutoField(primary_key=True)
+    transportation_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2)
+    packing_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2)
+    waste_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Additional Cost - {self.id}"
+
+    class Meta:
+        verbose_name = "Additional Cost"
+        verbose_name_plural = "Additional Costs"

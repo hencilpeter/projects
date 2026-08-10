@@ -278,7 +278,53 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
             </div>
           </li>
 
-          <!-- 6. Analytics -->
+          <!-- 6. Configuration -->
+          <li class="nav-item">
+            <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
+              <span>
+                <span data-feather="sliders"></span>
+                Configuration
+              </span>
+              <button class="collapse-btn btn btn-outline-primary btn-sm rounded-circle"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#ConfigurationSubmenu"
+                      aria-expanded="false"
+                      aria-controls="ConfigurationSubmenu">
+                <span class="collapse-icon" data-feather="chevron-right"></span>
+              </button>
+            </div>
+            <div class="collapse" id="ConfigurationSubmenu">
+              <ul class="nav flex-column ms-4">
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'material_conversion_ratio' %}">
+                    <span data-feather="percent"></span>
+                    Material Conversion Ratio
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'processing_cost' %}">
+                    <span data-feather="dollar-sign"></span>
+                    Processing Cost
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'machine_operational_cost' %}">
+                    <span data-feather="cpu"></span>
+                    Machine Operational Cost
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'additional_cost' %}">
+                    <span data-feather="plus-circle"></span>
+                    Additional Cost
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </li>
+
+          <!-- 7. Analytics -->
           <li class="nav-item">
             <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>

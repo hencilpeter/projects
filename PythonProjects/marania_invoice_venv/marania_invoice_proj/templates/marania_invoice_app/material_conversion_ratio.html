@@ -1,0 +1,192 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container my-4">
+    <h3>Material Conversion Ratio</h3>
+
+    <button class="btn btn-primary mb-3" type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#ratioForm">
+      Manage Conversion Ratios
+    </button>
+
+    <div class="collapse" id="ratioForm">
+      <form method="POST" id="ratio-form">
+        {% csrf_token %}
+        <div class="card p-4 mb-4 shadow-sm">
+
+          <div id="ratio-rows">
+            <div class="row mb-2 ratio-row align-items-center">
+              <div class="col-md-4">
+                <select name="material_code" class="form-select form-select-sm">
+                  <option value="">Select Material</option>
+                  {% for m in materials %}
+                    <option value="{{ m.code }}">{{ m.code }} - {{ m.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-3">
+                <input type="number" step="0.0000001" name="conversion_ratio" class="form-control form-control-sm" placeholder="Conversion Ratio">
+              </div>
+              <div class="col-md-3 d-flex justify-content-end gap-1">
+                <button type="button" class="btn btn-warning btn-sm clear-row">Clear</button>
+                <button type="button" class="btn btn-danger btn-sm delete-row">Delete</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <button type="button" id="add-ratio" class="btn btn-secondary">
+              + Add Ratio
+            </button>
+          </div>
+
+          <div class="text-center">
+            <button type="submit" name="action" value="save" class="btn btn-success">Save</button>
+            <button type="submit" name="action" value="delete" class="btn btn-danger">Delete</button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <hr>
+
+    <h5>Saved Conversion Ratios</h5>
+
+    {% if ratios %}
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover table-sm" id="ratios-table">
+        <thead class="table-dark">
+          <tr>
+            <th>Material Code
+              <select class="form-select form-select-sm column-filter" data-col="0">
+                <option value="">All</option>
+              </select>
+            </th>
+            <th>Conversion Ratio
+              <input type="text" class="form-control form-control-sm text-filter" data-col="1">
+            </th>
+            <th>
+              Action
+              <div class="mt-1">
+                <button type="button" id="clear-filters" class="btn btn-warning btn-sm">
+                  Clear
+                </button>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in ratios %}
+          <tr>
+            <td>{{ r.material_code }}</td>
+            <td>{{ r.conversion_ratio }}</td>
+            <td>
+              <button type="button"
+                      class="btn btn-primary btn-sm load-ratio"
+                      data-material-code="{{ r.material_code }}">
+                Edit
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</main>
+
+<script>
+/* ================== COMMON ================== */
+const ratioContainer = document.getElementById("ratio-rows");
+
+/* ================== ADD RATIO ================== */
+document.getElementById("add-ratio").addEventListener("click", () => {
+  const firstRow = ratioContainer.querySelector(".ratio-row");
+  const newRow = firstRow.cloneNode(true);
+
+  newRow.querySelectorAll("input").forEach(i => i.value = "");
+  newRow.querySelectorAll("select").forEach(s => s.selectedIndex = 0);
+
+  ratioContainer.appendChild(newRow);
+});
+
+/* ================== CLEAR ROW ================== */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("clear-row")) return;
+  const row = e.target.closest(".ratio-row");
+  row.querySelectorAll("input").forEach(i => i.value = "");
+  row.querySelectorAll("select").forEach(s => s.selectedIndex = 0);
+});
+
+/* ================== DELETE ROW ================== */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("delete-row")) return;
+  const rows = document.querySelectorAll(".ratio-row");
+  if (rows.length <= 1) {
+    alert("At least one row required");
+    return;
+  }
+  e.target.closest(".ratio-row").remove();
+});
+
+/* ================== LOAD RATIO ================== */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("load-ratio")) return;
+
+  const materialCode = e.target.dataset.materialCode;
+  const row = ratioContainer.querySelector(".ratio-row");
+
+  // Set the select dropdown value
+  const select = row.querySelector('[name="material_code"]');
+  select.value = materialCode;
+
+  // Find the ratio from the table
+  const tableRow = e.target.closest("tr");
+  row.querySelector('[name="conversion_ratio"]').value = tableRow.cells[1].innerText;
+
+  const collapseEl = document.getElementById("ratioForm");
+  const bs = bootstrap.Collapse.getInstance(collapseEl)
+    || new bootstrap.Collapse(collapseEl, { toggle: false });
+  bs.show();
+});
+
+/* ================== TABLE FILTERS ================== */
+const table = document.getElementById("ratios-table");
+const filters = document.querySelectorAll(".column-filter, .text-filter");
+
+document.querySelectorAll(".column-filter").forEach(select => {
+  const col = select.dataset.col;
+  const values = [...new Set(
+    [...table.tBodies[0].rows].map(r => r.cells[col].innerText.trim())
+  )];
+  values.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    select.appendChild(opt);
+  });
+});
+
+filters.forEach(f => f.addEventListener("input", () => {
+  [...table.tBodies[0].rows].forEach(row => {
+    let show = true;
+    filters.forEach(f => {
+      const col = f.dataset.col;
+      if (f.value && !row.cells[col].innerText.toLowerCase().includes(f.value.toLowerCase())) {
+        show = false;
+      }
+    });
+    row.style.display = show ? "" : "none";
+  });
+}));
+
+document.getElementById("clear-filters").addEventListener("click", () => {
+  filters.forEach(f => f.value = "");
+  filters[0].dispatchEvent(new Event("input"));
+});
+</script>
+{% endblock %}

@@ -1,0 +1,246 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container my-4">
+    <h3>Machine Operational Cost</h3>
+
+    <button class="btn btn-primary mb-3" type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#machineForm">
+      Manage Machine Costs
+    </button>
+
+    <div class="collapse" id="machineForm">
+      <form method="POST" id="machine-form">
+        {% csrf_token %}
+        <div class="card p-4 mb-4 shadow-sm">
+
+          <div id="machine-rows">
+            <div class="row mb-2 machine-row align-items-center">
+              <div class="col-md-2">
+                <input type="text" name="machine_number" class="form-control form-control-sm" placeholder="Machine Number">
+              </div>
+              <div class="col-md-1">
+                <input type="number" name="number_of_shuttles" class="form-control form-control-sm" placeholder="Shuttles">
+              </div>
+              <div class="col-md-2">
+                <input type="text" name="running_product_code" class="form-control form-control-sm" placeholder="Product Code">
+              </div>
+              <div class="col-md-1">
+                <input type="number" step="0.01" name="operator_cost_per_day" class="form-control form-control-sm" placeholder="Operator/Day">
+              </div>
+              <div class="col-md-1">
+                <input type="number" step="0.01" name="bobbin_winder_cost_per_day" class="form-control form-control-sm" placeholder="Bobbin/Day">
+              </div>
+              <div class="col-md-1">
+                <input type="number" step="0.01" name="mending_cost_per_day" class="form-control form-control-sm" placeholder="Mending/Day">
+              </div>
+              <div class="col-md-1">
+                <input type="number" step="0.01" name="mechanic_cost_per_day" class="form-control form-control-sm" placeholder="Mechanic/Day">
+              </div>
+              <div class="col-md-1">
+                <input type="number" step="0.01" name="electricity_cost_per_day" class="form-control form-control-sm" placeholder="Electricity/Day">
+              </div>
+              <div class="col-md-1">
+                <input type="number" step="0.01" name="maintenance_cost_per_day" class="form-control form-control-sm" placeholder="Maintenance/Day">
+              </div>
+              <div class="col-md-1 d-flex justify-content-end gap-1">
+                <button type="button" class="btn btn-warning btn-sm clear-row">Clear</button>
+                <button type="button" class="btn btn-danger btn-sm delete-row">Delete</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <button type="button" id="add-machine" class="btn btn-secondary">
+              + Add Machine
+            </button>
+          </div>
+
+          <div class="text-center">
+            <button type="submit" name="action" value="save" class="btn btn-success">Save</button>
+            <button type="submit" name="action" value="delete" class="btn btn-danger">Delete</button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <hr>
+
+    <h5>Saved Machine Operational Costs</h5>
+
+    {% if costs %}
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover table-sm" id="machines-table">
+        <thead class="table-dark">
+          <tr>
+            <th>Machine Number
+              <select class="form-select form-select-sm column-filter" data-col="0">
+                <option value="">All</option>
+              </select>
+            </th>
+            <th>Shuttles
+              <input type="text" class="form-control form-control-sm text-filter" data-col="1">
+            </th>
+            <th>Product Code
+              <input type="text" class="form-control form-control-sm text-filter" data-col="2">
+            </th>
+            <th>Operator/Day
+              <input type="text" class="form-control form-control-sm text-filter" data-col="3">
+            </th>
+            <th>Bobbin/Day
+              <input type="text" class="form-control form-control-sm text-filter" data-col="4">
+            </th>
+            <th>Mending/Day
+              <input type="text" class="form-control form-control-sm text-filter" data-col="5">
+            </th>
+            <th>Mechanic/Day
+              <input type="text" class="form-control form-control-sm text-filter" data-col="6">
+            </th>
+            <th>Electricity/Day
+              <input type="text" class="form-control form-control-sm text-filter" data-col="7">
+            </th>
+            <th>Maintenance/Day
+              <input type="text" class="form-control form-control-sm text-filter" data-col="8">
+            </th>
+            <th>Misc/Day
+              <input type="text" class="form-control form-control-sm text-filter" data-col="9">
+            </th>
+            <th>
+              Action
+              <div class="mt-1">
+                <button type="button" id="clear-filters" class="btn btn-warning btn-sm">
+                  Clear
+                </button>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in costs %}
+          <tr>
+            <td>{{ c.machine_number }}</td>
+            <td>{{ c.number_of_shuttles }}</td>
+            <td>{{ c.running_product_code }}</td>
+            <td>{{ c.operator_cost_per_day }}</td>
+            <td>{{ c.bobbin_winder_cost_per_day }}</td>
+            <td>{{ c.mending_cost_per_day }}</td>
+            <td>{{ c.mechanic_cost_per_day }}</td>
+            <td>{{ c.electricity_cost_per_day }}</td>
+            <td>{{ c.maintenance_cost_per_day }}</td>
+            <td>{{ c.miscellaneous_cost_per_day }}</td>
+            <td>
+              <button type="button"
+                      class="btn btn-primary btn-sm load-machine"
+                      data-machine-number="{{ c.machine_number }}">
+                Edit
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</main>
+
+<script>
+/* ================== COMMON ================== */
+const machineContainer = document.getElementById("machine-rows");
+
+/* ================== ADD MACHINE ================== */
+document.getElementById("add-machine").addEventListener("click", () => {
+  const firstRow = machineContainer.querySelector(".machine-row");
+  const newRow = firstRow.cloneNode(true);
+
+  newRow.querySelectorAll("input").forEach(i => i.value = "");
+  newRow.querySelectorAll("select").forEach(s => s.selectedIndex = 0);
+
+  machineContainer.appendChild(newRow);
+});
+
+/* ================== CLEAR ROW ================== */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("clear-row")) return;
+  const row = e.target.closest(".machine-row");
+  row.querySelectorAll("input").forEach(i => i.value = "");
+  row.querySelectorAll("select").forEach(s => s.selectedIndex = 0);
+});
+
+/* ================== DELETE ROW ================== */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("delete-row")) return;
+  const rows = document.querySelectorAll(".machine-row");
+  if (rows.length <= 1) {
+    alert("At least one row required");
+    return;
+  }
+  e.target.closest(".machine-row").remove();
+});
+
+/* ================== LOAD MACHINE ================== */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("load-machine")) return;
+
+  const machineNumber = e.target.dataset.machineNumber;
+  const row = machineContainer.querySelector(".machine-row");
+
+  row.querySelector('[name="machine_number"]').value = machineNumber;
+
+  // Find the cost from the table
+  const tableRow = e.target.closest("tr");
+  row.querySelector('[name="number_of_shuttles"]').value = tableRow.cells[1].innerText;
+  row.querySelector('[name="running_product_code"]').value = tableRow.cells[2].innerText;
+  row.querySelector('[name="operator_cost_per_day"]').value = tableRow.cells[3].innerText;
+  row.querySelector('[name="bobbin_winder_cost_per_day"]').value = tableRow.cells[4].innerText;
+  row.querySelector('[name="mending_cost_per_day"]').value = tableRow.cells[5].innerText;
+  row.querySelector('[name="mechanic_cost_per_day"]').value = tableRow.cells[6].innerText;
+  row.querySelector('[name="electricity_cost_per_day"]').value = tableRow.cells[7].innerText;
+  row.querySelector('[name="maintenance_cost_per_day"]').value = tableRow.cells[8].innerText;
+  row.querySelector('[name="miscellaneous_cost_per_day"]').value = tableRow.cells[9].innerText;
+
+  const collapseEl = document.getElementById("machineForm");
+  const bs = bootstrap.Collapse.getInstance(collapseEl)
+    || new bootstrap.Collapse(collapseEl, { toggle: false });
+  bs.show();
+});
+
+/* ================== TABLE FILTERS ================== */
+const table = document.getElementById("machines-table");
+const filters = document.querySelectorAll(".column-filter, .text-filter");
+
+document.querySelectorAll(".column-filter").forEach(select => {
+  const col = select.dataset.col;
+  const values = [...new Set(
+    [...table.tBodies[0].rows].map(r => r.cells[col].innerText.trim())
+  )];
+  values.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    select.appendChild(opt);
+  });
+});
+
+filters.forEach(f => f.addEventListener("input", () => {
+  [...table.tBodies[0].rows].forEach(row => {
+    let show = true;
+    filters.forEach(f => {
+      const col = f.dataset.col;
+      if (f.value && !row.cells[col].innerText.toLowerCase().includes(f.value.toLowerCase())) {
+        show = false;
+      }
+    });
+    row.style.display = show ? "" : "none";
+  });
+}));
+
+document.getElementById("clear-filters").addEventListener("click", () => {
+  filters.forEach(f => f.value = "");
+  filters[0].dispatchEvent(new Event("input"));
+});
+</script>
+{% endblock %}
