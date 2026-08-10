@@ -5208,6 +5208,7 @@ def processing_cost_view(request):
     
     context = {
         "costs": ProcessingCost.objects.all(),
+        "materials": Materials.objects.all(),
     }
     return render(request, "marania_invoice_app/processing_cost.html", context)
 
