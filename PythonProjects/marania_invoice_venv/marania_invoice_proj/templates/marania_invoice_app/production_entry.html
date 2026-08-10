@@ -351,7 +351,7 @@ productionContainer.addEventListener("click", e => {
       const pcs = parseFloat(tr.querySelector(".twine-pcs").value) || 0;
       const twineCount = parseFloat(tr.querySelector(".twine-count").value) || 0;
       const conv = parseFloat(tr.querySelector(".twine-conv").value) || 0;
-      const dailyOutput = (conv * mm * md * knotCap) / 1000;
+      const dailyOutput = (conv * mm * twineCount * knotCap) / 1000;
       totalDailyOutput += dailyOutput;
       html += `<tr><td><span class="badge bg-${type === 'NET' ? 'success' : 'warning'}">${type}</span></td><td>${mm}</td><td>${md}</td><td>${pcs}</td><td>${twineCount}</td><td>${conv}</td><td class="fw-bold">${dailyOutput.toFixed(2)}</td></tr>`;
     });
