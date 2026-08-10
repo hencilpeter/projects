@@ -1,0 +1,502 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container my-4">
+    <h3>Profit Analytics</h3>
+
+    <button class="btn btn-primary mb-3" type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#profitForm">
+      New Profit Analysis
+    </button>
+
+    <div class="collapse" id="profitForm">
+      <form method="POST" id="profit-form">
+        {% csrf_token %}
+        <input type="hidden" name="entries_data" id="entries-data">
+        <div class="card p-4 mb-4 shadow-sm">
+
+          <div class="row mb-3 align-items-end g-2">
+            <div class="col-md-2">
+              <label class="form-label small mb-0">Analysis Date</label>
+              <input type="date" id="profit-date" class="form-control form-control-sm" value="{% now 'Y-m-d' %}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small mb-0">Select Production</label>
+              <select id="select-production" class="form-select form-select-sm">
+                <option value="">-- Select Production --</option>
+              </select>
+            </div>
+          </div>
+
+          <hr>
+
+          <div id="profit-rows">
+            <div class="profit-row">
+              <div class="row mb-2 align-items-end g-1">
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Customer</label>
+                  <input type="text" class="form-control form-control-sm prof-customer bg-light" placeholder="Customer" readonly>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Product</label>
+                  <input type="text" class="form-control form-control-sm prof-product bg-light" placeholder="Product" readonly>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Machine</label>
+                  <input type="text" class="form-control form-control-sm prof-machine bg-light" placeholder="Machine" readonly>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Est. Weight (KG)</label>
+                  <input type="text" class="form-control form-control-sm prof-est-wt bg-light" placeholder="Est Wt" readonly>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Daily Output (KG)</label>
+                  <input type="text" class="form-control form-control-sm prof-daily-output bg-light" placeholder="Daily Output" readonly>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Required Days</label>
+                  <input type="text" class="form-control form-control-sm prof-req-days bg-light" placeholder="Days" readonly>
+                </div>
+              </div>
+
+              <hr>
+              <h6 class="text-primary fw-bold">Cost Breakdown</h6>
+
+              <div class="row mb-2 align-items-end g-1">
+                <div class="col-md-3">
+                  <label class="form-label small mb-0">Machine Cost/Day</label>
+                  <input type="text" class="form-control form-control-sm prof-machine-cost-day bg-light" placeholder="Machine Cost/Day" readonly>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-0">Machine Total (Cost/Day x Days)</label>
+                  <input type="text" class="form-control form-control-sm prof-machine-total bg-light" placeholder="Machine Total" readonly>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-0">Processing Cost/KG</label>
+                  <input type="text" class="form-control form-control-sm prof-proc-cost bg-light" placeholder="Processing/KG" readonly>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-0">Processing Total</label>
+                  <input type="text" class="form-control form-control-sm prof-proc-total bg-light" placeholder="Processing Total" readonly>
+                </div>
+              </div>
+
+              <div class="row mb-2 align-items-end g-1">
+                <div class="col-md-3">
+                  <label class="form-label small mb-0">Additional Cost/KG</label>
+                  <input type="text" class="form-control form-control-sm prof-addl-cost bg-light" placeholder="Additional/KG" readonly>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-0">Additional Total</label>
+                  <input type="text" class="form-control form-control-sm prof-addl-total bg-light" placeholder="Additional Total" readonly>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-0">Raw Material Cost</label>
+                  <input type="number" step="0.01" class="form-control form-control-sm prof-raw-cost" placeholder="Raw Material Cost">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-0 text-success fw-bold">TOTAL COST</label>
+                  <input type="text" class="form-control form-control-sm prof-total-cost bg-light fw-bold" placeholder="Total Cost" readonly>
+                </div>
+              </div>
+
+              <hr>
+              <h6 class="text-success fw-bold">Revenue & Profit</h6>
+
+              <div class="row mb-2 align-items-end g-1">
+                <div class="col-md-3">
+                  <label class="form-label small mb-0">Sale Price/KG</label>
+                  <input type="number" step="0.01" class="form-control form-control-sm prof-sale-price" placeholder="Sale Price/KG">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-0">Total Revenue</label>
+                  <input type="text" class="form-control form-control-sm prof-total-revenue bg-light" placeholder="Revenue" readonly>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0 text-success fw-bold">TOTAL PROFIT</label>
+                  <input type="text" class="form-control form-control-sm prof-total-profit bg-light fw-bold text-success" placeholder="Profit" readonly>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Profit/KG</label>
+                  <input type="text" class="form-control form-control-sm prof-profit-kg bg-light" placeholder="Profit/KG" readonly>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Margin %</label>
+                  <input type="text" class="form-control form-control-sm prof-margin bg-light" placeholder="Margin %" readonly>
+                </div>
+              </div>
+
+              <div class="row mb-2 g-1">
+                <div class="col-md-6">
+                  <label class="form-label small mb-0">Remarks</label>
+                  <input type="text" class="form-control form-control-sm prof-remarks" placeholder="Remarks">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                  <button type="button" class="btn btn-info btn-sm calc-profit">Calculate</button>
+                </div>
+              </div>
+
+              <div id="profit-breakdown" class="border rounded p-2 mt-2" style="display:none;">
+                <h6 class="fw-bold text-primary mb-1">Calculation Breakdown</h6>
+                <div id="breakdown-content" class="small"></div>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="text-center">
+            <button type="submit" name="action" value="save" class="btn btn-success">Save Profit Analysis</button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <hr>
+
+    <h5>Saved Profit Analytics</h5>
+
+    {% if profits %}
+    <div id="profitSummaryPanel" class="card mb-3 shadow-sm border-success" style="display:none;">
+      <div class="card-body py-2 px-3">
+        <div class="row g-2 text-center">
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Entries</div>
+            <div class="fw-bold lh-1" id="profit-summary-count">0</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Total Cost</div>
+            <div class="fw-bold lh-1" id="profit-summary-cost">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Total Revenue</div>
+            <div class="fw-bold lh-1" id="profit-summary-revenue">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Total Profit</div>
+            <div class="fw-bold lh-1 text-success" id="profit-summary-profit">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Avg Margin %</div>
+            <div class="fw-bold lh-1" id="profit-summary-margin">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4">
+            <div class="small text-muted lh-1">Avg Profit/KG</div>
+            <div class="fw-bold lh-1" id="profit-summary-profit-kg">0.00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <form method="POST" action="{% url 'profit_analytics' %}" id="bulk-delete-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete_bulk">
+      <input type="hidden" name="profit_keys" id="bulk-keys">
+
+      <div class="mb-2">
+        <button type="submit" class="btn btn-danger btn-sm" id="bulk-delete-btn" style="display:none;">Delete Selected</button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover table-sm" id="profit-table">
+          <thead class="table-dark">
+            <tr>
+              <th style="min-width: 70px;">Action</th>
+              <th><input type="checkbox" id="select-all-profit"></th>
+              <th>Date</th>
+              <th>Customer</th>
+              <th>Product</th>
+              <th>Machine</th>
+              <th>Est Wt</th>
+              <th>Daily Output</th>
+              <th>Req Days</th>
+              <th>Machine Cost</th>
+              <th>Processing</th>
+              <th>Additional</th>
+              <th>Raw Material</th>
+              <th>Total Cost</th>
+              <th>Sale Price/KG</th>
+              <th>Revenue</th>
+              <th>Profit</th>
+              <th>Profit/KG</th>
+              <th>Margin %</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for pr in profits %}
+            <tr data-cost="{{ pr.total_cost|default:'0' }}"
+                data-revenue="{{ pr.total_revenue|default:'0' }}"
+                data-profit="{{ pr.total_profit|default:'0' }}"
+                data-margin="{{ pr.profit_margin_pct|default:'0' }}"
+                data-profit-kg="{{ pr.profit_per_kg|default:'0' }}">
+              <td>
+                <button type="button" class="btn btn-danger btn-sm delete-profit" data-key="{{ pr.profit_key }}">&times;</button>
+              </td>
+              <td><input type="checkbox" class="profit-row-check" value="{{ pr.profit_key }}"></td>
+              <td>{{ pr.profit_date }}</td>
+              <td>{{ pr.customer }}</td>
+              <td>{{ pr.product }}</td>
+              <td>{{ pr.machine }}</td>
+              <td>{{ pr.est_weight }}</td>
+              <td>{{ pr.total_daily_output }}</td>
+              <td>{{ pr.required_days }}</td>
+              <td>{{ pr.machine_operational_total }}</td>
+              <td>{{ pr.processing_total }}</td>
+              <td>{{ pr.additional_total }}</td>
+              <td>{{ pr.raw_material_cost }}</td>
+              <td>{{ pr.total_cost }}</td>
+              <td>{{ pr.sale_price_per_kg }}</td>
+              <td>{{ pr.total_revenue }}</td>
+              <td class="fw-bold text-success">{{ pr.total_profit }}</td>
+              <td>{{ pr.profit_per_kg }}</td>
+              <td>{{ pr.profit_margin_pct }}</td>
+              <td>{{ pr.remarks }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </form>
+    {% else %}
+    <div class="alert alert-info">No profit analytics found. Create one above.</div>
+    {% endif %}
+
+  </div>
+</main>
+
+{{ productions_json|json_script:"productions-data" }}
+{{ machines_json|json_script:"machines-data" }}
+{{ processing_json|json_script:"processing-data" }}
+{{ additional_json|json_script:"additional-data" }}
+<script>
+const productionsData = JSON.parse(document.getElementById("productions-data").textContent);
+const machinesData = JSON.parse(document.getElementById("machines-data").textContent);
+const processingData = JSON.parse(document.getElementById("processing-data").textContent);
+const additionalData = JSON.parse(document.getElementById("additional-data").textContent);
+const profitContainer = document.getElementById("profit-rows");
+
+/* Populate production dropdown */
+const prodSelect = document.getElementById("select-production");
+productionsData.forEach(o => {
+  const opt = document.createElement("option");
+  opt.value = o.production_key;
+  opt.textContent = `${o.production_date} - ${o.customer} - ${o.product || ''} - ${o.machine || ''}`;
+  opt.dataset.production = JSON.stringify(o);
+  prodSelect.appendChild(opt);
+});
+
+/* Select production -> populate fields */
+prodSelect.addEventListener("change", () => {
+  const opt = prodSelect.selectedOptions[0];
+  if (!opt || !opt.dataset.production) return;
+  const o = JSON.parse(opt.dataset.production);
+  const row = profitContainer.querySelector(".profit-row");
+  row.querySelector(".prof-customer").value = o.customer || "";
+  row.querySelector(".prof-product").value = o.product || "";
+  row.querySelector(".prof-machine").value = o.machine || "";
+  row.querySelector(".prof-est-wt").value = o.est_weight || "";
+  row.querySelector(".prof-daily-output").value = o.total_daily_output || "";
+  row.querySelector(".prof-req-days").value = o.required_days || "";
+  row.setAttribute("data-production-key", o.production_key);
+
+  /* Fetch machine operational cost */
+  const machine = machinesData.find(m => m.machine_number === o.machine);
+  const machineCostDay = machine ? machine.total_cost_per_day : "";
+  row.querySelector(".prof-machine-cost-day").value = machineCostDay;
+  row.dataset.machineCostDay = machineCostDay;
+
+  /* Fetch processing cost */
+  const proc = processingData.find(p => p.code === o.product);
+  const procCost = proc ? proc.cost_per_kg : "";
+  row.querySelector(".prof-proc-cost").value = procCost;
+  row.dataset.procCost = procCost;
+
+  /* Set additional cost (sum of all additional costs) */
+  let addlCost = 0;
+  if (additionalData.transportation) addlCost += parseFloat(additionalData.transportation);
+  if (additionalData.packing) addlCost += parseFloat(additionalData.packing);
+  if (additionalData.waste) addlCost += parseFloat(additionalData.waste);
+  row.querySelector(".prof-addl-cost").value = addlCost ? addlCost.toFixed(2) : "";
+  row.dataset.addlCost = addlCost;
+
+  recalcProfit(row);
+});
+
+/* Calculate button */
+profitContainer.addEventListener("click", e => {
+  if (!e.target.classList.contains("calc-profit")) return;
+  const row = e.target.closest(".profit-row");
+  recalcProfit(row);
+});
+
+/* Input changes -> recalculate */
+profitContainer.addEventListener("input", e => {
+  if (e.target.classList.contains("prof-raw-cost") || e.target.classList.contains("prof-sale-price")) {
+    const row = e.target.closest(".profit-row");
+    recalcProfit(row);
+  }
+});
+
+function recalcProfit(row) {
+  if (!row) return;
+  const estWt = parseFloat(row.querySelector(".prof-est-wt").value) || 0;
+  const reqDays = parseFloat(row.querySelector(".prof-req-days").value) || 0;
+  const machineCostDay = parseFloat(row.dataset.machineCostDay) || 0;
+  const procCost = parseFloat(row.dataset.procCost) || 0;
+  const addlCost = parseFloat(row.dataset.addlCost) || 0;
+  const rawCost = parseFloat(row.querySelector(".prof-raw-cost").value) || 0;
+  const salePrice = parseFloat(row.querySelector(".prof-sale-price").value) || 0;
+
+  const machineTotal = machineCostDay * reqDays;
+  const procTotal = procCost * estWt;
+  const addlTotal = addlCost * estWt;
+  const totalCost = machineTotal + procTotal + addlTotal + rawCost;
+  const revenue = salePrice * estWt;
+  const profit = revenue - totalCost;
+  const profitKg = estWt > 0 ? profit / estWt : 0;
+  const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+
+  row.querySelector(".prof-machine-total").value = machineTotal ? machineTotal.toFixed(2) : "";
+  row.querySelector(".prof-proc-total").value = procTotal ? procTotal.toFixed(2) : "";
+  row.querySelector(".prof-addl-total").value = addlTotal ? addlTotal.toFixed(2) : "";
+  row.querySelector(".prof-total-cost").value = totalCost ? totalCost.toFixed(2) : "";
+  row.querySelector(".prof-total-revenue").value = revenue ? revenue.toFixed(2) : "";
+  row.querySelector(".prof-total-profit").value = profit ? profit.toFixed(2) : "";
+  row.querySelector(".prof-profit-kg").value = profitKg ? profitKg.toFixed(2) : "";
+  row.querySelector(".prof-margin").value = margin ? margin.toFixed(2) : "";
+
+  /* Show breakdown */
+  const breakdown = document.getElementById("profit-breakdown");
+  const content = document.getElementById("breakdown-content");
+  if (totalCost > 0 || revenue > 0) {
+    content.innerHTML = `
+      <table class="table table-sm table-borderless mb-0">
+        <tr><td>Machine Cost: ${machineCostDay.toFixed(2)}/Day x ${reqDays} Days =</td><td class="text-end fw-bold">${machineTotal.toFixed(2)}</td></tr>
+        <tr><td>Processing Cost: ${procCost.toFixed(2)}/KG x ${estWt} KG =</td><td class="text-end fw-bold">${procTotal.toFixed(2)}</td></tr>
+        <tr><td>Additional Cost: ${addlCost.toFixed(2)}/KG x ${estWt} KG =</td><td class="text-end fw-bold">${addlTotal.toFixed(2)}</td></tr>
+        <tr><td>Raw Material Cost:</td><td class="text-end fw-bold">${rawCost.toFixed(2)}</td></tr>
+        <tr class="border-top"><td><b>TOTAL COST:</b></td><td class="text-end fw-bold text-danger">${totalCost.toFixed(2)}</td></tr>
+        <tr><td>Revenue: ${salePrice.toFixed(2)}/KG x ${estWt} KG =</td><td class="text-end fw-bold text-success">${revenue.toFixed(2)}</td></tr>
+        <tr class="border-top border-success"><td><b>PROFIT:</b></td><td class="text-end fw-bold text-success">${profit.toFixed(2)}</td></tr>
+        <tr><td>Profit/KG:</td><td class="text-end">${profitKg.toFixed(2)}</td></tr>
+        <tr><td>Margin:</td><td class="text-end">${margin.toFixed(2)}%</td></tr>
+      </table>`;
+    breakdown.style.display = "";
+  } else {
+    breakdown.style.display = "none";
+  }
+
+  /* Store values for submit */
+  row.dataset.machineTotal = machineTotal;
+  row.dataset.procTotal = procTotal;
+  row.dataset.addlTotal = addlTotal;
+  row.dataset.totalCost = totalCost;
+  row.dataset.revenue = revenue;
+  row.dataset.profit = profit;
+  row.dataset.profitKg = profitKg;
+  row.dataset.margin = margin;
+  row.dataset.machineCostDay = machineCostDay;
+  row.dataset.procCost = procCost;
+  row.dataset.addlCost = addlCost;
+}
+
+/* Submit */
+document.getElementById("profit-form").addEventListener("submit", e => {
+  const entries = [];
+  const date = document.getElementById("profit-date").value;
+  profitContainer.querySelectorAll(".profit-row").forEach(row => {
+    const totalCost = parseFloat(row.dataset.totalCost) || 0;
+    if (totalCost <= 0) { alert("Please select a production and calculate profit first."); e.preventDefault(); return; }
+    entries.push({
+      profit_date: date,
+      production_key: row.dataset.productionKey || "",
+      customer: row.querySelector(".prof-customer").value,
+      product: row.querySelector(".prof-product").value,
+      machine: row.querySelector(".prof-machine").value,
+      est_weight: row.querySelector(".prof-est-wt").value,
+      total_daily_output: row.querySelector(".prof-daily-output").value,
+      required_days: row.querySelector(".prof-req-days").value,
+      machine_operational_cost_per_day: row.dataset.machineCostDay || "",
+      machine_operational_total: row.dataset.machineTotal || "",
+      processing_cost_per_kg: row.dataset.procCost || "",
+      processing_total: row.dataset.procTotal || "",
+      additional_cost_per_kg: row.dataset.addlCost || "",
+      additional_total: row.dataset.addlTotal || "",
+      raw_material_cost: row.querySelector(".prof-raw-cost").value,
+      total_cost: row.dataset.totalCost || "",
+      sale_price_per_kg: row.querySelector(".prof-sale-price").value,
+      total_revenue: row.dataset.revenue || "",
+      total_profit: row.dataset.profit || "",
+      profit_per_kg: row.dataset.profitKg || "",
+      profit_margin_pct: row.dataset.margin || "",
+      remarks: row.querySelector(".prof-remarks").value,
+    });
+  });
+  if (entries.length > 0) {
+    document.getElementById("entries-data").value = JSON.stringify(entries);
+  }
+});
+
+/* Delete single */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("delete-profit")) return;
+  if (!confirm("Delete this profit entry?")) return;
+  const key = e.target.dataset.key";
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = "{% url 'profit_analytics' %}";
+  form.innerHTML = `{% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="profit_key" value="${key}">`;
+  document.body.appendChild(form);
+  form.submit();
+});
+
+/* Summary & filters */
+const profitTable = document.getElementById("profit-table");
+const profitCheckboxes = document.querySelectorAll(".profit-row-check");
+
+function updateProfitSummary() {
+  const panel = document.getElementById("profitSummaryPanel");
+  if (!panel || !profitTable || !profitTable.tBodies[0]) { if(panel) panel.style.display = "none"; return; }
+  let count = 0, cost = 0, revenue = 0, profit = 0, margin = 0, profitKg = 0;
+  [...profitTable.tBodies[0].rows].forEach(row => {
+    if (row.style.display === "none") return;
+    count++;
+    cost += parseFloat(row.dataset.cost) || 0;
+    revenue += parseFloat(row.dataset.revenue) || 0;
+    profit += parseFloat(row.dataset.profit) || 0;
+    margin += parseFloat(row.dataset.margin) || 0;
+    profitKg += parseFloat(row.dataset.profitKg) || 0;
+  });
+  document.getElementById("profit-summary-count").textContent = count;
+  document.getElementById("profit-summary-cost").textContent = cost.toFixed(2);
+  document.getElementById("profit-summary-revenue").textContent = revenue.toFixed(2);
+  document.getElementById("profit-summary-profit").textContent = profit.toFixed(2);
+  document.getElementById("profit-summary-margin").textContent = count ? (margin / count).toFixed(2) : "0.00";
+  document.getElementById("profit-summary-profit-kg").textContent = count ? (profitKg / count).toFixed(2) : "0.00";
+  panel.style.display = count > 0 ? "" : "none";
+}
+
+document.getElementById("select-all-profit")?.addEventListener("change", e => {
+  profitCheckboxes.forEach(cb => cb.checked = e.target.checked);
+  updateBulkDeleteBtn();
+});
+profitCheckboxes.forEach(cb => cb.addEventListener("change", updateBulkDeleteBtn));
+
+function updateBulkDeleteBtn() {
+  const checked = document.querySelectorAll(".profit-row-check:checked");
+  document.getElementById("bulk-delete-btn").style.display = checked.length > 0 ? "" : "none";
+}
+
+document.getElementById("bulk-delete-form").addEventListener("submit", e => {
+  const checked = document.querySelectorAll(".profit-row-check:checked");
+  if (checked.length === 0) { e.preventDefault(); return; }
+  if (!confirm(`Delete ${checked.length} selected entries?`)) { e.preventDefault(); return; }
+  document.getElementById("bulk-keys").value = JSON.stringify([...checked].map(cb => cb.value));
+});
+
+updateProfitSummary();
+</script>
+{% endblock %}

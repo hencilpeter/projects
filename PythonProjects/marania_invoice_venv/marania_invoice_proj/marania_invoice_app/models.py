@@ -804,3 +804,42 @@ class Production(models.Model):
 
     class Meta:
         ordering = ['-production_date', '-production_key']
+
+
+class ProfitAnalytics(models.Model):
+    profit_key = models.AutoField(primary_key=True)
+    production = models.ForeignKey(Production, to_field='production_key', on_delete=models.SET_NULL, null=True, blank=True, related_name='profit_analytics')
+    profit_date = models.DateField(default='today')
+    customer = models.CharField(max_length=255, blank=True, null=True)
+    product = models.CharField(max_length=100, blank=True, null=True)
+    machine = models.CharField(max_length=50, blank=True, null=True)
+    est_weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    total_daily_output = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    required_days = models.DecimalField(max_digits=10, decimal_places=1, blank=True, null=True)
+
+    # Cost components
+    machine_operational_cost_per_day = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    machine_operational_total = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    processing_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    processing_total = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    additional_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    additional_total = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    raw_material_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    total_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+
+    # Revenue & Profit
+    sale_price_per_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    total_revenue = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    total_profit = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    profit_per_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    profit_margin_pct = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+
+    remarks = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Profit #{self.profit_key} - {self.customer} - {self.product}"
+
+    class Meta:
+        ordering = ['-profit_date', '-profit_key']

@@ -5557,3 +5557,148 @@ def production_detail_view(request):
     }
     return render(request, "marania_invoice_app/production_detail.html", context)
 
+
+@login_required
+def profit_analytics_view(request):
+    from .models import ProfitAnalytics, Production, MachineOperationalCost, ProcessingCost, AdditionalCost
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "save":
+            entries_raw = request.POST.get("entries_data")
+            if entries_raw:
+                import json
+                entries = json.loads(entries_raw) if isinstance(entries_raw, str) else entries_raw
+                saved = 0
+                for entry in entries:
+                    production_key = entry.get("production_key") or None
+                    production_obj = None
+                    if production_key:
+                        try:
+                            production_obj = Production.objects.get(pk=production_key)
+                        except Production.DoesNotExist:
+                            production_obj = None
+                    ProfitAnalytics.objects.create(
+                        production=production_obj,
+                        profit_date=entry.get("profit_date") or None,
+                        customer=(entry.get("customer") or "").strip(),
+                        product=(entry.get("product") or "").strip(),
+                        machine=(entry.get("machine") or "").strip(),
+                        est_weight=float(entry.get("est_weight") or 0) or None,
+                        total_daily_output=float(entry.get("total_daily_output") or 0) or None,
+                        required_days=float(entry.get("required_days") or 0) or None,
+                        machine_operational_cost_per_day=float(entry.get("machine_operational_cost_per_day") or 0) or None,
+                        machine_operational_total=float(entry.get("machine_operational_total") or 0) or None,
+                        processing_cost_per_kg=float(entry.get("processing_cost_per_kg") or 0) or None,
+                        processing_total=float(entry.get("processing_total") or 0) or None,
+                        additional_cost_per_kg=float(entry.get("additional_cost_per_kg") or 0) or None,
+                        additional_total=float(entry.get("additional_total") or 0) or None,
+                        raw_material_cost=float(entry.get("raw_material_cost") or 0) or None,
+                        total_cost=float(entry.get("total_cost") or 0) or None,
+                        sale_price_per_kg=float(entry.get("sale_price_per_kg") or 0) or None,
+                        total_revenue=float(entry.get("total_revenue") or 0) or None,
+                        total_profit=float(entry.get("total_profit") or 0) or None,
+                        profit_per_kg=float(entry.get("profit_per_kg") or 0) or None,
+                        profit_margin_pct=float(entry.get("profit_margin_pct") or 0) or None,
+                        remarks=(entry.get("remarks") or "").strip(),
+                    )
+                    saved += 1
+                messages.success(request, f"{saved} profit analytics saved.")
+
+        elif action == "delete":
+            pk = request.POST.get("profit_key")
+            if pk:
+                ProfitAnalytics.objects.filter(pk=pk).delete()
+                messages.success(request, "Profit analytics deleted.")
+
+        elif action == "delete_bulk":
+            import json
+            keys_raw = request.POST.get("profit_keys")
+            if keys_raw:
+                keys = json.loads(keys_raw)
+                ProfitAnalytics.objects.filter(profit_key__in=keys).delete()
+                messages.success(request, "Selected entries deleted.")
+
+        return redirect("profit_analytics")
+
+    # Get all production analytics entries for selection
+    productions = Production.objects.all().order_by("-production_date", "-production_key")
+    productions_data = []
+    for p in productions:
+        productions_data.append({
+            "production_key": p.production_key,
+            "production_date": str(p.production_date) if p.production_date else "",
+            "customer": p.customer,
+            "product": p.product or "",
+            "machine": p.machine or "",
+            "est_weight": str(p.est_weight) if p.est_weight else "",
+            "total_daily_output": str(p.total_daily_output) if p.total_daily_output else "",
+            "required_days": str(p.required_days) if p.required_days else "",
+        })
+
+    # Get machine operational costs
+    machines = MachineOperationalCost.objects.all().order_by("machine_number")
+    machines_data = []
+    for m in machines:
+        total_cost_per_day = sum(filter(None, [
+            m.operator_cost_per_day or 0,
+            m.bobbin_winder_cost_per_day or 0,
+            m.mending_cost_per_day or 0,
+            m.mechanic_cost_per_day or 0,
+            m.electricity_cost_per_day or 0,
+            m.maintenance_cost_per_day or 0,
+            m.miscellaneous_cost_per_day or 0,
+        ]))
+        machines_data.append({
+            "machine_number": m.machine_number,
+            "total_cost_per_day": str(total_cost_per_day),
+        })
+
+    # Get processing costs
+    processing_costs = ProcessingCost.objects.all().order_by("material_code")
+    processing_data = [{"code": pc.material_code, "cost_per_kg": str(pc.processing_cost_per_kg)} for pc in processing_costs]
+
+    # Get additional costs
+    additional = AdditionalCost.objects.first()
+    additional_data = {
+        "transportation": str(additional.transportation_cost_per_kg) if additional else "",
+        "packing": str(additional.packing_cost_per_kg) if additional else "",
+        "waste": str(additional.waste_cost_per_kg) if additional else "",
+    }
+
+    # Get saved profit analytics
+    profits = ProfitAnalytics.objects.all()
+    profits_data = []
+    for pr in profits:
+        profits_data.append({
+            "profit_key": pr.profit_key,
+            "profit_date": str(pr.profit_date) if pr.profit_date else "",
+            "customer": pr.customer or "",
+            "product": pr.product or "",
+            "machine": pr.machine or "",
+            "est_weight": str(pr.est_weight) if pr.est_weight else "",
+            "total_daily_output": str(pr.total_daily_output) if pr.total_daily_output else "",
+            "required_days": str(pr.required_days) if pr.required_days else "",
+            "machine_operational_total": str(pr.machine_operational_total) if pr.machine_operational_total else "",
+            "processing_total": str(pr.processing_total) if pr.processing_total else "",
+            "additional_total": str(pr.additional_total) if pr.additional_total else "",
+            "raw_material_cost": str(pr.raw_material_cost) if pr.raw_material_cost else "",
+            "total_cost": str(pr.total_cost) if pr.total_cost else "",
+            "sale_price_per_kg": str(pr.sale_price_per_kg) if pr.sale_price_per_kg else "",
+            "total_revenue": str(pr.total_revenue) if pr.total_revenue else "",
+            "total_profit": str(pr.total_profit) if pr.total_profit else "",
+            "profit_per_kg": str(pr.profit_per_kg) if pr.profit_per_kg else "",
+            "profit_margin_pct": str(pr.profit_margin_pct) if pr.profit_margin_pct else "",
+            "remarks": pr.remarks or "",
+        })
+
+    context = {
+        "productions_json": productions_data,
+        "machines_json": machines_data,
+        "processing_json": processing_data,
+        "additional_json": additional_data,
+        "profits": profits_data,
+    }
+    return render(request, "marania_invoice_app/profit_analytics.html", context)
+
