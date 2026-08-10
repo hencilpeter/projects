@@ -25,11 +25,9 @@
       <div class="row mb-3">
         <div class="col-md-3">
           <label class="form-label">Start Date</label>
-          <input type="date" class="form-control" id="start_date" value="{% if filters.start_date %}{{ filters.start_date|date:'Y-m-d' }}{% endif %}">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">End Date</label>
-          <input type="date" class="form-control" id="end_date" value="{% if filters.end_date %}{{ filters.end_date|date:'Y-m-d' }}{% endif %}">
+          <input type="text" class="form-control" id="start_date" value="{% if filters.start_date %}{{ filters.start_date|date:'d-M-Y' }}{% endif %}" onclick="this.type='date'" onblur="this.type='text'" placeholder="DD-MMM-YYYY">
+          <label class="form-label mt-2">End Date</label>
+          <input type="text" class="form-control" id="end_date" value="{% if filters.end_date %}{{ filters.end_date|date:'d-M-Y' }}{% endif %}" onclick="this.type='date'" onblur="this.type='text'" placeholder="DD-MMM-YYYY">
         </div>
         <div class="col-md-3">
           <label class="form-label">Product Codes</label>
@@ -49,8 +47,6 @@
             {% endfor %}
           </select>
         </div>
-      </div>
-      <div class="row mb-3">
         <div class="col-md-3">
           <label class="form-label">MD (Mesh Depth)</label>
           <select class="form-select" id="md_values" multiple>
@@ -60,6 +56,8 @@
             {% endfor %}
           </select>
         </div>
+      </div>
+      <div class="row mb-3">
         <div class="col-md-3">
           <label class="form-label">Customers</label>
           <select class="form-select" id="customers" multiple>
@@ -78,15 +76,15 @@
             <option value="orders" {% if filters.metric == 'orders' %}selected{% endif %}>Orders</option>
           </select>
         </div>
-        <div class="col-md-9 text-end">
-          <button class="btn btn-primary" onclick="applyFilters()">
-            <i class="bi bi-filter"></i> Apply Filters
-          </button>
-          <button class="btn btn-secondary" onclick="resetFilters()">
-            <i class="bi bi-x-circle"></i> Reset
-          </button>
-          <div class="btn-group">
-            <button class="btn btn-outline-success" onclick="exportReport('csv')">
+        <div class="col-md-3 d-flex align-items-end">
+          <div class="w-100">
+            <button class="btn btn-primary me-1" onclick="applyFilters()">
+              <i class="bi bi-filter"></i> Apply
+            </button>
+            <button class="btn btn-secondary me-1" onclick="resetFilters()">
+              <i class="bi bi-x-circle"></i> Reset
+            </button>
+            <button class="btn btn-outline-success me-1" onclick="exportReport('csv')">
               <i class="bi bi-file-earmark-csv"></i> CSV
             </button>
             <button class="btn btn-outline-danger" onclick="exportReport('pdf')">
@@ -435,8 +433,31 @@ function applyFilters() {
   var endDate = document.getElementById('end_date').value;
   var metric = document.getElementById('metric').value;
   
-  if (startDate) params.append('start_date', startDate);
-  if (endDate) params.append('end_date', endDate);
+  // Convert DD-MMM-YYYY to YYYY-MM-DD format for server
+  if (startDate) {
+    var dateParts = startDate.split('-');
+    if (dateParts.length === 3) {
+      var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      var monthIndex = months.indexOf(dateParts[1]);
+      if (monthIndex !== -1) {
+        var formattedDate = dateParts[2] + '-' + String(monthIndex + 1).padStart(2, '0') + '-' + String(dateParts[0]).padStart(2, '0');
+        params.append('start_date', formattedDate);
+      }
+    }
+  }
+  
+  if (endDate) {
+    var dateParts = endDate.split('-');
+    if (dateParts.length === 3) {
+      var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      var monthIndex = months.indexOf(dateParts[1]);
+      if (monthIndex !== -1) {
+        var formattedDate = dateParts[2] + '-' + String(monthIndex + 1).padStart(2, '0') + '-' + String(dateParts[0]).padStart(2, '0');
+        params.append('end_date', formattedDate);
+      }
+    }
+  }
+  
   if (metric) params.append('metric', metric);
   
   // Multi-select values
