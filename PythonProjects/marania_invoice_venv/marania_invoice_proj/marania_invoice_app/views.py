@@ -4629,13 +4629,16 @@ def trend_analytics(request):
                     'customer': sale.customer,
                     'orders': 0,
                     'sales': Decimal('0'),
-                    'specifications': set()
+                    'specifications': {}
                 }
             customer_data[sale.customer]['orders'] += 1
             customer_data[sale.customer]['sales'] += sale.total_amount
             # Combine product code with normalized specification
             full_spec = f"{sale.product_code}-{sale.normalized_specification}" if sale.product_code and sale.normalized_specification and sale.normalized_specification != "Unknown" else (sale.product_code or sale.normalized_specification or "Unknown")
-            customer_data[sale.customer]['specifications'].add(full_spec)
+            # Track count per specification
+            if full_spec not in customer_data[sale.customer]['specifications']:
+                customer_data[sale.customer]['specifications'][full_spec] = 0
+            customer_data[sale.customer]['specifications'][full_spec] += 1
     
     # Convert to list and sort by orders
     top_customers = sorted(
@@ -4644,9 +4647,10 @@ def trend_analytics(request):
         reverse=True
     )[:10]
     
-    # Convert specifications sets to comma-separated strings
+    # Convert specifications dict to comma-separated strings with counts
     for customer in top_customers:
-        customer['specifications'] = ', '.join(sorted(customer['specifications']))
+        spec_strings = [f"{spec}({count})" for spec, count in sorted(customer['specifications'].items(), key=lambda x: x[1], reverse=True)]
+        customer['specifications'] = ', '.join(spec_strings)
     
     # Generate recommendations (without season comparison for now)
     recommendations = []

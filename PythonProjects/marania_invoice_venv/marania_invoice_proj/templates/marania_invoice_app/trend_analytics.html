@@ -25,9 +25,9 @@
       <div class="row mb-3">
         <div class="col-md-3">
           <label class="form-label">Start Date</label>
-          <input type="text" class="form-control" id="start_date" value="{% if filters.start_date %}{{ filters.start_date|date:'d-M-Y' }}{% endif %}" onclick="this.type='date'" onblur="this.type='text'" placeholder="DD-MMM-YYYY">
+          <input type="date" class="form-control" id="start_date" value="{% if filters.start_date %}{{ filters.start_date|date:'Y-m-d' }}{% endif %}">
           <label class="form-label mt-2">End Date</label>
-          <input type="text" class="form-control" id="end_date" value="{% if filters.end_date %}{{ filters.end_date|date:'d-M-Y' }}{% endif %}" onclick="this.type='date'" onblur="this.type='text'" placeholder="DD-MMM-YYYY">
+          <input type="date" class="form-control" id="end_date" value="{% if filters.end_date %}{{ filters.end_date|date:'Y-m-d' }}{% endif %}">
         </div>
         <div class="col-md-3">
           <label class="form-label">Product Codes</label>
@@ -204,7 +204,7 @@
   <!-- Top 10 Customers -->
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white">
-      <h5 class="mb-0">Top 10 Customers</h5>
+      <h5 class="mb-0">Top 10 Customers {% if filters.start_date and filters.end_date %}({{ filters.start_date|date:'d-M-Y' }} to {{ filters.end_date|date:'d-M-Y' }}){% endif %}</h5>
     </div>
     <div class="card-body">
       <div class="table-responsive">
@@ -433,31 +433,8 @@ function applyFilters() {
   var endDate = document.getElementById('end_date').value;
   var metric = document.getElementById('metric').value;
   
-  // Convert DD-MMM-YYYY to YYYY-MM-DD format for server
-  if (startDate) {
-    var dateParts = startDate.split('-');
-    if (dateParts.length === 3) {
-      var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      var monthIndex = months.indexOf(dateParts[1]);
-      if (monthIndex !== -1) {
-        var formattedDate = dateParts[2] + '-' + String(monthIndex + 1).padStart(2, '0') + '-' + String(dateParts[0]).padStart(2, '0');
-        params.append('start_date', formattedDate);
-      }
-    }
-  }
-  
-  if (endDate) {
-    var dateParts = endDate.split('-');
-    if (dateParts.length === 3) {
-      var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      var monthIndex = months.indexOf(dateParts[1]);
-      if (monthIndex !== -1) {
-        var formattedDate = dateParts[2] + '-' + String(monthIndex + 1).padStart(2, '0') + '-' + String(dateParts[0]).padStart(2, '0');
-        params.append('end_date', formattedDate);
-      }
-    }
-  }
-  
+  if (startDate) params.append('start_date', startDate);
+  if (endDate) params.append('end_date', endDate);
   if (metric) params.append('metric', metric);
   
   // Multi-select values
