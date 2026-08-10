@@ -5241,11 +5241,12 @@ def machine_operational_cost_view(request):
                 request.POST.getlist("electricity_cost_per_day"),
                 request.POST.getlist("maintenance_cost_per_day"),
                 request.POST.getlist("miscellaneous_cost_per_day"),
+                request.POST.getlist("knots_capacity_per_day"),
             )
-            
-            for (machine_number, num_shuttles, product_code, 
+
+            for (machine_number, num_shuttles, product_code,
                  operator_cost, bobbin_cost, mending_cost, mechanic_cost,
-                 electricity_cost, maintenance_cost, misc_cost) in rows:
+                 electricity_cost, maintenance_cost, misc_cost, knots_cap) in rows:
                 if not machine_number:
                     continue
                 MachineOperationalCost.objects.update_or_create(
@@ -5260,6 +5261,7 @@ def machine_operational_cost_view(request):
                         "electricity_cost_per_day": electricity_cost or 0,
                         "maintenance_cost_per_day": maintenance_cost or 0,
                         "miscellaneous_cost_per_day": misc_cost or 0,
+                        "knots_capacity_per_day": knots_cap or 0,
                     }
                 )
             messages.success(request, "Machine Operational Cost saved successfully.")

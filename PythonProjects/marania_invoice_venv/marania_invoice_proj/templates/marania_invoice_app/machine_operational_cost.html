@@ -18,7 +18,7 @@
 
           <div id="machine-rows">
             <div class="d-flex flex-wrap align-items-center gap-2 mb-2 machine-row">
-              <input type="text" name="machine_number" class="form-control form-control-sm" placeholder="Machine Num" style="width: 120px;">
+              <input type="text" name="machine_number" class="form-control form-control-sm" placeholder="Machine Num" style="width: 90px;">
               <input type="number" name="number_of_shuttles" class="form-control form-control-sm" placeholder="Shuttles" style="width: 85px;">
               <select name="running_product_code" class="form-select form-select-sm" style="width: 130px;">
                 <option value="">Prod Code</option>
@@ -26,13 +26,14 @@
                 <option value="{{ code }}">{{ code }}</option>
                 {% endfor %}
               </select>
-              <input type="number" step="0.01" name="operator_cost_per_day" class="form-control form-control-sm" placeholder="Oper.Sal/Day" style="width: 100px;">
-              <input type="number" step="0.01" name="bobbin_winder_cost_per_day" class="form-control form-control-sm" placeholder="Bob.Sal/Day" style="width: 100px;">
-              <input type="number" step="0.01" name="mending_cost_per_day" class="form-control form-control-sm" placeholder="Mend.Sal/Day" style="width: 85px;">
-              <input type="number" step="0.01" name="mechanic_cost_per_day" class="form-control form-control-sm" placeholder="Mec/Day" style="width: 90px;">
-              <input type="number" step="0.01" name="electricity_cost_per_day" class="form-control form-control-sm" placeholder="Elec/Day" style="width: 90px;">
-              <input type="number" step="0.01" name="maintenance_cost_per_day" class="form-control form-control-sm" placeholder="Mainte/Day" style="width: 120px;">
-              <input type="number" step="0.01" name="miscellaneous_cost_per_day" class="form-control form-control-sm" placeholder="Misc/Day" style="width: 110px;">
+              <input type="number" name="operator_cost_per_day" class="form-control form-control-sm" placeholder="Oper.Sal/Day" style="width: 100px;">
+              <input type="number" name="bobbin_winder_cost_per_day" class="form-control form-control-sm" placeholder="Bob.Sal/Day" style="width: 100px;">
+              <input type="number" name="mending_cost_per_day" class="form-control form-control-sm" placeholder="Mend.Sal/Day" style="width: 85px;">
+              <input type="number" name="mechanic_cost_per_day" class="form-control form-control-sm" placeholder="Mec/Day" style="width: 90px;">
+              <input type="number" name="electricity_cost_per_day" class="form-control form-control-sm" placeholder="Elec/Day" style="width: 90px;">
+              <input type="number" name="maintenance_cost_per_day" class="form-control form-control-sm" placeholder="Mainte/Day" style="width: 100px;">
+              <input type="number" name="miscellaneous_cost_per_day" class="form-control form-control-sm" placeholder="Misc/Day" style="width: 90px;">
+              <input type="number" name="knots_capacity_per_day" class="form-control form-control-sm" placeholder="Knots/Day" style="width: 100px;">
               <div class="d-flex gap-1">
                 <button type="button" class="btn btn-warning btn-sm clear-row">Clear</button>
                 <button type="button" class="btn btn-danger btn-sm delete-row">Delete</button>
@@ -94,6 +95,10 @@
             <div class="small text-muted lh-1">Misc/Day</div>
             <div class="fw-bold lh-1" id="summary-misc">0.00</div>
           </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Knots/Day</div>
+            <div class="fw-bold lh-1" id="summary-knots">0.00</div>
+          </div>
           <div class="col-md-2 col-sm-4">
             <div class="small text-muted lh-1 text-success">Total/Day</div>
             <div class="fw-bold lh-1 text-success" id="summary-grand-total">0.00</div>
@@ -106,42 +111,45 @@
     <div class="table-responsive">
       <table class="table table-bordered table-hover table-sm" id="machines-table">
         <thead class="table-dark">
-          <tr>
-            <th>Machine Number
-              <select class="form-select form-select-sm column-filter" data-col="0">
-                <option value="">All</option>
-              </select>
-            </th>
-            <th>Shuttles
-              <input type="text" class="form-control form-control-sm text-filter" data-col="1">
-            </th>
-            <th>Product Code
-              <input type="text" class="form-control form-control-sm text-filter" data-col="2">
-            </th>
-            <th>Operator/Day
-              <input type="text" class="form-control form-control-sm text-filter" data-col="3">
-            </th>
-            <th>Bobbin/Day
-              <input type="text" class="form-control form-control-sm text-filter" data-col="4">
-            </th>
-            <th>Mending/Day
-              <input type="text" class="form-control form-control-sm text-filter" data-col="5">
-            </th>
-            <th>Mechanic/Day
-              <input type="text" class="form-control form-control-sm text-filter" data-col="6">
-            </th>
-            <th>Electricity/Day
-              <input type="text" class="form-control form-control-sm text-filter" data-col="7">
-            </th>
-            <th>Maintenance/Day
-              <input type="text" class="form-control form-control-sm text-filter" data-col="8">
-            </th>
-             <th>Misc/Day
-              <input type="text" class="form-control form-control-sm text-filter" data-col="9">
-            </th>
-            <th>Total Cost/Day</th>
-            <th>
-              Action
+            <tr>
+              <th>Machine Number
+                <select class="form-select form-select-sm column-filter" data-col="0">
+                  <option value="">All</option>
+                </select>
+              </th>
+              <th>Shuttles
+                <input type="text" class="form-control form-control-sm text-filter" data-col="1">
+              </th>
+              <th>Product Code
+                <input type="text" class="form-control form-control-sm text-filter" data-col="2">
+              </th>
+              <th>Operator/Day
+                <input type="text" class="form-control form-control-sm text-filter" data-col="3">
+              </th>
+              <th>Bobbin/Day
+                <input type="text" class="form-control form-control-sm text-filter" data-col="4">
+              </th>
+              <th>Mending/Day
+                <input type="text" class="form-control form-control-sm text-filter" data-col="5">
+              </th>
+              <th>Mechanic/Day
+                <input type="text" class="form-control form-control-sm text-filter" data-col="6">
+              </th>
+              <th>Electricity/Day
+                <input type="text" class="form-control form-control-sm text-filter" data-col="7">
+              </th>
+              <th>Maintenance/Day
+                <input type="text" class="form-control form-control-sm text-filter" data-col="8">
+              </th>
+              <th>Misc/Day
+                <input type="text" class="form-control form-control-sm text-filter" data-col="9">
+              </th>
+              <th>Knots/Day
+                <input type="text" class="form-control form-control-sm text-filter" data-col="10">
+              </th>
+              <th>Total Cost/Day</th>
+              <th>
+                Action
               <div class="mt-1">
                 <button type="button" id="clear-filters" class="btn btn-warning btn-sm">
                   Clear
@@ -158,7 +166,8 @@
               data-mechanic="{{ c.mechanic_cost_per_day }}"
               data-electricity="{{ c.electricity_cost_per_day }}"
               data-maintenance="{{ c.maintenance_cost_per_day }}"
-              data-misc="{{ c.miscellaneous_cost_per_day }}">
+              data-misc="{{ c.miscellaneous_cost_per_day }}"
+              data-knots="{{ c.knots_capacity_per_day }}">
             <td>{{ c.machine_number }}</td>
             <td>{{ c.number_of_shuttles }}</td>
             <td>{{ c.running_product_code }}</td>
@@ -169,6 +178,7 @@
             <td>{{ c.electricity_cost_per_day }}</td>
             <td>{{ c.maintenance_cost_per_day }}</td>
             <td>{{ c.miscellaneous_cost_per_day }}</td>
+            <td>{{ c.knots_capacity_per_day }}</td>
             <td class="fw-bold">{{ c.operator_cost_per_day|add:c.bobbin_winder_cost_per_day|add:c.mending_cost_per_day|add:c.mechanic_cost_per_day|add:c.electricity_cost_per_day|add:c.maintenance_cost_per_day|add:c.miscellaneous_cost_per_day }}</td>
             <td>
               <button type="button"
@@ -240,6 +250,7 @@ document.addEventListener("click", e => {
   row.querySelector('[name="electricity_cost_per_day"]').value = tableRow.cells[7].innerText;
   row.querySelector('[name="maintenance_cost_per_day"]').value = tableRow.cells[8].innerText;
   row.querySelector('[name="miscellaneous_cost_per_day"]').value = tableRow.cells[9].innerText;
+  row.querySelector('[name="knots_capacity_per_day"]').value = tableRow.cells[10].innerText;
 
   const collapseEl = document.getElementById("machineForm");
   const bs = bootstrap.Collapse.getInstance(collapseEl)
@@ -272,7 +283,7 @@ function updateMachineSummary() {
 
   let count = 0;
   let operator = 0, bobbin = 0, mending = 0, mechanic = 0;
-  let electricity = 0, maintenance = 0, misc = 0;
+  let electricity = 0, maintenance = 0, misc = 0, knots = 0;
 
   [...table.tBodies[0].rows].forEach(row => {
     if (row.style.display === "none") return;
@@ -284,6 +295,7 @@ function updateMachineSummary() {
     electricity += parseFloat(row.dataset.electricity) || 0;
     maintenance += parseFloat(row.dataset.maintenance) || 0;
     misc += parseFloat(row.dataset.misc) || 0;
+    knots += parseFloat(row.dataset.knots) || 0;
   });
 
   document.getElementById("summary-machine-count").textContent = count;
@@ -294,6 +306,7 @@ function updateMachineSummary() {
   document.getElementById("summary-electricity").textContent = electricity.toFixed(2);
   document.getElementById("summary-maintenance").textContent = maintenance.toFixed(2);
   document.getElementById("summary-misc").textContent = misc.toFixed(2);
+  document.getElementById("summary-knots").textContent = knots.toFixed(2);
   document.getElementById("summary-grand-total").textContent = (operator + bobbin + mending + mechanic + electricity + maintenance + misc).toFixed(2);
 
   panel.style.display = count > 0 ? "" : "none";

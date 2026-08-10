@@ -90,6 +90,10 @@
               </div>
 
               <div class="row mb-2 align-items-end g-1">
+                <div class="col-md-1">
+                  <label class="form-label small mb-0">Est.Weight</label>
+                  <input type="number" step="0.01" class="form-control form-control-sm prod-est-weight" placeholder="Est Wt">
+                </div>
                 <div class="col-md-2">
                   <label class="form-label small mb-0">Machine</label>
                   <select name="machine" class="form-select form-select-sm prod-machine">
@@ -107,6 +111,10 @@
                   <label class="form-label small mb-0">Addl.NET Twine</label>
                   <input type="number" step="0.1" class="form-control form-control-sm prod-addl-net-twine" placeholder="Addl Twine">
                 </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0 fw-bold text-primary">Total Twine</label>
+                  <input type="text" class="form-control form-control-sm prod-total-twine bg-light fw-bold" placeholder="Total Twine" readonly>
+                </div>
                 <div class="col-md-2 d-flex align-items-end gap-1">
                   <button type="button" class="btn btn-sm btn-success add-net-row">+ Net</button>
                   <button type="button" class="btn btn-sm btn-warning add-sel-row">+ Sel</button>
@@ -114,13 +122,6 @@
               </div>
 
               <div class="twine-rows-container"></div>
-
-              <div class="row mb-2 g-1">
-                <div class="col-md-2">
-                  <label class="form-label small mb-0 fw-bold text-primary">Total Twine</label>
-                  <input type="text" class="form-control form-control-sm prod-total-twine bg-light fw-bold" placeholder="Total Twine" readonly>
-                </div>
-              </div>
 
               <div class="row mb-2 g-1">
                 <div class="col-md-2">
