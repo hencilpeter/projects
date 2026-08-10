@@ -179,8 +179,14 @@
             <th>Weight
               <input type="text" class="form-control form-control-sm text-filter" data-col="7">
             </th>
-            <th>Calc Weight
+            <th>Unit
               <input type="text" class="form-control form-control-sm text-filter" data-col="8">
+            </th>
+            <th>Total Twine
+              <input type="text" class="form-control form-control-sm text-filter" data-col="9">
+            </th>
+            <th>Calc Weight
+              <input type="text" class="form-control form-control-sm text-filter" data-col="10">
             </th>
             <th>
               Action
@@ -203,12 +209,19 @@
             <td>{{ p.mm }}</td>
             <td>{{ p.md }}</td>
             <td>{{ p.required_weight }}</td>
+            <td>{{ p.quantity_unit }}</td>
+            <td>{{ p.total_twine }}</td>
             <td>{{ p.calculated_weight }}</td>
             <td>
               <button type="button"
+                      class="btn btn-primary btn-sm edit-production"
+                      data-key="{{ p.production_key }}">
+                Edit
+              </button>
+              <button type="button"
                       class="btn btn-danger btn-sm delete-production"
                       data-key="{{ p.production_key }}">
-                Delete
+                Del
               </button>
             </td>
           </tr>
@@ -487,6 +500,21 @@ document.getElementById("production-form").addEventListener("submit", e => {
   productionContainer.querySelectorAll(".production-row").forEach(row => {
     const machine = row.querySelector(".prod-machine").value;
     if (!machine) return;
+    const twineRows = [];
+    const twineContainer = row.parentElement.querySelector(".twine-rows-container");
+    if (twineContainer) {
+      twineContainer.querySelectorAll(".twine-row").forEach(tr => {
+        twineRows.push({
+          type: tr.dataset.type,
+          mm: tr.querySelector(".twine-mm").value,
+          md: tr.querySelector(".twine-md").value,
+          pcs: tr.querySelector(".twine-pcs").value,
+          twine_count: tr.querySelector(".twine-count").value,
+          twine: tr.querySelector(".twine-select").value,
+          conversion_factor: tr.querySelector(".twine-conv").value,
+        });
+      });
+    }
     entries.push({
       production_date: date,
       customer: row.querySelector(".prod-customer").value,
@@ -501,26 +529,11 @@ document.getElementById("production-form").addEventListener("submit", e => {
       quantity_unit: row.querySelector(".prod-unit").value,
       machine: machine,
       knots_capacity_per_day: row.querySelector(".prod-knot-cap").value,
-      remarks: row.querySelector(".prod-remarks").value,
       total_meshes: row.querySelector(".prod-total-meshes").value,
       addl_net_twine: row.querySelector(".prod-addl-net-twine").value,
       total_twine: row.querySelector(".prod-total-twine").value,
-      twine_rows: [],
+      twine_rows: twineRows,
     });
-    const twineContainer = row.parentElement.querySelector(".twine-rows-container");
-    if (twineContainer) {
-      twineContainer.querySelectorAll(".twine-row").forEach(tr => {
-        entries[entries.length - 1].twine_rows.push({
-          type: tr.dataset.type,
-          mm: tr.querySelector(".twine-mm").value,
-          md: tr.querySelector(".twine-md").value,
-          pcs: tr.querySelector(".twine-pcs").value,
-          twine_count: tr.querySelector(".twine-count").value,
-          twine: tr.querySelector(".twine-select").value,
-          conversion_factor: tr.querySelector(".twine-conv").value,
-        });
-      });
-    }
   });
   if (entries.length === 0) {
     e.preventDefault();
@@ -559,6 +572,72 @@ document.addEventListener("click", e => {
   
   document.body.appendChild(form);
   form.submit();
+});
+
+/* Edit production entry */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("edit-production")) return;
+  const key = e.target.dataset.key;
+  
+  // Fetch production data from server
+  fetch(`/production/load/${key}/`, {
+    method: 'GET',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    const row = productionContainer.querySelector(".production-row");
+    
+    // Populate main fields
+    document.getElementById("production-date").value = data.production_date || "";
+    row.querySelector(".prod-customer").value = data.customer || "";
+    row.querySelector(".prod-spec").value = data.specification || "";
+    row.querySelector(".prod-ref").value = data.reference || "";
+    row.querySelector(".prod-mm").value = data.mm || "";
+    row.querySelector(".prod-md").value = data.md || "";
+    row.querySelector(".prod-product").value = data.product || "";
+    row.querySelector(".prod-sel").value = data.sel || "";
+    row.querySelector(".prod-pw").value = data.pw || "";
+    row.querySelector(".prod-qty").value = data.required_weight || "";
+    row.querySelector(".prod-unit").value = data.quantity_unit || "KG";
+    row.querySelector(".prod-machine").value = data.machine || "";
+    row.querySelector(".prod-knot-cap").value = data.knots_capacity_per_day || "";
+    row.querySelector(".prod-total-meshes").value = data.total_meshes || "";
+    row.querySelector(".prod-addl-net-twine").value = data.addl_net_twine || "";
+    row.querySelector(".prod-total-twine").value = data.total_twine || "";
+    
+    // Clear existing twine rows
+    const twineContainer = row.querySelector(".twine-rows-container");
+    if (twineContainer) {
+      twineContainer.innerHTML = "";
+    }
+    
+    // Reconstruct twine rows from data
+    if (data.twine_rows && data.twine_rows.length > 0) {
+      data.twine_rows.forEach(twineData => {
+        addTwineRow(twineContainer, twineData.type);
+        const newRow = twineContainer.querySelector(".twine-row:last-child");
+        newRow.querySelector(".twine-mm").value = twineData.mm || "";
+        newRow.querySelector(".twine-md").value = twineData.md || "";
+        newRow.querySelector(".twine-pcs").value = twineData.pcs || "";
+        newRow.querySelector(".twine-count").value = twineData.twine_count || "";
+        newRow.querySelector(".twine-select").value = twineData.twine || "";
+        newRow.querySelector(".twine-conv").value = twineData.conversion_factor || "";
+      });
+    }
+    
+    // Open the form
+    const collapseEl = document.getElementById("productionForm");
+    const bs = bootstrap.Collapse.getInstance(collapseEl)
+      || new bootstrap.Collapse(collapseEl, { toggle: false });
+    bs.show();
+  })
+  .catch(error => {
+    console.error('Error loading production:', error);
+    alert('Failed to load production details');
+  });
 });
 
 /* Table filters */

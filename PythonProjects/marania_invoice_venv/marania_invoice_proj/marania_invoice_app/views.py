@@ -5380,7 +5380,12 @@ def production_entry_view(request):
                         sel=(entry.get("sel") or "").strip(),
                         pw=(entry.get("pw") or "").strip(),
                         required_weight=quantity or None,
+                        quantity_unit=(entry.get("quantity_unit") or "KG").strip(),
                         machine=(entry.get("machine") or "").strip(),
+                        knots_capacity_per_day=float(entry.get("knots_capacity_per_day") or 0) or None,
+                        total_meshes=int(entry.get("total_meshes") or 0) or None,
+                        addl_net_twine=float(entry.get("addl_net_twine") or 0) or None,
+                        total_twine=float(entry.get("total_twine") or 0) or None,
                         conversion_factor=conversion,
                         calculated_weight=calc_weight or None,
                         remarks=remarks,
@@ -5447,7 +5452,12 @@ def production_entry_view(request):
             "sel": p.sel,
             "pw": p.pw,
             "required_weight": str(p.required_weight) if p.required_weight else "",
+            "quantity_unit": p.quantity_unit or "KG",
             "machine": p.machine,
+            "knots_capacity_per_day": str(p.knots_capacity_per_day) if p.knots_capacity_per_day else "",
+            "total_meshes": str(p.total_meshes) if p.total_meshes else "",
+            "addl_net_twine": str(p.addl_net_twine) if p.addl_net_twine else "",
+            "total_twine": str(p.total_twine) if p.total_twine else "",
             "conversion_factor": str(p.conversion_factor) if p.conversion_factor else "",
             "calculated_weight": str(p.calculated_weight) if p.calculated_weight else "",
             "twine_rows": twine_rows,
@@ -5462,6 +5472,47 @@ def production_entry_view(request):
         "productions": productions_data,
     }
     return render(request, "marania_invoice_app/production_entry.html", context)
+
+
+@login_required
+def load_production_view(request, pk):
+    from .models import Production
+    import json
+    
+    try:
+        production = Production.objects.get(pk=pk)
+        twine_rows = []
+        if production.remarks:
+            try:
+                twine_rows = json.loads(production.remarks)
+            except:
+                pass
+        
+        data = {
+            "production_key": production.production_key,
+            "production_date": production.production_date.strftime("%Y-%m-%d") if production.production_date else "",
+            "customer": production.customer,
+            "specification": production.specification,
+            "reference": production.reference,
+            "mm": production.mm,
+            "md": production.md,
+            "product": production.product,
+            "sel": production.sel,
+            "pw": production.pw,
+            "required_weight": str(production.required_weight) if production.required_weight else "",
+            "quantity_unit": production.quantity_unit or "KG",
+            "machine": production.machine,
+            "knots_capacity_per_day": str(production.knots_capacity_per_day) if production.knots_capacity_per_day else "",
+            "total_meshes": str(production.total_meshes) if production.total_meshes else "",
+            "addl_net_twine": str(production.addl_net_twine) if production.addl_net_twine else "",
+            "total_twine": str(production.total_twine) if production.total_twine else "",
+            "conversion_factor": str(production.conversion_factor) if production.conversion_factor else "",
+            "calculated_weight": str(production.calculated_weight) if production.calculated_weight else "",
+            "twine_rows": twine_rows,
+        }
+        return JsonResponse(data)
+    except Production.DoesNotExist:
+        return JsonResponse({"error": "Production not found"}, status=404)
 
 
 @login_required
