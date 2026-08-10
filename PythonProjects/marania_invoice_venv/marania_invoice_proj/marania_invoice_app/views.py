@@ -5355,9 +5355,9 @@ def production_entry_view(request):
                             conversion = MaterialConversionRatio.objects.get(material_code=product_code).conversion_ratio
                         except MaterialConversionRatio.DoesNotExist:
                             conversion = None
-                    req_weight = float(entry.get("required_weight") or 0)
+                    quantity = float(entry.get("quantity") or 0)
                     conv = float(conversion) if conversion else 0
-                    calc_weight = req_weight * conv if conv else 0
+                    calc_weight = quantity * conv if conv else 0
                     calc_cost = calc_weight * float(entry.get("unit_cost") or 0)
                     Production.objects.create(
                         production_date=entry.get("production_date") or None,
@@ -5370,7 +5370,7 @@ def production_entry_view(request):
                         product=product_code,
                         sel=(entry.get("sel") or "").strip(),
                         pw=(entry.get("pw") or "").strip(),
-                        required_weight=req_weight or None,
+                        required_weight=quantity or None,
                         machine=(entry.get("machine") or "").strip(),
                         selvage_twine=(entry.get("selvage_twine") or "").strip(),
                         number_of_times=int(entry.get("number_of_times") or 1),
