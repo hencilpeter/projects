@@ -99,9 +99,13 @@
                   <select name="machine" class="form-select form-select-sm prod-machine">
                     <option value="">-- Machine --</option>
                     {% for m in machines %}
-                    <option value="{{ m.machine_number }}" data-shuttles="{{ m.number_of_shuttles }}">{{ m.machine_number }}</option>
+                    <option value="{{ m.machine_number }}" data-shuttles="{{ m.number_of_shuttles }}" data-knots="{{ m.knots_capacity_per_day|default:'' }}">{{ m.machine_number }}</option>
                     {% endfor %}
                   </select>
+                </div>
+                <div class="col-md-1">
+                  <label class="form-label small mb-0">Knot Cap/Day</label>
+                  <input type="text" class="form-control form-control-sm prod-knot-cap bg-light" placeholder="Knots/Day" readonly>
                 </div>
                 <div class="col-md-1">
                   <label class="form-label small mb-0">Total Meshes</label>
@@ -227,13 +231,14 @@ function populateOrderFields() {
 document.getElementById("fetch-order-btn").addEventListener("click", populateOrderFields);
 orderSelect.addEventListener("change", populateOrderFields);
 
-/* Machine change -> populate Total Meshes from shuttles */
+/* Machine change -> populate Total Meshes and Knot Cap/Day */
 productionContainer.addEventListener("change", e => {
   if (!e.target.classList.contains("prod-machine")) return;
   const row = e.target.closest(".production-row");
   const machineNum = e.target.value;
   const machine = machinesData.find(m => m.machine_number === machineNum);
   row.querySelector(".prod-total-meshes").value = machine ? machine.number_of_shuttles : "";
+  row.querySelector(".prod-knot-cap").value = machine ? machine.knots_capacity_per_day : "";
 });
 
 /* Add NET row */
