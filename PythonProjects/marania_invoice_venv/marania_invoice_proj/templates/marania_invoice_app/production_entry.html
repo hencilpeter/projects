@@ -122,28 +122,16 @@
                 <div class="col-md-2 d-flex align-items-end gap-1">
                   <button type="button" class="btn btn-sm btn-success add-net-row">+ Net</button>
                   <button type="button" class="btn btn-sm btn-warning add-sel-row">+ Sel</button>
+                  <button type="button" class="btn btn-sm btn-primary analyse-btn">Analyse</button>
                 </div>
               </div>
 
               <div class="twine-rows-container"></div>
 
-              <div class="row mb-2 g-1">
-                <div class="col-md-2">
-                  <label class="form-label small mb-0">Calculated Weight</label>
-                  <input type="text" name="calculated_weight" class="form-control form-control-sm prod-calc-wt bg-light" placeholder="Calc Weight" readonly>
-                </div>
-                <div class="col-md-2">
-                  <label class="form-label small mb-0">Unit Cost</label>
-                  <input type="number" step="0.01" name="unit_cost" class="form-control form-control-sm prod-unit-cost" placeholder="Unit Cost">
-                </div>
-                <div class="col-md-2">
-                  <label class="form-label small mb-0">Calculated Cost</label>
-                  <input type="text" name="calculated_cost" class="form-control form-control-sm prod-calc-cost bg-light" placeholder="Calc Cost" readonly>
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label small mb-0">Remarks</label>
-                  <input type="text" name="remarks" class="form-control form-control-sm prod-remarks" placeholder="Remarks">
-                </div>
+              <div id="analyse-results" class="border rounded p-2 mt-2" style="display:none;">
+                <h6 class="fw-bold text-primary mb-2">Analysis Results</h6>
+                <div id="analyse-breakdown"></div>
+                <div id="analyse-summary" class="fw-bold mt-2 pt-2 border-top"></div>
               </div>
 
               <hr>
@@ -225,7 +213,6 @@ function populateOrderFields() {
   row.querySelector(".prod-qty").value = o.quantity || "";
   row.querySelector(".prod-unit").value = o.quantity_unit || "KG";
   row.querySelector(".prod-product").value = o.product_code || "";
-  recalcRow(row);
 }
 
 document.getElementById("fetch-order-btn").addEventListener("click", populateOrderFields);
@@ -300,8 +287,6 @@ productionContainer.addEventListener("change", e => {
   const selectedOption = e.target.selectedOptions[0];
   const ratio = selectedOption ? selectedOption.dataset.ratio : "";
   twineRow.querySelector(".twine-conv").value = ratio || "";
-  const prodRow = e.target.closest(".production-row");
-  if (prodRow) recalcRow(prodRow);
 });
 
 /* Remove twine row */
@@ -333,6 +318,64 @@ productionContainer.addEventListener("input", e => {
   }
 });
 
+/* Analyse button -> calculate production days */
+productionContainer.addEventListener("click", e => {
+  if (!e.target.classList.contains("analyse-btn")) return;
+  const row = e.target.closest(".production-row");
+  const prodRow = row;
+  const estWeight = parseFloat(prodRow.querySelector(".prod-est-weight").value) || 0;
+  const knotCap = parseFloat(prodRow.querySelector(".prod-knot-cap").value) || 0;
+  const container = row.parentElement.querySelector(".twine-rows-container");
+  const resultsDiv = document.getElementById("analyse-results");
+  const breakdownDiv = document.getElementById("analyse-breakdown");
+  const summaryDiv = document.getElementById("analyse-summary");
+
+  if (!estWeight || estWeight <= 0) {
+    alert("Please enter Est.Weight first.");
+    return;
+  }
+  if (!knotCap || knotCap <= 0) {
+    alert("Knot Capacity/Day is not set for the selected machine.");
+    return;
+  }
+
+  let totalDailyOutput = 0;
+  let html = `<table class="table table-sm table-bordered table-striped mb-2">
+    <thead class="table-dark"><tr><th>Type</th><th>MM</th><th>MD</th><th>Pcs</th><th>Twine Count</th><th>Conv Factor</th><th>Daily Output (KG)</th></tr></thead><tbody>`;
+
+  if (container) {
+    container.querySelectorAll(".twine-row").forEach(tr => {
+      const type = tr.dataset.type;
+      const mm = parseFloat(tr.querySelector(".twine-mm").value) || 0;
+      const md = parseFloat(tr.querySelector(".twine-md").value) || 0;
+      const pcs = parseFloat(tr.querySelector(".twine-pcs").value) || 0;
+      const twineCount = parseFloat(tr.querySelector(".twine-count").value) || 0;
+      const conv = parseFloat(tr.querySelector(".twine-conv").value) || 0;
+      const dailyOutput = (conv * mm * md * knotCap) / 1000;
+      totalDailyOutput += dailyOutput;
+      html += `<tr><td><span class="badge bg-${type === 'NET' ? 'success' : 'warning'}">${type}</span></td><td>${mm}</td><td>${md}</td><td>${pcs}</td><td>${twineCount}</td><td>${conv}</td><td class="fw-bold">${dailyOutput.toFixed(2)}</td></tr>`;
+    });
+  }
+
+  html += `</tbody></table>`;
+
+  if (totalDailyOutput <= 0) {
+    breakdownDiv.innerHTML = html + '<div class="alert alert-warning py-1">No twine rows with valid data found.</div>';
+    summaryDiv.innerHTML = "";
+    resultsDiv.style.display = "";
+    return;
+  }
+
+  const requiredDays = estWeight / totalDailyOutput;
+  summaryDiv.innerHTML = `<div class="row g-2">
+    <div class="col-md-4"><span class="text-muted">Est. Weight:</span> <b>${estWeight.toFixed(2)} KG</b></div>
+    <div class="col-md-4"><span class="text-muted">Total Daily Output:</span> <b>${totalDailyOutput.toFixed(2)} KG/Day</b></div>
+    <div class="col-md-4 text-success"><span class="text-muted">Required Days:</span> <b>${requiredDays.toFixed(1)} Days</b></div>
+  </div>`;
+  breakdownDiv.innerHTML = html;
+  resultsDiv.style.display = "";
+});
+
 function updateTotalTwine(row) {
   if (!row) return;
   let total = 0;
@@ -348,32 +391,7 @@ function updateTotalTwine(row) {
   if (totalEl) totalEl.value = total ? total.toFixed(1) : "0";
 }
 
-/* Recalculate row */
-function recalcRow(row) {
-  const qty = parseFloat(row.querySelector(".prod-qty").value) || 0;
-  const unitCost = parseFloat(row.querySelector(".prod-unit-cost").value) || 0;
-  let totalCalcWt = 0;
-  let totalCalcCost = 0;
-  const twineContainer = row.parentElement.querySelector(".twine-rows-container");
-  if (twineContainer) {
-    twineContainer.querySelectorAll(".twine-row").forEach(tr => {
-      const twineCount = parseFloat(tr.querySelector(".twine-count").value) || 0;
-      const conv = parseFloat(tr.querySelector(".twine-conv").value) || 0;
-      const rowWt = qty * conv * twineCount;
-      totalCalcWt += rowWt;
-    });
-  }
-  totalCalcCost = totalCalcWt * unitCost;
-  row.querySelector(".prod-calc-wt").value = totalCalcWt ? totalCalcWt.toFixed(2) : "";
-  row.querySelector(".prod-calc-cost").value = totalCalcCost ? totalCalcCost.toFixed(2) : "";
-}
 
-productionContainer.addEventListener("input", e => {
-  if (e.target.classList.contains("prod-qty") || e.target.classList.contains("prod-unit-cost") || e.target.classList.contains("twine-md") || e.target.classList.contains("twine-pcs")) {
-    const row = e.target.closest(".production-row");
-    recalcRow(row);
-  }
-});
 
 /* Submit */
 document.getElementById("production-form").addEventListener("submit", e => {
@@ -395,9 +413,7 @@ document.getElementById("production-form").addEventListener("submit", e => {
       quantity: row.querySelector(".prod-qty").value,
       quantity_unit: row.querySelector(".prod-unit").value,
       machine: machine,
-      calculated_weight: row.querySelector(".prod-calc-wt").value,
-      unit_cost: row.querySelector(".prod-unit-cost").value,
-      calculated_cost: row.querySelector(".prod-calc-cost").value,
+      knots_capacity_per_day: row.querySelector(".prod-knot-cap").value,
       remarks: row.querySelector(".prod-remarks").value,
       total_meshes: row.querySelector(".prod-total-meshes").value,
       addl_net_twine: row.querySelector(".prod-addl-net-twine").value,
