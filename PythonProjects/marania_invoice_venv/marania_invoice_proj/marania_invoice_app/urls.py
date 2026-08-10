@@ -102,6 +102,8 @@ path('invoice-aging-report', views.invoice_aging_report, name='invoice_aging_rep
 # analytics
 path('season-trends', views.season_trends, name='season_trends'),
 path('trend-analytics', views.trend_analytics, name='trend_analytics'),
+path('analytics/production-entry', views.production_entry_view, name='production_entry'),
+path('analytics/production-detail', views.production_detail_view, name='production_detail'),
 
 # configuration
 path('configuration/material-conversion-ratio', views.material_conversion_ratio_view, name='material_conversion_ratio'),

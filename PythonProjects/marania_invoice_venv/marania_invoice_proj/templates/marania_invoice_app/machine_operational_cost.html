@@ -20,13 +20,19 @@
             <div class="d-flex flex-wrap align-items-center gap-2 mb-2 machine-row">
               <input type="text" name="machine_number" class="form-control form-control-sm" placeholder="Machine Num" style="width: 120px;">
               <input type="number" name="number_of_shuttles" class="form-control form-control-sm" placeholder="Shuttles" style="width: 85px;">
-              <input type="text" name="running_product_code" class="form-control form-control-sm" placeholder="Prod Code" style="width: 130px;">
-              <input type="number" step="0.01" name="operator_cost_per_day" class="form-control form-control-sm" placeholder="Oper.Sal/Day" style="width: 110px;">
-              <input type="number" step="0.01" name="bobbin_winder_cost_per_day" class="form-control form-control-sm" placeholder="Bob.Sal/Day" style="width: 110px;">
-              <input type="number" step="0.01" name="mending_cost_per_day" class="form-control form-control-sm" placeholder="Mend.Sal/Day" style="width: 110px;">
-              <input type="number" step="0.01" name="mechanic_cost_per_day" class="form-control form-control-sm" placeholder="Mec/Day" style="width: 110px;">
-              <input type="number" step="0.01" name="electricity_cost_per_day" class="form-control form-control-sm" placeholder="Elec/Day" style="width: 115px;">
+              <select name="running_product_code" class="form-select form-select-sm" style="width: 130px;">
+                <option value="">Prod Code</option>
+                {% for code in product_codes %}
+                <option value="{{ code }}">{{ code }}</option>
+                {% endfor %}
+              </select>
+              <input type="number" step="0.01" name="operator_cost_per_day" class="form-control form-control-sm" placeholder="Oper.Sal/Day" style="width: 100px;">
+              <input type="number" step="0.01" name="bobbin_winder_cost_per_day" class="form-control form-control-sm" placeholder="Bob.Sal/Day" style="width: 100px;">
+              <input type="number" step="0.01" name="mending_cost_per_day" class="form-control form-control-sm" placeholder="Mend.Sal/Day" style="width: 85px;">
+              <input type="number" step="0.01" name="mechanic_cost_per_day" class="form-control form-control-sm" placeholder="Mec/Day" style="width: 90px;">
+              <input type="number" step="0.01" name="electricity_cost_per_day" class="form-control form-control-sm" placeholder="Elec/Day" style="width: 90px;">
               <input type="number" step="0.01" name="maintenance_cost_per_day" class="form-control form-control-sm" placeholder="Mainte/Day" style="width: 120px;">
+              <input type="number" step="0.01" name="miscellaneous_cost_per_day" class="form-control form-control-sm" placeholder="Misc/Day" style="width: 110px;">
               <div class="d-flex gap-1">
                 <button type="button" class="btn btn-warning btn-sm clear-row">Clear</button>
                 <button type="button" class="btn btn-danger btn-sm delete-row">Delete</button>
@@ -52,6 +58,49 @@
     <hr>
 
     <h5>Saved Machine Operational Costs</h5>
+
+    <div id="machineSummaryPanel" class="card mb-3 shadow-sm border-primary" style="display:none;">
+      <div class="card-body py-2 px-3">
+        <div class="row g-2 text-center">
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Machines</div>
+            <div class="fw-bold lh-1" id="summary-machine-count">0</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Operator/Day</div>
+            <div class="fw-bold lh-1" id="summary-operator">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Bobbin/Day</div>
+            <div class="fw-bold lh-1" id="summary-bobbin">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Mending/Day</div>
+            <div class="fw-bold lh-1" id="summary-mending">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Mechanic/Day</div>
+            <div class="fw-bold lh-1" id="summary-mechanic">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Electricity/Day</div>
+            <div class="fw-bold lh-1" id="summary-electricity">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Maintenance/Day</div>
+            <div class="fw-bold lh-1" id="summary-maintenance">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Misc/Day</div>
+            <div class="fw-bold lh-1" id="summary-misc">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4">
+            <div class="small text-muted lh-1 text-success">Total/Day</div>
+            <div class="fw-bold lh-1 text-success" id="summary-grand-total">0.00</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     {% if costs %}
     <div class="table-responsive">
@@ -87,9 +136,10 @@
             <th>Maintenance/Day
               <input type="text" class="form-control form-control-sm text-filter" data-col="8">
             </th>
-            <th>Misc/Day
+             <th>Misc/Day
               <input type="text" class="form-control form-control-sm text-filter" data-col="9">
             </th>
+            <th>Total Cost/Day</th>
             <th>
               Action
               <div class="mt-1">
@@ -102,7 +152,13 @@
         </thead>
         <tbody>
           {% for c in costs %}
-          <tr>
+          <tr data-operator="{{ c.operator_cost_per_day }}"
+              data-bobbin="{{ c.bobbin_winder_cost_per_day }}"
+              data-mending="{{ c.mending_cost_per_day }}"
+              data-mechanic="{{ c.mechanic_cost_per_day }}"
+              data-electricity="{{ c.electricity_cost_per_day }}"
+              data-maintenance="{{ c.maintenance_cost_per_day }}"
+              data-misc="{{ c.miscellaneous_cost_per_day }}">
             <td>{{ c.machine_number }}</td>
             <td>{{ c.number_of_shuttles }}</td>
             <td>{{ c.running_product_code }}</td>
@@ -113,6 +169,7 @@
             <td>{{ c.electricity_cost_per_day }}</td>
             <td>{{ c.maintenance_cost_per_day }}</td>
             <td>{{ c.miscellaneous_cost_per_day }}</td>
+            <td class="fw-bold">{{ c.operator_cost_per_day|add:c.bobbin_winder_cost_per_day|add:c.mending_cost_per_day|add:c.mechanic_cost_per_day|add:c.electricity_cost_per_day|add:c.maintenance_cost_per_day|add:c.miscellaneous_cost_per_day }}</td>
             <td>
               <button type="button"
                       class="btn btn-primary btn-sm load-machine"
@@ -207,6 +264,41 @@ document.querySelectorAll(".column-filter").forEach(select => {
   });
 });
 
+/* ================== SUMMARY ================== */
+function updateMachineSummary() {
+  const panel = document.getElementById("machineSummaryPanel");
+  if (!panel) return;
+  if (!table || !table.tBodies[0]) { panel.style.display = "none"; return; }
+
+  let count = 0;
+  let operator = 0, bobbin = 0, mending = 0, mechanic = 0;
+  let electricity = 0, maintenance = 0, misc = 0;
+
+  [...table.tBodies[0].rows].forEach(row => {
+    if (row.style.display === "none") return;
+    count++;
+    operator += parseFloat(row.dataset.operator) || 0;
+    bobbin += parseFloat(row.dataset.bobbin) || 0;
+    mending += parseFloat(row.dataset.mending) || 0;
+    mechanic += parseFloat(row.dataset.mechanic) || 0;
+    electricity += parseFloat(row.dataset.electricity) || 0;
+    maintenance += parseFloat(row.dataset.maintenance) || 0;
+    misc += parseFloat(row.dataset.misc) || 0;
+  });
+
+  document.getElementById("summary-machine-count").textContent = count;
+  document.getElementById("summary-operator").textContent = operator.toFixed(2);
+  document.getElementById("summary-bobbin").textContent = bobbin.toFixed(2);
+  document.getElementById("summary-mending").textContent = mending.toFixed(2);
+  document.getElementById("summary-mechanic").textContent = mechanic.toFixed(2);
+  document.getElementById("summary-electricity").textContent = electricity.toFixed(2);
+  document.getElementById("summary-maintenance").textContent = maintenance.toFixed(2);
+  document.getElementById("summary-misc").textContent = misc.toFixed(2);
+  document.getElementById("summary-grand-total").textContent = (operator + bobbin + mending + mechanic + electricity + maintenance + misc).toFixed(2);
+
+  panel.style.display = count > 0 ? "" : "none";
+}
+
 filters.forEach(f => f.addEventListener("input", () => {
   [...table.tBodies[0].rows].forEach(row => {
     let show = true;
@@ -218,11 +310,14 @@ filters.forEach(f => f.addEventListener("input", () => {
     });
     row.style.display = show ? "" : "none";
   });
+  updateMachineSummary();
 }));
 
 document.getElementById("clear-filters").addEventListener("click", () => {
   filters.forEach(f => f.value = "");
   filters[0].dispatchEvent(new Event("input"));
 });
+
+updateMachineSummary();
 </script>
 {% endblock %}

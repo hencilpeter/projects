@@ -5135,6 +5135,16 @@ def season_trends(request):
 
 @login_required
 def material_conversion_ratio_view(request):
+    # JSON API for fetching conversion factor by code
+    if request.GET.get("code"):
+        from django.http import JsonResponse
+        code = request.GET.get("code")
+        try:
+            ratio = MaterialConversionRatio.objects.get(material_code=code)
+            return JsonResponse({"conversion_ratio": str(ratio.conversion_ratio)})
+        except MaterialConversionRatio.DoesNotExist:
+            return JsonResponse({"conversion_ratio": None})
+
     if request.method == 'POST':
         action = request.POST.get("action")
         
@@ -5264,6 +5274,7 @@ def machine_operational_cost_view(request):
     
     context = {
         "costs": MachineOperationalCost.objects.all(),
+        "product_codes": Product.objects.values_list("code", flat=True).order_by("code"),
     }
     return render(request, "marania_invoice_app/machine_operational_cost.html", context)
 
@@ -5312,4 +5323,143 @@ def additional_cost_view(request):
         "cost": cost_obj,
     }
     return render(request, "marania_invoice_app/additional_cost.html", context)
+
+
+@login_required
+def production_entry_view(request):
+    from .models import Production, Order, OrderSpecification, Product, MaterialConversionRatio, MachineOperationalCost
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "save":
+            entries_raw = request.POST.get("entries_data")
+            if entries_raw:
+                import json
+                entries = json.loads(entries_raw) if isinstance(entries_raw, str) else entries_raw
+                saved = 0
+                for entry in entries:
+                    if not entry.get("machine"):
+                        continue
+                    order_key = entry.get("order_key") or None
+                    order_obj = None
+                    if order_key:
+                        try:
+                            order_obj = Order.objects.get(pk=order_key)
+                        except Order.DoesNotExist:
+                            order_obj = None
+                    product_code = (entry.get("product") or "").strip()
+                    conversion = None
+                    if product_code:
+                        try:
+                            conversion = MaterialConversionRatio.objects.get(material_code=product_code).conversion_ratio
+                        except MaterialConversionRatio.DoesNotExist:
+                            conversion = None
+                    req_weight = float(entry.get("required_weight") or 0)
+                    conv = float(conversion) if conversion else 0
+                    calc_weight = req_weight * conv if conv else 0
+                    calc_cost = calc_weight * float(entry.get("unit_cost") or 0)
+                    Production.objects.create(
+                        production_date=entry.get("production_date") or None,
+                        order=order_obj,
+                        customer=(entry.get("customer") or "").strip(),
+                        specification=(entry.get("specification") or "").strip(),
+                        reference=(entry.get("reference") or "").strip(),
+                        mm=(entry.get("mm") or "").strip(),
+                        md=(entry.get("md") or "").strip(),
+                        product=product_code,
+                        sel=(entry.get("sel") or "").strip(),
+                        pw=(entry.get("pw") or "").strip(),
+                        required_weight=req_weight or None,
+                        machine=(entry.get("machine") or "").strip(),
+                        selvage_twine=(entry.get("selvage_twine") or "").strip(),
+                        number_of_times=int(entry.get("number_of_times") or 1),
+                        conversion_factor=conversion,
+                        calculated_weight=calc_weight or None,
+                        calculated_cost=calc_cost or None,
+                        remarks=(entry.get("remarks") or "").strip(),
+                    )
+                    saved += 1
+                messages.success(request, f"{saved} production entries saved.")
+
+        elif action == "delete":
+            pk = request.POST.get("production_key")
+            if pk:
+                Production.objects.filter(pk=pk).delete()
+                messages.success(request, "Production entry deleted.")
+
+        elif action == "delete_bulk":
+            import json
+            keys_raw = request.POST.get("production_keys")
+            if keys_raw:
+                keys = json.loads(keys_raw)
+                Production.objects.filter(production_key__in=keys).delete()
+                messages.success(request, "Selected entries deleted.")
+
+        return redirect("production_entry")
+
+    orders = Order.objects.filter(status__in=["Ordered", "ProductionQueue", "InProduction"]).select_related().prefetch_related("specifications")
+    orders_data = []
+    for o in orders:
+        spec = o.specifications.first()
+        orders_data.append({
+            "order_key": o.order_key,
+            "order_number": o.order_number,
+            "customer": o.customer,
+            "twine": o.twine,
+            "quantity": str(o.quantity),
+            "unit_price": str(o.unit_price) if o.unit_price else "",
+            "specification": f"{spec.mesh_size or ''}MM-{spec.mesh_depth or ''}MD-{spec.salvage or ''}SEL" if spec else "",
+            "mm": str(spec.mesh_size) if spec and spec.mesh_size else "",
+            "md": spec.mesh_depth if spec else "",
+            "sel": spec.salvage if spec else "",
+            "pw": spec.piece_weight if spec else "",
+            "product_code": o.twine or "",
+            "no_of_pcs": spec.no_of_pcs if spec else "",
+        })
+
+    products = Product.objects.all().order_by("code")
+    machines = MachineOperationalCost.objects.all().order_by("machine_number")
+
+    context = {
+        "orders_json": orders_data,
+        "products": products,
+        "machines": machines,
+    }
+    return render(request, "marania_invoice_app/production_entry.html", context)
+
+
+@login_required
+def production_detail_view(request):
+    from .models import Production
+
+    productions = Production.objects.all().select_related("order")
+    productions_data = []
+    for p in productions:
+        productions_data.append({
+            "production_key": p.production_key,
+            "production_date": str(p.production_date),
+            "order_number": p.order.order_number if p.order else "",
+            "customer": p.customer,
+            "specification": p.specification or "",
+            "reference": p.reference or "",
+            "mm": p.mm or "",
+            "md": p.md or "",
+            "product": p.product or "",
+            "sel": p.sel or "",
+            "pw": p.pw or "",
+            "required_weight": str(p.required_weight) if p.required_weight else "",
+            "machine": p.machine or "",
+            "selvage_twine": p.selvage_twine or "",
+            "number_of_times": p.number_of_times,
+            "conversion_factor": str(p.conversion_factor) if p.conversion_factor else "",
+            "calculated_weight": str(p.calculated_weight) if p.calculated_weight else "",
+            "calculated_cost": str(p.calculated_cost) if p.calculated_cost else "",
+            "remarks": p.remarks or "",
+        })
+
+    context = {
+        "productions": productions_data,
+    }
+    return render(request, "marania_invoice_app/production_detail.html", context)
 

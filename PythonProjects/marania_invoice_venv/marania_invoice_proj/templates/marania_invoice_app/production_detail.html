@@ -1,0 +1,236 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container my-4">
+    <h3>Production Detail Table</h3>
+
+    <a href="{% url 'production_entry' %}" class="btn btn-outline-secondary btn-sm mb-3">&larr; Back to Production Entry</a>
+
+    {% if productions %}
+    <div id="prodSummaryPanel" class="card mb-3 shadow-sm border-info" style="display:none;">
+      <div class="card-body py-2 px-3">
+        <div class="row g-2 text-center">
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Entries</div>
+            <div class="fw-bold lh-1" id="prod-summary-count">0</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Total Req Weight</div>
+            <div class="fw-bold lh-1" id="prod-summary-req-wt">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Total Calc Weight</div>
+            <div class="fw-bold lh-1" id="prod-summary-calc-wt">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Total Cost</div>
+            <div class="fw-bold lh-1" id="prod-summary-cost">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Avg Conv Factor</div>
+            <div class="fw-bold lh-1" id="prod-summary-conv">0.00</div>
+          </div>
+          <div class="col-md-2 col-sm-4">
+            <div class="small text-muted lh-1 text-success">Total Times</div>
+            <div class="fw-bold lh-1 text-success" id="prod-summary-times">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <form method="POST" action="{% url 'production_detail' %}" id="bulk-delete-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete_bulk">
+      <input type="hidden" name="production_keys" id="bulk-keys">
+
+      <div class="mb-2">
+        <button type="submit" class="btn btn-danger btn-sm" id="bulk-delete-btn" style="display:none;">Delete Selected</button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover table-sm" id="prod-detail-table">
+          <thead class="table-dark">
+            <tr>
+              <th><input type="checkbox" id="select-all-prod"></th>
+              <th>Date
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="1" placeholder="Filter...">
+              </th>
+              <th>Order
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="2" placeholder="Filter...">
+              </th>
+              <th>Customer
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="3" placeholder="Filter...">
+              </th>
+              <th>Specification
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="4" placeholder="Filter...">
+              </th>
+              <th>Ref
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="5" placeholder="Filter...">
+              </th>
+              <th>MM
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="6" placeholder="Filter...">
+              </th>
+              <th>MD
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="7" placeholder="Filter...">
+              </th>
+              <th>Product
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="8" placeholder="Filter...">
+              </th>
+              <th>Sel
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="9" placeholder="Filter...">
+              </th>
+              <th>PW
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="10" placeholder="Filter...">
+              </th>
+              <th>Req Weight
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="11" placeholder="Filter...">
+              </th>
+              <th>Machine
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="12" placeholder="Filter...">
+              </th>
+              <th>Selvage Twine
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="13" placeholder="Filter...">
+              </th>
+              <th>Times
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="14" placeholder="Filter...">
+              </th>
+              <th>Conv Factor
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="15" placeholder="Filter...">
+              </th>
+              <th>Calc Weight
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="16" placeholder="Filter...">
+              </th>
+              <th>Calc Cost
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="17" placeholder="Filter...">
+              </th>
+              <th>Remarks
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="18" placeholder="Filter...">
+              </th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in productions %}
+            <tr data-req-wt="{{ p.required_weight|default:'0' }}"
+                data-calc-wt="{{ p.calculated_weight|default:'0' }}"
+                data-calc-cost="{{ p.calculated_cost|default:'0' }}"
+                data-conv="{{ p.conversion_factor|default:'0' }}"
+                data-times="{{ p.number_of_times }}">
+              <td><input type="checkbox" class="prod-row-check" value="{{ p.production_key }}"></td>
+              <td>{{ p.production_date }}</td>
+              <td>{{ p.order_number }}</td>
+              <td>{{ p.customer }}</td>
+              <td>{{ p.specification }}</td>
+              <td>{{ p.reference }}</td>
+              <td>{{ p.mm }}</td>
+              <td>{{ p.md }}</td>
+              <td>{{ p.product }}</td>
+              <td>{{ p.sel }}</td>
+              <td>{{ p.pw }}</td>
+              <td>{{ p.required_weight }}</td>
+              <td>{{ p.machine }}</td>
+              <td>{{ p.selvage_twine }}</td>
+              <td>{{ p.number_of_times }}</td>
+              <td>{{ p.conversion_factor }}</td>
+              <td>{{ p.calculated_weight }}</td>
+              <td>{{ p.calculated_cost }}</td>
+              <td>{{ p.remarks }}</td>
+              <td>
+                <form method="POST" action="{% url 'production_detail' %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="delete">
+                  <input type="hidden" name="production_key" value="{{ p.production_key }}">
+                  <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this entry?')">&times;</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </form>
+    {% else %}
+    <div class="alert alert-info">No production entries found. <a href="{% url 'production_entry' %}">Create one</a>.</div>
+    {% endif %}
+  </div>
+</main>
+
+<script>
+const prodTable = document.getElementById("prod-detail-table");
+const prodFilters = document.querySelectorAll(".prod-text-filter");
+const prodCheckboxes = document.querySelectorAll(".prod-row-check");
+
+/* Filtering */
+function filterProdTable() {
+  if (!prodTable || !prodTable.tBodies[0]) return;
+  [...prodTable.tBodies[0].rows].forEach(row => {
+    let show = true;
+    prodFilters.forEach(f => {
+      const col = f.dataset.col;
+      if (f.value && !row.cells[col].innerText.toLowerCase().includes(f.value.toLowerCase())) {
+        show = false;
+      }
+    });
+    row.style.display = show ? "" : "none";
+  });
+  updateProdSummary();
+}
+
+prodFilters.forEach(f => f.addEventListener("input", filterProdTable));
+
+/* Summary */
+function updateProdSummary() {
+  const panel = document.getElementById("prodSummaryPanel");
+  if (!panel) return;
+  if (!prodTable || !prodTable.tBodies[0]) { panel.style.display = "none"; return; }
+
+  let count = 0, reqWt = 0, calcWt = 0, cost = 0, conv = 0, times = 0;
+
+  [...prodTable.tBodies[0].rows].forEach(row => {
+    if (row.style.display === "none") return;
+    count++;
+    reqWt += parseFloat(row.dataset.reqWt) || 0;
+    calcWt += parseFloat(row.dataset.calcWt) || 0;
+    cost += parseFloat(row.dataset.calcCost) || 0;
+    conv += parseFloat(row.dataset.conv) || 0;
+    times += parseInt(row.dataset.times) || 0;
+  });
+
+  document.getElementById("prod-summary-count").textContent = count;
+  document.getElementById("prod-summary-req-wt").textContent = reqWt.toFixed(2);
+  document.getElementById("prod-summary-calc-wt").textContent = calcWt.toFixed(2);
+  document.getElementById("prod-summary-cost").textContent = cost.toFixed(2);
+  document.getElementById("prod-summary-conv").textContent = count ? (conv / count).toFixed(4) : "0.00";
+  document.getElementById("prod-summary-times").textContent = times;
+
+  panel.style.display = count > 0 ? "" : "none";
+}
+
+/* Select all */
+document.getElementById("select-all-prod")?.addEventListener("change", e => {
+  prodCheckboxes.forEach(cb => cb.checked = e.target.checked);
+  updateBulkDeleteBtn();
+});
+
+document.querySelectorAll(".prod-row-check").forEach(cb => {
+  cb.addEventListener("change", updateBulkDeleteBtn);
+});
+
+function updateBulkDeleteBtn() {
+  const checked = document.querySelectorAll(".prod-row-check:checked");
+  const btn = document.getElementById("bulk-delete-btn");
+  btn.style.display = checked.length > 0 ? "" : "none";
+}
+
+document.getElementById("bulk-delete-form").addEventListener("submit", e => {
+  const checked = document.querySelectorAll(".prod-row-check:checked");
+  if (checked.length === 0) { e.preventDefault(); return; }
+  if (!confirm(`Delete ${checked.length} selected entries?`)) { e.preventDefault(); return; }
+  const keys = [...checked].map(cb => cb.value);
+  document.getElementById("bulk-keys").value = JSON.stringify(keys);
+});
+
+updateProdSummary();
+</script>
+{% endblock %}

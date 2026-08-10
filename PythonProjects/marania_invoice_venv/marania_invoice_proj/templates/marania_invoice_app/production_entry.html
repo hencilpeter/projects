@@ -1,0 +1,291 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container my-4">
+    <h3>Production Entry</h3>
+
+    <button class="btn btn-primary mb-3" type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#productionForm">
+      New Production Entry
+    </button>
+
+    <div class="collapse" id="productionForm">
+      <form method="POST" id="production-form">
+        {% csrf_token %}
+        <input type="hidden" name="entries_data" id="entries-data">
+        <div class="card p-4 mb-4 shadow-sm">
+
+          <div class="row mb-3 align-items-end g-2">
+            <div class="col-md-2">
+              <label class="form-label small mb-0">Production Date</label>
+              <input type="date" id="production-date" class="form-control form-control-sm" value="{% now 'Y-m-d' %}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small mb-0">Fetch Order</label>
+              <div class="d-flex gap-1">
+                <select id="fetch-order" class="form-select form-select-sm">
+                  <option value="">-- Select Order --</option>
+                </select>
+                <button type="button" id="fetch-order-btn" class="btn btn-info btn-sm text-nowrap">Fetch</button>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
+          <div id="production-rows">
+            <div class="production-row">
+              <div class="row mb-2 align-items-end g-1">
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Customer</label>
+                  <input type="text" name="customer" class="form-control form-control-sm prod-customer" placeholder="Customer">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-0">Specification</label>
+                  <input type="text" name="specification" class="form-control form-control-sm prod-spec" placeholder="MM-MD-SEL">
+                </div>
+                <div class="col-md-1">
+                  <label class="form-label small mb-0">Reference</label>
+                  <input type="text" name="reference" class="form-control form-control-sm prod-ref" placeholder="Ref">
+                </div>
+                <div class="col-md-1">
+                  <label class="form-label small mb-0">MM</label>
+                  <input type="text" name="mm" class="form-control form-control-sm prod-mm" placeholder="MM">
+                </div>
+                <div class="col-md-1">
+                  <label class="form-label small mb-0">MD</label>
+                  <input type="text" name="md" class="form-control form-control-sm prod-md" placeholder="MD">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Product</label>
+                  <select name="product" class="form-select form-select-sm prod-product">
+                    <option value="">-- Product --</option>
+                    {% for p in products %}
+                    <option value="{{ p.code }}">{{ p.code }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-1">
+                  <label class="form-label small mb-0">Sel</label>
+                  <input type="text" name="sel" class="form-control form-control-sm prod-sel" placeholder="Sel">
+                </div>
+                <div class="col-md-1">
+                  <label class="form-label small mb-0">PW</label>
+                  <input type="text" name="pw" class="form-control form-control-sm prod-pw" placeholder="PW">
+                </div>
+              </div>
+
+              <div class="row mb-2 align-items-end g-1">
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Required Weight</label>
+                  <input type="number" step="0.01" name="required_weight" class="form-control form-control-sm prod-req-wt" placeholder="Req Weight">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Machine</label>
+                  <select name="machine" class="form-select form-select-sm prod-machine">
+                    <option value="">-- Machine --</option>
+                    {% for m in machines %}
+                    <option value="{{ m.machine_number }}">{{ m.machine_number }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Selvage Twine</label>
+                  <input type="text" name="selvage_twine" class="form-control form-control-sm prod-selvage" placeholder="Selvage Twine">
+                </div>
+                <div class="col-md-1">
+                  <label class="form-label small mb-0">No. of Times</label>
+                  <input type="number" name="number_of_times" class="form-control form-control-sm prod-times" placeholder="Times" value="1" min="1">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Conversion Factor</label>
+                  <input type="text" name="conversion_factor" class="form-control form-control-sm prod-conv" placeholder="Conv. Factor" readonly>
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                  <button type="button" class="btn btn-outline-danger btn-sm remove-row" style="display:none;">&times;</button>
+                  <button type="button" class="btn btn-outline-primary btn-sm add-row ms-1">+</button>
+                </div>
+              </div>
+
+              <div class="row mb-2 g-1">
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Calculated Weight</label>
+                  <input type="text" name="calculated_weight" class="form-control form-control-sm prod-calc-wt bg-light" placeholder="Calc Weight" readonly>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Unit Cost</label>
+                  <input type="number" step="0.01" name="unit_cost" class="form-control form-control-sm prod-unit-cost" placeholder="Unit Cost">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Calculated Cost</label>
+                  <input type="text" name="calculated_cost" class="form-control form-control-sm prod-calc-cost bg-light" placeholder="Calc Cost" readonly>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-0">Remarks</label>
+                  <input type="text" name="remarks" class="form-control form-control-sm prod-remarks" placeholder="Remarks">
+                </div>
+              </div>
+
+              <hr>
+            </div>
+          </div>
+
+          <div class="text-center">
+            <button type="submit" name="action" value="save" class="btn btn-success">Save Production</button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <hr>
+
+    <div class="text-center mt-3">
+      <a href="{% url 'production_detail' %}" class="btn btn-outline-primary">View Production Details</a>
+    </div>
+
+  </div>
+</main>
+
+<script>
+const ordersData = {{ orders_json|safe }};
+const productionContainer = document.getElementById("production-rows");
+
+/* Populate order dropdown */
+const orderSelect = document.getElementById("fetch-order");
+ordersData.forEach(o => {
+  const opt = document.createElement("option");
+  opt.value = o.order_key;
+  opt.textContent = `${o.order_number} - ${o.customer} - ${o.twine || ''}`;
+  opt.dataset.order = JSON.stringify(o);
+  orderSelect.appendChild(opt);
+});
+
+/* Fetch order details */
+document.getElementById("fetch-order-btn").addEventListener("click", () => {
+  const opt = orderSelect.selectedOptions[0];
+  if (!opt || !opt.dataset.order) return;
+  const o = JSON.parse(opt.dataset.order);
+  const row = productionContainer.querySelector(".production-row");
+  row.querySelector(".prod-customer").value = o.customer || "";
+  row.querySelector(".prod-spec").value = o.specification || "";
+  row.querySelector(".prod-mm").value = o.mm || "";
+  row.querySelector(".prod-md").value = o.md || "";
+  row.querySelector(".prod-sel").value = o.sel || "";
+  row.querySelector(".prod-pw").value = o.pw || "";
+  row.querySelector(".prod-req-wt").value = o.quantity || "";
+  const prodSelect = row.querySelector(".prod-product");
+  if (o.product_code) {
+    for (let i = 0; i < prodSelect.options.length; i++) {
+      if (prodSelect.options[i].value === o.product_code) {
+        prodSelect.selectedIndex = i;
+        break;
+      }
+    }
+    fetchConversionFactor(o.product_code, row);
+  }
+  recalcRow(row);
+});
+
+/* Fetch conversion factor via API */
+function fetchConversionFactor(productCode, row) {
+  if (!productCode) return;
+  fetch(`/configuration/material-conversion-ratio?code=${encodeURIComponent(productCode)}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.conversion_ratio) {
+        row.querySelector(".prod-conv").value = data.conversion_ratio;
+        recalcRow(row);
+      }
+    })
+    .catch(() => {});
+}
+
+/* Product change -> fetch conversion factor */
+productionContainer.addEventListener("change", e => {
+  if (!e.target.classList.contains("prod-product")) return;
+  const row = e.target.closest(".production-row");
+  fetchConversionFactor(e.target.value, row);
+});
+
+/* Recalculate row */
+function recalcRow(row) {
+  const reqWt = parseFloat(row.querySelector(".prod-req-wt").value) || 0;
+  const conv = parseFloat(row.querySelector(".prod-conv").value) || 0;
+  const unitCost = parseFloat(row.querySelector(".prod-unit-cost").value) || 0;
+  const times = parseInt(row.querySelector(".prod-times").value) || 1;
+  const calcWt = reqWt * conv * times;
+  const calcCost = calcWt * unitCost;
+  row.querySelector(".prod-calc-wt").value = calcWt ? calcWt.toFixed(2) : "";
+  row.querySelector(".prod-calc-cost").value = calcCost ? calcCost.toFixed(2) : "";
+}
+
+productionContainer.addEventListener("input", e => {
+  if (e.target.classList.contains("prod-req-wt") || e.target.classList.contains("prod-unit-cost") || e.target.classList.contains("prod-times")) {
+    const row = e.target.closest(".production-row");
+    recalcRow(row);
+  }
+});
+
+/* Add row */
+productionContainer.addEventListener("click", e => {
+  if (!e.target.classList.contains("add-row")) return;
+  const firstRow = productionContainer.querySelector(".production-row");
+  const newRow = firstRow.cloneNode(true);
+  newRow.querySelectorAll("input").forEach(i => {
+    if (i.classList.contains("prod-times")) { i.value = "1"; return; }
+    if (i.readOnly) { i.value = ""; return; }
+    if (!i.classList.contains("prod-unit-cost")) i.value = "";
+  });
+  newRow.querySelectorAll("select").forEach(s => s.selectedIndex = 0);
+  newRow.querySelector(".remove-row").style.display = "";
+  productionContainer.appendChild(newRow);
+});
+
+/* Remove row */
+productionContainer.addEventListener("click", e => {
+  if (!e.target.classList.contains("remove-row")) return;
+  const rows = productionContainer.querySelectorAll(".production-row");
+  if (rows.length <= 1) { alert("At least one row required"); return; }
+  e.target.closest(".production-row").remove();
+});
+
+/* Submit */
+document.getElementById("production-form").addEventListener("submit", e => {
+  const entries = [];
+  const date = document.getElementById("production-date").value;
+  productionContainer.querySelectorAll(".production-row").forEach(row => {
+    const machine = row.querySelector(".prod-machine").value;
+    if (!machine) return;
+    entries.push({
+      production_date: date,
+      customer: row.querySelector(".prod-customer").value,
+      specification: row.querySelector(".prod-spec").value,
+      reference: row.querySelector(".prod-ref").value,
+      mm: row.querySelector(".prod-mm").value,
+      md: row.querySelector(".prod-md").value,
+      product: row.querySelector(".prod-product").value,
+      sel: row.querySelector(".prod-sel").value,
+      pw: row.querySelector(".prod-pw").value,
+      required_weight: row.querySelector(".prod-req-wt").value,
+      machine: machine,
+      selvage_twine: row.querySelector(".prod-selvage").value,
+      number_of_times: row.querySelector(".prod-times").value,
+      conversion_factor: row.querySelector(".prod-conv").value,
+      calculated_weight: row.querySelector(".prod-calc-wt").value,
+      unit_cost: row.querySelector(".prod-unit-cost").value,
+      calculated_cost: row.querySelector(".prod-calc-cost").value,
+      remarks: row.querySelector(".prod-remarks").value,
+    });
+  });
+  if (entries.length === 0) {
+    e.preventDefault();
+    alert("Please fill at least one row with a Machine selected.");
+    return;
+  }
+  document.getElementById("entries-data").value = JSON.stringify(entries);
+});
+</script>
+{% endblock %}

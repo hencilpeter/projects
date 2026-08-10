@@ -767,3 +767,33 @@ class AdditionalCost(models.Model):
     class Meta:
         verbose_name = "Additional Cost"
         verbose_name_plural = "Additional Costs"
+
+
+class Production(models.Model):
+    production_key = models.AutoField(primary_key=True)
+    production_date = models.DateField(default='today')
+    order = models.ForeignKey(Order, to_field='order_key', on_delete=models.SET_NULL, null=True, blank=True, related_name='productions')
+    customer = models.CharField(max_length=255)
+    specification = models.CharField(max_length=255, blank=True, null=True)
+    reference = models.CharField(max_length=100, blank=True, null=True)
+    mm = models.CharField(max_length=50, blank=True, null=True)
+    md = models.CharField(max_length=50, blank=True, null=True)
+    product = models.CharField(max_length=100, blank=True, null=True)
+    sel = models.CharField(max_length=50, blank=True, null=True)
+    pw = models.CharField(max_length=50, blank=True, null=True)
+    required_weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    machine = models.CharField(max_length=50, blank=True, null=True)
+    selvage_twine = models.CharField(max_length=100, blank=True, null=True)
+    number_of_times = models.IntegerField(default=1)
+    conversion_factor = models.DecimalField(max_digits=20, decimal_places=10, blank=True, null=True)
+    calculated_weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    calculated_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    remarks = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Production #{self.production_key} - {self.customer}"
+
+    class Meta:
+        ordering = ['-production_date', '-production_key']
