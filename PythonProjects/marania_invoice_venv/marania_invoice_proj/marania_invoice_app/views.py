@@ -5408,6 +5408,7 @@ def production_entry_view(request):
             "customer": o.customer,
             "twine": o.twine,
             "quantity": str(o.quantity),
+            "quantity_unit": o.quantity_unit or "KG",
             "unit_price": str(o.unit_price) if o.unit_price else "",
             "specification": f"{spec.mesh_size or ''}MM-{spec.mesh_depth or ''}MD-{spec.salvage or ''}SEL" if spec else "",
             "mm": str(spec.mesh_size) if spec and spec.mesh_size else "",
