@@ -155,6 +155,15 @@
       <table class="table table-bordered table-hover table-sm" id="productions-table">
         <thead class="table-dark">
           <tr>
+             <th>
+              Action
+              <div class="mt-1">
+                <button type="button" id="clear-filters" class="btn btn-warning btn-sm">
+                  Clear
+                </button>
+              </div>
+            </th>
+
             <th>Date
               <input type="text" class="form-control form-control-sm text-filter" data-col="0">
             </th>
@@ -200,23 +209,28 @@
             </th>
             <th>NET Addl Details
             </th>
-            <th>Total Daily Output
+            <th>Total Daily Output(KG)
             </th>
             <th>Required Days
             </th>
-            <th>
-              Action
-              <div class="mt-1">
-                <button type="button" id="clear-filters" class="btn btn-warning btn-sm">
-                  Clear
-                </button>
-              </div>
-            </th>
+           
           </tr>
         </thead>
         <tbody>
           {% for p in productions %}
           <tr data-key="{{ p.production_key }}">
+             <td>
+              <button type="button"
+                      class="btn btn-primary btn-sm edit-production"
+                      data-key="{{ p.production_key }}">
+                Edit
+              </button>
+              <button type="button"
+                      class="btn btn-danger btn-sm delete-production"
+                      data-key="{{ p.production_key }}">
+                Del
+              </button>
+            </td>
             <td>{{ p.production_date }}</td>
             <td>{{ p.reference }}</td>
             <td>{{ p.customer }}</td>
@@ -265,18 +279,7 @@
             </td>
             <td>{{ p.total_daily_output }}</td>
             <td>{{ p.required_days }}</td>
-            <td>
-              <button type="button"
-                      class="btn btn-primary btn-sm edit-production"
-                      data-key="{{ p.production_key }}">
-                Edit
-              </button>
-              <button type="button"
-                      class="btn btn-danger btn-sm delete-production"
-                      data-key="{{ p.production_key }}">
-                Del
-              </button>
-            </td>
+           
           </tr>
           {% endfor %}
         </tbody>

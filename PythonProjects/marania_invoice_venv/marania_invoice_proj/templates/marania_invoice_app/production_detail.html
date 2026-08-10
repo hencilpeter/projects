@@ -52,65 +52,65 @@
         <table class="table table-bordered table-hover table-sm" id="prod-detail-table">
           <thead class="table-dark">
             <tr>
+              <th>Action</th>
               <th><input type="checkbox" id="select-all-prod"></th>
               <th>Date
-                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="1" placeholder="Filter...">
-              </th>
-              <th>Order
                 <input type="text" class="form-control form-control-sm prod-text-filter" data-col="2" placeholder="Filter...">
               </th>
-              <th>Customer
+              <th>Order
                 <input type="text" class="form-control form-control-sm prod-text-filter" data-col="3" placeholder="Filter...">
               </th>
-              <th>Specification
+              <th>Customer
                 <input type="text" class="form-control form-control-sm prod-text-filter" data-col="4" placeholder="Filter...">
               </th>
-              <th>Ref
+              <th>Specification
                 <input type="text" class="form-control form-control-sm prod-text-filter" data-col="5" placeholder="Filter...">
               </th>
-              <th>MM
+              <th>Ref
                 <input type="text" class="form-control form-control-sm prod-text-filter" data-col="6" placeholder="Filter...">
               </th>
-              <th>MD
+              <th>MM
                 <input type="text" class="form-control form-control-sm prod-text-filter" data-col="7" placeholder="Filter...">
               </th>
-              <th>Product
+              <th>MD
                 <input type="text" class="form-control form-control-sm prod-text-filter" data-col="8" placeholder="Filter...">
               </th>
-              <th>Sel
+              <th>Product
                 <input type="text" class="form-control form-control-sm prod-text-filter" data-col="9" placeholder="Filter...">
               </th>
-              <th>PW
+              <th>Sel
                 <input type="text" class="form-control form-control-sm prod-text-filter" data-col="10" placeholder="Filter...">
               </th>
-              <th>Est Weight
+              <th>PW
                 <input type="text" class="form-control form-control-sm prod-text-filter" data-col="11" placeholder="Filter...">
               </th>
-              <th>Machine
+              <th>Est Weight
                 <input type="text" class="form-control form-control-sm prod-text-filter" data-col="12" placeholder="Filter...">
               </th>
-              <th>Knots Cap/Day
+              <th>Machine
                 <input type="text" class="form-control form-control-sm prod-text-filter" data-col="13" placeholder="Filter...">
               </th>
-              <th>Total Meshes
+              <th>Knots Cap/Day
                 <input type="text" class="form-control form-control-sm prod-text-filter" data-col="14" placeholder="Filter...">
               </th>
-              <th>Addl.NET Twine
+              <th>Total Meshes
                 <input type="text" class="form-control form-control-sm prod-text-filter" data-col="15" placeholder="Filter...">
               </th>
-              <th>Total Twine
+              <th>Addl.NET Twine
                 <input type="text" class="form-control form-control-sm prod-text-filter" data-col="16" placeholder="Filter...">
               </th>
-              <th>Daily Output
+              <th>Total Twine
                 <input type="text" class="form-control form-control-sm prod-text-filter" data-col="17" placeholder="Filter...">
               </th>
-              <th>Req. Days
+              <th>Daily Output
                 <input type="text" class="form-control form-control-sm prod-text-filter" data-col="18" placeholder="Filter...">
               </th>
-              <th>Remarks
+              <th>Req. Days
                 <input type="text" class="form-control form-control-sm prod-text-filter" data-col="19" placeholder="Filter...">
               </th>
-              <th>Action</th>
+              <th>Remarks
+                <input type="text" class="form-control form-control-sm prod-text-filter" data-col="20" placeholder="Filter...">
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -120,6 +120,14 @@
                 data-required-days="{{ p.required_days|default:'0' }}"
                 data-total-twine="{{ p.total_twine|default:'0' }}"
                 data-meshes="{{ p.total_meshes|default:'0' }}">
+              <td>
+                <form method="POST" action="{% url 'production_detail' %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="delete">
+                  <input type="hidden" name="production_key" value="{{ p.production_key }}">
+                  <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this entry?')">&times;</button>
+                </form>
+              </td>
               <td><input type="checkbox" class="prod-row-check" value="{{ p.production_key }}"></td>
               <td>{{ p.production_date }}</td>
               <td>{{ p.order_number }}</td>
@@ -140,14 +148,6 @@
               <td>{{ p.total_daily_output }}</td>
               <td>{{ p.required_days }}</td>
               <td>{{ p.remarks }}</td>
-              <td>
-                <form method="POST" action="{% url 'production_detail' %}" class="d-inline">
-                  {% csrf_token %}
-                  <input type="hidden" name="action" value="delete">
-                  <input type="hidden" name="production_key" value="{{ p.production_key }}">
-                  <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this entry?')">&times;</button>
-                </form>
-              </td>
             </tr>
             {% endfor %}
           </tbody>

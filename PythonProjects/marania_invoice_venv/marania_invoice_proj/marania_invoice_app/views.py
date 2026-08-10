@@ -5465,20 +5465,9 @@ def production_entry_view(request):
             "conversion_factor": str(p.conversion_factor) if p.conversion_factor else "",
             "calculated_weight": str(p.calculated_weight) if p.calculated_weight else "",
             "twine_rows": twine_rows,
-            "total_daily_output": str(p.knots_capacity_per_day) if p.knots_capacity_per_day else "",
-            "required_days": "",
+            "total_daily_output": str(p.total_daily_output) if p.total_daily_output else "",
+            "required_days": str(p.required_days) if p.required_days else "",
         })
-        
-        # Calculate required days
-        if p.knots_capacity_per_day and p.total_meshes:
-            try:
-                knot_cap = float(p.knots_capacity_per_day)
-                total_mesh = int(p.total_meshes)
-                if knot_cap > 0:
-                    required_days = total_mesh / knot_cap
-                    productions_data[-1]["required_days"] = f"{required_days:.2f}"
-            except:
-                pass
 
     context = {
         "orders_json": orders_data,
