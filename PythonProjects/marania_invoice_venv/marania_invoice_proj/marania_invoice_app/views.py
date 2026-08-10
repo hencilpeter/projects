@@ -5343,13 +5343,14 @@ def production_entry_view(request):
                 for entry in entries:
                     if not entry.get("machine"):
                         continue
-                    order_key = entry.get("order_key") or None
-                    order_obj = None
-                    if order_key:
+                    production_date = entry.get("production_date") or None
+                    if production_date:
+                        from datetime import datetime
                         try:
-                            order_obj = Order.objects.get(pk=order_key)
-                        except Order.DoesNotExist:
-                            order_obj = None
+                            production_date = datetime.strptime(production_date, "%Y-%m-%d").date()
+                        except:
+                            production_date = None
+                    
                     product_code = (entry.get("product") or "").strip()
                     conversion = None
                     if product_code:
@@ -5357,13 +5358,19 @@ def production_entry_view(request):
                             conversion = MaterialConversionRatio.objects.get(material_code=product_code).conversion_ratio
                         except MaterialConversionRatio.DoesNotExist:
                             conversion = None
+                    
                     quantity = float(entry.get("quantity") or 0)
                     conv = float(conversion) if conversion else 0
                     calc_weight = quantity * conv if conv else 0
-                    calc_cost = calc_weight * float(entry.get("unit_cost") or 0)
+                    
+                    # Build remarks from twine rows
+                    twine_rows_data = entry.get("twine_rows", [])
+                    remarks = ""
+                    if twine_rows_data:
+                        remarks = json.dumps(twine_rows_data)
+                    
                     Production.objects.create(
-                        production_date=entry.get("production_date") or None,
-                        order=order_obj,
+                        production_date=production_date,
                         customer=(entry.get("customer") or "").strip(),
                         specification=(entry.get("specification") or "").strip(),
                         reference=(entry.get("reference") or "").strip(),
@@ -5374,12 +5381,9 @@ def production_entry_view(request):
                         pw=(entry.get("pw") or "").strip(),
                         required_weight=quantity or None,
                         machine=(entry.get("machine") or "").strip(),
-                        selvage_twine=(entry.get("selvage_twine") or "").strip(),
-                        number_of_times=int(entry.get("number_of_times") or 1),
                         conversion_factor=conversion,
                         calculated_weight=calc_weight or None,
-                        calculated_cost=calc_cost or None,
-                        remarks=(entry.get("remarks") or "").strip(),
+                        remarks=remarks,
                     )
                     saved += 1
                 messages.success(request, f"{saved} production entries saved.")
@@ -5389,14 +5393,6 @@ def production_entry_view(request):
             if pk:
                 Production.objects.filter(pk=pk).delete()
                 messages.success(request, "Production entry deleted.")
-
-        elif action == "delete_bulk":
-            import json
-            keys_raw = request.POST.get("production_keys")
-            if keys_raw:
-                keys = json.loads(keys_raw)
-                Production.objects.filter(production_key__in=keys).delete()
-                messages.success(request, "Selected entries deleted.")
 
         return redirect("production_entry")
 
@@ -5429,12 +5425,41 @@ def production_entry_view(request):
     conversion_ratios = MaterialConversionRatio.objects.all().order_by("material_code")
     twine_options = [{"code": r.material_code, "ratio": str(r.conversion_ratio), "label": f"{r.material_code}-{r.conversion_ratio}"} for r in conversion_ratios]
 
+    # Get saved production entries
+    productions = Production.objects.all().select_related("order").order_by("-production_date", "-production_key")
+    productions_data = []
+    for p in productions:
+        twine_rows = []
+        if p.remarks:
+            try:
+                twine_rows = json.loads(p.remarks)
+            except:
+                pass
+        productions_data.append({
+            "production_key": p.production_key,
+            "production_date": p.production_date.strftime("%Y-%m-%d") if p.production_date else "",
+            "customer": p.customer,
+            "specification": p.specification,
+            "reference": p.reference,
+            "mm": p.mm,
+            "md": p.md,
+            "product": p.product,
+            "sel": p.sel,
+            "pw": p.pw,
+            "required_weight": str(p.required_weight) if p.required_weight else "",
+            "machine": p.machine,
+            "conversion_factor": str(p.conversion_factor) if p.conversion_factor else "",
+            "calculated_weight": str(p.calculated_weight) if p.calculated_weight else "",
+            "twine_rows": twine_rows,
+        })
+
     context = {
         "orders_json": orders_data,
         "products": products,
         "machines": machines,
         "machines_json": machines_json,
         "twine_options_json": twine_options,
+        "productions": productions_data,
     }
     return render(request, "marania_invoice_app/production_entry.html", context)
 
