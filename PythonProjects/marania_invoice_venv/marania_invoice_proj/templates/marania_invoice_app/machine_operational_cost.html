@@ -17,35 +17,17 @@
         <div class="card p-4 mb-4 shadow-sm">
 
           <div id="machine-rows">
-            <div class="row mb-2 machine-row align-items-center g-1">
-              <div class="col-md-2">
-                <input type="text" name="machine_number" class="form-control form-control-sm" placeholder="Machine Num" style="width: 110px;">
-              </div>
-              <div class="col-md-1">
-                <input type="number" name="number_of_shuttles" class="form-control form-control-sm" placeholder="Shuttles" style="width: 90px;">
-              </div>
-              <div class="col-md-2">
-                <input type="text" name="running_product_code" class="form-control form-control-sm" placeholder="Product Code" style="width: 60px;">
-              </div>
-              <div class="col-md-1">
-                <input type="number" step="0.01" name="operator_cost_per_day" class="form-control form-control-sm" placeholder="Operator/Day">
-              </div>
-              <div class="col-md-1">
-                <input type="number" step="0.01" name="bobbin_winder_cost_per_day" class="form-control form-control-sm" placeholder="Bobbin/Day">
-              </div>
-              <div class="col-md-1">
-                <input type="number" step="0.01" name="mending_cost_per_day" class="form-control form-control-sm" placeholder="Mending/Day">
-              </div>
-              <div class="col-md-1">
-                <input type="number" step="0.01" name="mechanic_cost_per_day" class="form-control form-control-sm" placeholder="Mechanic/Day">
-              </div>
-              <div class="col-md-1">
-                <input type="number" step="0.01" name="electricity_cost_per_day" class="form-control form-control-sm" placeholder="Electricity/Day">
-              </div>
-              <div class="col-md-1">
-                <input type="number" step="0.01" name="maintenance_cost_per_day" class="form-control form-control-sm" placeholder="Maintenance/Day">
-              </div>
-              <div class="col-md-1 d-flex justify-content-end gap-1">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2 machine-row">
+              <input type="text" name="machine_number" class="form-control form-control-sm" placeholder="Machine Num" style="width: 120px;">
+              <input type="number" name="number_of_shuttles" class="form-control form-control-sm" placeholder="Shuttles" style="width: 85px;">
+              <input type="text" name="running_product_code" class="form-control form-control-sm" placeholder="Prod Code" style="width: 130px;">
+              <input type="number" step="0.01" name="operator_cost_per_day" class="form-control form-control-sm" placeholder="Oper.Sal/Day" style="width: 110px;">
+              <input type="number" step="0.01" name="bobbin_winder_cost_per_day" class="form-control form-control-sm" placeholder="Bob.Sal/Day" style="width: 110px;">
+              <input type="number" step="0.01" name="mending_cost_per_day" class="form-control form-control-sm" placeholder="Mend.Sal/Day" style="width: 110px;">
+              <input type="number" step="0.01" name="mechanic_cost_per_day" class="form-control form-control-sm" placeholder="Mec/Day" style="width: 110px;">
+              <input type="number" step="0.01" name="electricity_cost_per_day" class="form-control form-control-sm" placeholder="Elec/Day" style="width: 115px;">
+              <input type="number" step="0.01" name="maintenance_cost_per_day" class="form-control form-control-sm" placeholder="Mainte/Day" style="width: 120px;">
+              <div class="d-flex gap-1">
                 <button type="button" class="btn btn-warning btn-sm clear-row">Clear</button>
                 <button type="button" class="btn btn-danger btn-sm delete-row">Delete</button>
               </div>
