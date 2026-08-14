@@ -126,6 +126,17 @@
                 </div>
               </div>
 
+              <div class="row mb-2 align-items-end g-1">
+                <div class="col-md-3">
+                  <label class="form-label small mb-0 fw-bold text-primary">Total Daily Output(KG)</label>
+                  <input type="text" class="form-control form-control-sm prod-total-daily-output bg-light fw-bold" placeholder="Daily Output" readonly>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-0 fw-bold text-success">Required Days</label>
+                  <input type="text" class="form-control form-control-sm prod-required-days bg-light fw-bold" placeholder="Days" readonly>
+                </div>
+              </div>
+
               <div class="twine-rows-container"></div>
 
               <div id="analyse-results" class="border rounded p-2 mt-2" style="display:none;">
@@ -537,6 +548,8 @@ productionContainer.addEventListener("click", e => {
   resultsDiv.style.display = "";
   row.setAttribute("data-total-daily-output", totalDailyOutput.toFixed(2));
   row.setAttribute("data-required-days", requiredDays.toFixed(3));
+  row.querySelector(".prod-total-daily-output").value = totalDailyOutput.toFixed(2);
+  row.querySelector(".prod-required-days").value = requiredDays.toFixed(3);
 });
 
 function updateTotalTwine(row) {
@@ -699,6 +712,8 @@ document.addEventListener("click", e => {
     row.querySelector(".prod-total-meshes").value = data.total_meshes || "";
     row.querySelector(".prod-addl-net-twine").value = data.addl_net_twine || "";
     row.querySelector(".prod-total-twine").value = data.total_twine || "";
+    row.querySelector(".prod-total-daily-output").value = data.total_daily_output || "";
+    row.querySelector(".prod-required-days").value = data.required_days || "";
     
     // Clear existing twine rows
     const twineContainer = row.querySelector(".twine-rows-container");

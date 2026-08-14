@@ -837,6 +837,7 @@ class ProfitAnalytics(models.Model):
     total_revenue = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     total_profit = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     profit_per_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    profit_per_day = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     profit_margin_pct = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
 
     remarks = models.TextField(blank=True, null=True)

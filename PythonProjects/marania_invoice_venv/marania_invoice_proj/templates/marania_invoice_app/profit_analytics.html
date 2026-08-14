@@ -253,6 +253,7 @@
               <th>Revenue</th>
               <th>Profit</th>
               <th>Profit/KG</th>
+              <th>Profit/Day</th>
               <th>Margin %</th>
               <th>Remarks</th>
             </tr>
@@ -264,6 +265,7 @@
                 data-profit="{{ pr.total_profit|default:'0' }}"
                 data-margin="{{ pr.profit_margin_pct|default:'0' }}"
                 data-profit-kg="{{ pr.profit_per_kg|default:'0' }}"
+                data-profit-day="{{ pr.profit_per_day|default:'0' }}"
                 data-profit-key="{{ pr.profit_key }}"
                 data-profit-date="{{ pr.profit_date }}"
                 data-customer="{{ pr.customer }}"
@@ -288,6 +290,7 @@
                 data-total-revenue="{{ pr.total_revenue }}"
                 data-total-profit="{{ pr.total_profit }}"
                 data-profit-kg-val="{{ pr.profit_per_kg }}"
+                data-profit-day-val="{{ pr.profit_per_day }}"
                 data-margin-val="{{ pr.profit_margin_pct }}"
                 data-remarks="{{ pr.remarks }}"
                 data-raw-twine="{{ pr.raw_twine_data }}"
@@ -313,6 +316,7 @@
               <td>{{ pr.total_revenue }}</td>
               <td class="fw-bold text-success">{{ pr.total_profit }}</td>
               <td>{{ pr.profit_per_kg }}</td>
+              <td>{{ pr.profit_per_day }}</td>
               <td>{{ pr.profit_margin_pct }}</td>
               <td>{{ pr.remarks }}</td>
             </tr>
@@ -537,6 +541,7 @@ function recalcProfit(row) {
 
   /* Store for submit */
   row.dataset.rawCost = rawCost;
+  row.dataset.profitDay = profitDay;
   const twineCostData = [];
   document.querySelectorAll("#raw-twine-rows .twine-cost-row").forEach(div => {
     twineCostData.push({
@@ -636,6 +641,7 @@ document.getElementById("profit-form").addEventListener("submit", e => {
       total_revenue: row.dataset.revenue || "",
       total_profit: row.dataset.profit || "",
       profit_per_kg: row.dataset.profitKg || "",
+      profit_per_day: row.dataset.profitDay || "",
       profit_margin_pct: row.dataset.margin || "",
       remarks: row.querySelector(".prof-remarks").value,
     });
@@ -686,6 +692,7 @@ document.addEventListener("click", e => {
   row.querySelector(".prof-total-revenue").value = tr.dataset.totalRevenue || "";
   row.querySelector(".prof-total-profit").value = tr.dataset.totalProfit || "";
   row.querySelector(".prof-profit-kg").value = tr.dataset.profitKgVal || "";
+  row.querySelector(".prof-profit-day").value = tr.dataset.profitDayVal || "";
   row.querySelector(".prof-margin").value = tr.dataset.marginVal || "";
   row.querySelector(".prof-remarks").value = tr.dataset.remarks || "";
   row.dataset.machineCostDay = tr.dataset.machineCostDay || "";
@@ -699,6 +706,7 @@ document.addEventListener("click", e => {
   row.dataset.revenue = tr.dataset.totalRevenue || "";
   row.dataset.profit = tr.dataset.totalProfit || "";
   row.dataset.profitKg = tr.dataset.profitKgVal || "";
+  row.dataset.profitDay = tr.dataset.profitDayVal || "";
   row.dataset.margin = tr.dataset.marginVal || "";
   row.dataset.machineTotal = tr.dataset.machineTotal || "";
   row.dataset.procTotal = tr.dataset.procTotal || "";
@@ -774,7 +782,7 @@ const profitCheckboxes = document.querySelectorAll(".profit-row-check");
 function updateProfitSummary() {
   const panel = document.getElementById("profitSummaryPanel");
   if (!panel || !profitTable || !profitTable.tBodies[0]) { if(panel) panel.style.display = "none"; return; }
-  let count = 0, cost = 0, revenue = 0, profit = 0, margin = 0, profitKg = 0;
+  let count = 0, cost = 0, revenue = 0, profit = 0, margin = 0, profitKg = 0, profitDay = 0;
   [...profitTable.tBodies[0].rows].forEach(row => {
     if (row.style.display === "none") return;
     count++;
@@ -783,6 +791,7 @@ function updateProfitSummary() {
     profit += parseFloat(row.dataset.profit) || 0;
     margin += parseFloat(row.dataset.margin) || 0;
     profitKg += parseFloat(row.dataset.profitKg) || 0;
+    profitDay += parseFloat(row.dataset.profitDay) || 0;
   });
   document.getElementById("profit-summary-count").textContent = count;
   document.getElementById("profit-summary-cost").textContent = cost.toFixed(2);
