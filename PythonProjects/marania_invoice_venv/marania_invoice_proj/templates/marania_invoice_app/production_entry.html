@@ -531,12 +531,12 @@ productionContainer.addEventListener("click", e => {
   summaryDiv.innerHTML = `<div class="row g-2">
     <div class="col-md-4"><span class="text-muted">Est. Weight:</span> <b>${estWeight.toFixed(2)} KG</b></div>
     <div class="col-md-4"><span class="text-muted">Total Daily Output:</span> <b>${totalDailyOutput.toFixed(2)} KG/Day</b></div>
-    <div class="col-md-4 text-success"><span class="text-muted">Required Days:</span> <b>${requiredDays.toFixed(1)} Days</b></div>
+    <div class="col-md-4 text-success"><span class="text-muted">Required Days:</span> <b>${requiredDays.toFixed(3)} Days</b></div>
   </div>`;
   breakdownDiv.innerHTML = html;
   resultsDiv.style.display = "";
   row.setAttribute("data-total-daily-output", totalDailyOutput.toFixed(2));
-  row.setAttribute("data-required-days", requiredDays.toFixed(1));
+  row.setAttribute("data-required-days", requiredDays.toFixed(3));
 });
 
 function updateTotalTwine(row) {

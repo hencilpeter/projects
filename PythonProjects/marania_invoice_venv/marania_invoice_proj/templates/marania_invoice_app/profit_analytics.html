@@ -381,10 +381,10 @@ prodSelect.addEventListener("change", () => {
         div.innerHTML = `
           <div class="col-md-1"><label class="form-label small mb-0"></label><span class="badge bg-${tr.type === 'NET' ? 'success' : 'warning'} twine-type-badge">${tr.type}</span></div>
           <div class="col-md-2"><label class="form-label small mb-0">Twine & Material</label><input type="text" class="form-control form-control-sm twine-name" data-twine-code="${tr.twine || ''}" value="${tr.twine || ''}${getMaterialName(tr.twine) ? '-' + getMaterialName(tr.twine) : ''}" placeholder="Twine/Material"></div>
-          <div class="col-md-2"><label class="form-label small mb-0">Weight (KG)</label><input type="text" class="form-control form-control-sm twine-weight bg-light" value="${twineWeight.toFixed(2)}" placeholder="Weight(KG)" readonly></div>
+          <div class="col-md-2"><label class="form-label small mb-0">Weight (KG) <small class="text-muted"></small></label><input type="text" class="form-control form-control-sm twine-weight bg-light" value="${twineWeight.toFixed(2)}" placeholder="Weight(KG)" readonly></div>
           <div class="col-md-2"><label class="form-label small mb-0">Waste Twine(${wastePercentage}%)</label><input type="text" class="form-control form-control-sm twine-weight-pct bg-light" value="${wasteTwine.toFixed(2)}" placeholder="Waste Twine(%)" readonly></div>
           <div class="col-md-2"><label class="form-label small mb-0">Cost/KG</label><input type="number" step="0.01" class="form-control form-control-sm twine-cost-kg" placeholder="Cost/KG" value=""></div>
-          <div class="col-md-2"><label class="form-label small mb-0">Total</label><input type="text" class="form-control form-control-sm twine-cost-total bg-light" placeholder="Total" readonly></div>
+          <div class="col-md-2"><label class="form-label small mb-0">Total <small class="text-muted">[(Weight+Waste)×Cost]</small></label><input type="text" class="form-control form-control-sm twine-cost-total bg-light" placeholder="Total" readonly></div>
         `;
       } else {
         div.innerHTML = `
