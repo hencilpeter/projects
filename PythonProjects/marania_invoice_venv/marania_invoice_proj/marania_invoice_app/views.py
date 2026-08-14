@@ -5642,6 +5642,7 @@ def profit_analytics_view(request):
             "production_key": p.production_key,
             "production_date": str(p.production_date) if p.production_date else "",
             "customer": p.customer,
+            "specification": p.specification or "",
             "product": p.product or "",
             "machine": p.machine or "",
             "mm": str(p.mm) if p.mm else "",

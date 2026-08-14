@@ -351,7 +351,7 @@ const prodSelect = document.getElementById("select-production");
 productionsData.forEach(o => {
   const opt = document.createElement("option");
   opt.value = o.production_key;
-  opt.textContent = `${o.production_date} - ${o.customer} - ${o.product || ''} - ${o.machine || ''}`;
+  opt.textContent = `${o.production_date} - ${o.customer}${o.specification ? ' (' + o.specification + ')' : ''} - ${o.product || ''} - ${o.machine || ''}`;
   opt.dataset.production = JSON.stringify(o);
   prodSelect.appendChild(opt);
 });
@@ -362,7 +362,7 @@ prodSelect.addEventListener("change", () => {
   if (!opt || !opt.dataset.production) return;
   const o = JSON.parse(opt.dataset.production);
   const row = profitContainer.querySelector(".profit-row");
-  row.querySelector(".prof-customer").value = o.customer || "";
+  row.querySelector(".prof-customer").value = o.specification ? `${o.customer} (${o.specification})` : (o.customer || "");
   row.querySelector(".prof-product").value = o.product || "";
   row.querySelector(".prof-machine").value = o.machine || "";
   row.querySelector(".prof-est-wt").value = o.est_weight || "";
@@ -681,7 +681,6 @@ document.addEventListener("click", e => {
   row.querySelector(".prof-small-size-total").value = tr.dataset.smallSizeTotal || "";
   row.querySelector(".prof-addl-cost").value = tr.dataset.addlCost || "";
   row.querySelector(".prof-addl-total").value = tr.dataset.addlTotal || "";
-  row.querySelector(".prof-raw-cost").value = tr.dataset.rawCost || "";
   row.querySelector(".prof-total-cost").value = tr.dataset.totalCost || "";
   row.querySelector(".prof-sale-price").value = tr.dataset.salePrice || "";
   row.querySelector(".prof-total-revenue").value = tr.dataset.totalRevenue || "";
@@ -740,9 +739,11 @@ document.addEventListener("click", e => {
     twineContainerEdit.innerHTML = '<div class="text-muted small">No twine data</div>';
   }
   row.dataset.twineRows = JSON.stringify(editTwineData);
+  row.dataset.twineCostData = JSON.stringify(editTwineData);
+  const rawCostVal = editTwineData.reduce((sum, tw) => sum + (parseFloat(tw.total) || 0), 0);
+  row.dataset.rawCost = rawCostVal;
   /* Show breakdown */
   document.getElementById("profit-breakdown").style.display = "";
-  const rawCostVal = editTwineData.reduce((sum, tw) => sum + (parseFloat(tw.total) || 0), 0);
   document.getElementById("breakdown-content").innerHTML = `
     <table class="table table-sm table-borderless mb-0">
       <tr><td>Machine Cost: ${tr.dataset.machineCostDay}/Day x ${tr.dataset.reqDays} Days =</td><td class="text-end fw-bold">${tr.dataset.machineTotal}</td></tr>
