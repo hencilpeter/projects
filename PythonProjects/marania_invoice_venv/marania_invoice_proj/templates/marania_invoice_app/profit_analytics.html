@@ -64,6 +64,12 @@
               <hr>
               <h6 class="text-primary fw-bold">Cost Breakdown</h6>
 
+              <hr>
+              <h6 class="fw-bold" style="color: #fd7e14;">Raw Material / Twine</h6>
+              <div id="raw-twine-rows" class="mb-2">
+                <div class="text-muted small">Select a production to see twine details</div>
+              </div>
+
               <div class="row mb-2 align-items-end g-1">
                 <div class="col-md-3">
                   <label class="form-label small mb-0">Machine Cost/Day</label>
@@ -100,12 +106,6 @@
                   <label class="form-label small mb-0 text-primary fw-bold">TOTAL RAW COST</label>
                   <input type="text" class="form-control form-control-sm prof-total-raw bg-light fw-bold" placeholder="Total Raw Cost" readonly>
                 </div>
-              </div>
-
-              <hr>
-              <h6 class="text-warning fw-bold">Raw Material / Twine</h6>
-              <div id="raw-twine-rows" class="mb-2">
-                <div class="text-muted small">Select a production to see twine details</div>
               </div>
 
               <hr>
@@ -302,12 +302,19 @@
 {{ machines_json|json_script:"machines-data" }}
 {{ processing_json|json_script:"processing-data" }}
 {{ additional_json|json_script:"additional-data" }}
+{{ materials_json|json_script:"materials-data" }}
 <script>
 const productionsData = JSON.parse(document.getElementById("productions-data").textContent);
 const machinesData = JSON.parse(document.getElementById("machines-data").textContent);
 const processingData = JSON.parse(document.getElementById("processing-data").textContent);
 const additionalData = JSON.parse(document.getElementById("additional-data").textContent);
+const materialsData = JSON.parse(document.getElementById("materials-data").textContent);
 const profitContainer = document.getElementById("profit-rows");
+
+function getMaterialName(code) {
+  const m = materialsData.find(x => x.code === code);
+  return m ? m.name : "";
+}
 
 /* Populate production dropdown */
 const prodSelect = document.getElementById("select-production");
@@ -367,7 +374,7 @@ prodSelect.addEventListener("change", () => {
       div.className = "row mb-1 align-items-end g-1 twine-cost-row";
       div.innerHTML = `
         <div class="col-md-1"><span class="badge bg-${tr.type === 'NET' ? 'success' : 'warning'} twine-type-badge">${tr.type}</span></div>
-        <div class="col-md-3"><input type="text" class="form-control form-control-sm twine-name" value="${tr.twine || ''}" placeholder="Twine/Material"></div>
+        <div class="col-md-3"><input type="text" class="form-control form-control-sm twine-name" data-twine-code="${tr.twine || ''}" value="${tr.twine || ''}${getMaterialName(tr.twine) ? '-' + getMaterialName(tr.twine) : ''}" placeholder="Twine/Material"></div>
         <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-weight bg-light" value="${twineWeight.toFixed(2)}" placeholder="Weight(KG)" readonly></div>
         <div class="col-md-2"><input type="number" step="0.01" class="form-control form-control-sm twine-cost-kg" placeholder="Cost/KG" value=""></div>
         <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-cost-total bg-light" placeholder="Total" readonly></div>
@@ -595,7 +602,7 @@ document.addEventListener("click", e => {
       div.className = "row mb-1 align-items-end g-1 twine-cost-row";
       div.innerHTML = `
         <div class="col-md-1"><span class="badge bg-${tw.type === 'NET' ? 'success' : 'warning'} twine-type-badge">${tw.type}</span></div>
-        <div class="col-md-3"><input type="text" class="form-control form-control-sm twine-name" value="${tw.name || ''}" placeholder="Twine/Material"></div>
+        <div class="col-md-3"><input type="text" class="form-control form-control-sm twine-name" data-twine-code="${tw.name || ''}" value="${tw.name || ''}${getMaterialName(tw.name) ? '-' + getMaterialName(tw.name) : ''}" placeholder="Twine/Material"></div>
         <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-weight bg-light" value="${tw.weight || ''}" placeholder="Weight(KG)" readonly></div>
         <div class="col-md-2"><input type="number" step="0.01" class="form-control form-control-sm twine-cost-kg" placeholder="Cost/KG" value="${tw.costKg || ''}"></div>
         <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-cost-total bg-light" placeholder="Total" readonly value="${tw.total || ''}"></div>

@@ -5291,7 +5291,7 @@ def additional_cost_view(request):
             # Additional Cost is a single record model
             transportation_cost = request.POST.get("transportation_cost_per_kg", 0)
             packing_cost = request.POST.get("packing_cost_per_kg", 0)
-            waste_cost = request.POST.get("waste_cost_per_kg", 0)
+            waste_percentage = request.POST.get("waste_percentage", 2)
             
             # Get or create the single record (id=1)
             obj, created = AdditionalCost.objects.get_or_create(
@@ -5299,14 +5299,14 @@ def additional_cost_view(request):
                 defaults={
                     "transportation_cost_per_kg": transportation_cost,
                     "packing_cost_per_kg": packing_cost,
-                    "waste_cost_per_kg": waste_cost,
+                    "waste_percentage": waste_percentage,
                 }
             )
             
             if not created:
                 obj.transportation_cost_per_kg = transportation_cost
                 obj.packing_cost_per_kg = packing_cost
-                obj.waste_cost_per_kg = waste_cost
+                obj.waste_percentage = waste_percentage
                 obj.save()
             
             messages.success(request, "Additional Cost saved successfully.")
@@ -5317,7 +5317,7 @@ def additional_cost_view(request):
         defaults={
             "transportation_cost_per_kg": 0,
             "packing_cost_per_kg": 0,
-            "waste_cost_per_kg": 0,
+            "waste_percentage": 2,
         }
     )
     
@@ -5664,12 +5664,17 @@ def profit_analytics_view(request):
     processing_costs = ProcessingCost.objects.all().order_by("material_code")
     processing_data = [{"code": pc.material_code, "cost_per_kg": str(pc.processing_cost_per_kg)} for pc in processing_costs]
 
+    # Get materials for twine name lookup
+    from .models import Materials
+    materials = Materials.objects.all()
+    materials_data = [{"code": m.code, "name": m.name or ""} for m in materials]
+
     # Get additional costs
     additional = AdditionalCost.objects.first()
     additional_data = {
         "transportation": str(additional.transportation_cost_per_kg) if additional else "",
         "packing": str(additional.packing_cost_per_kg) if additional else "",
-        "waste": str(additional.waste_cost_per_kg) if additional else "",
+        "waste": str(additional.waste_percentage) if additional else "",
     }
 
     # Get saved profit analytics
@@ -5704,6 +5709,7 @@ def profit_analytics_view(request):
         "machines_json": machines_data,
         "processing_json": processing_data,
         "additional_json": additional_data,
+        "materials_json": materials_data,
         "profits": profits_data,
     }
     return render(request, "marania_invoice_app/profit_analytics.html", context)
