@@ -134,11 +134,11 @@
               <h6 class="text-success fw-bold">Revenue & Profit</h6>
 
               <div class="row mb-2 align-items-end g-1">
-                <div class="col-md-3">
+                <div class="col-md-2">
                   <label class="form-label small mb-0">Sale Price/KG</label>
                   <input type="number" step="0.01" class="form-control form-control-sm prof-sale-price" placeholder="Sale Price/KG">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                   <label class="form-label small mb-0">Total Revenue</label>
                   <input type="text" class="form-control form-control-sm prof-total-revenue bg-light" placeholder="Revenue" readonly>
                 </div>
@@ -149,6 +149,10 @@
                 <div class="col-md-2">
                   <label class="form-label small mb-0">Profit/KG</label>
                   <input type="text" class="form-control form-control-sm prof-profit-kg bg-light" placeholder="Profit/KG" readonly>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Profit/Day</label>
+                  <input type="text" class="form-control form-control-sm prof-profit-day bg-light" placeholder="Profit/Day" readonly>
                 </div>
                 <div class="col-md-2">
                   <label class="form-label small mb-0">Margin %</label>
@@ -515,6 +519,7 @@ function recalcProfit(row) {
   const revenue = salePrice * estWt;
   const profit = revenue - totalCost;
   const profitKg = estWt > 0 ? profit / estWt : 0;
+  const profitDay = reqDays > 0 ? profit / reqDays : 0;
   const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
 
   row.querySelector(".prof-machine-total").value = machineTotal ? machineTotal.toFixed(2) : "";
@@ -527,6 +532,7 @@ function recalcProfit(row) {
   row.querySelector(".prof-total-revenue").value = revenue ? revenue.toFixed(2) : "";
   row.querySelector(".prof-total-profit").value = profit ? profit.toFixed(2) : "";
   row.querySelector(".prof-profit-kg").value = profitKg ? profitKg.toFixed(2) : "";
+  row.querySelector(".prof-profit-day").value = profitDay ? profitDay.toFixed(2) : "";
   row.querySelector(".prof-margin").value = margin ? margin.toFixed(2) : "";
 
   /* Store for submit */
