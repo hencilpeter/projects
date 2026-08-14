@@ -76,7 +76,7 @@
               <div class="row mb-2 align-items-end g-1">
                 <div class="col-md-3">
                   <label class="form-label small mb-0">Machine Cost/Day</label>
-                  <input type="text" class="form-control form-control-sm prof-machine-cost-day bg-light" placeholder="Machine Cost/Day" readonly>
+                  <input type="number" step="0.01" class="form-control form-control-sm prof-machine-cost-day" placeholder="Machine Cost/Day">
                 </div>
                 <div class="col-md-3">
                   <label class="form-label small mb-0">Machine Total (Cost/Day x Days)</label>
@@ -84,7 +84,7 @@
                 </div>
                 <div class="col-md-3">
                   <label class="form-label small mb-0">Processing Cost/KG</label>
-                  <input type="text" class="form-control form-control-sm prof-proc-cost bg-light" placeholder="Processing/KG" readonly>
+                  <input type="number" step="0.01" class="form-control form-control-sm prof-proc-cost" placeholder="Processing/KG">
                 </div>
                 <div class="col-md-3">
                   <label class="form-label small mb-0">Processing Total</label>
@@ -95,7 +95,7 @@
               <div class="row mb-2 align-items-end g-1">
                 <div class="col-md-3">
                   <label class="form-label small mb-0">Color Cost/KG</label>
-                  <input type="text" class="form-control form-control-sm prof-color-cost bg-light" placeholder="Color/KG" readonly>
+                  <input type="number" step="0.01" class="form-control form-control-sm prof-color-cost" placeholder="Color/KG">
                 </div>
                 <div class="col-md-3">
                   <label class="form-label small mb-0">Color Total</label>
@@ -103,7 +103,7 @@
                 </div>
                 <div class="col-md-3">
                   <label class="form-label small mb-0">Small Size Cost/KG <small class="text-muted">(MD&lt;=50)</small></label>
-                  <input type="text" class="form-control form-control-sm prof-small-size-cost bg-light" placeholder="Small Size/KG" readonly>
+                  <input type="number" step="0.01" class="form-control form-control-sm prof-small-size-cost" placeholder="Small Size/KG">
                 </div>
                 <div class="col-md-3">
                   <label class="form-label small mb-0">Small Size Total</label>
@@ -114,7 +114,7 @@
               <div class="row mb-2 align-items-end g-1">
                 <div class="col-md-3">
                   <label class="form-label small mb-0">Additional Cost/KG</label>
-                  <input type="text" class="form-control form-control-sm prof-addl-cost bg-light" placeholder="Additional/KG" readonly>
+                  <input type="number" step="0.01" class="form-control form-control-sm prof-addl-cost" placeholder="Additional/KG">
                 </div>
                 <div class="col-md-3">
                   <label class="form-label small mb-0">Additional Total</label>
@@ -474,7 +474,10 @@ profitContainer.addEventListener("click", e => {
 
 /* Input changes -> recalculate */
 profitContainer.addEventListener("input", e => {
-  if (e.target.classList.contains("prof-sale-price") || e.target.classList.contains("twine-cost-kg")) {
+  if (e.target.classList.contains("prof-sale-price") || e.target.classList.contains("twine-cost-kg") ||
+      e.target.classList.contains("prof-machine-cost-day") || e.target.classList.contains("prof-proc-cost") ||
+      e.target.classList.contains("prof-color-cost") || e.target.classList.contains("prof-small-size-cost") ||
+      e.target.classList.contains("prof-addl-cost")) {
     const row = e.target.closest(".profit-row");
     recalcProfit(row);
   }
@@ -484,11 +487,11 @@ function recalcProfit(row) {
   if (!row) return;
   const estWt = parseFloat(row.querySelector(".prof-est-wt").value) || 0;
   const reqDays = parseFloat(row.querySelector(".prof-req-days").value) || 0;
-  const machineCostDay = parseFloat(row.dataset.machineCostDay) || 0;
-  const procCost = parseFloat(row.dataset.procCost) || 0;
-  const colorCost = parseFloat(row.dataset.colorCost) || 0;
-  const smallSizeCost = parseFloat(row.dataset.smallSizeCost) || 0;
-  const addlCost = parseFloat(row.dataset.addlCost) || 0;
+  const machineCostDay = parseFloat(row.querySelector(".prof-machine-cost-day").value) || 0;
+  const procCost = parseFloat(row.querySelector(".prof-proc-cost").value) || 0;
+  const colorCost = parseFloat(row.querySelector(".prof-color-cost").value) || 0;
+  const smallSizeCost = parseFloat(row.querySelector(".prof-small-size-cost").value) || 0;
+  const addlCost = parseFloat(row.querySelector(".prof-addl-cost").value) || 0;
   const salePrice = parseFloat(row.querySelector(".prof-sale-price").value) || 0;
 
   /* Calculate raw material cost from twine rows */
