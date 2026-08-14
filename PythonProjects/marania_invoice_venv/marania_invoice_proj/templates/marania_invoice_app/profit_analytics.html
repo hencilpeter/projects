@@ -94,6 +94,25 @@
 
               <div class="row mb-2 align-items-end g-1">
                 <div class="col-md-3">
+                  <label class="form-label small mb-0">Color Cost/KG</label>
+                  <input type="text" class="form-control form-control-sm prof-color-cost bg-light" placeholder="Color/KG" readonly>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-0">Color Total</label>
+                  <input type="text" class="form-control form-control-sm prof-color-total bg-light" placeholder="Color Total" readonly>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-0">Small Size Cost/KG <small class="text-muted">(MD&lt;=50)</small></label>
+                  <input type="text" class="form-control form-control-sm prof-small-size-cost bg-light" placeholder="Small Size/KG" readonly>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-0">Small Size Total</label>
+                  <input type="text" class="form-control form-control-sm prof-small-size-total bg-light" placeholder="Small Size Total" readonly>
+                </div>
+              </div>
+
+              <div class="row mb-2 align-items-end g-1">
+                <div class="col-md-3">
                   <label class="form-label small mb-0">Additional Cost/KG</label>
                   <input type="text" class="form-control form-control-sm prof-addl-cost bg-light" placeholder="Additional/KG" readonly>
                 </div>
@@ -253,6 +272,10 @@
                 data-machine-total="{{ pr.machine_operational_total }}"
                 data-proc-cost="{{ pr.processing_cost_per_kg }}"
                 data-proc-total="{{ pr.processing_total }}"
+                data-color-cost="{{ pr.color_cost_per_kg }}"
+                data-color-total="{{ pr.color_total }}"
+                data-small-size-cost="{{ pr.small_size_cost_per_kg }}"
+                data-small-size-total="{{ pr.small_size_total }}"
                 data-addl-cost="{{ pr.additional_cost_per_kg }}"
                 data-addl-total="{{ pr.additional_total }}"
                 data-raw-cost="{{ pr.raw_material_cost }}"
@@ -349,11 +372,26 @@ prodSelect.addEventListener("change", () => {
   row.querySelector(".prof-machine-cost-day").value = machineCostDay;
   row.dataset.machineCostDay = machineCostDay;
 
-  /* Fetch processing cost */
-  const proc = processingData.find(p => p.code === o.product);
+  /* Fetch processing cost using twine code */
+  const twineRowsForProc = o.twine_rows || [];
+  const firstTwineCode = twineRowsForProc.length > 0 ? (twineRowsForProc[0].twine || "") : "";
+  const proc = processingData.find(p => p.code === firstTwineCode);
   const procCost = proc ? proc.cost_per_kg : "";
+  const colorCost = proc ? proc.color_cost : "";
+  const smallSizeCost = proc ? proc.small_size_cost : "";
   row.querySelector(".prof-proc-cost").value = procCost;
   row.dataset.procCost = procCost;
+  row.querySelector(".prof-color-cost").value = colorCost;
+  row.dataset.colorCost = colorCost;
+  /* Apply small size cost only if MD <= 50 */
+  const md = parseFloat(o.md) || 0;
+  if (md > 0 && md <= 50) {
+    row.querySelector(".prof-small-size-cost").value = smallSizeCost;
+    row.dataset.smallSizeCost = smallSizeCost;
+  } else {
+    row.querySelector(".prof-small-size-cost").value = "";
+    row.dataset.smallSizeCost = "";
+  }
 
   /* Set additional cost (sum of all additional costs) */
   let addlCost = 0;
@@ -449,6 +487,8 @@ function recalcProfit(row) {
   const reqDays = parseFloat(row.querySelector(".prof-req-days").value) || 0;
   const machineCostDay = parseFloat(row.dataset.machineCostDay) || 0;
   const procCost = parseFloat(row.dataset.procCost) || 0;
+  const colorCost = parseFloat(row.dataset.colorCost) || 0;
+  const smallSizeCost = parseFloat(row.dataset.smallSizeCost) || 0;
   const addlCost = parseFloat(row.dataset.addlCost) || 0;
   const salePrice = parseFloat(row.querySelector(".prof-sale-price").value) || 0;
 
@@ -466,8 +506,10 @@ function recalcProfit(row) {
 
   const machineTotal = machineCostDay * reqDays;
   const procTotal = procCost * estWt;
+  const colorTotal = colorCost * estWt;
+  const smallSizeTotal = smallSizeCost * estWt;
   const addlTotal = addlCost * estWt;
-  const totalCost = machineTotal + procTotal + addlTotal + rawCost;
+  const totalCost = machineTotal + procTotal + colorTotal + smallSizeTotal + addlTotal + rawCost;
   const revenue = salePrice * estWt;
   const profit = revenue - totalCost;
   const profitKg = estWt > 0 ? profit / estWt : 0;
@@ -475,6 +517,8 @@ function recalcProfit(row) {
 
   row.querySelector(".prof-machine-total").value = machineTotal ? machineTotal.toFixed(2) : "";
   row.querySelector(".prof-proc-total").value = procTotal ? procTotal.toFixed(2) : "";
+  row.querySelector(".prof-color-total").value = colorTotal ? colorTotal.toFixed(2) : "";
+  row.querySelector(".prof-small-size-total").value = smallSizeTotal ? smallSizeTotal.toFixed(2) : "";
   row.querySelector(".prof-addl-total").value = addlTotal ? addlTotal.toFixed(2) : "";
   row.querySelector(".prof-total-raw").value = rawCost ? rawCost.toFixed(2) : "";
   row.querySelector(".prof-total-cost").value = totalCost ? totalCost.toFixed(2) : "";
@@ -516,6 +560,8 @@ function recalcProfit(row) {
       <table class="table table-sm table-borderless mb-0">
         <tr><td>Machine Cost: ${machineCostDay.toFixed(2)}/Day x ${reqDays} Days =</td><td class="text-end fw-bold">${machineTotal.toFixed(2)}</td></tr>
         <tr><td>Processing Cost: ${procCost.toFixed(2)}/KG x ${estWt} KG =</td><td class="text-end fw-bold">${procTotal.toFixed(2)}</td></tr>
+        <tr><td>Color Cost: ${colorCost.toFixed(2)}/KG x ${estWt} KG =</td><td class="text-end fw-bold">${colorTotal.toFixed(2)}</td></tr>
+        <tr><td>Small Size Cost: ${smallSizeCost.toFixed(2)}/KG x ${estWt} KG =</td><td class="text-end fw-bold">${smallSizeTotal.toFixed(2)}</td></tr>
         <tr><td>Additional Cost: ${addlCost.toFixed(2)}/KG x ${estWt} KG =</td><td class="text-end fw-bold">${addlTotal.toFixed(2)}</td></tr>
         <tr><td>Raw Material Cost:</td><td class="text-end fw-bold">${rawCost.toFixed(2)}</td></tr>
         ${twineBreakdown}
@@ -533,6 +579,8 @@ function recalcProfit(row) {
   /* Store values for submit */
   row.dataset.machineTotal = machineTotal;
   row.dataset.procTotal = procTotal;
+  row.dataset.colorTotal = colorTotal;
+  row.dataset.smallSizeTotal = smallSizeTotal;
   row.dataset.addlTotal = addlTotal;
   row.dataset.totalCost = totalCost;
   row.dataset.revenue = revenue;
@@ -541,6 +589,8 @@ function recalcProfit(row) {
   row.dataset.margin = margin;
   row.dataset.machineCostDay = machineCostDay;
   row.dataset.procCost = procCost;
+  row.dataset.colorCost = colorCost;
+  row.dataset.smallSizeCost = smallSizeCost;
   row.dataset.addlCost = addlCost;
 }
 
@@ -565,6 +615,10 @@ document.getElementById("profit-form").addEventListener("submit", e => {
       machine_operational_total: row.dataset.machineTotal || "",
       processing_cost_per_kg: row.dataset.procCost || "",
       processing_total: row.dataset.procTotal || "",
+      color_cost_per_kg: row.dataset.colorCost || "",
+      color_total: row.dataset.colorTotal || "",
+      small_size_cost_per_kg: row.dataset.smallSizeCost || "",
+      small_size_total: row.dataset.smallSizeTotal || "",
       additional_cost_per_kg: row.dataset.addlCost || "",
       additional_total: row.dataset.addlTotal || "",
       raw_material_cost: row.dataset.rawCost || "",
@@ -613,6 +667,10 @@ document.addEventListener("click", e => {
   row.querySelector(".prof-machine-total").value = tr.dataset.machineTotal || "";
   row.querySelector(".prof-proc-cost").value = tr.dataset.procCost || "";
   row.querySelector(".prof-proc-total").value = tr.dataset.procTotal || "";
+  row.querySelector(".prof-color-cost").value = tr.dataset.colorCost || "";
+  row.querySelector(".prof-color-total").value = tr.dataset.colorTotal || "";
+  row.querySelector(".prof-small-size-cost").value = tr.dataset.smallSizeCost || "";
+  row.querySelector(".prof-small-size-total").value = tr.dataset.smallSizeTotal || "";
   row.querySelector(".prof-addl-cost").value = tr.dataset.addlCost || "";
   row.querySelector(".prof-addl-total").value = tr.dataset.addlTotal || "";
   row.querySelector(".prof-raw-cost").value = tr.dataset.rawCost || "";
@@ -625,6 +683,10 @@ document.addEventListener("click", e => {
   row.querySelector(".prof-remarks").value = tr.dataset.remarks || "";
   row.dataset.machineCostDay = tr.dataset.machineCostDay || "";
   row.dataset.procCost = tr.dataset.procCost || "";
+  row.dataset.colorCost = tr.dataset.colorCost || "";
+  row.dataset.colorTotal = tr.dataset.colorTotal || "";
+  row.dataset.smallSizeCost = tr.dataset.smallSizeCost || "";
+  row.dataset.smallSizeTotal = tr.dataset.smallSizeTotal || "";
   row.dataset.addlCost = tr.dataset.addlCost || "";
   row.dataset.totalCost = tr.dataset.totalCost || "";
   row.dataset.revenue = tr.dataset.totalRevenue || "";
@@ -677,6 +739,8 @@ document.addEventListener("click", e => {
     <table class="table table-sm table-borderless mb-0">
       <tr><td>Machine Cost: ${tr.dataset.machineCostDay}/Day x ${tr.dataset.reqDays} Days =</td><td class="text-end fw-bold">${tr.dataset.machineTotal}</td></tr>
       <tr><td>Processing Cost: ${tr.dataset.procCost}/KG x ${tr.dataset.estWeight} KG =</td><td class="text-end fw-bold">${tr.dataset.procTotal}</td></tr>
+      <tr><td>Color Cost: ${tr.dataset.colorCost}/KG x ${tr.dataset.estWeight} KG =</td><td class="text-end fw-bold">${tr.dataset.colorTotal}</td></tr>
+      <tr><td>Small Size Cost: ${tr.dataset.smallSizeCost}/KG x ${tr.dataset.estWeight} KG =</td><td class="text-end fw-bold">${tr.dataset.smallSizeTotal}</td></tr>
       <tr><td>Additional Cost: ${tr.dataset.addlCost}/KG x ${tr.dataset.estWeight} KG =</td><td class="text-end fw-bold">${tr.dataset.addlTotal}</td></tr>
       <tr><td>Raw Material Cost:</td><td class="text-end fw-bold">${rawCostVal.toFixed(2)}</td></tr>
       <tr class="border-top"><td><b>TOTAL COST:</b></td><td class="text-end fw-bold text-danger">${tr.dataset.totalCost}</td></tr>

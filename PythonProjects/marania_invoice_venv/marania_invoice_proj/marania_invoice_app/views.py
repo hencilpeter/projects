@@ -5592,6 +5592,10 @@ def profit_analytics_view(request):
                         "machine_operational_total": float(entry.get("machine_operational_total") or 0) or None,
                         "processing_cost_per_kg": float(entry.get("processing_cost_per_kg") or 0) or None,
                         "processing_total": float(entry.get("processing_total") or 0) or None,
+                        "color_cost_per_kg": float(entry.get("color_cost_per_kg") or 0) or None,
+                        "color_total": float(entry.get("color_total") or 0) or None,
+                        "small_size_cost_per_kg": float(entry.get("small_size_cost_per_kg") or 0) or None,
+                        "small_size_total": float(entry.get("small_size_total") or 0) or None,
                         "additional_cost_per_kg": float(entry.get("additional_cost_per_kg") or 0) or None,
                         "additional_total": float(entry.get("additional_total") or 0) or None,
                         "raw_material_cost": float(entry.get("raw_material_cost") or 0) or None,
@@ -5630,6 +5634,10 @@ def profit_analytics_view(request):
     productions = Production.objects.all().order_by("-production_date", "-production_key")
     productions_data = []
     for p in productions:
+        try:
+            twine_rows = json.loads(p.remarks) if p.remarks else []
+        except (json.JSONDecodeError, TypeError):
+            twine_rows = []
         productions_data.append({
             "production_key": p.production_key,
             "production_date": str(p.production_date) if p.production_date else "",
@@ -5637,12 +5645,13 @@ def profit_analytics_view(request):
             "product": p.product or "",
             "machine": p.machine or "",
             "mm": str(p.mm) if p.mm else "",
+            "md": str(p.md) if p.md else "",
             "est_weight": str(p.est_weight) if p.est_weight else "",
             "knots_capacity_per_day": str(p.knots_capacity_per_day) if p.knots_capacity_per_day else "",
             "addl_net_twine": str(p.addl_net_twine) if p.addl_net_twine else "",
             "total_daily_output": str(p.total_daily_output) if p.total_daily_output else "",
             "required_days": str(p.required_days) if p.required_days else "",
-            "twine_rows": json.loads(p.remarks) if p.remarks else [],
+            "twine_rows": twine_rows,
         })
 
     # Get machine operational costs
@@ -5665,7 +5674,7 @@ def profit_analytics_view(request):
 
     # Get processing costs
     processing_costs = ProcessingCost.objects.all().order_by("material_code")
-    processing_data = [{"code": pc.material_code, "cost_per_kg": str(pc.processing_cost_per_kg)} for pc in processing_costs]
+    processing_data = [{"code": pc.material_code, "cost_per_kg": str(pc.processing_cost_per_kg), "color_cost": str(pc.color_cost_per_kg), "small_size_cost": str(pc.small_size_cost_per_kg)} for pc in processing_costs]
 
     # Get materials for twine name lookup
     from .models import Materials
