@@ -372,8 +372,31 @@ prodSelect.addEventListener("change", () => {
     twineContainer.innerHTML = '<div class="text-muted small">No twine data for this production</div>';
   } else {
     const wastePercentage = parseFloat(additionalData.waste) || 0;
+    const reqDays = parseFloat(o.required_days) || 0;
+    const knotCap = parseFloat(o.knots_capacity_per_day) || 0;
+    const addlNetTwine = parseFloat(o.addl_net_twine) || 0;
+    const topMM = parseFloat(o.mm) || 0;
+    /* Calculate daily_output for twine rows that don't have it */
+    let netConv = 0;
+    twineRows.forEach(tr => {
+      if (tr.daily_output === undefined || tr.daily_output === null || tr.daily_output === "") {
+        const mm = parseFloat(tr.mm) || 0;
+        const twineCount = parseFloat(tr.twine_count) || 0;
+        const conv = parseFloat(tr.conversion_factor) || 0;
+        tr.daily_output = ((conv * mm * twineCount * knotCap) / 1000).toFixed(2);
+      }
+      if (tr.type === "NET") netConv = parseFloat(tr.conversion_factor) || 0;
+    });
+    /* Add additional NET twine daily output to NET row */
+    if (addlNetTwine > 0 && topMM > 0 && netConv > 0) {
+      const addlDailyOutput = (netConv * topMM * addlNetTwine * knotCap) / 1000;
+      const netRow = twineRows.find(r => r.type === "NET");
+      if (netRow) {
+        netRow.daily_output = (parseFloat(netRow.daily_output) + addlDailyOutput).toFixed(2);
+      }
+    }
     twineRows.forEach((tr, idx) => {
-      const twineWeight = (parseFloat(tr.twine_count || 0) * parseFloat(o.est_weight || 0)) / 1000;
+      const twineWeight = (parseFloat(tr.daily_output) || 0) * reqDays;
       const wasteTwine = twineWeight * wastePercentage / 100;
       const div = document.createElement("div");
       div.className = "row mb-1 align-items-end g-1 twine-cost-row";
@@ -381,7 +404,7 @@ prodSelect.addEventListener("change", () => {
         div.innerHTML = `
           <div class="col-md-1"><label class="form-label small mb-0"></label><span class="badge bg-${tr.type === 'NET' ? 'success' : 'warning'} twine-type-badge">${tr.type}</span></div>
           <div class="col-md-2"><label class="form-label small mb-0">Twine & Material</label><input type="text" class="form-control form-control-sm twine-name" data-twine-code="${tr.twine || ''}" value="${tr.twine || ''}${getMaterialName(tr.twine) ? '-' + getMaterialName(tr.twine) : ''}" placeholder="Twine/Material"></div>
-          <div class="col-md-2"><label class="form-label small mb-0">Weight (KG) <small class="text-muted"></small></label><input type="text" class="form-control form-control-sm twine-weight bg-light" value="${twineWeight.toFixed(2)}" placeholder="Weight(KG)" readonly></div>
+          <div class="col-md-2"><label class="form-label small mb-0">Weight (KG) <small class="text-muted">[Daily Output × Req Days]</small></label><input type="text" class="form-control form-control-sm twine-weight bg-light" value="${twineWeight.toFixed(2)}" placeholder="Weight(KG)" readonly></div>
           <div class="col-md-2"><label class="form-label small mb-0">Waste Twine(${wastePercentage}%)</label><input type="text" class="form-control form-control-sm twine-weight-pct bg-light" value="${wasteTwine.toFixed(2)}" placeholder="Waste Twine(%)" readonly></div>
           <div class="col-md-2"><label class="form-label small mb-0">Cost/KG</label><input type="number" step="0.01" class="form-control form-control-sm twine-cost-kg" placeholder="Cost/KG" value=""></div>
           <div class="col-md-2"><label class="form-label small mb-0">Total <small class="text-muted">[(Weight+Waste)×Cost]</small></label><input type="text" class="form-control form-control-sm twine-cost-total bg-light" placeholder="Total" readonly></div>
