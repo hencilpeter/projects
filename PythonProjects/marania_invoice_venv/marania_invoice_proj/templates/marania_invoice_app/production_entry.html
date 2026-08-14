@@ -565,8 +565,17 @@ document.getElementById("production-form").addEventListener("submit", e => {
     if (!machine) return;
     const twineRows = [];
     const twineContainer = row.parentElement.querySelector(".twine-rows-container");
+    const addlNetTwine = parseFloat(row.querySelector(".prod-addl-net-twine").value) || 0;
+    const topMM = parseFloat(row.querySelector(".prod-mm").value) || 0;
+    const knotCap = parseFloat(row.querySelector(".prod-knot-cap").value) || 0;
+    let netConv = 0;
     if (twineContainer) {
       twineContainer.querySelectorAll(".twine-row").forEach(tr => {
+        const mm = parseFloat(tr.querySelector(".twine-mm").value) || 0;
+        const twineCount = parseFloat(tr.querySelector(".twine-count").value) || 0;
+        const conv = parseFloat(tr.querySelector(".twine-conv").value) || 0;
+        const dailyOutput = (conv * mm * twineCount * knotCap) / 1000;
+        if (tr.dataset.type === "NET") netConv = conv;
         twineRows.push({
           type: tr.dataset.type,
           mm: tr.querySelector(".twine-mm").value,
@@ -575,8 +584,16 @@ document.getElementById("production-form").addEventListener("submit", e => {
           twine_count: tr.querySelector(".twine-count").value,
           twine: tr.querySelector(".twine-select").value,
           conversion_factor: tr.querySelector(".twine-conv").value,
+          daily_output: dailyOutput.toFixed(2),
         });
       });
+    }
+    if (addlNetTwine > 0 && topMM > 0 && netConv > 0) {
+      const addlDailyOutput = (netConv * topMM * addlNetTwine * knotCap) / 1000;
+      const netRow = twineRows.find(r => r.type === "NET");
+      if (netRow) {
+        netRow.daily_output = (parseFloat(netRow.daily_output) + addlDailyOutput).toFixed(2);
+      }
     }
     entries.push({
       production_date: date,
