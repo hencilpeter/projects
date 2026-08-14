@@ -378,17 +378,19 @@ prodSelect.addEventListener("change", () => {
     const topMM = parseFloat(o.mm) || 0;
     /* Calculate daily_output for twine rows that don't have it */
     let netConv = 0;
+    let needsAddlNet = false;
     twineRows.forEach(tr => {
       if (tr.daily_output === undefined || tr.daily_output === null || tr.daily_output === "") {
         const mm = parseFloat(tr.mm) || 0;
         const twineCount = parseFloat(tr.twine_count) || 0;
         const conv = parseFloat(tr.conversion_factor) || 0;
         tr.daily_output = ((conv * mm * twineCount * knotCap) / 1000).toFixed(2);
+        needsAddlNet = true;
       }
       if (tr.type === "NET") netConv = parseFloat(tr.conversion_factor) || 0;
     });
-    /* Add additional NET twine daily output to NET row */
-    if (addlNetTwine > 0 && topMM > 0 && netConv > 0) {
+    /* Add additional NET twine daily output only for old entries that don't have daily_output stored */
+    if (needsAddlNet && addlNetTwine > 0 && topMM > 0 && netConv > 0) {
       const addlDailyOutput = (netConv * topMM * addlNetTwine * knotCap) / 1000;
       const netRow = twineRows.find(r => r.type === "NET");
       if (netRow) {
