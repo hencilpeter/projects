@@ -791,7 +791,7 @@ class Production(models.Model):
     addl_net_twine = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     total_twine = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     total_daily_output = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    required_days = models.DecimalField(max_digits=10, decimal_places=1, blank=True, null=True)
+    required_days = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
     conversion_factor = models.DecimalField(max_digits=20, decimal_places=10, blank=True, null=True)
     calculated_weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     calculated_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
@@ -815,7 +815,7 @@ class ProfitAnalytics(models.Model):
     machine = models.CharField(max_length=50, blank=True, null=True)
     est_weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     total_daily_output = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    required_days = models.DecimalField(max_digits=10, decimal_places=1, blank=True, null=True)
+    required_days = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
 
     # Cost components
     machine_operational_cost_per_day = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
