@@ -393,11 +393,10 @@ prodSelect.addEventListener("change", () => {
     row.dataset.smallSizeCost = "";
   }
 
-  /* Set additional cost (sum of all additional costs) */
+  /* Set additional cost (Transportation + Packing) */
   let addlCost = 0;
   if (additionalData.transportation) addlCost += parseFloat(additionalData.transportation);
   if (additionalData.packing) addlCost += parseFloat(additionalData.packing);
-  if (additionalData.waste) addlCost += parseFloat(additionalData.waste);
   row.querySelector(".prof-addl-cost").value = addlCost ? addlCost.toFixed(2) : "";
   row.dataset.addlCost = addlCost;
 
