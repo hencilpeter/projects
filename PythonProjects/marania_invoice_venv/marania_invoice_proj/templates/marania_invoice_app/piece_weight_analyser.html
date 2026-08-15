@@ -516,20 +516,33 @@ function buildKnotSummaryTable(allGroups) {
   let baseKnotCounts = [];
   let baseWeights = [];
   let totalKnotCountBase = 0;
+
+  /* First pass: calculate weightPer1000Knots for each group */
+  let groupWeightPer1000Knots = [];
   allGroups.forEach(g => {
-    let weightPer1000Knots = 0;
+    let wp1000 = 0;
     g.rowDetails.forEach(r => {
-      weightPer1000Knots += r.conv * r.mm * r.md;
+      wp1000 += r.conv * r.mm * r.md;
     });
-    let groupKnotCount = 0;
-    if (weightPer1000Knots > 0) {
-      groupKnotCount = (expPW / weightPer1000Knots) * 1000;
-    }
-    /* Weight = (knotCount / 1000) x weightPer1000Knots */
-    let groupWeight = (groupKnotCount / 1000) * weightPer1000Knots;
+    groupWeightPer1000Knots.push(wp1000);
+  });
+
+  /* Total weightPer1000Knots across all groups */
+  let totalWeightPer1000Knots = groupWeightPer1000Knots.reduce((a, b) => a + b, 0);
+
+  /* Single knot count for the piece */
+  let pieceKnotCount = 0;
+  if (totalWeightPer1000Knots > 0) {
+    pieceKnotCount = Math.round((expPW / totalWeightPer1000Knots) * 1000);
+  }
+  totalKnotCountBase = pieceKnotCount;
+
+  /* Per group: weight = (knotCount x groupWeightPer1000Knots) / 1000 */
+  allGroups.forEach((g, i) => {
+    let groupKnotCount = pieceKnotCount;
+    let groupWeight = (groupKnotCount * groupWeightPer1000Knots[i]) / 1000;
     baseKnotCounts.push(groupKnotCount);
     baseWeights.push(groupWeight);
-    totalKnotCountBase += groupKnotCount;
   });
 
   /* Total Pcs - only NET pieces */
