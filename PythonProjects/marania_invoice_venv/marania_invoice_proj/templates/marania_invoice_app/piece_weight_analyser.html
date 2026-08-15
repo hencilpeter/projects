@@ -134,6 +134,10 @@
     <!-- Knot Count Temporary Table -->
     <div id="knot-table-section" style="display:none;">
       <h5>Knot Count Summary</h5>
+      <div class="alert alert-info small mb-2">
+        <strong>Formula:</strong> Weight per 1000 knots = Σ(Conv Factor × MM × MD) for each row &nbsp;|&nbsp;
+        Knot Count = (Exp. Piece Weight / Weight per 1000 knots) × 1000
+      </div>
       <div class="table-responsive mb-4">
         <table class="table table-bordered table-sm knot-summary-table" id="knot-summary-table">
           <thead id="knot-summary-head"></thead>
@@ -497,7 +501,7 @@ function buildKnotSummaryTable(allGroups) {
   let headerHTML = '<tr>';
   headerHTML += '<th class="total-col">Knot Count</th>';
   allGroups.forEach(g => {
-    headerHTML += `<th class="group-col">${g.label} | Group MM ${g.mm} | Group ${g.totalMD} MD</th>`;
+    headerHTML += `<th class="group-col">${g.label}-${g.mm}MM-${g.totalMD}MD</th>`;
   });
   headerHTML += '<th class="total-col">Total Pcs</th>';
   headerHTML += '<th class="total-col">All Pcs Weight</th>';
@@ -540,13 +544,15 @@ function buildKnotSummaryTable(allGroups) {
     groupKnotCount *= multiplier;
     knotCountRow += `<td class="group-col fw-bold">${groupKnotCount.toFixed(1)}</td>`;
   });
-  const totalPcs = allGroups.reduce((sum, g) => sum + g.totalPcs, 0);
+
+  /* Total Pcs - only NET pieces */
+  const totalPcs = allGroups.reduce((sum, g) => {
+    return sum + g.rowDetails.filter(r => r.type === 'NET').reduce((s, r) => s + r.pcs, 0);
+  }, 0);
   knotCountRow += `<td class="total-col">${totalPcs}</td>`;
-  const allPcsWeight = allGroups.reduce((sum, g) => {
-    let gw = 0;
-    g.rowDetails.forEach(r => { gw += r.conv * r.mm * r.twineCount; });
-    return sum + gw;
-  }, 0) * multiplier;
+
+  /* All Pcs Weight = Total Pcs x Exp. Piece Weight */
+  const allPcsWeight = totalPcs * expPW * multiplier;
   knotCountRow += `<td class="total-col fw-bold">${allPcsWeight.toFixed(2)}</td>`;
   knotCountRow += '</tr>';
   tbody.innerHTML = knotCountRow;
