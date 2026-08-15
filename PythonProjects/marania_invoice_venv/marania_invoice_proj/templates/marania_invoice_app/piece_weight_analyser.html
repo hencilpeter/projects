@@ -508,16 +508,14 @@ function buildKnotSummaryTable(allGroups) {
   headerHTML += '</tr>';
   thead.innerHTML = headerHTML;
 
-  /* Build body - Knot Count row */
+  /* Build body */
   const expPW = parseFloat(document.getElementById("knot-exp-pw").value) || 0;
-  let knotCountRow = '<tr>';
+  let bodyHTML = '';
 
-  /* Knot Count logic:
-     1. Weight per 1000 knots for each row = Conv Factor x MM x MD
-     2. Total weight per 1000 knots = sum of all rows
-     3. Knot Count = (Exp. Piece Weight / Total weight per 1000 knots) x 1000
-  */
-  let totalKnotCount = 0;
+  /* Calculate base values (multiplier = 1) */
+  let baseKnotCounts = [];
+  let baseWeights = [];
+  let totalKnotCountBase = 0;
   allGroups.forEach(g => {
     let weightPer1000Knots = 0;
     g.rowDetails.forEach(r => {
@@ -527,36 +525,34 @@ function buildKnotSummaryTable(allGroups) {
     if (weightPer1000Knots > 0) {
       groupKnotCount = (expPW / weightPer1000Knots) * 1000;
     }
-    totalKnotCount += groupKnotCount;
-  });
-  totalKnotCount *= multiplier;
-  knotCountRow += `<td class="total-col fw-bold">${totalKnotCount.toFixed(1)}</td>`;
-
-  allGroups.forEach(g => {
-    let weightPer1000Knots = 0;
-    g.rowDetails.forEach(r => {
-      weightPer1000Knots += r.conv * r.mm * r.md;
-    });
-    let groupKnotCount = 0;
-    if (weightPer1000Knots > 0) {
-      groupKnotCount = (expPW / weightPer1000Knots) * 1000;
-    }
-    groupKnotCount *= multiplier;
-    knotCountRow += `<td class="group-col fw-bold">${groupKnotCount.toFixed(1)}</td>`;
+    /* Weight = (knotCount / 1000) x weightPer1000Knots */
+    let groupWeight = (groupKnotCount / 1000) * weightPer1000Knots;
+    baseKnotCounts.push(groupKnotCount);
+    baseWeights.push(groupWeight);
+    totalKnotCountBase += groupKnotCount;
   });
 
   /* Total Pcs - only NET pieces */
   const totalPcs = allGroups.reduce((sum, g) => {
     return sum + g.rowDetails.filter(r => r.type === 'NET').reduce((s, r) => s + r.pcs, 0);
   }, 0);
-  knotCountRow += `<td class="total-col">${totalPcs}</td>`;
 
-  /* All Pcs Weight = Total Pcs x Exp. Piece Weight */
-  const allPcsWeight = totalPcs * expPW * multiplier;
-  knotCountRow += `<td class="total-col fw-bold">${allPcsWeight.toFixed(2)}</td>`;
-  knotCountRow += '</tr>';
-  tbody.innerHTML = knotCountRow;
+  /* Generate rows from 1 to multiplier */
+  for (let m = 1; m <= multiplier; m++) {
+    let rowClass = m === 1 ? '' : 'table-success';
+    let row = `<tr class="${rowClass}">`;
+    row += `<td class="total-col fw-bold">${Math.round(totalKnotCountBase * m)}</td>`;
+    allGroups.forEach((g, i) => {
+      row += `<td class="group-col fw-bold">${(baseWeights[i] * m).toFixed(2)}</td>`;
+    });
+    row += `<td class="total-col">${totalPcs * m}</td>`;
+    const allPcsWeight = totalPcs * expPW * m;
+    row += `<td class="total-col fw-bold">${allPcsWeight.toFixed(2)}</td>`;
+    row += '</tr>';
+    bodyHTML += row;
+  }
 
+  tbody.innerHTML = bodyHTML;
   document.getElementById("knot-table-section").style.display = "";
 }
 
