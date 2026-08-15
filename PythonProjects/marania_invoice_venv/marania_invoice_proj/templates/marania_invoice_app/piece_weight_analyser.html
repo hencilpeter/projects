@@ -508,27 +508,35 @@ function buildKnotSummaryTable(allGroups) {
   const expPW = parseFloat(document.getElementById("knot-exp-pw").value) || 0;
   let knotCountRow = '<tr>';
 
-  /* Knot Count per row = (Exp. Piece Weight / (Conv Factor x MM x MD)) x 1000 */
+  /* Knot Count logic:
+     1. Weight per 1000 knots for each row = Conv Factor x MM x MD
+     2. Total weight per 1000 knots = sum of all rows
+     3. Knot Count = (Exp. Piece Weight / Total weight per 1000 knots) x 1000
+  */
   let totalKnotCount = 0;
   allGroups.forEach(g => {
-    let groupKnotCount = 0;
+    let weightPer1000Knots = 0;
     g.rowDetails.forEach(r => {
-      if (r.conv > 0 && r.mm > 0 && r.md > 0) {
-        groupKnotCount += (expPW / (r.conv * r.mm * r.md)) * 1000;
-      }
+      weightPer1000Knots += r.conv * r.mm * r.md;
     });
+    let groupKnotCount = 0;
+    if (weightPer1000Knots > 0) {
+      groupKnotCount = (expPW / weightPer1000Knots) * 1000;
+    }
     totalKnotCount += groupKnotCount;
   });
   totalKnotCount *= multiplier;
   knotCountRow += `<td class="total-col fw-bold">${totalKnotCount.toFixed(1)}</td>`;
 
   allGroups.forEach(g => {
-    let groupKnotCount = 0;
+    let weightPer1000Knots = 0;
     g.rowDetails.forEach(r => {
-      if (r.conv > 0 && r.mm > 0 && r.md > 0) {
-        groupKnotCount += (expPW / (r.conv * r.mm * r.md)) * 1000;
-      }
+      weightPer1000Knots += r.conv * r.mm * r.md;
     });
+    let groupKnotCount = 0;
+    if (weightPer1000Knots > 0) {
+      groupKnotCount = (expPW / weightPer1000Knots) * 1000;
+    }
     groupKnotCount *= multiplier;
     knotCountRow += `<td class="group-col fw-bold">${groupKnotCount.toFixed(1)}</td>`;
   });
