@@ -473,16 +473,13 @@ document.getElementById("calc-knot-btn").addEventListener("click", () => {
     return;
   }
 
-  /* Knot Count = (Exp. Piece Weight x 1000) / (Conv Factor x MM), mimicking Production Analytics */
-  let knotCount = 0;
-  if (group.convFactor > 0 && group.mm > 0) {
-    knotCount = (expPW * 1000) / (group.convFactor * group.mm);
-  }
+  /* Mesh Depth = sum of MD values for the group (single piece) */
+  const meshDepth = group.totalMD;
 
   /* Apply multiplier */
-  const finalKnot = knotCount * multiplier;
+  const finalMeshDepth = meshDepth * multiplier;
 
-  document.getElementById("knot-result").value = finalKnot ? finalKnot.toFixed(1) : "0";
+  document.getElementById("knot-result").value = finalMeshDepth ? finalMeshDepth.toFixed(1) : "0";
 
   /* Build knot summary table */
   buildKnotSummaryTable(allGroups);
@@ -514,11 +511,11 @@ function buildKnotSummaryTable(allGroups) {
   const expPW = parseFloat(document.getElementById("knot-exp-pw").value) || 0;
   let knotCountRow = '<tr>';
 
-  /* Knot Count = (Exp. Piece Weight x 1000) / (Conv Factor x MM), mimicking Production Analytics daily output formula */
+  /* Knot Count = (Exp. Piece Weight / (Conv Factor x MM x MD)) x 1000 */
   let totalKnotCount = 0;
   allGroups.forEach(g => {
-    if (g.convFactor > 0 && g.mm > 0) {
-      totalKnotCount += (expPW * 1000) / (g.convFactor * g.mm);
+    if (g.convFactor > 0 && g.mm > 0 && g.totalMD > 0) {
+      totalKnotCount += (expPW / (g.convFactor * g.mm * g.totalMD)) * 1000;
     }
   });
   totalKnotCount *= multiplier;
@@ -526,8 +523,8 @@ function buildKnotSummaryTable(allGroups) {
 
   allGroups.forEach(g => {
     let groupKnotCount = 0;
-    if (g.convFactor > 0 && g.mm > 0) {
-      groupKnotCount = (expPW * 1000) / (g.convFactor * g.mm);
+    if (g.convFactor > 0 && g.mm > 0 && g.totalMD > 0) {
+      groupKnotCount = (expPW / (g.convFactor * g.mm * g.totalMD)) * 1000;
     }
     groupKnotCount *= multiplier;
     knotCountRow += `<td class="group-col fw-bold">${groupKnotCount.toFixed(1)}</td>`;
