@@ -5738,3 +5738,39 @@ def profit_analytics_view(request):
     }
     return render(request, "marania_invoice_app/profit_analytics.html", context)
 
+
+@login_required
+def piece_weight_analyser_view(request):
+    from .models import Order, OrderSpecification, Product, MaterialConversionRatio
+
+    orders = Order.objects.exclude(status__in=["Completed", "Cancelled", "Rejected"]).select_related().prefetch_related("specifications")
+    orders_data = []
+    for o in orders:
+        spec = o.specifications.first()
+        orders_data.append({
+            "order_key": o.order_key,
+            "order_number": o.order_number,
+            "customer": o.customer,
+            "twine": o.twine,
+            "quantity": str(o.quantity),
+            "quantity_unit": o.quantity_unit or "KG",
+            "specification": f"{spec.mesh_size or ''}MM-{spec.mesh_depth or ''}MD-{spec.salvage or ''}SEL" if spec else "",
+            "mm": str(spec.mesh_size) if spec and spec.mesh_size else "",
+            "md": spec.mesh_depth if spec else "",
+            "sel": spec.salvage if spec else "",
+            "pw": spec.piece_weight if spec else "",
+            "product_code": o.twine or "",
+        })
+
+    products = Product.objects.all().order_by("code")
+
+    conversion_ratios = MaterialConversionRatio.objects.all().order_by("material_code")
+    twine_options = [{"code": r.material_code, "ratio": str(r.conversion_ratio), "label": f"{r.material_code}-{r.conversion_ratio}"} for r in conversion_ratios]
+
+    context = {
+        "orders_json": orders_data,
+        "products": products,
+        "twine_options_json": twine_options,
+    }
+    return render(request, "marania_invoice_app/piece_weight_analyser.html", context)
+

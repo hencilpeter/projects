@@ -1,0 +1,400 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container my-4">
+    <h3>Piece Weight Analyser</h3>
+
+    <button class="btn btn-primary mb-3" type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#pwaForm">
+      New Weight Analytics
+    </button>
+
+    <div class="collapse" id="pwaForm">
+      <form method="POST" id="pwa-form">
+        {% csrf_token %}
+        <input type="hidden" name="analysis_data" id="analysis-data">
+
+        <div class="card p-4 mb-4 shadow-sm">
+
+          <!-- Row 1: Product + Fetch Order -->
+          <div class="row mb-3 align-items-end g-2">
+            <div class="col-md-3">
+              <label class="form-label small mb-0">Product</label>
+              <select id="filter-product" class="form-select form-select-sm">
+                <option value="">-- All Products --</option>
+                {% for p in products %}
+                <option value="{{ p.code }}">{{ p.code }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label small mb-0">Fetch Order</label>
+              <div class="d-flex gap-1">
+                <select id="fetch-order" class="form-select form-select-sm">
+                  <option value="">-- Select Order --</option>
+                </select>
+                <button type="button" id="fetch-order-btn" class="btn btn-info btn-sm text-nowrap">Fetch</button>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Row 2: Order Details -->
+          <div id="order-details-row" class="row mb-3 align-items-end g-1">
+            <div class="col-md-2">
+              <label class="form-label small mb-0">Customer</label>
+              <input type="text" id="pwa-customer" class="form-control form-control-sm" placeholder="Customer" readonly>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small mb-0">Specification</label>
+              <input type="text" id="pwa-spec" class="form-control form-control-sm" placeholder="MM-MD-SEL" readonly>
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small mb-0">MM</label>
+              <input type="text" id="pwa-mm" class="form-control form-control-sm" placeholder="MM" readonly>
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small mb-0">MD</label>
+              <input type="text" id="pwa-md" class="form-control form-control-sm" placeholder="MD" readonly>
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small mb-0">Sel</label>
+              <input type="text" id="pwa-sel" class="form-control form-control-sm" placeholder="Sel" readonly>
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small mb-0">PW</label>
+              <input type="text" id="pwa-pw" class="form-control form-control-sm" placeholder="PW" readonly>
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small mb-0">Quantity</label>
+              <input type="text" id="pwa-qty" class="form-control form-control-sm" placeholder="Qty" readonly>
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small mb-0">Unit</label>
+              <input type="text" id="pwa-unit" class="form-control form-control-sm" value="KG" readonly>
+            </div>
+            <input type="hidden" id="pwa-product-code" value="">
+          </div>
+
+          <hr>
+
+          <!-- Row 3: Controls -->
+          <div class="row mb-3 align-items-end g-2">
+            <div class="col-md-3">
+              <label class="form-label small mb-0">Addl. Mesh Size</label>
+              <input type="number" step="0.1" id="pwa-addl-mesh" class="form-control form-control-sm" placeholder="Addl. Mesh Size">
+            </div>
+            <div class="col-md-7 d-flex gap-2">
+              <button type="button" id="add-group-btn" class="btn btn-primary btn-sm">Add Group</button>
+              <button type="button" id="analyse-btn" class="btn btn-success btn-sm">Analyse</button>
+            </div>
+          </div>
+
+          <!-- Groups Container -->
+          <div id="groups-container"></div>
+
+        </div>
+      </form>
+    </div>
+
+    <hr>
+
+    <!-- Results Table -->
+    <h5>Weight Analysis Results</h5>
+    <div id="pwa-results-container">
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover table-sm" id="pwa-results-table">
+          <thead class="table-dark">
+            <tr>
+              <th>#</th>
+              <th>Product</th>
+              <th>Customer</th>
+              <th>Specification</th>
+              <th>MM</th>
+              <th>MD</th>
+              <th>Sel</th>
+              <th>PW</th>
+              <th>Quantity</th>
+              <th>Unit</th>
+              <th>Addl. Mesh</th>
+              <th>Total Twine</th>
+              <th>Conversion Factor</th>
+              <th>Calculated Weight</th>
+              <th>Piece Weight</th>
+            </tr>
+          </thead>
+          <tbody id="pwa-results-body">
+          </tbody>
+        </table>
+      </div>
+      <div id="pwa-no-results" class="alert alert-info" style="display:none;">No analysis results yet. Configure groups and click Analyse.</div>
+    </div>
+
+  </div>
+</main>
+
+{{ orders_json|json_script:"orders-data" }}
+{{ twine_options_json|json_script:"twine-options-data" }}
+
+<script>
+const ordersData = JSON.parse(document.getElementById("orders-data").textContent);
+const twineOptions = JSON.parse(document.getElementById("twine-options-data").textContent);
+
+const orderSelect = document.getElementById("fetch-order");
+const filterProductSelect = document.getElementById("filter-product");
+const groupsContainer = document.getElementById("groups-container");
+let groupCounter = 0;
+
+/* Populate order dropdown */
+const allOrderOptions = [];
+ordersData.forEach(o => {
+  const opt = document.createElement("option");
+  opt.value = o.order_key;
+  opt.textContent = `${o.order_number} - ${o.customer} - ${o.twine || ''}`;
+  opt.dataset.order = JSON.stringify(o);
+  allOrderOptions.push(opt);
+});
+
+function populateOrderDropdown(filterCode) {
+  orderSelect.innerHTML = '<option value="">-- Select Order --</option>';
+  allOrderOptions.forEach(opt => {
+    if (!filterCode) {
+      orderSelect.appendChild(opt.cloneNode(true));
+    } else {
+      const o = JSON.parse(opt.dataset.order);
+      if ((o.product_code || "").toLowerCase() === filterCode.toLowerCase()) {
+        orderSelect.appendChild(opt.cloneNode(true));
+      }
+    }
+  });
+}
+
+populateOrderDropdown("");
+
+filterProductSelect.addEventListener("change", () => {
+  populateOrderDropdown(filterProductSelect.value);
+});
+
+/* Populate order details */
+function populateOrderFields() {
+  const opt = orderSelect.selectedOptions[0];
+  if (!opt || !opt.dataset.order) return;
+  const o = JSON.parse(opt.dataset.order);
+  document.getElementById("pwa-customer").value = o.customer || "";
+  document.getElementById("pwa-spec").value = o.specification || "";
+  document.getElementById("pwa-mm").value = o.mm || "";
+  document.getElementById("pwa-md").value = o.md || "";
+  document.getElementById("pwa-sel").value = o.sel || "";
+  document.getElementById("pwa-pw").value = o.pw || "";
+  document.getElementById("pwa-qty").value = o.quantity || "";
+  document.getElementById("pwa-unit").value = o.quantity_unit || "KG";
+  document.getElementById("pwa-product-code").value = o.product_code || "";
+}
+
+document.getElementById("fetch-order-btn").addEventListener("click", populateOrderFields);
+orderSelect.addEventListener("change", populateOrderFields);
+
+/* Build twine select options */
+function buildTwineOptionsHTML(selectedCode) {
+  let opts = '<option value="">-- Select Twine --</option>';
+  twineOptions.forEach(t => {
+    const sel = (selectedCode && t.code === selectedCode) ? 'selected' : '';
+    opts += `<option value="${t.code}" data-ratio="${t.ratio}" ${sel}>${t.label}</option>`;
+  });
+  return opts;
+}
+
+/* Add Net row to a group */
+function addNetRowToGroup(groupEl) {
+  const container = groupEl.querySelector(".group-net-sel-container");
+  const topMM = document.getElementById("pwa-mm").value || "";
+  const topMD = document.getElementById("pwa-md").value || "";
+  const productCode = document.getElementById("pwa-product-code").value || "";
+  const div = document.createElement("div");
+  div.className = "row mb-2 align-items-end g-1 net-sel-row";
+  div.dataset.type = "NET";
+  div.innerHTML = `
+    <div class="col-md-auto"><span class="badge bg-success">NET</span></div>
+    <div class="col-md-1"><input type="number" step="0.1" class="form-control form-control-sm ns-mm" placeholder="MM" value="${topMM}"></div>
+    <div class="col-md-1"><input type="number" step="0.1" class="form-control form-control-sm ns-md" placeholder="MD" value="${topMD}"></div>
+    <div class="col-md-1"><input type="number" class="form-control form-control-sm ns-pcs" placeholder="Pcs"></div>
+    <div class="col-md-1"><input type="text" class="form-control form-control-sm ns-twine-count bg-light" placeholder="Twine Count" readonly></div>
+    <div class="col-md-2"><select class="form-select form-select-sm ns-select-twine">${buildTwineOptionsHTML(productCode)}</select></div>
+    <div class="col-md-2"><input type="text" class="form-control form-control-sm ns-conv bg-light" placeholder="Conversion Factor" readonly></div>
+    <div class="col-md-auto"><button type="button" class="btn btn-outline-danger btn-sm remove-net-sel-row">&times;</button></div>
+  `;
+  container.appendChild(div);
+  if (productCode) {
+    const ratio = twineOptions.find(t => t.code === productCode);
+    if (ratio) {
+      div.querySelector(".ns-conv").value = ratio.ratio;
+    }
+  }
+}
+
+/* Add Sel row to a group */
+function addSelRowToGroup(groupEl) {
+  const container = groupEl.querySelector(".group-net-sel-container");
+  const topMM = document.getElementById("pwa-mm").value || "";
+  const productCode = document.getElementById("pwa-product-code").value || "";
+  const div = document.createElement("div");
+  div.className = "row mb-2 align-items-end g-1 net-sel-row";
+  div.dataset.type = "SEL";
+  div.innerHTML = `
+    <div class="col-md-auto"><span class="badge bg-warning">SEL</span></div>
+    <div class="col-md-1"><input type="number" step="0.1" class="form-control form-control-sm ns-mm" placeholder="MM" value="${topMM}"></div>
+    <div class="col-md-1"><input type="number" step="0.1" class="form-control form-control-sm ns-md" placeholder="MD"></div>
+    <div class="col-md-1"><input type="number" class="form-control form-control-sm ns-pcs" placeholder="Pcs"></div>
+    <div class="col-md-1"><input type="text" class="form-control form-control-sm ns-twine-count bg-light" placeholder="Twine Count" readonly></div>
+    <div class="col-md-2"><select class="form-select form-select-sm ns-select-twine">${buildTwineOptionsHTML('')}</select></div>
+    <div class="col-md-2"><input type="text" class="form-control form-control-sm ns-conv bg-light" placeholder="Conversion Factor" readonly></div>
+    <div class="col-md-auto"><button type="button" class="btn btn-outline-danger btn-sm remove-net-sel-row">&times;</button></div>
+  `;
+  container.appendChild(div);
+}
+
+/* Add Group */
+document.getElementById("add-group-btn").addEventListener("click", () => {
+  groupCounter++;
+  const groupEl = document.createElement("div");
+  groupEl.className = "group-container border rounded p-3 mb-3";
+  groupEl.dataset.groupId = groupCounter;
+  groupEl.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h6 class="mb-0 fw-bold text-primary">Group ${groupCounter}</h6>
+      <button type="button" class="btn btn-outline-danger btn-sm delete-group-btn">
+        <span data-feather="trash-2"></span> Delete Group
+      </button>
+    </div>
+    <div class="row mb-2 align-items-end g-1">
+      <div class="col-md-auto">
+        <button type="button" class="btn btn-sm btn-success add-net-to-group">+ Net</button>
+        <button type="button" class="btn btn-sm btn-warning add-sel-to-group">+ Sel</button>
+      </div>
+    </div>
+    <div class="group-net-sel-container"></div>
+  `;
+  groupsContainer.appendChild(groupEl);
+  feather.replace();
+});
+
+/* Add Net to group (delegated) */
+groupsContainer.addEventListener("click", e => {
+  if (!e.target.classList.contains("add-net-to-group")) return;
+  const groupEl = e.target.closest(".group-container");
+  addNetRowToGroup(groupEl);
+});
+
+/* Add Sel to group (delegated) */
+groupsContainer.addEventListener("click", e => {
+  if (!e.target.classList.contains("add-sel-to-group")) return;
+  const groupEl = e.target.closest(".group-container");
+  addSelRowToGroup(groupEl);
+});
+
+/* Delete group */
+groupsContainer.addEventListener("click", e => {
+  if (!e.target.classList.contains("delete-group-btn") && !e.target.closest(".delete-group-btn")) return;
+  const btn = e.target.closest(".delete-group-btn") || e.target;
+  const groupEl = btn.closest(".group-container");
+  if (confirm("Are you sure you want to delete this group?")) {
+    groupEl.remove();
+  }
+});
+
+/* Remove net/sel row */
+groupsContainer.addEventListener("click", e => {
+  if (!e.target.classList.contains("remove-net-sel-row")) return;
+  e.target.closest(".net-sel-row").remove();
+});
+
+/* Twine count = MD x Pcs */
+groupsContainer.addEventListener("input", e => {
+  if (e.target.classList.contains("ns-md") || e.target.classList.contains("ns-pcs")) {
+    const row = e.target.closest(".net-sel-row");
+    const md = parseFloat(row.querySelector(".ns-md").value) || 0;
+    const pcs = parseFloat(row.querySelector(".ns-pcs").value) || 0;
+    row.querySelector(".ns-twine-count").value = (md * pcs) ? (md * pcs).toFixed(1) : "";
+  }
+});
+
+/* Twine select change -> populate conversion factor */
+groupsContainer.addEventListener("change", e => {
+  if (!e.target.classList.contains("ns-select-twine")) return;
+  const row = e.target.closest(".net-sel-row");
+  const selectedOption = e.target.selectedOptions[0];
+  const ratio = selectedOption ? selectedOption.dataset.ratio : "";
+  row.querySelector(".ns-conv").value = ratio || "";
+});
+
+/* Analyse button */
+document.getElementById("analyse-btn").addEventListener("click", () => {
+  const customer = document.getElementById("pwa-customer").value;
+  const spec = document.getElementById("pwa-spec").value;
+  const mm = document.getElementById("pwa-mm").value;
+  const md = document.getElementById("pwa-md").value;
+  const sel = document.getElementById("pwa-sel").value;
+  const pw = document.getElementById("pwa-pw").value;
+  const qty = document.getElementById("pwa-qty").value;
+  const unit = document.getElementById("pwa-unit").value;
+  const productCode = document.getElementById("pwa-product-code").value;
+  const addlMesh = parseFloat(document.getElementById("pwa-addl-mesh").value) || 0;
+
+  const groups = groupsContainer.querySelectorAll(".group-container");
+  if (groups.length === 0) {
+    alert("Please add at least one group before analysing.");
+    return;
+  }
+
+  const resultsBody = document.getElementById("pwa-results-body");
+  resultsBody.innerHTML = "";
+  let rowNum = 0;
+
+  groups.forEach(groupEl => {
+    const rows = groupEl.querySelectorAll(".net-sel-row");
+    let groupTotalTwine = 0;
+    let groupTotalPcs = 0;
+    let groupConvFactor = 0;
+
+    rows.forEach(row => {
+      const twineCount = parseFloat(row.querySelector(".ns-twine-count").value) || 0;
+      const pcs = parseFloat(row.querySelector(".ns-pcs").value) || 0;
+      const conv = parseFloat(row.querySelector(".ns-conv").value) || 0;
+      groupTotalTwine += twineCount;
+      groupTotalPcs += pcs;
+      if (conv > 0) groupConvFactor = conv;
+    });
+
+    const calculatedWeight = groupConvFactor > 0 ? (groupTotalTwine * groupConvFactor) : 0;
+    const pieceWeight = groupTotalPcs > 0 ? (calculatedWeight / groupTotalPcs) : 0;
+
+    rowNum++;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${rowNum}</td>
+      <td>${productCode}</td>
+      <td>${customer}</td>
+      <td>${spec}</td>
+      <td>${mm}</td>
+      <td>${md}</td>
+      <td>${sel}</td>
+      <td>${pw}</td>
+      <td>${qty}</td>
+      <td>${unit}</td>
+      <td>${addlMesh || '-'}</td>
+      <td>${groupTotalTwine.toFixed(1)}</td>
+      <td>${groupConvFactor}</td>
+      <td class="fw-bold">${calculatedWeight.toFixed(2)}</td>
+      <td class="fw-bold text-primary">${pieceWeight.toFixed(4)}</td>
+    `;
+    resultsBody.appendChild(tr);
+  });
+
+  document.getElementById("pwa-no-results").style.display = "none";
+  document.getElementById("pwa-results-table").style.display = "";
+});
+</script>
+{% endblock %}
