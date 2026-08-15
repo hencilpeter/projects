@@ -473,13 +473,16 @@ document.getElementById("calc-knot-btn").addEventListener("click", () => {
     return;
   }
 
-  /* Mesh Depth = sum of MD values for the group (single piece) */
-  const meshDepth = group.totalMD;
+  /* Knot Count = (Exp. Piece Weight x 1000) / (Conv Factor x MM), mimicking Production Analytics */
+  let knotCount = 0;
+  if (group.convFactor > 0 && group.mm > 0) {
+    knotCount = (expPW * 1000) / (group.convFactor * group.mm);
+  }
 
   /* Apply multiplier */
-  const finalMeshDepth = meshDepth * multiplier;
+  const finalKnot = knotCount * multiplier;
 
-  document.getElementById("knot-result").value = finalMeshDepth ? finalMeshDepth.toFixed(1) : "0";
+  document.getElementById("knot-result").value = finalKnot ? finalKnot.toFixed(1) : "0";
 
   /* Build knot summary table */
   buildKnotSummaryTable(allGroups);
@@ -498,7 +501,7 @@ function buildKnotSummaryTable(allGroups) {
 
   /* Build header */
   let headerHTML = '<tr>';
-  headerHTML += '<th class="total-col">Mesh Depth</th>';
+  headerHTML += '<th class="total-col">Knot Count</th>';
   allGroups.forEach(g => {
     headerHTML += `<th class="group-col">${g.label} | Group MM ${g.mm} | Group ${g.totalMD} MD</th>`;
   });
@@ -507,13 +510,27 @@ function buildKnotSummaryTable(allGroups) {
   headerHTML += '</tr>';
   thead.innerHTML = headerHTML;
 
-  /* Build body - Mesh Depth row */
+  /* Build body - Knot Count row */
+  const expPW = parseFloat(document.getElementById("knot-exp-pw").value) || 0;
   let knotCountRow = '<tr>';
-  const totalMeshDepth = allGroups.reduce((sum, g) => sum + g.totalMD, 0) * multiplier;
-  knotCountRow += `<td class="total-col fw-bold">${totalMeshDepth.toFixed(1)}</td>`;
+
+  /* Knot Count = (Exp. Piece Weight x 1000) / (Conv Factor x MM), mimicking Production Analytics daily output formula */
+  let totalKnotCount = 0;
   allGroups.forEach(g => {
-    const groupMeshDepth = g.totalMD * multiplier;
-    knotCountRow += `<td class="group-col fw-bold">${groupMeshDepth.toFixed(1)}</td>`;
+    if (g.convFactor > 0 && g.mm > 0) {
+      totalKnotCount += (expPW * 1000) / (g.convFactor * g.mm);
+    }
+  });
+  totalKnotCount *= multiplier;
+  knotCountRow += `<td class="total-col fw-bold">${totalKnotCount.toFixed(1)}</td>`;
+
+  allGroups.forEach(g => {
+    let groupKnotCount = 0;
+    if (g.convFactor > 0 && g.mm > 0) {
+      groupKnotCount = (expPW * 1000) / (g.convFactor * g.mm);
+    }
+    groupKnotCount *= multiplier;
+    knotCountRow += `<td class="group-col fw-bold">${groupKnotCount.toFixed(1)}</td>`;
   });
   const totalPcs = allGroups.reduce((sum, g) => sum + g.totalPcs, 0);
   knotCountRow += `<td class="total-col">${totalPcs}</td>`;
