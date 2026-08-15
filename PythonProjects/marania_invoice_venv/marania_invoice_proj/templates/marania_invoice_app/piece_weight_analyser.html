@@ -527,13 +527,15 @@ function buildKnotSummaryTable(allGroups) {
     groupWeightPer1000Knots.push(wp1000);
   });
 
-  /* Total weightPer1000Knots across all groups */
-  let totalWeightPer1000Knots = groupWeightPer1000Knots.reduce((a, b) => a + b, 0);
+  /* Exp. Piece Weight is for the specified group; other groups scale by weightPer1000Knots ratio */
+  const groupNum = parseInt(document.getElementById("knot-group-input").value) || 1;
+  const targetGroupIdx = groupNum - 1;
+  const targetWP1000 = groupWeightPer1000Knots[targetGroupIdx] || 0;
 
-  /* Single knot count for the piece */
+  /* Knot count based on target group's weightPer1000Knots */
   let pieceKnotCount = 0;
-  if (totalWeightPer1000Knots > 0) {
-    pieceKnotCount = Math.round((expPW / totalWeightPer1000Knots) * 1000);
+  if (targetWP1000 > 0) {
+    pieceKnotCount = Math.round((expPW / targetWP1000) * 1000);
   }
   totalKnotCountBase = pieceKnotCount;
 
