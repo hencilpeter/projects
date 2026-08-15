@@ -96,11 +96,47 @@
           <!-- Groups Container -->
           <div id="groups-container"></div>
 
+          <!-- Knot Calculation Controls -->
+          <div class="border-top pt-3 mt-3">
+            <div class="row mb-3 align-items-end g-2">
+              <div class="col-md-1">
+                <label class="form-label small mb-0">Group</label>
+                <input type="number" min="1" id="knot-group-input" class="form-control form-control-sm" placeholder="Group #">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small mb-0">Exp. Piece Weight</label>
+                <input type="number" step="0.01" id="knot-exp-pw" class="form-control form-control-sm" placeholder="Exp. PW">
+              </div>
+              <div class="col-md-2">
+                <button type="button" id="calc-knot-btn" class="btn btn-info btn-sm">Calculate Knot</button>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small mb-0">Mesh Depth (<span id="knot-group-label">0</span>)</label>
+                <input type="text" id="knot-result" class="form-control form-control-sm bg-light" readonly placeholder="--">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small mb-0">Multiplier</label>
+                <input type="number" step="0.01" min="0" id="knot-multiplier" class="form-control form-control-sm" value="1">
+              </div>
+            </div>
+          </div>
+
         </div>
       </form>
     </div>
 
     <hr>
+
+    <!-- Knot Count Temporary Table -->
+    <div id="knot-table-section" style="display:none;">
+      <h5>Knot Count Summary</h5>
+      <div class="table-responsive mb-4">
+        <table class="table table-bordered table-sm knot-summary-table" id="knot-summary-table">
+          <thead id="knot-summary-head"></thead>
+          <tbody id="knot-summary-body"></tbody>
+        </table>
+      </div>
+    </div>
 
     <!-- Results Table -->
     <h5>Weight Analysis Results</h5>
@@ -135,6 +171,28 @@
 
   </div>
 </main>
+
+<style>
+.knot-summary-table {
+  background-color: #fff8e1;
+  border: 2px solid #ffc107;
+}
+.knot-summary-table thead {
+  background-color: #ffc107;
+  color: #000;
+}
+.knot-summary-table th, .knot-summary-table td {
+  text-align: center;
+  vertical-align: middle;
+}
+.knot-summary-table .group-col {
+  background-color: #fffde7;
+}
+.knot-summary-table .total-col {
+  background-color: #fff3e0;
+  font-weight: bold;
+}
+</style>
 
 {{ orders_json|json_script:"orders-data" }}
 {{ twine_options_json|json_script:"twine-options-data" }}
@@ -332,6 +390,128 @@ groupsContainer.addEventListener("change", e => {
   row.querySelector(".ns-conv").value = ratio || "";
 });
 
+/* Group input change -> update label */
+document.getElementById("knot-group-input").addEventListener("input", e => {
+  document.getElementById("knot-group-label").textContent = e.target.value || "0";
+});
+
+/* Helper: get all groups data */
+function getGroupsData() {
+  const groups = groupsContainer.querySelectorAll(".group-container");
+  const allGroups = [];
+  groups.forEach((groupEl, idx) => {
+    const groupId = groupEl.dataset.groupId;
+    const rows = groupEl.querySelectorAll(".net-sel-row");
+    let groupTotalTwine = 0;
+    let groupTotalPcs = 0;
+    let groupConvFactor = 0;
+    let groupMM = 0;
+    let groupTotalMD = 0;
+
+    rows.forEach(row => {
+      const mm = parseFloat(row.querySelector(".ns-mm").value) || 0;
+      const md = parseFloat(row.querySelector(".ns-md").value) || 0;
+      const pcs = parseFloat(row.querySelector(".ns-pcs").value) || 0;
+      const twineCount = parseFloat(row.querySelector(".ns-twine-count").value) || 0;
+      const conv = parseFloat(row.querySelector(".ns-conv").value) || 0;
+      groupTotalTwine += twineCount;
+      groupTotalPcs += pcs;
+      groupTotalMD += md;
+      if (mm > 0) groupMM = mm;
+      if (conv > 0) groupConvFactor = conv;
+    });
+
+    const calculatedWeight = groupConvFactor > 0 ? (groupTotalTwine * groupConvFactor) : 0;
+
+    allGroups.push({
+      index: idx,
+      groupId: groupId,
+      label: `Group ${idx + 1}`,
+      mm: groupMM,
+      totalMD: groupTotalMD,
+      totalTwine: groupTotalTwine,
+      totalPcs: groupTotalPcs,
+      convFactor: groupConvFactor,
+      calculatedWeight: calculatedWeight,
+    });
+  });
+  return allGroups;
+}
+
+/* Calculate Knot button */
+document.getElementById("calc-knot-btn").addEventListener("click", () => {
+  const groupNum = parseInt(document.getElementById("knot-group-input").value) || 0;
+  const expPW = parseFloat(document.getElementById("knot-exp-pw").value) || 0;
+  const multiplier = parseFloat(document.getElementById("knot-multiplier").value) || 1;
+
+  if (!groupNum) {
+    alert("Please enter a Group number.");
+    return;
+  }
+
+  const allGroups = getGroupsData();
+  const group = allGroups.find(g => g.index + 1 === groupNum);
+
+  if (!group) {
+    document.getElementById("knot-result").value = "Group not found";
+    return;
+  }
+
+  /* Knot Count = sum of (MD x Pcs) for the group, mimicking Production Analytics */
+  const knotCount = group.totalTwine;
+
+  /* Weight = Conversion Factor x MM x Twine Count, similar to Production Analytics daily output formula */
+  const weight = group.convFactor > 0 ? (group.convFactor * group.mm * knotCount) : 0;
+
+  /* Apply multiplier */
+  const finalKnot = knotCount * multiplier;
+
+  document.getElementById("knot-result").value = finalKnot ? finalKnot.toFixed(1) : "0";
+
+  /* Build knot summary table */
+  buildKnotSummaryTable(allGroups);
+});
+
+/* Build the Knot Count Summary Table */
+function buildKnotSummaryTable(allGroups) {
+  if (allGroups.length === 0) {
+    document.getElementById("knot-table-section").style.display = "none";
+    return;
+  }
+
+  const multiplier = parseFloat(document.getElementById("knot-multiplier").value) || 1;
+  const thead = document.getElementById("knot-summary-head");
+  const tbody = document.getElementById("knot-summary-body");
+
+  /* Build header */
+  let headerHTML = '<tr>';
+  headerHTML += '<th class="total-col">Knot Count</th>';
+  allGroups.forEach(g => {
+    headerHTML += `<th class="group-col">${g.label} | Group MM ${g.mm} | Group ${g.totalMD} MD</th>`;
+  });
+  headerHTML += '<th class="total-col">Total Pcs</th>';
+  headerHTML += '<th class="total-col">All Pcs Weight</th>';
+  headerHTML += '</tr>';
+  thead.innerHTML = headerHTML;
+
+  /* Build body - Knot Count row */
+  let knotCountRow = '<tr>';
+  const totalKnot = allGroups.reduce((sum, g) => sum + g.totalTwine, 0) * multiplier;
+  knotCountRow += `<td class="total-col fw-bold">${totalKnot.toFixed(1)}</td>`;
+  allGroups.forEach(g => {
+    const weight = g.convFactor > 0 ? (g.convFactor * g.mm * g.totalTwine * multiplier) : 0;
+    knotCountRow += `<td class="group-col fw-bold">${weight.toFixed(2)}</td>`;
+  });
+  const totalPcs = allGroups.reduce((sum, g) => sum + g.totalPcs, 0);
+  knotCountRow += `<td class="total-col">${totalPcs}</td>`;
+  const allPcsWeight = allGroups.reduce((sum, g) => sum + g.calculatedWeight, 0) * multiplier;
+  knotCountRow += `<td class="total-col fw-bold">${allPcsWeight.toFixed(2)}</td>`;
+  knotCountRow += '</tr>';
+  tbody.innerHTML = knotCountRow;
+
+  document.getElementById("knot-table-section").style.display = "";
+}
+
 /* Analyse button */
 document.getElementById("analyse-btn").addEventListener("click", () => {
   const customer = document.getElementById("pwa-customer").value;
@@ -345,51 +525,39 @@ document.getElementById("analyse-btn").addEventListener("click", () => {
   const productCode = document.getElementById("pwa-product-code").value;
   const addlMesh = parseFloat(document.getElementById("pwa-addl-mesh").value) || 0;
 
-  const groups = groupsContainer.querySelectorAll(".group-container");
-  if (groups.length === 0) {
+  const allGroups = getGroupsData();
+  if (allGroups.length === 0) {
     alert("Please add at least one group before analysing.");
     return;
   }
+
+  /* Also build knot summary table */
+  buildKnotSummaryTable(allGroups);
 
   const resultsBody = document.getElementById("pwa-results-body");
   resultsBody.innerHTML = "";
   let rowNum = 0;
 
-  groups.forEach(groupEl => {
-    const rows = groupEl.querySelectorAll(".net-sel-row");
-    let groupTotalTwine = 0;
-    let groupTotalPcs = 0;
-    let groupConvFactor = 0;
-
-    rows.forEach(row => {
-      const twineCount = parseFloat(row.querySelector(".ns-twine-count").value) || 0;
-      const pcs = parseFloat(row.querySelector(".ns-pcs").value) || 0;
-      const conv = parseFloat(row.querySelector(".ns-conv").value) || 0;
-      groupTotalTwine += twineCount;
-      groupTotalPcs += pcs;
-      if (conv > 0) groupConvFactor = conv;
-    });
-
-    const calculatedWeight = groupConvFactor > 0 ? (groupTotalTwine * groupConvFactor) : 0;
-    const pieceWeight = groupTotalPcs > 0 ? (calculatedWeight / groupTotalPcs) : 0;
-
+  allGroups.forEach(group => {
     rowNum++;
+    const pieceWeight = group.totalPcs > 0 ? (group.calculatedWeight / group.totalPcs) : 0;
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${rowNum}</td>
       <td>${productCode}</td>
       <td>${customer}</td>
       <td>${spec}</td>
-      <td>${mm}</td>
-      <td>${md}</td>
+      <td>${group.mm}</td>
+      <td>${group.totalMD}</td>
       <td>${sel}</td>
       <td>${pw}</td>
       <td>${qty}</td>
       <td>${unit}</td>
       <td>${addlMesh || '-'}</td>
-      <td>${groupTotalTwine.toFixed(1)}</td>
-      <td>${groupConvFactor}</td>
-      <td class="fw-bold">${calculatedWeight.toFixed(2)}</td>
+      <td>${group.totalTwine.toFixed(1)}</td>
+      <td>${group.convFactor}</td>
+      <td class="fw-bold">${group.calculatedWeight.toFixed(2)}</td>
       <td class="fw-bold text-primary">${pieceWeight.toFixed(4)}</td>
     `;
     resultsBody.appendChild(tr);
