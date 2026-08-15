@@ -473,16 +473,13 @@ document.getElementById("calc-knot-btn").addEventListener("click", () => {
     return;
   }
 
-  /* Knot Count = sum of (MD x Pcs) for the group, mimicking Production Analytics */
-  const knotCount = group.totalTwine;
-
-  /* Weight = Conversion Factor x MM x Twine Count, similar to Production Analytics daily output formula */
-  const weight = group.convFactor > 0 ? (group.convFactor * group.mm * knotCount) : 0;
+  /* Mesh Depth = sum of MD values for the group (single piece) */
+  const meshDepth = group.totalMD;
 
   /* Apply multiplier */
-  const finalKnot = knotCount * multiplier;
+  const finalMeshDepth = meshDepth * multiplier;
 
-  document.getElementById("knot-result").value = finalKnot ? finalKnot.toFixed(1) : "0";
+  document.getElementById("knot-result").value = finalMeshDepth ? finalMeshDepth.toFixed(1) : "0";
 
   /* Build knot summary table */
   buildKnotSummaryTable(allGroups);
@@ -501,7 +498,7 @@ function buildKnotSummaryTable(allGroups) {
 
   /* Build header */
   let headerHTML = '<tr>';
-  headerHTML += '<th class="total-col">Knot Count</th>';
+  headerHTML += '<th class="total-col">Mesh Depth</th>';
   allGroups.forEach(g => {
     headerHTML += `<th class="group-col">${g.label} | Group MM ${g.mm} | Group ${g.totalMD} MD</th>`;
   });
@@ -510,13 +507,13 @@ function buildKnotSummaryTable(allGroups) {
   headerHTML += '</tr>';
   thead.innerHTML = headerHTML;
 
-  /* Build body - Knot Count row */
+  /* Build body - Mesh Depth row */
   let knotCountRow = '<tr>';
-  const totalKnot = allGroups.reduce((sum, g) => sum + g.totalTwine, 0) * multiplier;
-  knotCountRow += `<td class="total-col fw-bold">${totalKnot.toFixed(1)}</td>`;
+  const totalMeshDepth = allGroups.reduce((sum, g) => sum + g.totalMD, 0) * multiplier;
+  knotCountRow += `<td class="total-col fw-bold">${totalMeshDepth.toFixed(1)}</td>`;
   allGroups.forEach(g => {
-    const weight = g.convFactor > 0 ? (g.convFactor * g.mm * g.totalTwine * multiplier) : 0;
-    knotCountRow += `<td class="group-col fw-bold">${weight.toFixed(2)}</td>`;
+    const groupMeshDepth = g.totalMD * multiplier;
+    knotCountRow += `<td class="group-col fw-bold">${groupMeshDepth.toFixed(1)}</td>`;
   });
   const totalPcs = allGroups.reduce((sum, g) => sum + g.totalPcs, 0);
   knotCountRow += `<td class="total-col">${totalPcs}</td>`;
