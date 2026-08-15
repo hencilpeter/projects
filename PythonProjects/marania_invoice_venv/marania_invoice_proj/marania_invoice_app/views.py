@@ -5741,7 +5741,43 @@ def profit_analytics_view(request):
 
 @login_required
 def piece_weight_analyser_view(request):
-    from .models import Order, OrderSpecification, Product, MaterialConversionRatio
+    from .models import Order, OrderSpecification, Product, MaterialConversionRatio, PieceWeightAnalyser
+    import json
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "save":
+            data_raw = request.POST.get("save_data")
+            if data_raw:
+                data = json.loads(data_raw) if isinstance(data_raw, str) else data_raw
+                PieceWeightAnalyser.objects.create(
+                    product=data.get("product", ""),
+                    customer=data.get("customer", ""),
+                    specification=data.get("specification", ""),
+                    mm=data.get("mm", ""),
+                    md=data.get("md", ""),
+                    sel=data.get("sel", ""),
+                    pw=data.get("pw", ""),
+                    quantity=data.get("quantity", ""),
+                    unit=data.get("unit", "KG"),
+                    addl_mesh_size=float(data.get("addl_mesh_size") or 0) or None,
+                    groups_data=json.dumps(data.get("groups", [])),
+                    exp_piece_weight=float(data.get("exp_piece_weight") or 0) or None,
+                    multiplier=float(data.get("multiplier") or 1),
+                    knot_count=float(data.get("knot_count") or 0) or None,
+                    total_pcs=int(data.get("total_pcs") or 0) or None,
+                    all_pcs_weight=float(data.get("all_pcs_weight") or 0) or None,
+                )
+                messages.success(request, "Piece Weight Analyser entry saved.")
+
+        elif action == "delete":
+            pk = request.POST.get("pwa_key")
+            if pk:
+                PieceWeightAnalyser.objects.filter(pk=pk).delete()
+                messages.success(request, "Piece Weight Analyser entry deleted.")
+
+        return redirect("piece_weight_analyser")
 
     orders = Order.objects.exclude(status__in=["Completed", "Cancelled", "Rejected"]).select_related().prefetch_related("specifications")
     orders_data = []
@@ -5767,10 +5803,72 @@ def piece_weight_analyser_view(request):
     conversion_ratios = MaterialConversionRatio.objects.all().order_by("material_code")
     twine_options = [{"code": r.material_code, "ratio": str(r.conversion_ratio), "label": f"{r.material_code}-{r.conversion_ratio}"} for r in conversion_ratios]
 
+    saved_entries = PieceWeightAnalyser.objects.all()
+    saved_data = []
+    for s in saved_entries:
+        saved_data.append({
+            "pwa_key": s.pwa_key,
+            "product": s.product or "",
+            "customer": s.customer or "",
+            "specification": s.specification or "",
+            "mm": s.mm or "",
+            "md": s.md or "",
+            "sel": s.sel or "",
+            "pw": s.pw or "",
+            "quantity": s.quantity or "",
+            "unit": s.unit or "KG",
+            "addl_mesh_size": str(s.addl_mesh_size) if s.addl_mesh_size else "",
+            "groups_data": s.groups_data or "[]",
+            "exp_piece_weight": str(s.exp_piece_weight) if s.exp_piece_weight else "",
+            "multiplier": str(s.multiplier) if s.multiplier else "1",
+            "knot_count": str(s.knot_count) if s.knot_count else "",
+            "total_pcs": s.total_pcs or 0,
+            "all_pcs_weight": str(s.all_pcs_weight) if s.all_pcs_weight else "",
+            "created_at": s.created_at.strftime("%Y-%m-%d %H:%M") if s.created_at else "",
+        })
+
     context = {
         "orders_json": orders_data,
         "products": products,
         "twine_options_json": twine_options,
+        "saved_entries": saved_data,
     }
     return render(request, "marania_invoice_app/piece_weight_analyser.html", context)
+
+
+@login_required
+def load_pwa_view(request, pk):
+    from .models import PieceWeightAnalyser
+    import json
+
+    try:
+        entry = PieceWeightAnalyser.objects.get(pk=pk)
+        groups = []
+        if entry.groups_data:
+            try:
+                groups = json.loads(entry.groups_data)
+            except:
+                pass
+        data = {
+            "pwa_key": entry.pwa_key,
+            "product": entry.product or "",
+            "customer": entry.customer or "",
+            "specification": entry.specification or "",
+            "mm": entry.mm or "",
+            "md": entry.md or "",
+            "sel": entry.sel or "",
+            "pw": entry.pw or "",
+            "quantity": entry.quantity or "",
+            "unit": entry.unit or "KG",
+            "addl_mesh_size": str(entry.addl_mesh_size) if entry.addl_mesh_size else "",
+            "groups": groups,
+            "exp_piece_weight": str(entry.exp_piece_weight) if entry.exp_piece_weight else "",
+            "multiplier": str(entry.multiplier) if entry.multiplier else "1",
+            "knot_count": str(entry.knot_count) if entry.knot_count else "",
+            "total_pcs": entry.total_pcs or 0,
+            "all_pcs_weight": str(entry.all_pcs_weight) if entry.all_pcs_weight else "",
+        }
+        return JsonResponse(data)
+    except PieceWeightAnalyser.DoesNotExist:
+        return JsonResponse({"error": "Entry not found"}, status=404)
 

@@ -117,6 +117,7 @@ path('production/load/<int:pk>/', views.load_production_view, name='load_product
 path('production/detail', views.production_detail_view, name='production_detail'),
 path('analytics/profit-analytics', views.profit_analytics_view, name='profit_analytics'),
 path('analytics/piece-weight-analyser', views.piece_weight_analyser_view, name='piece_weight_analyser'),
+path('analytics/pwa/load/<int:pk>/', views.load_pwa_view, name='load_pwa'),
 
 # excel 
 path('sheets/salesview', views.sheet_sales_view, name="sheet_sales_view"),

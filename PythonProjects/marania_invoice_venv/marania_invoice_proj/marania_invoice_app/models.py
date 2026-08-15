@@ -849,3 +849,31 @@ class ProfitAnalytics(models.Model):
 
     class Meta:
         ordering = ['-profit_date', '-profit_key']
+
+
+class PieceWeightAnalyser(models.Model):
+    pwa_key = models.AutoField(primary_key=True)
+    product = models.CharField(max_length=100, blank=True, null=True)
+    customer = models.CharField(max_length=255, blank=True, null=True)
+    specification = models.CharField(max_length=255, blank=True, null=True)
+    mm = models.CharField(max_length=50, blank=True, null=True)
+    md = models.CharField(max_length=50, blank=True, null=True)
+    sel = models.CharField(max_length=50, blank=True, null=True)
+    pw = models.CharField(max_length=50, blank=True, null=True)
+    quantity = models.CharField(max_length=50, blank=True, null=True)
+    unit = models.CharField(max_length=20, default='KG')
+    addl_mesh_size = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    groups_data = models.TextField(blank=True, null=True)
+    exp_piece_weight = models.DecimalField(max_digits=10, decimal_places=4, blank=True, null=True)
+    multiplier = models.DecimalField(max_digits=10, decimal_places=2, default=1)
+    knot_count = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    total_pcs = models.IntegerField(blank=True, null=True)
+    all_pcs_weight = models.DecimalField(max_digits=15, decimal_places=4, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"PWA #{self.pwa_key} - {self.customer} - {self.product}"
+
+    class Meta:
+        ordering = ['-created_at', '-pwa_key']

@@ -15,6 +15,8 @@
       <form method="POST" id="pwa-form">
         {% csrf_token %}
         <input type="hidden" name="analysis_data" id="analysis-data">
+        <input type="hidden" name="save_data" id="save-data">
+        <input type="hidden" name="action" id="form-action" value="">
 
         <div class="card p-4 mb-4 shadow-sm">
 
@@ -122,6 +124,9 @@
                 <label class="form-label small mb-0">Multiplier</label>
                 <input type="number" step="0.01" min="0" id="knot-multiplier" class="form-control form-control-sm" value="1">
               </div>
+              <div class="col-md-2">
+                <button type="button" id="save-btn" class="btn btn-warning btn-sm w-100">Save Entry</button>
+              </div>
             </div>
           </div>
 
@@ -177,6 +182,49 @@
       <div id="pwa-no-results" class="alert alert-info" style="display:none;">No analysis results yet. Configure groups and click Analyse.</div>
     </div>
 
+    <hr>
+
+    <h5>Saved Piece Weight Details</h5>
+    {% if saved_entries %}
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover table-sm" id="saved-pwa-table">
+        <thead class="table-dark">
+          <tr>
+            <th>Action</th>
+            <th>Date</th>
+            <th>Product</th>
+            <th>Customer</th>
+            <th>Specification</th>
+            <th>Exp. PW</th>
+            <th>Knot Count</th>
+            <th>Total Pcs</th>
+            <th>All Pcs Weight</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in saved_entries %}
+          <tr>
+            <td>
+              <button type="button" class="btn btn-primary btn-sm load-pwa" data-key="{{ s.pwa_key }}">Edit</button>
+              <button type="button" class="btn btn-danger btn-sm delete-pwa" data-key="{{ s.pwa_key }}">Del</button>
+            </td>
+            <td>{{ s.created_at }}</td>
+            <td>{{ s.product }}</td>
+            <td>{{ s.customer }}</td>
+            <td>{{ s.specification }}</td>
+            <td>{{ s.exp_piece_weight }}</td>
+            <td>{{ s.knot_count }}</td>
+            <td>{{ s.total_pcs }}</td>
+            <td>{{ s.all_pcs_weight }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">No saved entries found.</div>
+    {% endif %}
+
   </div>
 </main>
 
@@ -200,10 +248,15 @@
   background-color: #fff3e0;
   font-weight: bold;
 }
+.knot-summary-table tbody tr:first-child {
+  background-color: #e3f2fd;
+  font-weight: bold;
+}
 </style>
 
 {{ orders_json|json_script:"orders-data" }}
 {{ twine_options_json|json_script:"twine-options-data" }}
+{{ saved_entries|json_script:"saved-entries-data" }}
 
 <script>
 const ordersData = JSON.parse(document.getElementById("orders-data").textContent);
@@ -501,7 +554,8 @@ function buildKnotSummaryTable(allGroups) {
   let headerHTML = '<tr>';
   headerHTML += '<th class="total-col">Knot Count</th>';
   allGroups.forEach(g => {
-    headerHTML += `<th class="group-col">${g.label}-${g.mm}MM-${g.totalMD}MD</th>`;
+    const netPcs = g.rowDetails.filter(r => r.type === 'NET').reduce((s, r) => s + r.pcs, 0);
+    headerHTML += `<th class="group-col">${g.label}-${g.mm}MM-${g.totalMD}MD(Pcs ${netPcs})</th>`;
   });
   headerHTML += '<th class="total-col">Total Pcs</th>';
   headerHTML += '<th class="total-col">All Pcs Weight</th>';
@@ -629,6 +683,174 @@ document.getElementById("analyse-btn").addEventListener("click", () => {
 
   document.getElementById("pwa-no-results").style.display = "none";
   document.getElementById("pwa-results-table").style.display = "";
+});
+
+/* Save button */
+document.getElementById("save-btn").addEventListener("click", () => {
+  const allGroups = getGroupsData();
+  if (allGroups.length === 0) {
+    alert("Please add at least one group before saving.");
+    return;
+  }
+
+  const multiplier = parseFloat(document.getElementById("knot-multiplier").value) || 1;
+  const expPW = parseFloat(document.getElementById("knot-exp-pw").value) || 0;
+  const knotResult = parseFloat(document.getElementById("knot-result").value) || 0;
+  const totalPcs = allGroups.reduce((sum, g) => {
+    return sum + g.rowDetails.filter(r => r.type === 'NET').reduce((s, r) => s + r.pcs, 0);
+  }, 0);
+
+  /* Calculate allPcsWeight */
+  let allPcsWeight = 0;
+  allGroups.forEach(g => {
+    const netPcs = g.rowDetails.filter(r => r.type === 'NET').reduce((s, r) => s + r.pcs, 0);
+    let weightPer1000Knots = 0;
+    g.rowDetails.forEach(r => { weightPer1000Knots += r.conv * r.mm * r.md; });
+    let groupWeight = (knotResult * weightPer1000Knots) / 1000;
+    allPcsWeight += groupWeight * netPcs;
+  });
+
+  const saveData = {
+    product: document.getElementById("pwa-product-code").value,
+    customer: document.getElementById("pwa-customer").value,
+    specification: document.getElementById("pwa-spec").value,
+    mm: document.getElementById("pwa-mm").value,
+    md: document.getElementById("pwa-md").value,
+    sel: document.getElementById("pwa-sel").value,
+    pw: document.getElementById("pwa-pw").value,
+    quantity: document.getElementById("pwa-qty").value,
+    unit: document.getElementById("pwa-unit").value,
+    addl_mesh_size: document.getElementById("pwa-addl-mesh").value,
+    groups: allGroups,
+    exp_piece_weight: expPW,
+    multiplier: multiplier,
+    knot_count: knotResult,
+    total_pcs: totalPcs,
+    all_pcs_weight: allPcsWeight,
+  };
+
+  document.getElementById("save-data").value = JSON.stringify(saveData);
+  document.getElementById("form-action").value = "save";
+  document.getElementById("pwa-form").submit();
+});
+
+/* Delete saved entry */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("delete-pwa")) return;
+  const key = e.target.dataset.key;
+  if (!confirm("Are you sure you want to delete this entry?")) return;
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = "";
+  const csrfInput = document.createElement("input");
+  csrfInput.type = "hidden";
+  csrfInput.name = "csrfmiddlewaretoken";
+  csrfInput.value = document.querySelector("[name=csrfmiddlewaretoken]").value;
+  form.appendChild(csrfInput);
+  const actionInput = document.createElement("input");
+  actionInput.type = "hidden";
+  actionInput.name = "action";
+  actionInput.value = "delete";
+  form.appendChild(actionInput);
+  const keyInput = document.createElement("input");
+  keyInput.type = "hidden";
+  keyInput.name = "pwa_key";
+  keyInput.value = key;
+  form.appendChild(keyInput);
+  document.body.appendChild(form);
+  form.submit();
+});
+
+/* Load saved entry */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("load-pwa")) return;
+  const key = e.target.dataset.key;
+  fetch(`/invoice/analytics/pwa/load/${key}/`, {
+    method: 'GET',
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.error) throw new Error(data.error);
+
+    /* Populate order details */
+    document.getElementById("pwa-customer").value = data.customer || "";
+    document.getElementById("pwa-spec").value = data.specification || "";
+    document.getElementById("pwa-mm").value = data.mm || "";
+    document.getElementById("pwa-md").value = data.md || "";
+    document.getElementById("pwa-sel").value = data.sel || "";
+    document.getElementById("pwa-pw").value = data.pw || "";
+    document.getElementById("pwa-qty").value = data.quantity || "";
+    document.getElementById("pwa-unit").value = data.unit || "KG";
+    document.getElementById("pwa-product-code").value = data.product || "";
+    document.getElementById("pwa-addl-mesh").value = data.addl_mesh_size || "";
+    document.getElementById("knot-exp-pw").value = data.exp_piece_weight || "";
+    document.getElementById("knot-multiplier").value = data.multiplier || "1";
+    document.getElementById("knot-group-label").textContent = "0";
+    document.getElementById("knot-result").value = data.knot_count || "";
+
+    /* Clear existing groups */
+    groupsContainer.innerHTML = "";
+    groupCounter = 0;
+
+    /* Rebuild groups from saved data */
+    if (data.groups && data.groups.length > 0) {
+      data.groups.forEach(g => {
+        groupCounter++;
+        const groupEl = document.createElement("div");
+        groupEl.className = "group-container border rounded p-3 mb-3";
+        groupEl.dataset.groupId = groupCounter;
+        groupEl.innerHTML = `
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn btn-sm btn-success add-net-to-group">+ Net</button>
+              <button type="button" class="btn btn-sm btn-warning add-sel-to-group">+ Sel</button>
+              <span class="fw-bold text-primary">Group ${groupCounter}</span>
+            </div>
+            <button type="button" class="btn btn-outline-danger btn-sm delete-group-btn">
+              <span data-feather="trash-2"></span> Delete Group
+            </button>
+          </div>
+          <div class="group-net-sel-container"></div>
+        `;
+        groupsContainer.appendChild(groupEl);
+        const container = groupEl.querySelector(".group-net-sel-container");
+
+        /* Add rows */
+        if (g.rowDetails) {
+          g.rowDetails.forEach(r => {
+            const div = document.createElement("div");
+            div.className = "row mb-2 align-items-end g-1 net-sel-row";
+            div.dataset.type = r.type;
+            const badgeClass = r.type === 'NET' ? 'success' : 'warning';
+            div.innerHTML = `
+              <div class="col-md-auto"><span class="badge bg-${badgeClass}">${r.type}</span></div>
+              <div class="col-md-1"><input type="number" step="0.1" class="form-control form-control-sm ns-mm" placeholder="MM" value="${r.mm || ''}"></div>
+              <div class="col-md-1"><input type="number" step="0.1" class="form-control form-control-sm ns-md" placeholder="MD" value="${r.md || ''}"></div>
+              <div class="col-md-1"><input type="number" class="form-control form-control-sm ns-pcs" placeholder="Pcs" value="${r.pcs || ''}"></div>
+              <div class="col-md-1"><input type="text" class="form-control form-control-sm ns-twine-count bg-light" placeholder="Twine Count" readonly value="${r.twineCount || ''}"></div>
+              <div class="col-md-2"><select class="form-select form-select-sm ns-select-twine">${buildTwineOptionsHTML(r.type === 'NET' ? data.product : '')}</select></div>
+              <div class="col-md-2"><input type="text" class="form-control form-control-sm ns-conv bg-light" placeholder="Conversion Factor" readonly value="${r.conv || ''}"></div>
+              <div class="col-md-auto"><button type="button" class="btn btn-outline-danger btn-sm remove-net-sel-row">&times;</button></div>
+            `;
+            container.appendChild(div);
+            const twineSelect = div.querySelector(".ns-select-twine");
+            if (r.twine) twineSelect.value = r.twine;
+          });
+        }
+      });
+    }
+    feather.replace();
+
+    /* Open the form */
+    const collapseEl = document.getElementById("pwaForm");
+    const bs = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, { toggle: false });
+    bs.show();
+  })
+  .catch(error => {
+    console.error('Error loading entry:', error);
+    alert('Failed to load entry: ' + error.message);
+  });
 });
 </script>
 {% endblock %}
