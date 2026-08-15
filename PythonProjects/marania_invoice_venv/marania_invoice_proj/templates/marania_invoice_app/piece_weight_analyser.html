@@ -557,11 +557,14 @@ function buildKnotSummaryTable(allGroups) {
     let rowClass = m === 1 ? '' : 'table-success';
     let row = `<tr class="${rowClass}">`;
     row += `<td class="total-col fw-bold">${Math.round(totalKnotCountBase * m)}</td>`;
+    let allPcsWeight = 0;
     allGroups.forEach((g, i) => {
       row += `<td class="group-col fw-bold">${(baseWeights[i] * m).toFixed(2)}</td>`;
+      /* All Pcs Weight = sum of (group weight x group NET pcs) */
+      const netPcs = g.rowDetails.filter(r => r.type === 'NET').reduce((s, r) => s + r.pcs, 0);
+      allPcsWeight += baseWeights[i] * m * netPcs;
     });
     row += `<td class="total-col">${totalPcs * m}</td>`;
-    const allPcsWeight = totalPcs * expPW * m;
     row += `<td class="total-col fw-bold">${allPcsWeight.toFixed(2)}</td>`;
     row += '</tr>';
     bodyHTML += row;
