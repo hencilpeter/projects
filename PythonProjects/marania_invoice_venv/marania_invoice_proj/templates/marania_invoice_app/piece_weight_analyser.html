@@ -420,9 +420,9 @@ function getGroupsData() {
     const rows = groupEl.querySelectorAll(".net-sel-row");
     let groupTotalTwine = 0;
     let groupTotalPcs = 0;
-    let groupConvFactor = 0;
     let groupMM = 0;
     let groupTotalMD = 0;
+    const rowDetails = [];
 
     rows.forEach(row => {
       const mm = parseFloat(row.querySelector(".ns-mm").value) || 0;
@@ -434,10 +434,8 @@ function getGroupsData() {
       groupTotalPcs += pcs;
       groupTotalMD += md;
       if (mm > 0) groupMM = mm;
-      if (conv > 0) groupConvFactor = conv;
+      rowDetails.push({ type: row.dataset.type, mm, md, pcs, twineCount, conv });
     });
-
-    const calculatedWeight = groupConvFactor > 0 ? (groupTotalTwine * groupConvFactor) : 0;
 
     allGroups.push({
       index: idx,
@@ -447,8 +445,7 @@ function getGroupsData() {
       totalMD: groupTotalMD,
       totalTwine: groupTotalTwine,
       totalPcs: groupTotalPcs,
-      convFactor: groupConvFactor,
-      calculatedWeight: calculatedWeight,
+      rowDetails: rowDetails,
     });
   });
   return allGroups;
@@ -511,27 +508,37 @@ function buildKnotSummaryTable(allGroups) {
   const expPW = parseFloat(document.getElementById("knot-exp-pw").value) || 0;
   let knotCountRow = '<tr>';
 
-  /* Knot Count = (Exp. Piece Weight / (Conv Factor x MM x MD)) x 1000 */
+  /* Knot Count per row = (Exp. Piece Weight / (Conv Factor x MM x MD)) x 1000 */
   let totalKnotCount = 0;
   allGroups.forEach(g => {
-    if (g.convFactor > 0 && g.mm > 0 && g.totalMD > 0) {
-      totalKnotCount += (expPW / (g.convFactor * g.mm * g.totalMD)) * 1000;
-    }
+    let groupKnotCount = 0;
+    g.rowDetails.forEach(r => {
+      if (r.conv > 0 && r.mm > 0 && r.md > 0) {
+        groupKnotCount += (expPW / (r.conv * r.mm * r.md)) * 1000;
+      }
+    });
+    totalKnotCount += groupKnotCount;
   });
   totalKnotCount *= multiplier;
   knotCountRow += `<td class="total-col fw-bold">${totalKnotCount.toFixed(1)}</td>`;
 
   allGroups.forEach(g => {
     let groupKnotCount = 0;
-    if (g.convFactor > 0 && g.mm > 0 && g.totalMD > 0) {
-      groupKnotCount = (expPW / (g.convFactor * g.mm * g.totalMD)) * 1000;
-    }
+    g.rowDetails.forEach(r => {
+      if (r.conv > 0 && r.mm > 0 && r.md > 0) {
+        groupKnotCount += (expPW / (r.conv * r.mm * r.md)) * 1000;
+      }
+    });
     groupKnotCount *= multiplier;
     knotCountRow += `<td class="group-col fw-bold">${groupKnotCount.toFixed(1)}</td>`;
   });
   const totalPcs = allGroups.reduce((sum, g) => sum + g.totalPcs, 0);
   knotCountRow += `<td class="total-col">${totalPcs}</td>`;
-  const allPcsWeight = allGroups.reduce((sum, g) => sum + g.calculatedWeight, 0) * multiplier;
+  const allPcsWeight = allGroups.reduce((sum, g) => {
+    let gw = 0;
+    g.rowDetails.forEach(r => { gw += r.conv * r.mm * r.twineCount; });
+    return sum + gw;
+  }, 0) * multiplier;
   knotCountRow += `<td class="total-col fw-bold">${allPcsWeight.toFixed(2)}</td>`;
   knotCountRow += '</tr>';
   tbody.innerHTML = knotCountRow;
@@ -567,7 +574,9 @@ document.getElementById("analyse-btn").addEventListener("click", () => {
 
   allGroups.forEach(group => {
     rowNum++;
-    const pieceWeight = group.totalPcs > 0 ? (group.calculatedWeight / group.totalPcs) : 0;
+    let calculatedWeight = 0;
+    group.rowDetails.forEach(r => { calculatedWeight += r.conv * r.mm * r.twineCount; });
+    const pieceWeight = group.totalPcs > 0 ? (calculatedWeight / group.totalPcs) : 0;
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -583,8 +592,8 @@ document.getElementById("analyse-btn").addEventListener("click", () => {
       <td>${unit}</td>
       <td>${addlMesh || '-'}</td>
       <td>${group.totalTwine.toFixed(1)}</td>
-      <td>${group.convFactor}</td>
-      <td class="fw-bold">${group.calculatedWeight.toFixed(2)}</td>
+      <td>${group.rowDetails.map(r => r.conv).join(', ')}</td>
+      <td class="fw-bold">${calculatedWeight.toFixed(2)}</td>
       <td class="fw-bold text-primary">${pieceWeight.toFixed(4)}</td>
     `;
     resultsBody.appendChild(tr);
