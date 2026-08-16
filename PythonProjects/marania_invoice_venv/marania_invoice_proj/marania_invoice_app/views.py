@@ -2466,7 +2466,9 @@ def sales_entry(request):
                 ono = entry.get("order_no") or ""
                 if ono:
                     order_nos.append(ono)
-                entry_sales_keys.append(entry.get('sales_key'))
+                sk = entry.get('sales_key')
+                if sk:
+                    entry_sales_keys.append(sk)
 
             if edit_mode == 'group_edit' and order_nos:
                 Sales.objects.filter(order_no__in=order_nos).delete()
