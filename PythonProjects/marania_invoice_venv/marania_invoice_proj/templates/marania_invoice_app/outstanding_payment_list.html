@@ -1,0 +1,86 @@
+{% extends "partials/base.html" %}
+
+{% block main %}
+<div class="container-fluid mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>Outstanding Payment List</h3>
+    <div class="d-flex align-items-center gap-2">
+      <label for="sort-select" class="form-label mb-0 fw-bold">Sort by Outstanding:</label>
+      <select id="sort-select" class="form-select form-select-sm" style="width:auto;" onchange="window.location.href='?sort='+this.value">
+        <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>Highest First (Descending)</option>
+        <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Lowest First (Ascending)</option>
+      </select>
+    </div>
+  </div>
+
+  {% if customer_summaries %}
+    {% for cs in customer_summaries %}
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header d-flex justify-content-between align-items-center"
+           style="background-color: #1a237e; color: white;">
+        <h5 class="mb-0">{{ cs.customer_name|upper }}</h5>
+        <span>{{ today }}</span>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-bordered table-sm mb-0">
+          <thead class="table-dark">
+            <tr>
+              <th style="width:50px;">#</th>
+              <th style="width:120px;">Date</th>
+              <th>Invoice/Ref #</th>
+              <th>Description</th>
+              <th style="width:140px; text-align:right;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in cs.entries %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td>{{ entry.entry_date }}</td>
+              <td>
+                {% if 'Invoice' in entry.description %}
+                  {{ entry.description|slice:"9:-1" }}
+                {% elif 'Opening Balance' in entry.description %}
+                  {{ entry.description|slice:"17:-1" }}
+                {% elif 'Payment Received' in entry.description %}
+                  {{ entry.description|slice:"18:-1" }}
+                {% elif 'Payment Adjustment' in entry.description %}
+                  {{ entry.description|slice:"22:-1" }}
+                {% elif 'Expense' in entry.description %}
+                  {{ entry.description|slice:"9:-1" }}
+                {% else %}
+                  {{ entry.description }}
+                {% endif %}
+              </td>
+              <td>{{ entry.description }}</td>
+              <td style="text-align:right; font-weight:bold; color: {% if entry.type == 'Dr' %}red{% else %}green{% endif %};">
+                {% if entry.type == 'Cr' %}+{% endif %}{{ entry.amount|floatformat:2 }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr style="background-color: {% if cs.outstanding_balance > 0 %}#ff9800{% elif cs.outstanding_balance < 0 %}#4caf50{% else %}#9e9e9e{% endif %}; color: white; font-weight: bold;">
+              <td colspan="4" class="text-center">
+                {% if cs.outstanding_balance > 0 %}
+                  Outstanding Balance
+                {% elif cs.outstanding_balance < 0 %}
+                  Credit Balance
+                {% else %}
+                  Balance
+                {% endif %}
+              </td>
+              <td style="text-align:right;">
+                Rs {{ cs.outstanding_balance|floatformat:2 }}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="alert alert-info">No outstanding payments found.</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -5919,3 +5919,126 @@ def load_pwa_view(request, pk):
     except PieceWeightAnalyser.DoesNotExist:
         return JsonResponse({"error": "Entry not found"}, status=404)
 
+
+@login_required
+def outstanding_payment_list_view(request):
+    from .models import Parties, Invoice, PaymentReceipt, PaymentAllocation, OpeningBalance, Expense
+    from django.db.models import Sum
+    import json
+
+    parties = Parties.objects.all().order_by('name')
+    today_str = "16 Aug 2026"
+
+    customer_summaries = []
+
+    for party in parties:
+        code = party.code
+        entries = []
+
+        # Opening balances with outstanding balance > 0
+        for ob in OpeningBalance.objects.filter(customer__code=code):
+            alloc_total = PaymentAllocation.objects.filter(
+                opening_balance=ob
+            ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+            balance = float(ob.amount) - float(alloc_total)
+            if balance > 0:
+                dr_cr = 'Dr' if ob.balance_type == 'Debit' else 'Cr'
+                entries.append({
+                    'entry_date': str(ob.opening_date),
+                    'description': f"Opening Balance ({ob.ob_number or f'OBAL-{ob.opening_balance_id}'})",
+                    'type': dr_cr,
+                    'amount': round(balance, 2),
+                })
+
+        # Unpaid invoices (balance > 0)
+        for inv in Invoice.objects.filter(customer_code=code):
+            alloc_total = PaymentAllocation.objects.filter(
+                invoice=inv
+            ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+            balance = float(inv.gross_total) - float(alloc_total)
+            if balance > 0:
+                entries.append({
+                    'entry_date': str(inv.invoice_date) if inv.invoice_date else '',
+                    'description': f"Invoice ({inv.invoice_number})",
+                    'type': 'Dr',
+                    'amount': round(balance, 2),
+                })
+
+        # Customer expenses with outstanding balance > 0
+        for exp in Expense.objects.filter(bill_to='Customer'):
+            vendor = exp.vendor or ''
+            if vendor and vendor != 'Not Applicable':
+                exp_code = vendor.split('-')[0].strip()
+                if exp_code == code:
+                    alloc_total = PaymentAllocation.objects.filter(
+                        expense=exp
+                    ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+                    balance = float(exp.expense_amount) - float(alloc_total)
+                    if balance > 0:
+                        entries.append({
+                            'entry_date': str(exp.expense_date) if exp.expense_date else '',
+                            'description': f"Expense ({exp.expense_category} EXP-{exp.expense_id})",
+                            'type': 'Dr',
+                            'amount': round(balance, 2),
+                        })
+
+        # Unallocated payment receipts (available balance > 0)
+        for receipt in PaymentReceipt.objects.filter(customer__code=code):
+            alloc_total = PaymentAllocation.objects.filter(
+                payment=receipt
+            ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+            available = float(receipt.total_received) - float(alloc_total)
+            if available > 0:
+                ttype = receipt.transaction_type or 'Payment'
+                if ttype == 'Payment':
+                    desc = f"Payment Received ({receipt.receipt_no})"
+                elif ttype == 'Adjustment(Cr)':
+                    desc = f"Payment Adjustment(Cr) ({receipt.receipt_no})"
+                elif ttype == 'Adjustment(Dr)':
+                    desc = f"Payment Adjustment(Dr) ({receipt.receipt_no})"
+                else:
+                    desc = f"Received Payment ({receipt.receipt_no})"
+                entries.append({
+                    'entry_date': str(receipt.payment_date) if receipt.payment_date else '',
+                    'description': desc,
+                    'type': 'Cr',
+                    'amount': round(available, 2),
+                })
+
+        if not entries:
+            continue
+
+        # Sort by date
+        entries.sort(key=lambda e: e['entry_date'])
+
+        # Compute running balance
+        running = 0.0
+        for e in entries:
+            if e['type'] == 'Dr':
+                running += e['amount']
+            else:
+                running -= e['amount']
+            e['running_balance'] = round(running, 2)
+
+        outstanding_balance = running
+
+        customer_summaries.append({
+            'customer_name': party.name,
+            'entries': entries,
+            'outstanding_balance': outstanding_balance,
+        })
+
+    # Sort: positive outstanding descending, then credit (negative) at bottom
+    customer_summaries.sort(key=lambda c: (-c['outstanding_balance'] if c['outstanding_balance'] > 0 else -999999 - abs(c['outstanding_balance'])))
+
+    # Default sort by outstanding balance descending
+    sort_order = request.GET.get('sort', 'desc')
+    if sort_order == 'asc':
+        customer_summaries.sort(key=lambda c: c['outstanding_balance'])
+
+    return render(request, 'marania_invoice_app/outstanding_payment_list.html', {
+        'customer_summaries': customer_summaries,
+        'today': today_str,
+        'sort_order': sort_order,
+    })
+

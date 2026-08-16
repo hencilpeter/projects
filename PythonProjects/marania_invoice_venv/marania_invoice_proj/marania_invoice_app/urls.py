@@ -119,6 +119,9 @@ path('analytics/profit-analytics', views.profit_analytics_view, name='profit_ana
 path('analytics/piece-weight-analyser', views.piece_weight_analyser_view, name='piece_weight_analyser'),
 path('analytics/pwa/load/<int:pk>/', views.load_pwa_view, name='load_pwa'),
 
+# Reports
+path('reports/outstanding-payment-list', views.outstanding_payment_list_view, name='outstanding_payment_list'),
+
 # excel 
 path('sheets/salesview', views.sheet_sales_view, name="sheet_sales_view"),
 path('sheets/salessave', views.sheet_sales_save, name="sheet_sales_save"),
