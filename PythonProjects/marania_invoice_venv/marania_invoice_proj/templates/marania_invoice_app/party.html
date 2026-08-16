@@ -252,6 +252,45 @@ document.addEventListener('click', e => {
     });
 });
 
+// Auto-load party when code field loses focus
+const codeInput = form.querySelector('input[name="code"]');
+if (codeInput) {
+  codeInput.addEventListener('blur', function() {
+    const code = this.value.trim();
+    if (!code) return;
+    fetch(`/invoice/parties/load/${code}/`)
+      .then(res => {
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then(data => {
+        if (!data) return;
+        form.querySelector('input[name="name"]').value = data.name || '';
+        form.querySelector('input[name="gst"]').value = data.gst || '';
+        form.querySelector('input[name="phone"]').value = data.phone || '';
+        form.querySelector('input[name="email"]').value = data.email || '';
+        form.querySelector('textarea[name="address_bill_to"]').value = data.address_bill_to || '';
+        form.querySelector('textarea[name="address_ship_to"]').value = data.address_ship_to || '';
+        form.querySelector('select[name="is_within_state"]').value = data.is_within_state ? 'True' : 'False';
+        form.querySelectorAll('input[name="partyroles"]').forEach(cb => {
+          cb.checked = data.roles.includes(parseInt(cb.value));
+        });
+        container.innerHTML = '';
+        rowIndex = -1;
+        data.transport_details.forEach((t, i) => {
+          rowIndex++;
+          const row = createTransportRow(rowIndex);
+          row.querySelector('input[name="delivery_place[]"]').value = t.delivery_place;
+          row.querySelector('input[name="transporter_name[]"]').value = t.transporter_name;
+          row.querySelector('input[name="transporter_gst[]"]').value = t.transporter_gst;
+          row.querySelector('input[name="vehicle_name_number[]"]').value = t.vehicle_name_number;
+          if (t.is_default) row.querySelector('input[type="radio"]').checked = true;
+          container.appendChild(row);
+        });
+      });
+  });
+}
+
 // ===== Table Filters =====
 const table = document.getElementById('customer-table');
 const tbody = table.querySelector('tbody');
