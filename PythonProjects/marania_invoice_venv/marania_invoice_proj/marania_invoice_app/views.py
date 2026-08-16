@@ -5929,6 +5929,11 @@ def outstanding_payment_list_view(request):
     parties = Parties.objects.all().order_by('name')
     today_str = "16 Aug 2026"
 
+    # Customer filter
+    customer_filter = request.GET.get('customer', '')
+    if customer_filter:
+        parties = parties.filter(code=customer_filter)
+
     customer_summaries = []
 
     for party in parties:
@@ -6029,15 +6034,18 @@ def outstanding_payment_list_view(request):
         })
 
     # Sort: positive outstanding descending, then credit (negative) at bottom
-    customer_summaries.sort(key=lambda c: (-c['outstanding_balance'] if c['outstanding_balance'] > 0 else -999999 - abs(c['outstanding_balance'])))
-
-    # Default sort by outstanding balance descending
     sort_order = request.GET.get('sort', 'desc')
-    if sort_order == 'asc':
-        customer_summaries.sort(key=lambda c: c['outstanding_balance'])
+    if sort_order == 'desc':
+        # Descending: positive outstanding first (highest first), then credit (negative) at bottom
+        customer_summaries.sort(key=lambda c: (0 if c['outstanding_balance'] > 0 else 1, -abs(c['outstanding_balance'])))
+    else:
+        # Ascending: credit (negative) first (most negative first), then positive outstanding
+        customer_summaries.sort(key=lambda c: (1 if c['outstanding_balance'] > 0 else 0, abs(c['outstanding_balance'])))
 
     return render(request, 'marania_invoice_app/outstanding_payment_list.html', {
         'customer_summaries': customer_summaries,
+        'all_parties': Parties.objects.all().order_by('name'),
+        'selected_customer': customer_filter,
         'today': today_str,
         'sort_order': sort_order,
     })
