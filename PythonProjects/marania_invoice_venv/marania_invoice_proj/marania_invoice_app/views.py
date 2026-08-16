@@ -6044,11 +6044,16 @@ def outstanding_payment_list_view(request):
         # Ascending: credit (negative) first (most negative first), then positive outstanding
         customer_summaries.sort(key=lambda c: (1 if c['outstanding_balance'] > 0 else 0, abs(c['outstanding_balance'])))
 
+    total_outstanding = sum(c['outstanding_balance'] for c in customer_summaries if c['outstanding_balance'] > 0)
+    total_credit = sum(c['outstanding_balance'] for c in customer_summaries if c['outstanding_balance'] < 0)
+
     return render(request, 'marania_invoice_app/outstanding_payment_list.html', {
         'customer_summaries': customer_summaries,
         'all_parties': Parties.objects.all().order_by('name'),
         'selected_customer': customer_filter,
         'today': today_str,
         'sort_order': sort_order,
+        'total_outstanding': total_outstanding,
+        'total_credit': total_credit,
     })
 
