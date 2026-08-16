@@ -143,6 +143,7 @@
         <strong>Formula:</strong> Weight per 1000 knots = Σ(Conv Factor × MM × MD) for each row &nbsp;|&nbsp;
         Knot Count = (Exp. Piece Weight / Weight per 1000 knots) × 1000
       </div>
+      <div id="order-details-banner" class="alert alert-secondary mb-2" style="display:none;"></div>
       <div class="table-responsive mb-4">
         <table class="table table-bordered table-sm knot-summary-table" id="knot-summary-table">
           <thead id="knot-summary-head"></thead>
@@ -269,11 +270,12 @@ let groupCounter = 0;
 
 /* Populate order dropdown */
 const allOrderOptions = [];
+const ordersMap = {};
 ordersData.forEach(o => {
+  ordersMap[o.order_key] = o;
   const opt = document.createElement("option");
   opt.value = o.order_key;
   opt.textContent = `${o.order_number} - ${o.customer} - ${o.twine || ''}`;
-  opt.dataset.order = JSON.stringify(o);
   allOrderOptions.push(opt);
 });
 
@@ -283,7 +285,7 @@ function populateOrderDropdown(filterCode) {
     if (!filterCode) {
       orderSelect.appendChild(opt.cloneNode(true));
     } else {
-      const o = JSON.parse(opt.dataset.order);
+      const o = ordersMap[opt.value];
       if ((o.product_code || "").toLowerCase() === filterCode.toLowerCase()) {
         orderSelect.appendChild(opt.cloneNode(true));
       }
@@ -300,8 +302,9 @@ filterProductSelect.addEventListener("change", () => {
 /* Populate order details */
 function populateOrderFields() {
   const opt = orderSelect.selectedOptions[0];
-  if (!opt || !opt.dataset.order) return;
-  const o = JSON.parse(opt.dataset.order);
+  if (!opt || !opt.value) return;
+  const o = ordersMap[opt.value];
+  if (!o) return;
   document.getElementById("pwa-customer").value = o.customer || "";
   document.getElementById("pwa-spec").value = o.specification || "";
   document.getElementById("pwa-mm").value = o.mm || "";
@@ -311,6 +314,25 @@ function populateOrderFields() {
   document.getElementById("pwa-qty").value = o.quantity || "";
   document.getElementById("pwa-unit").value = o.quantity_unit || "KG";
   document.getElementById("pwa-product-code").value = o.product_code || "";
+
+  /* Build order details banner */
+  const banner = document.getElementById("order-details-banner");
+  if (o.all_specs && o.all_specs.length > 0) {
+    const roman = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x'];
+    let specsHtml = '';
+    o.all_specs.forEach((sp, idx) => {
+      const md = sp.mesh_depth || '-';
+      const sel = sp.salvage || '-';
+      const pw = sp.piece_weight || '-';
+      const pcs = sp.no_of_pcs || '-';
+      const label = roman[idx] || (idx + 1);
+      specsHtml += `<li>${md}MD-${sel} SEL-PW(${pw})-PCs(${pcs})</li>`;
+    });
+    banner.innerHTML = `<strong>${o.product_code || ''} Order</strong> (Date: ${o.order_date || '-'}, Order# ${o.order_number || '-'}):<ol class="mb-0 ps-3">${specsHtml}</ol>`;
+    banner.style.display = "";
+  } else {
+    banner.style.display = "none";
+  }
 }
 
 document.getElementById("fetch-order-btn").addEventListener("click", populateOrderFields);

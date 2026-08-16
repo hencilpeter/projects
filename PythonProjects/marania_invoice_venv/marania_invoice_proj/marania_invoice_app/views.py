@@ -5782,7 +5782,18 @@ def piece_weight_analyser_view(request):
     orders = Order.objects.exclude(status__in=["Completed", "Cancelled", "Rejected"]).select_related().prefetch_related("specifications")
     orders_data = []
     for o in orders:
-        spec = o.specifications.first()
+        specs = o.specifications.all()
+        specs_list = []
+        for sp in specs:
+            specs_list.append({
+                "mesh_size": str(sp.mesh_size) if sp.mesh_size else "",
+                "mesh_depth": sp.mesh_depth or "",
+                "salvage": sp.salvage or "",
+                "piece_weight": sp.piece_weight or "",
+                "no_of_pcs": sp.no_of_pcs or "",
+                "colour": sp.colour or "",
+            })
+        first_spec = specs.first()
         orders_data.append({
             "order_key": o.order_key,
             "order_number": o.order_number,
@@ -5790,12 +5801,14 @@ def piece_weight_analyser_view(request):
             "twine": o.twine,
             "quantity": str(o.quantity),
             "quantity_unit": o.quantity_unit or "KG",
-            "specification": f"{spec.mesh_size or ''}MM-{spec.mesh_depth or ''}MD-{spec.salvage or ''}SEL" if spec else "",
-            "mm": str(spec.mesh_size) if spec and spec.mesh_size else "",
-            "md": spec.mesh_depth if spec else "",
-            "sel": spec.salvage if spec else "",
-            "pw": spec.piece_weight if spec else "",
+            "order_date": o.order_date.strftime("%Y-%m-%d") if o.order_date else "",
+            "specification": f"{first_spec.mesh_size or ''}MM-{first_spec.mesh_depth or ''}MD-{first_spec.salvage or ''}SEL" if first_spec else "",
+            "mm": str(first_spec.mesh_size) if first_spec and first_spec.mesh_size else "",
+            "md": first_spec.mesh_depth if first_spec else "",
+            "sel": first_spec.salvage if first_spec else "",
+            "pw": first_spec.piece_weight if first_spec else "",
             "product_code": o.twine or "",
+            "all_specs": specs_list,
         })
 
     products = Product.objects.all().order_by("code")
