@@ -328,7 +328,7 @@ function populateOrderFields() {
       const label = roman[idx] || (idx + 1);
       specsHtml += `<li>${md}MD-${sel} SEL-PW(${pw})-PCs(${pcs})</li>`;
     });
-    banner.innerHTML = `<strong>${o.product_code || ''} Order</strong> (Date: ${o.order_date || '-'}, Order# ${o.order_number || '-'}):<ol class="mb-0 ps-3">${specsHtml}</ol>`;
+    banner.innerHTML = `<strong>${o.product_code || ''}-${o.mm || ''}MM Order</strong> (Date: ${o.order_date || '-'}, Order# ${o.order_number || '-'}):<ol class="mb-0 ps-3">${specsHtml}</ol>`;
     banner.style.display = "";
   } else {
     banner.style.display = "none";
