@@ -5768,6 +5768,10 @@ def piece_weight_analyser_view(request):
                     knot_count=float(data.get("knot_count") or 0) or None,
                     total_pcs=int(data.get("total_pcs") or 0) or None,
                     all_pcs_weight=float(data.get("all_pcs_weight") or 0) or None,
+                    all_specs=data.get("all_specs"),
+                    order_date=data.get("order_date", ""),
+                    order_number=data.get("order_number", ""),
+                    order_key=int(data.get("order_key") or 0) or None,
                 )
                 messages.success(request, "Piece Weight Analyser entry saved.")
 
@@ -5837,6 +5841,10 @@ def piece_weight_analyser_view(request):
             "knot_count": str(s.knot_count) if s.knot_count else "",
             "total_pcs": s.total_pcs or 0,
             "all_pcs_weight": str(s.all_pcs_weight) if s.all_pcs_weight else "",
+            "all_specs": s.all_specs or [],
+            "order_date": s.order_date or "",
+            "order_number": s.order_number or "",
+            "order_key": s.order_key or "",
             "created_at": s.created_at.strftime("%Y-%m-%d %H:%M") if s.created_at else "",
         })
 
@@ -5851,7 +5859,7 @@ def piece_weight_analyser_view(request):
 
 @login_required
 def load_pwa_view(request, pk):
-    from .models import PieceWeightAnalyser
+    from .models import PieceWeightAnalyser, Order, OrderSpecification
     import json
 
     try:
@@ -5862,6 +5870,28 @@ def load_pwa_view(request, pk):
                 groups = json.loads(entry.groups_data)
             except:
                 pass
+
+        all_specs = entry.all_specs or []
+        order_date = entry.order_date or ""
+        order_number = entry.order_number or ""
+
+        if not all_specs and entry.order_key:
+            try:
+                order = Order.objects.get(pk=entry.order_key)
+                order_date = order.order_date.strftime("%Y-%m-%d") if order.order_date else ""
+                order_number = order.order_number or ""
+                for sp in order.specifications.all():
+                    all_specs.append({
+                        "mesh_size": str(sp.mesh_size) if sp.mesh_size else "",
+                        "mesh_depth": sp.mesh_depth or "",
+                        "salvage": sp.salvage or "",
+                        "piece_weight": sp.piece_weight or "",
+                        "no_of_pcs": sp.no_of_pcs or "",
+                        "colour": sp.colour or "",
+                    })
+            except Order.DoesNotExist:
+                pass
+
         data = {
             "pwa_key": entry.pwa_key,
             "product": entry.product or "",
@@ -5880,6 +5910,10 @@ def load_pwa_view(request, pk):
             "knot_count": str(entry.knot_count) if entry.knot_count else "",
             "total_pcs": entry.total_pcs or 0,
             "all_pcs_weight": str(entry.all_pcs_weight) if entry.all_pcs_weight else "",
+            "all_specs": all_specs,
+            "order_date": order_date,
+            "order_number": order_number,
+            "order_key": entry.order_key or "",
         }
         return JsonResponse(data)
     except PieceWeightAnalyser.DoesNotExist:

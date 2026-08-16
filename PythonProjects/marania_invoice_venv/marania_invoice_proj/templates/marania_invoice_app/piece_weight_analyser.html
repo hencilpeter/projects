@@ -152,37 +152,6 @@
       </div>
     </div>
 
-    <!-- Results Table -->
-    <h5>Weight Analysis Results</h5>
-    <div id="pwa-results-container">
-      <div class="table-responsive">
-        <table class="table table-bordered table-hover table-sm" id="pwa-results-table">
-          <thead class="table-dark">
-            <tr>
-              <th>#</th>
-              <th>Product</th>
-              <th>Customer</th>
-              <th>Specification</th>
-              <th>MM</th>
-              <th>MD</th>
-              <th>Sel</th>
-              <th>PW</th>
-              <th>Quantity</th>
-              <th>Unit</th>
-              <th>Addl. Mesh</th>
-              <th>Total Twine</th>
-              <th>Conversion Factor</th>
-              <th>Calculated Weight</th>
-              <th>Piece Weight</th>
-            </tr>
-          </thead>
-          <tbody id="pwa-results-body">
-          </tbody>
-        </table>
-      </div>
-      <div id="pwa-no-results" class="alert alert-info" style="display:none;">No analysis results yet. Configure groups and click Analyse.</div>
-    </div>
-
     <hr>
 
     <h5>Saved Piece Weight Details</h5>
@@ -267,6 +236,10 @@ const orderSelect = document.getElementById("fetch-order");
 const filterProductSelect = document.getElementById("filter-product");
 const groupsContainer = document.getElementById("groups-container");
 let groupCounter = 0;
+let currentAllSpecs = [];
+let currentOrderDate = "";
+let currentOrderNumber = "";
+let currentOrderKey = "";
 
 /* Populate order dropdown */
 const allOrderOptions = [];
@@ -314,6 +287,10 @@ function populateOrderFields() {
   document.getElementById("pwa-qty").value = o.quantity || "";
   document.getElementById("pwa-unit").value = o.quantity_unit || "KG";
   document.getElementById("pwa-product-code").value = o.product_code || "";
+  currentAllSpecs = o.all_specs || [];
+  currentOrderDate = o.order_date || "";
+  currentOrderNumber = o.order_number || "";
+  currentOrderKey = o.order_key || "";
 
   /* Build order details banner */
   const banner = document.getElementById("order-details-banner");
@@ -672,39 +649,6 @@ document.getElementById("analyse-btn").addEventListener("click", () => {
   /* Also build knot summary table */
   buildKnotSummaryTable(allGroups);
 
-  const resultsBody = document.getElementById("pwa-results-body");
-  resultsBody.innerHTML = "";
-  let rowNum = 0;
-
-  allGroups.forEach(group => {
-    rowNum++;
-    let calculatedWeight = 0;
-    group.rowDetails.forEach(r => { calculatedWeight += r.conv * r.mm * r.twineCount; });
-    const pieceWeight = group.totalPcs > 0 ? (calculatedWeight / group.totalPcs) : 0;
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${rowNum}</td>
-      <td>${productCode}</td>
-      <td>${customer}</td>
-      <td>${spec}</td>
-      <td>${group.mm}</td>
-      <td>${group.totalMD}</td>
-      <td>${sel}</td>
-      <td>${pw}</td>
-      <td>${qty}</td>
-      <td>${unit}</td>
-      <td>${addlMesh || '-'}</td>
-      <td>${group.totalTwine.toFixed(1)}</td>
-      <td>${group.rowDetails.map(r => r.conv).join(', ')}</td>
-      <td class="fw-bold">${calculatedWeight.toFixed(2)}</td>
-      <td class="fw-bold text-primary">${pieceWeight.toFixed(4)}</td>
-    `;
-    resultsBody.appendChild(tr);
-  });
-
-  document.getElementById("pwa-no-results").style.display = "none";
-  document.getElementById("pwa-results-table").style.display = "";
 });
 
 /* Save button */
@@ -749,6 +693,10 @@ document.getElementById("save-btn").addEventListener("click", () => {
     knot_count: knotResult,
     total_pcs: totalPcs,
     all_pcs_weight: allPcsWeight,
+    all_specs: currentAllSpecs,
+    order_date: currentOrderDate,
+    order_number: currentOrderNumber,
+    order_key: currentOrderKey,
   };
 
   document.getElementById("save-data").value = JSON.stringify(saveData);
@@ -808,8 +756,46 @@ document.addEventListener("click", e => {
     document.getElementById("pwa-addl-mesh").value = data.addl_mesh_size || "";
     document.getElementById("knot-exp-pw").value = data.exp_piece_weight || "";
     document.getElementById("knot-multiplier").value = data.multiplier || "1";
-    document.getElementById("knot-group-label").textContent = "0";
+    document.getElementById("knot-group-input").value = data.groups && data.groups.length > 0 ? "1" : "";
+    document.getElementById("knot-group-label").textContent = data.groups && data.groups.length > 0 ? "1" : "0";
     document.getElementById("knot-result").value = data.knot_count || "";
+
+    /* Track loaded data for re-saving */
+    currentAllSpecs = data.all_specs || [];
+    currentOrderDate = data.order_date || "";
+    currentOrderNumber = data.order_number || "";
+    currentOrderKey = data.order_key || "";
+
+    /* Build order details banner from saved data */
+    const banner = document.getElementById("order-details-banner");
+    const allSpecs = data.all_specs || [];
+    const groups = data.groups || [];
+    if (allSpecs.length > 0) {
+      const roman = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x'];
+      let specsHtml = '';
+      allSpecs.forEach((sp, idx) => {
+        const md = sp.mesh_depth || '-';
+        const sel = sp.salvage || '-';
+        const pw = sp.piece_weight || '-';
+        const pcs = sp.no_of_pcs || '-';
+        specsHtml += `<li>${md}MD-${sel} SEL-PW(${pw})-PCs(${pcs})</li>`;
+      });
+      banner.innerHTML = `<strong>${data.product || ''}-${data.mm || ''}MM Order</strong> (Date: ${data.order_date || '-'}, Order# ${data.order_number || '-'}):<ol class="mb-0 ps-3">${specsHtml}</ol>`;
+      banner.style.display = "";
+    } else if (groups.length > 0) {
+      /* Fallback: show groups summary from saved groups_data */
+      const roman = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x'];
+      let specsHtml = '';
+      groups.forEach((g, idx) => {
+        const md = g.rowDetails && g.rowDetails.length > 0 ? g.rowDetails[0].md || '-' : '-';
+        const mm = g.rowDetails && g.rowDetails.length > 0 ? g.rowDetails[0].mm || '-' : '-';
+        specsHtml += `<li>${md}MD-${mm}MM</li>`;
+      });
+      banner.innerHTML = `<strong>${data.product || ''} Order</strong> (Saved Entry):<ol class="mb-0 ps-3">${specsHtml}</ol>`;
+      banner.style.display = "";
+    } else {
+      banner.style.display = "none";
+    }
 
     /* Clear existing groups */
     groupsContainer.innerHTML = "";

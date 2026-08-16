@@ -869,6 +869,10 @@ class PieceWeightAnalyser(models.Model):
     knot_count = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     total_pcs = models.IntegerField(blank=True, null=True)
     all_pcs_weight = models.DecimalField(max_digits=15, decimal_places=4, blank=True, null=True)
+    all_specs = models.JSONField(blank=True, null=True)
+    order_date = models.CharField(max_length=50, blank=True, null=True)
+    order_number = models.CharField(max_length=100, blank=True, null=True)
+    order_key = models.IntegerField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
