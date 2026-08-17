@@ -3510,16 +3510,20 @@ def payment_allocation_entry(request):
                 ttype = receipt.transaction_type or 'Payment'
                 if ttype == 'Payment':
                     desc = f"Payment Received ({receipt.receipt_no})"
+                    entry_type = 'Cr'
                 elif ttype == 'Adjustment(Cr)':
                     desc = f"Payment Adjustment(Cr) ({receipt.receipt_no})"
+                    entry_type = 'Cr'
                 elif ttype == 'Adjustment(Dr)':
                     desc = f"Payment Adjustment(Dr) ({receipt.receipt_no})"
+                    entry_type = 'Dr'
                 else:
                     desc = f"Received Payment ({receipt.receipt_no})"
+                    entry_type = 'Cr'
                 entries.append({
                     'entry_date': str(receipt.payment_date) if receipt.payment_date else '',
                     'description': desc,
-                    'type': 'Cr',
+                    'type': entry_type,
                     'amount': available,
                 })
 
@@ -5999,16 +6003,20 @@ def outstanding_payment_list_view(request):
                 ttype = receipt.transaction_type or 'Payment'
                 if ttype == 'Payment':
                     desc = f"Payment Received ({receipt.receipt_no})"
+                    entry_type = 'Cr'
                 elif ttype == 'Adjustment(Cr)':
                     desc = f"Payment Adjustment(Cr) ({receipt.receipt_no})"
+                    entry_type = 'Cr'
                 elif ttype == 'Adjustment(Dr)':
                     desc = f"Payment Adjustment(Dr) ({receipt.receipt_no})"
+                    entry_type = 'Dr'
                 else:
                     desc = f"Received Payment ({receipt.receipt_no})"
+                    entry_type = 'Cr'
                 entries.append({
                     'entry_date': str(receipt.payment_date) if receipt.payment_date else '',
                     'description': desc,
-                    'type': 'Cr',
+                    'type': entry_type,
                     'amount': round(available, 2),
                 })
 
