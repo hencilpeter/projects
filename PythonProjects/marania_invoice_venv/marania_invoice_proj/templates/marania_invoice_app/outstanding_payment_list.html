@@ -67,21 +67,7 @@
             <tr>
               <td>{{ forloop.counter }}</td>
               <td>{{ entry.entry_date }}</td>
-              <td>
-                {% if 'Invoice' in entry.description %}
-                  {{ entry.description|slice:"9:-1" }}
-                {% elif 'Opening Balance' in entry.description %}
-                  {{ entry.description|slice:"17:-1" }}
-                {% elif 'Payment Received' in entry.description %}
-                  {{ entry.description|slice:"18:-1" }}
-                {% elif 'Payment Adjustment' in entry.description %}
-                  {{ entry.description|slice:"22:-1" }}
-                {% elif 'Expense' in entry.description %}
-                  {{ entry.description|slice:"9:-1" }}
-                {% else %}
-                  {{ entry.description }}
-                {% endif %}
-              </td>
+              <td>{{ entry.ref_number }}</td>
               <td>{{ entry.description }}</td>
               <td style="text-align:right; font-weight:bold; color: {% if entry.type == 'Dr' %}red{% else %}green{% endif %};">
                 {% if entry.type == 'Dr' %}-{% else %}+{% endif %}{{ entry.amount|floatformat:2 }}

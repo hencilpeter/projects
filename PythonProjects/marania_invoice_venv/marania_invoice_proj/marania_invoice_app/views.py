@@ -3461,9 +3461,13 @@ def payment_allocation_entry(request):
             balance = float(ob.amount) - float(alloc_total)
             if balance > 0:
                 dr_cr = 'Dr' if ob.balance_type == 'Debit' else 'Cr'
+                comment = ob.display_comment or ''
+                desc = 'Opening Balance'
+                if comment:
+                    desc += f' ({comment})'
                 entries.append({
                     'entry_date': str(ob.opening_date),
-                    'description': f"Opening Balance ({ob.ob_number or f'OBAL-{ob.opening_balance_id}'})",
+                    'description': desc,
                     'type': dr_cr,
                     'amount': balance,
                 })
@@ -3477,7 +3481,7 @@ def payment_allocation_entry(request):
             if balance > 0:
                 entries.append({
                     'entry_date': str(inv.invoice_date) if inv.invoice_date else '',
-                    'description': f"Invoice ({inv.invoice_number})",
+                    'description': 'Invoice issued',
                     'type': 'Dr',
                     'amount': balance,
                 })
@@ -3493,9 +3497,13 @@ def payment_allocation_entry(request):
                     ).aggregate(total=Sum('allocated_amount'))['total'] or 0
                     balance = float(exp.expense_amount) - float(alloc_total)
                     if balance > 0:
+                        comment = exp.display_comment or ''
+                        desc = exp.expense_category or 'Expense'
+                        if comment:
+                            desc += f' ({comment})'
                         entries.append({
                             'entry_date': str(exp.expense_date) if exp.expense_date else '',
-                            'description': f"Expense ({exp.expense_category} EXP-{exp.expense_id})",
+                            'description': desc,
                             'type': 'Dr',
                             'amount': balance,
                         })
@@ -3508,18 +3516,21 @@ def payment_allocation_entry(request):
             available = float(receipt.total_received) - float(alloc_total)
             if available > 0:
                 ttype = receipt.transaction_type or 'Payment'
+                comment = receipt.display_comment or ''
                 if ttype == 'Payment':
-                    desc = f"Payment Received ({receipt.receipt_no})"
+                    desc = 'Payment Received'
                     entry_type = 'Cr'
                 elif ttype == 'Adjustment(Cr)':
-                    desc = f"Payment Adjustment(Cr) ({receipt.receipt_no})"
+                    desc = 'Payment Adjustment(Cr)'
                     entry_type = 'Cr'
                 elif ttype == 'Adjustment(Dr)':
-                    desc = f"Payment Adjustment(Dr) ({receipt.receipt_no})"
+                    desc = 'Payment Adjustment(Dr)'
                     entry_type = 'Dr'
                 else:
-                    desc = f"Received Payment ({receipt.receipt_no})"
+                    desc = 'Received Payment'
                     entry_type = 'Cr'
+                if comment:
+                    desc += f' ({comment})'
                 entries.append({
                     'entry_date': str(receipt.payment_date) if receipt.payment_date else '',
                     'description': desc,
@@ -5933,7 +5944,8 @@ def outstanding_payment_list_view(request):
     import json
 
     parties = Parties.objects.all().order_by('name')
-    today_str = "16 Aug 2026"
+    from datetime import date
+    today_str = date.today().strftime("%d %b %Y")
 
     # Customer filter
     customer_filter = request.GET.get('customer', '')
@@ -5954,9 +5966,15 @@ def outstanding_payment_list_view(request):
             balance = float(ob.amount) - float(alloc_total)
             if balance > 0:
                 dr_cr = 'Dr' if ob.balance_type == 'Debit' else 'Cr'
+                ref_no = ob.ob_number or f'OBAL-{ob.opening_balance_id}'
+                comment = ob.display_comment or ''
+                desc = 'Opening Balance'
+                if comment:
+                    desc += f' ({comment})'
                 entries.append({
                     'entry_date': str(ob.opening_date),
-                    'description': f"Opening Balance ({ob.ob_number or f'OBAL-{ob.opening_balance_id}'})",
+                    'ref_number': ref_no,
+                    'description': desc,
                     'type': dr_cr,
                     'amount': round(balance, 2),
                 })
@@ -5970,7 +5988,8 @@ def outstanding_payment_list_view(request):
             if balance > 0:
                 entries.append({
                     'entry_date': str(inv.invoice_date) if inv.invoice_date else '',
-                    'description': f"Invoice ({inv.invoice_number})",
+                    'ref_number': inv.invoice_number,
+                    'description': 'Invoice issued',
                     'type': 'Dr',
                     'amount': round(balance, 2),
                 })
@@ -5986,9 +6005,14 @@ def outstanding_payment_list_view(request):
                     ).aggregate(total=Sum('allocated_amount'))['total'] or 0
                     balance = float(exp.expense_amount) - float(alloc_total)
                     if balance > 0:
+                        comment = exp.display_comment or ''
+                        desc = exp.expense_category or 'Expense'
+                        if comment:
+                            desc += f' ({comment})'
                         entries.append({
                             'entry_date': str(exp.expense_date) if exp.expense_date else '',
-                            'description': f"Expense ({exp.expense_category} EXP-{exp.expense_id})",
+                            'ref_number': f'EXP-{exp.expense_id}',
+                            'description': desc,
                             'type': 'Dr',
                             'amount': round(balance, 2),
                         })
@@ -6001,20 +6025,24 @@ def outstanding_payment_list_view(request):
             available = float(receipt.total_received) - float(alloc_total)
             if available > 0:
                 ttype = receipt.transaction_type or 'Payment'
+                comment = receipt.display_comment or ''
                 if ttype == 'Payment':
-                    desc = f"Payment Received ({receipt.receipt_no})"
+                    desc = 'Payment Received'
                     entry_type = 'Cr'
                 elif ttype == 'Adjustment(Cr)':
-                    desc = f"Payment Adjustment(Cr) ({receipt.receipt_no})"
+                    desc = 'Payment Adjustment(Cr)'
                     entry_type = 'Cr'
                 elif ttype == 'Adjustment(Dr)':
-                    desc = f"Payment Adjustment(Dr) ({receipt.receipt_no})"
+                    desc = 'Payment Adjustment(Dr)'
                     entry_type = 'Dr'
                 else:
-                    desc = f"Received Payment ({receipt.receipt_no})"
+                    desc = 'Received Payment'
                     entry_type = 'Cr'
+                if comment:
+                    desc += f' ({comment})'
                 entries.append({
                     'entry_date': str(receipt.payment_date) if receipt.payment_date else '',
+                    'ref_number': receipt.receipt_no,
                     'description': desc,
                     'type': entry_type,
                     'amount': round(available, 2),
