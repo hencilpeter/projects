@@ -608,6 +608,10 @@ class PaymentAllocation(models.Model):
         'OpeningBalance', on_delete=models.DO_NOTHING,
         related_name='payment_allocations', db_constraint=False,
         null=True, blank=True)
+    settlement_invoice = models.ForeignKey(
+        'SettlementInvoice', on_delete=models.DO_NOTHING,
+        related_name='payment_allocations', db_constraint=False,
+        null=True, blank=True)
     allocated_amount = models.DecimalField(max_digits=18, decimal_places=2)
     allocation_date = models.DateField()
     remarks = models.TextField(blank=True, null=True)
@@ -881,3 +885,32 @@ class PieceWeightAnalyser(models.Model):
 
     class Meta:
         ordering = ['-created_at', '-pwa_key']
+
+
+class SettlementInvoice(models.Model):
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Paid', 'Paid'),
+        ('Partially Paid', 'Partially Paid'),
+        ('Cancelled', 'Cancelled'),
+    ]
+
+    settlement_id = models.AutoField(primary_key=True)
+    settlement_invoice_number = models.CharField(max_length=50, unique=True)
+    settlement_date = models.DateField()
+    customer = models.ForeignKey(
+        'Parties', to_field='code', on_delete=models.DO_NOTHING,
+        related_name='settlement_invoices', db_constraint=False,
+        null=True, blank=True)
+    amount = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    description = models.TextField(blank=True, null=True)
+    display_comment = models.CharField(max_length=255, blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.settlement_invoice_number} - {self.customer} - {self.amount}"
+
+    class Meta:
+        ordering = ['-settlement_date', '-settlement_id']

@@ -237,8 +237,8 @@
             <tr>
               <td>{{ a.allocation_id }}</td>
               <td>{{ a.payment.receipt_no }}</td>
-              <td>{% if a.invoice %}{{ a.invoice.invoice_number }}{% elif a.expense %}{{ a.expense.expense_category }} (EXP-{{ a.expense.expense_id }}){% elif a.opening_balance %}{{ a.opening_balance.ob_number|default:a.opening_balance.opening_balance_id }} (OB){% endif %}</td>
-              <td>{% if a.payment.customer %}{{ a.payment.customer.code }}-{{ a.payment.customer.name }}{% elif a.invoice and a.invoice.customer_code %}{{ a.invoice.customer_code }}{% elif a.opening_balance and a.opening_balance.customer %}{{ a.opening_balance.customer.code }}-{{ a.opening_balance.customer.name }}{% endif %}</td>
+              <td>{% if a.invoice %}{{ a.invoice.invoice_number }}{% elif a.expense %}{{ a.expense.expense_category }} (EXP-{{ a.expense.expense_id }}){% elif a.opening_balance %}{{ a.opening_balance.ob_number|default:a.opening_balance.opening_balance_id }} (OB){% elif a.settlement_invoice %}{{ a.settlement_invoice.settlement_invoice_number }} (SI){% endif %}</td>
+              <td>{% if a.payment.customer %}{{ a.payment.customer.code }}-{{ a.payment.customer.name }}{% elif a.invoice and a.invoice.customer_code %}{{ a.invoice.customer_code }}{% elif a.opening_balance and a.opening_balance.customer %}{{ a.opening_balance.customer.code }}-{{ a.opening_balance.customer.name }}{% elif a.settlement_invoice and a.settlement_invoice.customer %}{{ a.settlement_invoice.customer.code }}-{{ a.settlement_invoice.customer.name }}{% endif %}</td>
               <td>{{ a.allocated_amount }}</td>
               <td>{{ a.allocation_date|date:"Y-m-d" }}</td>
               <td>
@@ -388,6 +388,9 @@ function renderInvoices() {
         } else if (inv.type === 'opening_balance') {
             label = inv.ob_number || invNum;
             dateOrCat = 'Opening Balance';
+        } else if (inv.type === 'settlement_invoice') {
+            label = inv.settlement_invoice_number || invNum;
+            dateOrCat = 'Settlement';
         }
         html += '<tr>'
             + '<td><input type="checkbox" class="invoice-checkbox" checked onchange="distribute()"></td>'

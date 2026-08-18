@@ -81,6 +81,7 @@ from .models import (
     ProcessingCost,
     MachineOperationalCost,
     AdditionalCost,
+    SettlementInvoice,
 
 )
 
@@ -890,6 +891,20 @@ def update_expense_payment_status(expense):
         expense.payment_status = 'Partially Paid'
     else:
         expense.payment_status = 'Pending'
+
+def update_settlement_invoice_status(si):
+    """Recalculate status for a settlement invoice based on allocations vs amount."""
+    total_alloc = PaymentAllocation.objects.filter(
+        settlement_invoice=si
+    ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+    balance = si.amount - total_alloc
+    if balance <= 0:
+        si.status = 'Paid'
+    elif total_alloc > 0:
+        si.status = 'Partially Paid'
+    else:
+        si.status = 'Pending'
+    si.save(update_fields=['status'])
     expense.balance_amount = balance
     expense.save(update_fields=['payment_status', 'balance_amount'])
 
@@ -3177,6 +3192,16 @@ def payment_receipt_entry(request):
                     ).aggregate(total=Sum('allocated_amount'))['total'] or 0)
         exp_net = exp_total - exp_alloc
 
+        # Settlement invoices: amount minus allocations
+        si_total = 0
+        si_alloc = 0
+        for si in SettlementInvoice.objects.filter(customer__code=code):
+            si_total += float(si.amount)
+            si_alloc += float(PaymentAllocation.objects.filter(
+                settlement_invoice=si
+            ).aggregate(total=Sum('allocated_amount'))['total'] or 0)
+        si_net = si_total - si_alloc
+
         # Unallocated payment receipts (payments + adjustments not yet applied)
         unalloc_payments = 0
         for receipt in PaymentReceipt.objects.filter(customer__code=code):
@@ -3191,7 +3216,7 @@ def payment_receipt_entry(request):
                 else:
                     unalloc_payments += available
 
-        balance = ob_net + inv_net + exp_net - unalloc_payments
+        balance = ob_net + inv_net + exp_net + si_net - unalloc_payments
         customer_balance[code] = round(balance, 2)
 
     return render(request, 'marania_invoice_app/payment_receipt_entry.html', {
@@ -3216,11 +3241,14 @@ def payment_allocation_entry(request):
                     invoice = alloc.invoice
                     expense_obj = alloc.expense
                     ob = alloc.opening_balance
+                    si_obj = alloc.settlement_invoice
                     alloc.delete()
                     if invoice:
                         update_invoice_payment_status(invoice)
                     if expense_obj:
                         update_expense_payment_status(expense_obj)
+                    if si_obj:
+                        update_settlement_invoice_status(si_obj)
                 messages.success(request, "Payment allocation deleted.")
             return redirect('payment_allocation_entry')
 
@@ -3261,6 +3289,7 @@ def payment_allocation_entry(request):
             affected_invoices = set()
             affected_expenses = set()
             affected_obs = set()
+            affected_sis = set()
 
             for i, inv_no in enumerate(invoice_nos):
                 amt_str = alloc_amts[i] if i < len(alloc_amts) else ""
@@ -3285,6 +3314,7 @@ def payment_allocation_entry(request):
                     target_invoice = None
                     target_expense = None
                     target_ob = ob_obj
+                    target_si = None
                 elif inv_no.startswith('EXP-'):
                     exp_id = inv_no.replace('EXP-', '')
                     expense_obj = Expense.objects.filter(expense_id=exp_id).first()
@@ -3294,6 +3324,17 @@ def payment_allocation_entry(request):
                     target_invoice = None
                     target_expense = expense_obj
                     target_ob = None
+                    target_si = None
+                elif inv_no.startswith('SI-'):
+                    si_id = inv_no.replace('SI-', '')
+                    si_obj = SettlementInvoice.objects.filter(settlement_id=si_id).first()
+                    if not si_obj:
+                        continue
+                    affected_sis.add(si_obj)
+                    target_invoice = None
+                    target_expense = None
+                    target_ob = None
+                    target_si = si_obj
                 else:
                     invoice_obj = Invoice.objects.filter(invoice_number=inv_no).first()
                     if not invoice_obj:
@@ -3302,6 +3343,7 @@ def payment_allocation_entry(request):
                     target_invoice = invoice_obj
                     target_expense = None
                     target_ob = None
+                    target_si = None
 
                 # Allocate from receipts in order
                 for pid in sorted_pids:
@@ -3318,14 +3360,22 @@ def payment_allocation_entry(request):
                         filter_kwargs['opening_balance'] = target_ob
                         filter_kwargs['invoice__isnull'] = True
                         filter_kwargs['expense__isnull'] = True
+                        filter_kwargs['settlement_invoice__isnull'] = True
                     elif target_expense:
                         filter_kwargs['expense'] = target_expense
                         filter_kwargs['invoice__isnull'] = True
+                        filter_kwargs['opening_balance__isnull'] = True
+                        filter_kwargs['settlement_invoice__isnull'] = True
+                    elif target_si:
+                        filter_kwargs['settlement_invoice'] = target_si
+                        filter_kwargs['invoice__isnull'] = True
+                        filter_kwargs['expense__isnull'] = True
                         filter_kwargs['opening_balance__isnull'] = True
                     else:
                         filter_kwargs['invoice'] = target_invoice
                         filter_kwargs['expense__isnull'] = True
                         filter_kwargs['opening_balance__isnull'] = True
+                        filter_kwargs['settlement_invoice__isnull'] = True
 
                     # Use filter-based get_or_create since nullable FKs
                     existing = PaymentAllocation.objects.filter(**filter_kwargs).first()
@@ -3339,6 +3389,7 @@ def payment_allocation_entry(request):
                             invoice=target_invoice,
                             expense=target_expense,
                             opening_balance=target_ob,
+                            settlement_invoice=target_si,
                             allocated_amount=take,
                             allocation_date=parse_date(allocation_date) or now.strftime('%Y-%m-%d'),
                         )
@@ -3368,6 +3419,8 @@ def payment_allocation_entry(request):
                 update_invoice_payment_status(inv)
             for exp in affected_expenses:
                 update_expense_payment_status(exp)
+            for si in affected_sis:
+                update_settlement_invoice_status(si)
             # Update opening balance amount to 0 if fully paid
             for ob in affected_obs:
                 total_alloc = PaymentAllocation.objects.filter(
@@ -3476,8 +3529,29 @@ def payment_allocation_entry(request):
                 'display_comment': e.display_comment or '',
             })
 
+    # Then settlement invoices with outstanding balance
+    si_qs = SettlementInvoice.objects.all()
+    for si in si_qs:
+        total_alloc = PaymentAllocation.objects.filter(
+            settlement_invoice=si
+        ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+        balance = si.amount - total_alloc
+        if balance > 0:
+            customer_code = si.customer.code if si.customer else ''
+            invoice_data.append({
+                'invoice_number': f'SI-{si.settlement_id}',
+                'invoice_date': str(si.settlement_date) if si.settlement_date else '',
+                'customer_code': customer_code,
+                'gross_total': str(si.amount),
+                'balance': str(balance),
+                'type': 'settlement_invoice',
+                'settlement_id': si.settlement_id,
+                'settlement_invoice_number': si.settlement_invoice_number or '',
+                'description': si.description or '',
+            })
+
     # Existing allocations for reference
-    existing_allocations = PaymentAllocation.objects.select_related('payment', 'invoice', 'expense', 'opening_balance').all()
+    existing_allocations = PaymentAllocation.objects.select_related('payment', 'invoice', 'expense', 'opening_balance', 'settlement_invoice').all()
 
     # Build outstanding summary per customer (only unallocated items)
     balance_history = {}
@@ -3539,6 +3613,24 @@ def payment_allocation_entry(request):
                             'type': 'Dr',
                             'amount': balance,
                         })
+
+        # Settlement invoices with outstanding balance > 0
+        for si in SettlementInvoice.objects.filter(customer__code=code):
+            alloc_total = PaymentAllocation.objects.filter(
+                settlement_invoice=si
+            ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+            balance = float(si.amount) - float(alloc_total)
+            if balance > 0:
+                desc = 'Settlement Invoice'
+                comment = si.display_comment or ''
+                if comment:
+                    desc += f' ({comment})'
+                entries.append({
+                    'entry_date': str(si.settlement_date) if si.settlement_date else '',
+                    'description': desc,
+                    'type': 'Dr',
+                    'amount': balance,
+                })
 
         # Unallocated payment receipts (available balance > 0)
         for receipt in PaymentReceipt.objects.filter(customer__code=code):
@@ -3812,6 +3904,115 @@ def expense_entry(request):
         'expenses_json': json.dumps(expenses_json),
         'parties': parties,
     })
+
+
+def settlement_invoice_entry(request):
+    from datetime import date
+    settlements = SettlementInvoice.objects.all()
+    parties = Parties.objects.all()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "delete":
+            pk = request.POST.get("settlement_id")
+            if pk:
+                SettlementInvoice.objects.filter(settlement_id=pk).delete()
+                messages.success(request, "Settlement invoice deleted.")
+            return redirect('settlement_invoice_entry')
+
+        drafts_raw = request.POST.get("drafts_data")
+        if not drafts_raw and request.content_type == 'application/json':
+            try:
+                body = json.loads(request.body)
+                drafts_raw = body.get('drafts_data')
+            except (json.JSONDecodeError, AttributeError):
+                drafts_raw = None
+
+        saved_count = 0
+        if drafts_raw:
+            if isinstance(drafts_raw, str):
+                try:
+                    entries = json.loads(drafts_raw)
+                    if not isinstance(entries, list):
+                        entries = []
+                except json.JSONDecodeError:
+                    entries = []
+            else:
+                entries = drafts_raw if isinstance(drafts_raw, list) else []
+
+            now = datetime.now()
+            for entry in entries:
+                pk = entry.get("settlement_id")
+                if pk is not None:
+                    pk = str(pk).strip()
+                else:
+                    pk = ""
+                is_update = bool(pk)
+
+                if is_update:
+                    try:
+                        obj = SettlementInvoice.objects.get(settlement_id=pk)
+                    except SettlementInvoice.DoesNotExist:
+                        obj = SettlementInvoice()
+                else:
+                    obj = SettlementInvoice()
+                    obj.settlement_invoice_number = _generate_settlement_invoice_number()
+
+                obj.settlement_date = parse_date(entry.get("settlement_date")) or now.strftime('%Y-%m-%d')
+                customer_code = entry.get("customer_code") or ""
+                if customer_code:
+                    obj.customer = Parties.objects.filter(code=customer_code).first()
+                obj.amount = Decimal(str(entry.get("amount") or 0))
+                obj.description = entry.get("description") or ""
+                obj.display_comment = entry.get("display_comment") or ""
+                obj.status = entry.get("status") or "Pending"
+                obj.updated_at = now
+                obj.save()
+                saved_count += 1
+
+            if saved_count:
+                messages.success(request, f"{saved_count} settlement invoice(s) saved successfully.")
+        else:
+            messages.error(request, "No settlement invoice data received.")
+
+        if request.content_type == 'application/json':
+            return JsonResponse({'saved_count': saved_count})
+        return redirect('settlement_invoice_entry')
+
+    settlements_json = []
+    for s in settlements:
+        settlements_json.append({
+            'settlement_id': s.settlement_id,
+            'settlement_invoice_number': s.settlement_invoice_number or '',
+            'settlement_date': str(s.settlement_date) if s.settlement_date else '',
+            'customer_code': s.customer.code if s.customer else '',
+            'customer_name': s.customer.name if s.customer else '',
+            'amount': str(s.amount) if s.amount else '',
+            'description': s.description or '',
+            'display_comment': s.display_comment or '',
+            'status': s.status or 'Pending',
+        })
+
+    return render(request, 'marania_invoice_app/settlement_invoice_entry.html', {
+        'settlements': settlements,
+        'settlements_json': json.dumps(settlements_json),
+        'parties': parties,
+    })
+
+
+def _generate_settlement_invoice_number():
+    from datetime import date
+    today = date.today()
+    prefix = f"SI-{today.strftime('%Y%m')}-"
+    last = SettlementInvoice.objects.filter(
+        settlement_invoice_number__startswith=prefix
+    ).order_by('-settlement_invoice_number').first()
+    if last:
+        last_num = int(last.settlement_invoice_number.split('-')[-1])
+        new_num = last_num + 1
+    else:
+        new_num = 1
+    return f"{prefix}{new_num:04d}"
 
 
 def profit_loss_entry(request):
@@ -5971,7 +6172,7 @@ def load_pwa_view(request, pk):
 
 @login_required
 def outstanding_payment_list_view(request):
-    from .models import Parties, Invoice, PaymentReceipt, PaymentAllocation, OpeningBalance, Expense
+    from .models import Parties, Invoice, PaymentReceipt, PaymentAllocation, OpeningBalance, Expense, SettlementInvoice
     from django.db.models import Sum
     import json
 
@@ -6048,6 +6249,25 @@ def outstanding_payment_list_view(request):
                             'type': 'Dr',
                             'amount': round(balance, 2),
                         })
+
+        # Settlement invoices with outstanding balance > 0
+        for si in SettlementInvoice.objects.filter(customer__code=code):
+            alloc_total = PaymentAllocation.objects.filter(
+                settlement_invoice=si
+            ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+            balance = float(si.amount) - float(alloc_total)
+            if balance > 0:
+                comment = si.display_comment or ''
+                desc = 'Settlement Invoice'
+                if comment:
+                    desc += f' ({comment})'
+                entries.append({
+                    'entry_date': str(si.settlement_date) if si.settlement_date else '',
+                    'ref_number': si.settlement_invoice_number,
+                    'description': desc,
+                    'type': 'Dr',
+                    'amount': round(balance, 2),
+                })
 
         # Unallocated payment receipts (available balance > 0)
         for receipt in PaymentReceipt.objects.filter(customer__code=code):

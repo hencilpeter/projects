@@ -1,0 +1,378 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block main %}
+
+<style>
+#settlements-table {
+  table-layout: fixed;
+}
+#settlements-table .filter-input,
+#settlements-table .filter-select {
+  width: 100%;
+  box-sizing: border-box;
+}
+</style>
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container my-5">
+
+    <h2 class="mb-4">Settlement Invoices</h2>
+
+    <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#settlementForm" aria-expanded="false" aria-controls="settlementForm">
+      New Settlement Invoice
+    </button>
+
+    <div class="collapse" id="settlementForm">
+      <form method="POST" action="{% url 'settlement_invoice_entry' %}" id="settlementFormTag">
+        {% csrf_token %}
+
+        <div class="card shadow-sm p-3">
+
+          <div class="row mb-3">
+            <input type="hidden" name="settlement_id" id="settlement_id" value="">
+            <div class="col-md-3">
+              <label class="form-label form-label-sm">Date</label>
+              <input type="date" name="settlement_date" id="settlement_date" class="form-control form-control-sm" value="{% now 'Y-m-d' %}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Customer</label>
+              <input type="text" name="customer" id="customer" class="form-control form-control-sm" placeholder="Customer" list="customer_list">
+              <datalist id="customer_list">
+                {% for party in parties %}
+                  <option value="{{ party.code }}-{{ party.name }}">
+                {% endfor %}
+              </datalist>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label form-label-sm">Amount</label>
+              <input type="number" name="amount" id="amount" step="0.01" class="form-control form-control-sm" placeholder="Amount">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label form-label-sm">Status</label>
+              <select name="status" id="status" class="form-control form-control-sm">
+                <option value="Pending" selected>Pending</option>
+                <option value="Paid">Paid</option>
+                <option value="Partially Paid">Partially Paid</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-12">
+              <label class="form-label form-label-sm">Description</label>
+              <textarea name="description" id="description" class="form-control form-control-sm" rows="2" placeholder="Description or reason for settlement"></textarea>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-12">
+              <label class="form-label form-label-sm">Display Comment</label>
+              <input type="text" name="display_comment" id="display_comment" class="form-control form-control-sm" placeholder="Display Comment (shown in Outstanding Summary)">
+            </div>
+          </div>
+
+          <input type="hidden" name="drafts_data" id="drafts_data" value="">
+
+          <div class="text-center">
+            <button type="button" class="btn btn-info me-2" onclick="addToCart()">Add to Cart</button>
+            <button type="button" class="btn btn-warning me-2" onclick="submitCart()">Submit Cart</button>
+            <button type="button" class="btn btn-success me-2" onclick="submitDirect()">Submit</button>
+            <button type="button" class="btn btn-primary me-2" onclick="submitAll()">Submit All</button>
+            <button type="reset" class="btn btn-secondary" onclick="resetForm()">Clear</button>
+          </div>
+
+          <div id="draft-list" class="mt-3" style="display:none;">
+            <hr>
+            <h6 class="text-muted">Draft Settlement Invoices (<span id="draft-count">0</span>)</h6>
+            <div id="draft-items" class="d-flex flex-wrap gap-2"></div>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <div class="settlements-list mt-4">
+      {% if settlements %}
+        <div class="table-responsive">
+          <table id="settlements-table" class="table table-striped table-hover table-bordered table-sm align-middle">
+            <colgroup>
+              <col style="width:50px">
+              <col style="width:110px">
+              <col style="width:160px">
+              <col style="width:110px">
+              <col style="width:120px">
+              <col style="width:100px">
+              <col style="width:200px">
+              <col style="width:200px">
+              <col style="width:90px">
+            </colgroup>
+            <thead class="table-dark">
+              <tr>
+                <th scope="col"><input type="checkbox" id="select-all" onchange="toggleAllCheckboxes(this)"></th>
+                <th scope="col">SI Number</th>
+                <th scope="col">Actions</th>
+                <th scope="col">Date</th>
+                <th scope="col">Customer</th>
+                <th scope="col">Amount</th>
+                <th scope="col">Description</th>
+                <th scope="col">Display Comment</th>
+                <th scope="col">Status</th>
+              </tr>
+              <tr id="settlements-filter-row">
+                <th></th>
+                <th><input class="filter-input" placeholder="SI Number"></th>
+                <th>
+                  <button class="btn btn-warning btn-sm" id="clear-filters">Clear</button>
+                </th>
+                <th><input class="filter-input" placeholder="Date"></th>
+                <th><input class="filter-input" placeholder="Customer"></th>
+                <th><input class="filter-input" placeholder="Amount"></th>
+                <th><input class="filter-input" placeholder="Description"></th>
+                <th><input class="filter-input" placeholder="Display Comment"></th>
+                <th>
+                  <select class="filter-select">
+                    <option value="">All</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Partially Paid">Partially Paid</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in settlements %}
+                <tr>
+                  <td><input type="checkbox" class="row-checkbox" value="{{ s.settlement_id }}"></td>
+                  <td>{{ s.settlement_invoice_number }}</td>
+                  <td>
+                    <a href="javascript:void(0);" onclick="loadSettlement('{{ s.settlement_id }}')" class="btn btn-sm btn-primary">
+                      <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <a href="javascript:void(0);" onclick="cloneSettlement('{{ s.settlement_id }}')" class="btn btn-sm btn-info">
+                      <i class="bi bi-copy"></i> Clone
+                    </a>
+                    <form method="POST" action="{% url 'settlement_invoice_entry' %}" style="display:inline;" onsubmit="return confirm('Delete this settlement invoice?')">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete">
+                      <input type="hidden" name="settlement_id" value="{{ s.settlement_id }}">
+                      <button type="submit" class="btn btn-sm btn-danger">
+                        <i class="bi bi-trash"></i> Del
+                      </button>
+                    </form>
+                  </td>
+                  <td>{{ s.settlement_date|date:"Y-m-d" }}</td>
+                  <td>{{ s.customer.code }}-{{ s.customer.name }}</td>
+                  <td>{{ s.amount }}</td>
+                  <td>{{ s.description|default:"" }}</td>
+                  <td>{{ s.display_comment|default:"" }}</td>
+                  <td>
+                    <span class="badge
+                      {% if s.status == 'Paid' %}bg-success
+                      {% elif s.status == 'Partially Paid' %}bg-warning text-dark
+                      {% elif s.status == 'Cancelled' %}bg-secondary
+                      {% else %}bg-danger{% endif %}">
+                      {{ s.status }}
+                    </span>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-muted">No settlement invoices found.</p>
+      {% endif %}
+    </div>
+
+  </div>
+</main>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+var settlementsData = {{ settlements_json|safe }};
+var draftEntries = [];
+var editingId = null;
+
+function addToCart() {
+    var entry = getFormData();
+    if (!entry.amount || parseFloat(entry.amount) <= 0) { alert('Amount is required'); return; }
+    if (!entry.customer_code) { alert('Customer is required'); return; }
+    if (editingId) {
+        var idx = draftEntries.findIndex(function(e) { return e._draft_id === editingId; });
+        if (idx > -1) { draftEntries[idx] = entry; }
+        editingId = null;
+    } else {
+        draftEntries.push(entry);
+    }
+    renderDrafts();
+    resetForm();
+}
+
+function getFormData() {
+    var customerVal = document.getElementById('customer').value.trim();
+    var customerCode = customerVal ? customerVal.split('-')[0].trim() : '';
+    return {
+        settlement_id: document.getElementById('settlement_id').value,
+        settlement_date: document.getElementById('settlement_date').value,
+        customer_code: customerCode,
+        amount: document.getElementById('amount').value,
+        description: document.getElementById('description').value,
+        display_comment: document.getElementById('display_comment').value,
+        status: document.getElementById('status').value,
+    };
+}
+
+function renderDrafts() {
+    var container = document.getElementById('draft-items');
+    var count = document.getElementById('draft-count');
+    container.innerHTML = '';
+    count.textContent = draftEntries.length;
+    if (draftEntries.length === 0) {
+        document.getElementById('draft-list').style.display = 'none';
+        return;
+    }
+    document.getElementById('draft-list').style.display = 'block';
+    draftEntries.forEach(function(e, i) {
+        var badge = document.createElement('span');
+        badge.className = 'badge bg-info text-dark p-2 m-1';
+        badge.style.cursor = 'pointer';
+        badge.textContent = (i + 1) + '. ' + (e.customer_code || 'No Customer') + ' - ' + (e.amount || '');
+        badge.title = 'Date: ' + (e.settlement_date || '') + ' | Status: ' + (e.status || '');
+        badge.onclick = function() { loadDraft(i); };
+        container.appendChild(badge);
+    });
+}
+
+function loadDraft(index) {
+    var e = draftEntries[index];
+    document.getElementById('settlement_id').value = e.settlement_id || '';
+    document.getElementById('settlement_date').value = e.settlement_date || '';
+    document.getElementById('customer').value = e.customer_code ? (e.customer_code + '-' + (e.customer_name || '')) : '';
+    document.getElementById('amount').value = e.amount || '';
+    document.getElementById('description').value = e.description || '';
+    document.getElementById('display_comment').value = e.display_comment || '';
+    document.getElementById('status').value = e.status || 'Pending';
+    editingId = e._draft_id;
+    var form = document.getElementById('settlementForm');
+    if (form) { var bs = new bootstrap.Collapse(form, {toggle:false}); bs.show(); }
+}
+
+function resetForm() {
+    document.getElementById('settlement_id').value = '';
+    document.getElementById('settlement_date').value = new Date().toISOString().slice(0,10);
+    document.getElementById('customer').value = '';
+    document.getElementById('amount').value = '';
+    document.getElementById('description').value = '';
+    document.getElementById('display_comment').value = '';
+    document.getElementById('status').value = 'Pending';
+    editingId = null;
+}
+
+function submitDirect() {
+    var entry = getFormData();
+    if (!entry.amount || parseFloat(entry.amount) <= 0) { alert('Amount is required'); return; }
+    if (!entry.customer_code) { alert('Customer is required'); return; }
+    var form = document.getElementById('settlementFormTag');
+    document.getElementById('drafts_data').value = JSON.stringify([entry]);
+    form.submit();
+}
+
+function submitCart() {
+    if (draftEntries.length === 0) { alert('No drafts to submit'); return; }
+    var form = document.getElementById('settlementFormTag');
+    document.getElementById('drafts_data').value = JSON.stringify(draftEntries);
+    form.submit();
+}
+
+function submitAll() {
+    var entry = getFormData();
+    var allEntries = [];
+    if (entry.amount && parseFloat(entry.amount) > 0 && entry.customer_code) {
+        allEntries.push(entry);
+    }
+    allEntries = allEntries.concat(draftEntries);
+    if (allEntries.length === 0) { alert('No data to submit'); return; }
+    var form = document.getElementById('settlementFormTag');
+    document.getElementById('drafts_data').value = JSON.stringify(allEntries);
+    form.submit();
+}
+
+function loadSettlement(id) {
+    var s = settlementsData.find(function(item) { return String(item.settlement_id) === String(id); });
+    if (!s) return;
+    document.getElementById('settlement_id').value = s.settlement_id || '';
+    document.getElementById('settlement_date').value = s.settlement_date || '';
+    document.getElementById('customer').value = s.customer_code ? (s.customer_code + '-' + (s.customer_name || '')) : '';
+    document.getElementById('amount').value = s.amount || '';
+    document.getElementById('description').value = s.description || '';
+    document.getElementById('display_comment').value = s.display_comment || '';
+    document.getElementById('status').value = s.status || 'Pending';
+    var form = document.getElementById('settlementForm');
+    if (form) { var bs = new bootstrap.Collapse(form, {toggle:false}); bs.show(); }
+}
+
+function cloneSettlement(id) {
+    var s = settlementsData.find(function(item) { return String(item.settlement_id) === String(id); });
+    if (!s) return;
+    document.getElementById('settlement_id').value = '';
+    document.getElementById('settlement_date').value = s.settlement_date || new Date().toISOString().slice(0,10);
+    document.getElementById('customer').value = s.customer_code ? (s.customer_code + '-' + (s.customer_name || '')) : '';
+    document.getElementById('amount').value = s.amount || '';
+    document.getElementById('description').value = s.description || '';
+    document.getElementById('display_comment').value = s.display_comment || '';
+    document.getElementById('status').value = s.status || 'Pending';
+    var form = document.getElementById('settlementForm');
+    if (form) { var bs = new bootstrap.Collapse(form, {toggle:false}); bs.show(); }
+}
+
+function toggleAllCheckboxes(master) {
+    document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+        cb.checked = master.checked;
+    });
+}
+
+function applyFilters() {
+    var filterThs = document.querySelectorAll('#settlements-filter-row th');
+    var filters = [];
+    filterThs.forEach(function(th) {
+        var input = th.querySelector('input, select');
+        filters.push(input ? input.value.toLowerCase() : '');
+    });
+    var tbody = document.querySelector('#settlements-table tbody');
+    tbody.querySelectorAll('tr').forEach(function(row) {
+        var cells = row.querySelectorAll('td');
+        var show = true;
+        filters.forEach(function(filter, index) {
+            if (!filter) return;
+            if (!cells[index]) { show = false; return; }
+            var cellText = cells[index].textContent.toLowerCase();
+            var filterInput = filterThs[index].querySelector('input, select');
+            var isSelect = filterInput && filterInput.tagName === 'SELECT';
+            if (isSelect) {
+                if (cellText.trim() !== filter) show = false;
+            } else {
+                if (!cellText.includes(filter)) show = false;
+            }
+        });
+        row.style.display = show ? '' : 'none';
+    });
+}
+
+document.querySelectorAll('#settlements-filter-row input, #settlements-filter-row select')
+    .forEach(function(el) { el.addEventListener('input', applyFilters); });
+document.querySelectorAll('#settlements-filter-row select')
+    .forEach(function(el) { el.addEventListener('change', applyFilters); });
+
+document.getElementById('clear-filters').addEventListener('click', function() {
+    document.querySelectorAll('#settlements-filter-row input')
+        .forEach(function(i) { i.value = ''; i.dispatchEvent(new Event('input')); });
+    document.querySelectorAll('#settlements-filter-row select')
+        .forEach(function(s) { s.value = ''; s.dispatchEvent(new Event('change')); });
+});
+</script>
+{% endblock %}

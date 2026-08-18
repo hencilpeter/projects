@@ -89,6 +89,9 @@ path('opening-balances', views.opening_balance_entry, name='opening_balance_entr
 # expense
 path('expenses', views.expense_entry, name='expense_entry'),
 
+# settlement invoices
+path('settlement-invoices', views.settlement_invoice_entry, name='settlement_invoice_entry'),
+
 # profit & loss
 path('profit-loss', views.profit_loss_entry, name='profit_loss_entry'),
 
