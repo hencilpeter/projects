@@ -6258,7 +6258,7 @@ def outstanding_payment_list_view(request):
             balance = float(si.amount) - float(alloc_total)
             if balance > 0:
                 comment = si.display_comment or ''
-                desc = 'Settlement Invoice'
+                desc = 'Invoice issued'
                 if comment:
                     desc += f' ({comment})'
                 entries.append({
