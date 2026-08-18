@@ -3621,12 +3621,13 @@ def payment_allocation_entry(request):
             ).aggregate(total=Sum('allocated_amount'))['total'] or 0
             balance = float(si.amount) - float(alloc_total)
             if balance > 0:
-                desc = 'Settlement Invoice'
+                desc = 'Invoice issued'
                 comment = si.display_comment or ''
                 if comment:
                     desc += f' ({comment})'
                 entries.append({
                     'entry_date': str(si.settlement_date) if si.settlement_date else '',
+                    'invoice_ref': si.settlement_invoice_number or '',
                     'description': desc,
                     'type': 'Dr',
                     'amount': balance,
