@@ -654,6 +654,13 @@ function showBalanceHistory() {
                 if (displayComment) {
                     desc += ' (' + displayComment + ')';
                 }
+            } else if (inv.type === 'settlement_invoice') {
+                invoiceRef = inv.settlement_invoice_number || invNum;
+                var displayComment = inv.display_comment || '';
+                desc = 'Invoice issued';
+                if (displayComment) {
+                    desc += ' (' + displayComment + ')';
+                }
             } else {
                 invoiceRef = invNum;
                 desc = 'Invoice issued';

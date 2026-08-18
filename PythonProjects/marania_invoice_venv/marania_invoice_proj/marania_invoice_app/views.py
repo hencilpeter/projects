@@ -3548,6 +3548,7 @@ def payment_allocation_entry(request):
                 'settlement_id': si.settlement_id,
                 'settlement_invoice_number': si.settlement_invoice_number or '',
                 'description': si.description or '',
+                'display_comment': si.display_comment or '',
             })
 
     # Existing allocations for reference
