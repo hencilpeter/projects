@@ -3146,23 +3146,53 @@ def payment_receipt_entry(request):
     customer_balance = {}
     for p in parties:
         code = p.code
-        # Total invoiced
+
+        # Opening balance: Dr amounts - Cr amounts, minus allocations against OBs
+        ob_dr = OpeningBalance.objects.filter(customer__code=code, balance_type='Debit').aggregate(total=Sum('amount'))['total'] or 0
+        ob_cr = OpeningBalance.objects.filter(customer__code=code, balance_type='Credit').aggregate(total=Sum('amount'))['total'] or 0
+        ob_alloc = PaymentAllocation.objects.filter(
+            opening_balance__customer__code=code
+        ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+        ob_net = float(ob_dr) - float(ob_cr) - float(ob_alloc)
+
+        # Invoices: gross_total minus allocations against invoices
         inv_total = Invoice.objects.filter(customer_code=code).aggregate(
             total=Sum('gross_total'))['total'] or 0
-        # Total allocated to invoices of this customer
-        alloc_total = PaymentAllocation.objects.filter(
+        inv_alloc = PaymentAllocation.objects.filter(
             invoice__customer_code=code
         ).aggregate(total=Sum('allocated_amount'))['total'] or 0
-        # Opening balance (debit amounts - credit amounts)
-        ob_debit = OpeningBalance.objects.filter(
-            customer__code=code, balance_type='Debit'
-        ).aggregate(total=Sum('amount'))['total'] or 0
-        ob_credit = OpeningBalance.objects.filter(
-            customer__code=code, balance_type='Credit'
-        ).aggregate(total=Sum('amount'))['total'] or 0
-        ob_net = ob_debit - ob_credit
-        balance = ob_net + inv_total - alloc_total
-        customer_balance[code] = float(balance)
+        inv_net = float(inv_total) - float(inv_alloc)
+
+        # Expenses billed to customer: expense_amount minus allocations
+        exp_total = 0
+        exp_alloc = 0
+        for exp in Expense.objects.filter(bill_to='Customer'):
+            vendor = exp.vendor or ''
+            if vendor and vendor != 'Not Applicable':
+                exp_code = vendor.split('-')[0].strip()
+                if exp_code == code:
+                    exp_total += float(exp.expense_amount)
+                    exp_alloc += float(PaymentAllocation.objects.filter(
+                        expense=exp
+                    ).aggregate(total=Sum('allocated_amount'))['total'] or 0)
+        exp_net = exp_total - exp_alloc
+
+        # Unallocated payment receipts (payments + adjustments not yet applied)
+        unalloc_payments = 0
+        for receipt in PaymentReceipt.objects.filter(customer__code=code):
+            r_alloc = PaymentAllocation.objects.filter(
+                payment=receipt
+            ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+            available = float(receipt.total_received) - float(r_alloc)
+            if available > 0:
+                ttype = receipt.transaction_type or 'Payment'
+                if ttype == 'Adjustment(Dr)':
+                    unalloc_payments -= available
+                else:
+                    unalloc_payments += available
+
+        balance = ob_net + inv_net + exp_net - unalloc_payments
+        customer_balance[code] = round(balance, 2)
 
     return render(request, 'marania_invoice_app/payment_receipt_entry.html', {
         'receipts': receipts,
