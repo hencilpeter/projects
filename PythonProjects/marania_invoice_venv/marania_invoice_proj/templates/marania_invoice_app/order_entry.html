@@ -865,6 +865,39 @@ if (orderTable) {
 
     // Map filter array index to table column index (skip checkbox col 0 and actions col 2)
     const filterColMap = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+    const filterStorageKey = 'orderFilters';
+
+    function saveFiltersToStorage() {
+        const data = {};
+        document.querySelectorAll('#order-filter-row input.filter-input').forEach((inp, i) => {
+            data['input_' + i] = inp.value;
+        });
+        document.querySelectorAll('#order-filter-row select.filter-select').forEach((sel, i) => {
+            data['select_' + i] = sel.value;
+        });
+        const checkedStatuses = Array.from(document.querySelectorAll('.status-filter-checkbox:checked')).map(cb => cb.value);
+        data['statuses'] = checkedStatuses;
+        sessionStorage.setItem(filterStorageKey, JSON.stringify(data));
+    }
+
+    function restoreFiltersFromStorage() {
+        const raw = sessionStorage.getItem(filterStorageKey);
+        if (!raw) return;
+        try {
+            const data = JSON.parse(raw);
+            document.querySelectorAll('#order-filter-row input.filter-input').forEach((inp, i) => {
+                if (data['input_' + i] !== undefined) inp.value = data['input_' + i];
+            });
+            document.querySelectorAll('#order-filter-row select.filter-select').forEach((sel, i) => {
+                if (data['select_' + i] !== undefined) sel.value = data['select_' + i];
+            });
+            if (data['statuses'] && data['statuses'].length > 0) {
+                document.querySelectorAll('.status-filter-checkbox').forEach(cb => {
+                    cb.checked = data['statuses'].includes(cb.value);
+                });
+            }
+        } catch(e) {}
+    }
 
     function applyOrderFilters() {
         const filterInputs = document.querySelectorAll('#order-filter-row input.filter-input, #order-filter-row select.filter-select');
@@ -920,6 +953,7 @@ if (orderTable) {
             });
             row.style.display = show ? '' : 'none';
         });
+        saveFiltersToStorage();
     }
 
     document.querySelectorAll('#order-filter-row input.filter-input, #order-filter-row select.filter-select')
@@ -939,8 +973,12 @@ if (orderTable) {
                 .forEach(cb => cb.checked = false);
             const countEl = document.getElementById('status-filter-count');
             if (countEl) countEl.textContent = '(0)';
+            sessionStorage.removeItem(filterStorageKey);
             applyOrderFilters();
         });
+
+    restoreFiltersFromStorage();
+    applyOrderFilters();
 }
 
 function toggleAllOrderCheckboxes(master) {
