@@ -2431,6 +2431,8 @@ def sales_entry(request):
                         Sales.objects.filter(sales_key__in=sales_key_list).delete()
                 except (json.JSONDecodeError, TypeError):
                     pass
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'status': 'ok'})
             return redirect('sales_entry')
 
         drafts_raw = request.POST.get("drafts_data")

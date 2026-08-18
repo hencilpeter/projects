@@ -967,9 +967,11 @@ function loadDraft(draftId) {
     renderDrafts();
 }
 
-function submitCart() {
+async function submitCart() {
     if (drafts.length === 0) { alert("Cart is empty. Add items to cart first."); return; }
     
+    saveSalesFiltersToStorage();
+
     let allEntries = drafts.map(d => {
         let copy = {...d};
         delete copy.draft_id;
@@ -985,11 +987,12 @@ function submitCart() {
         let cartSalesKeys = drafts.map(d => d.sales_key).filter(key => key);
         if (cartSalesKeys.length > 0) {
             let deleteUrl = "{% url 'sales_entry' %}";
-            fetch(deleteUrl, {
+            await fetch(deleteUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: 'action=delete_cart_items&sales_keys=' + JSON.stringify(cartSalesKeys)
             }).catch(error => console.log('Failed to delete cart items:', error));
@@ -1425,6 +1428,52 @@ function setPaymentDateFilterQuick(range) {
 const salesTable = document.getElementById('sales-table');
 if (salesTable) {
     const salesTbody = salesTable.querySelector('tbody');
+    const salesFilterStorageKey = 'salesFilters';
+
+    function saveSalesFiltersToStorage() {
+        const data = { inputs: {}, dateFilter: null, deliveryDateFilter: null, paymentDateFilter: null };
+        document.querySelectorAll('#sales-filter-row th').forEach((th, i) => {
+            var input = th.querySelector('input, select');
+            if (input) data.inputs['f_' + i] = input.value;
+        });
+        data.dateFilter = dateFilterState;
+        data.deliveryDateFilter = deliveryDateFilterState;
+        data.paymentDateFilter = paymentDateFilterState;
+        sessionStorage.setItem(salesFilterStorageKey, JSON.stringify(data));
+    }
+
+    function restoreSalesFiltersFromStorage() {
+        const raw = sessionStorage.getItem(salesFilterStorageKey);
+        if (!raw) return;
+        try {
+            const data = JSON.parse(raw);
+            document.querySelectorAll('#sales-filter-row th').forEach((th, i) => {
+                var input = th.querySelector('input, select');
+                if (input && data.inputs['f_' + i] !== undefined) input.value = data.inputs['f_' + i];
+            });
+            if (data.dateFilter) {
+                dateFilterState = data.dateFilter;
+                var fpInput = document.getElementById('entryDateFilter');
+                if (fpInput && fpInput._flatpickr && dateFilterState) {
+                    fpInput._flatpickr.setDate([dateFilterState.from, dateFilterState.to], true);
+                }
+            }
+            if (data.deliveryDateFilter) {
+                deliveryDateFilterState = data.deliveryDateFilter;
+                var fpInput = document.getElementById('deliveryDateFilter');
+                if (fpInput && fpInput._flatpickr && deliveryDateFilterState) {
+                    fpInput._flatpickr.setDate([deliveryDateFilterState.from, deliveryDateFilterState.to], true);
+                }
+            }
+            if (data.paymentDateFilter) {
+                paymentDateFilterState = data.paymentDateFilter;
+                var fpInput = document.getElementById('paymentDateFilter');
+                if (fpInput && fpInput._flatpickr && paymentDateFilterState) {
+                    fpInput._flatpickr.setDate([paymentDateFilterState.from, paymentDateFilterState.to], true);
+                }
+            }
+        } catch(e) {}
+    }
 
     function applySalesFilters() {
         var filterThs = document.querySelectorAll('#sales-filter-row th');
@@ -1476,6 +1525,7 @@ if (salesTable) {
             row.style.display = show ? '' : 'none';
         });
         updateSalesSummary();
+        saveSalesFiltersToStorage();
     }
 
     document.querySelectorAll('#sales-filter-row input, #sales-filter-row select')
@@ -1492,12 +1542,15 @@ if (salesTable) {
             clearDateFilter();
             clearDeliveryDateFilter();
             clearPaymentDateFilter();
+            sessionStorage.removeItem(salesFilterStorageKey);
         });
 
     // Initial date pickers and summary
-    initDatePicker();
-    initDeliveryDatePicker();
-    initPaymentDatePicker();
+    try { initDatePicker(); } catch(e) {}
+    try { initDeliveryDatePicker(); } catch(e) {}
+    try { initPaymentDatePicker(); } catch(e) {}
+    restoreSalesFiltersFromStorage();
+    applySalesFilters();
     updateSalesSummary();
 }
 
@@ -1844,6 +1897,8 @@ resetSalesForm = function() {
     document.querySelectorAll('#sales-filter-row select').forEach(function(s) { s.value = ''; s.dispatchEvent(new Event('change')); });
     clearDateFilter();
     clearDeliveryDateFilter();
+    clearPaymentDateFilter();
+    sessionStorage.removeItem('salesFilters');
 };
 </script>
 
@@ -1851,4 +1906,32 @@ resetSalesForm = function() {
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+window.addEventListener('load', function() {
+    try { initDatePicker(); } catch(e) {}
+    try { initDeliveryDatePicker(); } catch(e) {}
+    try { initPaymentDatePicker(); } catch(e) {}
+    var raw = sessionStorage.getItem('salesFilters');
+    if (raw) {
+        try {
+            var data = JSON.parse(raw);
+            if (data.dateFilter) {
+                dateFilterState = data.dateFilter;
+                var fp = document.getElementById('entryDateFilter');
+                if (fp && fp._flatpickr) fp._flatpickr.setDate([data.dateFilter.from, data.dateFilter.to], true);
+            }
+            if (data.deliveryDateFilter) {
+                deliveryDateFilterState = data.deliveryDateFilter;
+                var fp = document.getElementById('deliveryDateFilter');
+                if (fp && fp._flatpickr) fp._flatpickr.setDate([data.deliveryDateFilter.from, data.deliveryDateFilter.to], true);
+            }
+            if (data.paymentDateFilter) {
+                paymentDateFilterState = data.paymentDateFilter;
+                var fp = document.getElementById('paymentDateFilter');
+                if (fp && fp._flatpickr) fp._flatpickr.setDate([data.paymentDateFilter.from, data.paymentDateFilter.to], true);
+            }
+        } catch(e) {}
+    }
+});
+</script>
 {% endblock %}
