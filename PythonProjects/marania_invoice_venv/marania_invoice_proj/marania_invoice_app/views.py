@@ -6186,11 +6186,15 @@ def load_pwa_view(request, pk):
 def outstanding_payment_list_view(request):
     from .models import Parties, Invoice, PaymentReceipt, PaymentAllocation, OpeningBalance, Expense, SettlementInvoice
     from django.db.models import Sum
+    from django.http import HttpResponse
+    import csv
     import json
 
     parties = Parties.objects.all().order_by('name')
     from datetime import date
-    today_str = date.today().strftime("%d %b %Y")
+    today = date.today()
+    today_str = today.strftime("%d %b %Y")
+    export_format = request.GET.get('export', None)
 
     # Customer filter
     customer_filter = request.GET.get('customer', '')
@@ -6346,6 +6350,54 @@ def outstanding_payment_list_view(request):
 
     total_outstanding = sum(c['outstanding_balance'] for c in customer_summaries if c['outstanding_balance'] > 0)
     total_credit = sum(c['outstanding_balance'] for c in customer_summaries if c['outstanding_balance'] < 0)
+
+    # Export to CSV
+    if export_format == 'csv':
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="outstanding_payment_list.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(['Customer Name', 'Date', 'Invoice/Ref #', 'Description', 'Type', 'Amount', 'Running Balance', 'Outstanding Balance'])
+
+        for cs in customer_summaries:
+            for entry in cs['entries']:
+                writer.writerow([
+                    cs['customer_name'],
+                    entry['entry_date'],
+                    entry['ref_number'],
+                    entry['description'],
+                    entry['type'],
+                    entry['amount'],
+                    entry.get('running_balance', ''),
+                    '',
+                ])
+            writer.writerow(['', '', '', '', '', '', 'Outstanding Balance:', cs['outstanding_balance']])
+            writer.writerow([])
+
+        writer.writerow([])
+        writer.writerow(['', '', '', '', '', '', 'Total Outstanding:', total_outstanding])
+        writer.writerow(['', '', '', '', '', '', 'Total Credit:', total_credit])
+
+        return response
+
+    # Export to PDF
+    if export_format == 'pdf':
+        from django.template.loader import render_to_string
+        from weasyprint import HTML
+
+        html_string = render_to_string('marania_invoice_app/outstanding_payment_list_pdf.html', {
+            'customer_summaries': customer_summaries,
+            'today': today,
+            'total_outstanding': total_outstanding,
+            'total_credit': total_credit,
+        })
+
+        html = HTML(string=html_string)
+        pdf_file = html.write_pdf()
+
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="outstanding_payment_list.pdf"'
+        return response
 
     return render(request, 'marania_invoice_app/outstanding_payment_list.html', {
         'customer_summaries': customer_summaries,

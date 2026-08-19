@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Outstanding Payment List</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      color: #333;
+      margin-bottom: 5px;
+    }
+    .header p {
+      color: #666;
+      margin: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 6px 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+      font-weight: bold;
+    }
+    .text-end {
+      text-align: right;
+    }
+    .customer-header {
+      background-color: #1a237e;
+      color: white;
+      font-weight: bold;
+      font-size: 13px;
+    }
+    .outstanding-row {
+      background-color: #ff9800;
+      color: white;
+      font-weight: bold;
+    }
+    .credit-row {
+      background-color: #4caf50;
+      color: white;
+      font-weight: bold;
+    }
+    .zero-row {
+      background-color: #9e9e9e;
+      color: white;
+      font-weight: bold;
+    }
+    .dr-amount {
+      color: red;
+      font-weight: bold;
+    }
+    .cr-amount {
+      color: green;
+      font-weight: bold;
+    }
+    .summary-table {
+      width: 50%;
+      margin: 20px auto;
+    }
+    .summary-table td {
+      padding: 8px 12px;
+    }
+    @page {
+      size: landscape;
+      margin: 1cm;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Outstanding Payment List</h1>
+    <p>Report Date: {{ today }}</p>
+  </div>
+
+  {% for cs in customer_summaries %}
+  <table>
+    <thead>
+      <tr class="customer-header">
+        <th colspan="5">{{ cs.customer_name|upper }}</th>
+      </tr>
+      <tr>
+        <th style="width:30px;">#</th>
+        <th style="width:90px;">Date</th>
+        <th style="width:150px;">Invoice/Ref #</th>
+        <th style="width:330px;">Description</th>
+        <th style="width:120px;" class="text-end">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in cs.entries %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ entry.entry_date }}</td>
+        <td>{{ entry.ref_number }}</td>
+        <td>{{ entry.description }}</td>
+        <td class="text-end">
+          {% if entry.type == 'Dr' %}
+            <span class="dr-amount">-{{ entry.amount|floatformat:2 }}</span>
+          {% else %}
+            <span class="cr-amount">+{{ entry.amount|floatformat:2 }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr class="{% if cs.outstanding_balance > 0 %}outstanding-row{% elif cs.outstanding_balance < 0 %}credit-row{% else %}zero-row{% endif %}">
+        <td colspan="4" style="text-align:center;">
+          {% if cs.outstanding_balance > 0 %}
+            Outstanding Balance
+          {% elif cs.outstanding_balance < 0 %}
+            Credit Balance
+          {% else %}
+            Balance
+          {% endif %}
+        </td>
+        <td class="text-end">Rs {{ cs.outstanding_balance|floatformat:2 }}</td>
+      </tr>
+    </tfoot>
+  </table>
+  {% endfor %}
+
+  <table class="summary-table">
+    <tr>
+      <td><strong>Total Outstanding Balance:</strong></td>
+      <td class="text-end" style="color: #ff9800; font-weight: bold;">Rs {{ total_outstanding|floatformat:2 }}</td>
+    </tr>
+    <tr>
+      <td><strong>Total Credit Balance:</strong></td>
+      <td class="text-end" style="color: #4caf50; font-weight: bold;">Rs {{ total_credit|floatformat:2 }}</td>
+    </tr>
+  </table>
+</body>
+</html>
