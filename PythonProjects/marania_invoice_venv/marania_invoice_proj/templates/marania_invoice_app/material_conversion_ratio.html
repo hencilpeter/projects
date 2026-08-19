@@ -18,7 +18,7 @@
 
           <div id="ratio-rows">
             <div class="row mb-2 ratio-row align-items-center">
-              <div class="col-md-4">
+              <div class="col-md-3">
                 <select name="material_code" class="form-select form-select-sm">
                   <option value="">Select Material</option>
                   {% for m in materials %}
@@ -26,8 +26,14 @@
                   {% endfor %}
                 </select>
               </div>
-              <div class="col-md-3">
-                <input type="number" step="0.0000001" name="conversion_ratio" class="form-control form-control-sm" placeholder="Conversion Ratio">
+              <div class="col-md-2">
+                <input type="number" step="0.0000000001" name="base_conversion_ratio" class="form-control form-control-sm" placeholder="Base Conversion Ratio">
+              </div>
+              <div class="col-md-2">
+                <input type="number" step="0.0000000001" name="multiplier" class="form-control form-control-sm" placeholder="Multiplier">
+              </div>
+              <div class="col-md-2">
+                <input type="text" name="conversion_ratio_display" class="form-control form-control-sm" placeholder="Conversion Ratio" readonly>
               </div>
               <div class="col-md-3 d-flex justify-content-end gap-1">
                 <button type="button" class="btn btn-warning btn-sm clear-row">Clear</button>
@@ -65,8 +71,14 @@
                 <option value="">All</option>
               </select>
             </th>
-            <th>Conversion Ratio
+            <th>Base Conversion Ratio
               <input type="text" class="form-control form-control-sm text-filter" data-col="1">
+            </th>
+            <th>Multiplier
+              <input type="text" class="form-control form-control-sm text-filter" data-col="2">
+            </th>
+            <th>Conversion Ratio
+              <input type="text" class="form-control form-control-sm text-filter" data-col="3">
             </th>
             <th>
               Action
@@ -82,6 +94,8 @@
           {% for r in ratios %}
           <tr>
             <td>{{ r.material_code }}</td>
+            <td>{{ r.base_conversion_ratio }}</td>
+            <td>{{ r.multiplier }}</td>
             <td>{{ r.conversion_ratio }}</td>
             <td>
               <button type="button"
@@ -102,6 +116,19 @@
 <script>
 /* ================== COMMON ================== */
 const ratioContainer = document.getElementById("ratio-rows");
+
+function calcConversionRatio(row) {
+  const base = parseFloat(row.querySelector('[name="base_conversion_ratio"]').value) || 0;
+  const mult = parseFloat(row.querySelector('[name="multiplier"]').value) || 0;
+  row.querySelector('[name="conversion_ratio_display"]').value = (base * mult) || "";
+}
+
+/* ================== AUTO-CALCULATE ================== */
+ratioContainer.addEventListener("input", e => {
+  if (e.target.name === "base_conversion_ratio" || e.target.name === "multiplier") {
+    calcConversionRatio(e.target.closest(".ratio-row"));
+  }
+});
 
 /* ================== ADD RATIO ================== */
 document.getElementById("add-ratio").addEventListener("click", () => {
@@ -144,9 +171,11 @@ document.addEventListener("click", e => {
   const select = row.querySelector('[name="material_code"]');
   select.value = materialCode;
 
-  // Find the ratio from the table
+  // Find the values from the table
   const tableRow = e.target.closest("tr");
-  row.querySelector('[name="conversion_ratio"]').value = tableRow.cells[1].innerText;
+  row.querySelector('[name="base_conversion_ratio"]').value = tableRow.cells[1].innerText;
+  row.querySelector('[name="multiplier"]').value = tableRow.cells[2].innerText;
+  row.querySelector('[name="conversion_ratio_display"]').value = tableRow.cells[3].innerText;
 
   const collapseEl = document.getElementById("ratioForm");
   const bs = bootstrap.Collapse.getInstance(collapseEl)

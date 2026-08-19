@@ -904,6 +904,11 @@ function buildViewTableWithSums(items, columns, date, title) {
     container.appendChild(table);
 }
 
+function getSalesListModal() {
+    var el = document.getElementById('salesListModal');
+    return bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+}
+
 function viewSalesList() {
     document.getElementById('sales-list-content').innerHTML = '';
     const date = document.getElementById('sales_entry_date').value;
@@ -943,8 +948,7 @@ function viewSalesList() {
     buildViewTableWithSums(allItems, procCols, date, 'Marania Processing List');
     buildViewTableWithSums(allItems, salesCols, date, 'Marania Sales List');
 
-    var modal = new bootstrap.Modal(document.getElementById('salesListModal'));
-    modal.show();
+    getSalesListModal().show();
 }
 
 function addToCart() {
@@ -1815,8 +1819,7 @@ function viewSelectedSales() {
     buildViewTableWithSums(filteredItems, procCols, date, '(Marania Processing List)');
     buildViewTableWithSums(filteredItems, salesCols, date, '(Marania Sales List)');
 
-    var modal = new bootstrap.Modal(document.getElementById('salesListModal'));
-    modal.show();
+    getSalesListModal().show();
 }
 
 function loadEditMode(salesKey) {
@@ -1883,6 +1886,11 @@ function updateSalesSummary() {
 
     panel.style.display = filteredCount > 0 ? '' : 'none';
 }
+
+document.getElementById('salesListModal').addEventListener('hidden.bs.modal', function () {
+    document.body.classList.remove('modal-open');
+    document.querySelectorAll('.modal-backdrop').forEach(function(el) { el.remove(); });
+});
 
 // Override reset to also uncheck all
 var origReset = resetSalesForm;

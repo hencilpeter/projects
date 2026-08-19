@@ -5393,9 +5393,13 @@ def material_conversion_ratio_view(request):
         code = request.GET.get("code")
         try:
             ratio = MaterialConversionRatio.objects.get(material_code=code)
-            return JsonResponse({"conversion_ratio": str(ratio.conversion_ratio)})
+            return JsonResponse({
+                "conversion_ratio": str(ratio.conversion_ratio),
+                "base_conversion_ratio": str(ratio.base_conversion_ratio),
+                "multiplier": str(ratio.multiplier),
+            })
         except MaterialConversionRatio.DoesNotExist:
-            return JsonResponse({"conversion_ratio": None})
+            return JsonResponse({"conversion_ratio": None, "base_conversion_ratio": None, "multiplier": None})
 
     if request.method == 'POST':
         action = request.POST.get("action")
@@ -5404,16 +5408,22 @@ def material_conversion_ratio_view(request):
         if action == "save":
             rows = zip(
                 request.POST.getlist("material_code"),
-                request.POST.getlist("conversion_ratio"),
+                request.POST.getlist("base_conversion_ratio"),
+                request.POST.getlist("multiplier"),
             )
             
-            for material_code, conversion_ratio in rows:
+            for material_code, base_conversion_ratio, multiplier in rows:
                 if not material_code:
                     continue
+                base_val = Decimal(base_conversion_ratio) if base_conversion_ratio else Decimal(0)
+                mult_val = Decimal(multiplier) if multiplier else Decimal(1)
+                conversion_ratio = base_val * mult_val
                 MaterialConversionRatio.objects.update_or_create(
                     material_code=material_code,
                     defaults={
-                        "conversion_ratio": conversion_ratio or 0,
+                        "base_conversion_ratio": base_val,
+                        "multiplier": mult_val,
+                        "conversion_ratio": conversion_ratio,
                     }
                 )
             messages.success(request, "Material Conversion Ratio saved successfully.")
@@ -5683,7 +5693,7 @@ def production_entry_view(request):
 
     from .models import MaterialConversionRatio
     conversion_ratios = MaterialConversionRatio.objects.all().order_by("material_code")
-    twine_options = [{"code": r.material_code, "ratio": str(r.conversion_ratio), "label": f"{r.material_code}-{r.conversion_ratio}"} for r in conversion_ratios]
+    twine_options = [{"code": r.material_code, "ratio": str(r.conversion_ratio), "base_ratio": str(r.base_conversion_ratio), "multiplier": str(r.multiplier), "label": f"{r.material_code}-{r.conversion_ratio}"} for r in conversion_ratios]
 
     # Get saved production entries
     productions = Production.objects.all().select_related("order").order_by("-production_date", "-production_key")
@@ -6070,7 +6080,7 @@ def piece_weight_analyser_view(request):
     products = Product.objects.all().order_by("code")
 
     conversion_ratios = MaterialConversionRatio.objects.all().order_by("material_code")
-    twine_options = [{"code": r.material_code, "ratio": str(r.conversion_ratio), "label": f"{r.material_code}-{r.conversion_ratio}"} for r in conversion_ratios]
+    twine_options = [{"code": r.material_code, "ratio": str(r.conversion_ratio), "base_ratio": str(r.base_conversion_ratio), "multiplier": str(r.multiplier), "label": f"{r.material_code}-{r.conversion_ratio}"} for r in conversion_ratios]
 
     saved_entries = PieceWeightAnalyser.objects.all()
     saved_data = []

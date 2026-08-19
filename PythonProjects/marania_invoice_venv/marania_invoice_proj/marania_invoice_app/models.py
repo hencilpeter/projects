@@ -710,9 +710,15 @@ class Expense(models.Model):
 
 class MaterialConversionRatio(models.Model):
     material_code = models.CharField(max_length=50, unique=True)
+    base_conversion_ratio = models.DecimalField(max_digits=20, decimal_places=10, default=0)
+    multiplier = models.DecimalField(max_digits=20, decimal_places=10, default=1)
     conversion_ratio = models.DecimalField(max_digits=20, decimal_places=10)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        self.conversion_ratio = self.base_conversion_ratio * self.multiplier
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.material_code} - {self.conversion_ratio}"
