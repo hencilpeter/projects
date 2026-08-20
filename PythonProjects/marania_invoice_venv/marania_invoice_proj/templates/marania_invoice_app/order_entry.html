@@ -982,9 +982,32 @@ if (orderTable) {
 }
 
 function toggleAllOrderCheckboxes(master) {
-    document.querySelectorAll('.order-checkbox').forEach(function(cb) {
-        cb.checked = master.checked;
+    var filterThs = document.querySelectorAll('#order-filter-row th');
+    var hasFilters = false;
+    filterThs.forEach(function(th) {
+        var input = th.querySelector('input.filter-input, select.filter-select');
+        if (input && input.value && input.value.trim() !== '') {
+            hasFilters = true;
+        }
     });
+    var statusCheckboxes = document.querySelectorAll('.status-filter-checkbox');
+    if (Array.from(statusCheckboxes).some(function(cb) { return cb.checked; })) {
+        hasFilters = true;
+    }
+    if (hasFilters && master.checked) {
+        document.querySelectorAll('.order-checkbox').forEach(function(cb) {
+            var row = cb.closest('tr');
+            if (row && row.style.display !== 'none') {
+                cb.checked = true;
+            } else {
+                cb.checked = false;
+            }
+        });
+    } else {
+        document.querySelectorAll('.order-checkbox').forEach(function(cb) {
+            cb.checked = master.checked;
+        });
+    }
     updateCopyOrdersBtn();
 }
 
