@@ -3622,7 +3622,7 @@ def payment_allocation_entry(request):
             ).aggregate(total=Sum('allocated_amount'))['total'] or 0
             balance = float(si.amount) - float(alloc_total)
             if balance > 0:
-                desc = 'Invoice issued'
+                desc = 'SI'
                 comment = si.display_comment or ''
                 if comment:
                     desc += f' ({comment})'
@@ -6274,7 +6274,7 @@ def outstanding_payment_list_view(request):
             balance = float(si.amount) - float(alloc_total)
             if balance > 0:
                 comment = si.display_comment or ''
-                desc = 'Invoice issued'
+                desc = 'SI'
                 if comment:
                     desc += f' ({comment})'
                 entries.append({

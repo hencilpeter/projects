@@ -657,7 +657,7 @@ function showBalanceHistory() {
             } else if (inv.type === 'settlement_invoice') {
                 invoiceRef = inv.settlement_invoice_number || invNum;
                 var displayComment = inv.display_comment || '';
-                desc = 'Invoice issued';
+                desc = 'SI';
                 if (displayComment) {
                     desc += ' (' + displayComment + ')';
                 }
