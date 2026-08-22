@@ -87,6 +87,38 @@
     background-color: #e9ecef;
 }
 
+.month-range-container {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+}
+.month-range-container .form-control {
+    min-width: 0;
+    flex: 1;
+    padding: 2px 4px;
+    font-size: 0.75rem;
+}
+.month-range-container .btn {
+    flex-shrink: 0;
+    line-height: 1.2;
+    padding: 1px 4px;
+    font-size: 0.7rem;
+}
+.month-range-sep {
+    font-size: 0.7rem;
+    color: #6c757d;
+    padding: 0 1px;
+}
+.month-range-container .dropdown-menu {
+    font-size: 0.8rem;
+    min-width: 140px;
+    padding: 4px 0;
+}
+.month-range-container .dropdown-item {
+    padding: 3px 12px;
+    font-size: 0.78rem;
+}
+
 .btn-3d-yellow {
   background: linear-gradient(to bottom, #ffeb3b, #f9c60a) !important;
   color: #212529 !important;
@@ -281,7 +313,27 @@
               <tr id="pl-filter-row">
                 <th></th>
                 <th><button type="button" class="btn-3d-yellow btn-sm" onclick="clearFilters()" style="font-size:0.75rem;">Clear</button></th>
-                <th><input class="filter-input" placeholder="Year-Month"></th>
+                <th>
+                  <div class="month-range-container">
+                    <input type="month" class="form-control" id="monthRangeFrom" placeholder="From">
+                    <span class="month-range-sep">-</span>
+                    <input type="month" class="form-control" id="monthRangeTo" placeholder="To">
+                    <div class="dropdown">
+                      <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size:0.65rem;padding:1px 4px;">
+                        <i class="bi bi-calendar3"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="javascript:void(0);" onclick="setMonthRangeQuick('thisyear')">This Year</a></li>
+                        <li><a class="dropdown-item" href="javascript:void(0);" onclick="setMonthRangeQuick('lastyear')">Last Year</a></li>
+                        <li><a class="dropdown-item" href="javascript:void(0);" onclick="setMonthRangeQuick('last6months')">Last 6 Months</a></li>
+                        <li><a class="dropdown-item" href="javascript:void(0);" onclick="setMonthRangeQuick('thismonth')">This Month</a></li>
+                        <li><a class="dropdown-item" href="javascript:void(0);" onclick="setMonthRangeQuick('lastmonth')">Last Month</a></li>
+                        <li><hr class="dropdown-divider" style="margin:2px 0;"></li>
+                        <li><a class="dropdown-item text-danger" href="javascript:void(0);" onclick="clearMonthRange()">Clear</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </th>
                 <th><input class="filter-input" placeholder="Sales Rev"></th>
                 <th><input class="filter-input" placeholder="Other Inc"></th>
                 <th><input class="filter-input" placeholder="Salary"></th>
@@ -350,6 +402,7 @@
 <script>
 const plData = JSON.parse('{{ pl_json|escapejs }}' || '[]');
 var editingPLKey = '';
+var monthRangeState = { from: '', to: '' };
 
 populateForm();
 
@@ -466,19 +519,37 @@ function updatePLSummary() {
         var filterThs = document.querySelectorAll('#pl-filter-row th');
         var filters = [];
         filterThs.forEach(function(th) {
-            var input = th.querySelector('input, select');
+            var input = th.querySelector('input.filter-input, select.filter-select');
             filters.push(input ? input.value.toLowerCase() : '');
         });
+
+        var mrFrom = document.getElementById('monthRangeFrom').value || '';
+        var mrTo = document.getElementById('monthRangeTo').value || '';
+        monthRangeState = { from: mrFrom, to: mrTo };
 
         tbody.querySelectorAll('tr').forEach(function(row) {
             var cells = row.querySelectorAll('td');
             var show = true;
-            filters.forEach(function(filter, index) {
-                if (!filter) return;
-                if (!cells[index] || !cells[index].textContent.toLowerCase().includes(filter)) {
+
+            if (mrFrom || mrTo) {
+                var cellMonth = (cells[2] ? cells[2].textContent.trim() : '');
+                if (cellMonth) {
+                    if (mrFrom && cellMonth < mrFrom) show = false;
+                    if (mrTo && cellMonth > mrTo) show = false;
+                } else {
                     show = false;
                 }
-            });
+            }
+
+            if (show) {
+                filters.forEach(function(filter, index) {
+                    if (!filter) return;
+                    if (!cells[index] || !cells[index].textContent.toLowerCase().includes(filter)) {
+                        show = false;
+                    }
+                });
+            }
+
             row.style.display = show ? '' : 'none';
         });
         updatePLSummary();
@@ -486,10 +557,13 @@ function updatePLSummary() {
 
     window.applyFilters = applyFilters;
 
-    document.querySelectorAll('#pl-filter-row input, #pl-filter-row select')
+    document.querySelectorAll('#pl-filter-row input.filter-input, #pl-filter-row select.filter-select')
         .forEach(function(el) { el.addEventListener('input', applyFilters); });
-    document.querySelectorAll('#pl-filter-row select')
+    document.querySelectorAll('#pl-filter-row select.filter-select')
         .forEach(function(el) { el.addEventListener('change', applyFilters); });
+
+    document.getElementById('monthRangeFrom').addEventListener('input', applyFilters);
+    document.getElementById('monthRangeTo').addEventListener('input', applyFilters);
 
     applyFilters();
     updatePLSummary();
@@ -500,6 +574,43 @@ function clearFilters() {
     filterInputs.forEach(function(input) { input.value = ''; });
     var filterSelects = document.querySelectorAll('#pl-filter-row .filter-select');
     filterSelects.forEach(function(select) { select.selectedIndex = 0; });
+    clearMonthRange();
+}
+
+function clearMonthRange() {
+    document.getElementById('monthRangeFrom').value = '';
+    document.getElementById('monthRangeTo').value = '';
+    monthRangeState = { from: '', to: '' };
+    applyFilters();
+}
+
+function setMonthRangeQuick(range) {
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = now.getMonth() + 1;
+    var from = '', to = '';
+
+    if (range === 'thisyear') {
+        from = y + '-01';
+        to = y + '-12';
+    } else if (range === 'lastyear') {
+        from = (y - 1) + '-01';
+        to = (y - 1) + '-12';
+    } else if (range === 'last6months') {
+        var d = new Date(y, m - 6, 1);
+        from = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        to = y + '-' + String(m).padStart(2, '0');
+    } else if (range === 'thismonth') {
+        from = y + '-' + String(m).padStart(2, '0');
+        to = from;
+    } else if (range === 'lastmonth') {
+        var d2 = new Date(y, m - 2, 1);
+        from = d2.getFullYear() + '-' + String(d2.getMonth() + 1).padStart(2, '0');
+        to = from;
+    }
+
+    document.getElementById('monthRangeFrom').value = from;
+    document.getElementById('monthRangeTo').value = to;
     applyFilters();
 }
 </script>
