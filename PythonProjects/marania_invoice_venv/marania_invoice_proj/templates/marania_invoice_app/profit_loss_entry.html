@@ -445,8 +445,8 @@ function recalcPL() {
     var material = parseFloat(document.getElementById('pl_inhouse_material_value').value) || 0;
 
     var totalIncome = sales + other;
-    var totalExpenses = salary + purchase + otherExp + material;
-    var plAmount = totalIncome - totalExpenses;
+    var totalExpenses = salary + purchase + otherExp;
+    var plAmount = totalIncome - totalExpenses + material;
     var status = 'NO PROFIT / NO LOSS';
     if (plAmount > 0) status = 'PROFIT';
     else if (plAmount < 0) status = 'LOSS';

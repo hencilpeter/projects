@@ -4099,8 +4099,8 @@ def profit_loss_entry(request):
                 "other_expenses": str(other_expenses),
                 "inhouse_material_value": str(inhouse_material_value),
                 "total_income": str(sales_revenue),
-                "total_expenses": str(salary_expense + purchase_expense + other_expenses + inhouse_material_value),
-                "profit_loss_amount": str(sales_revenue - (salary_expense + purchase_expense + other_expenses + inhouse_material_value)),
+                "total_expenses": str(salary_expense + purchase_expense + other_expenses),
+                "profit_loss_amount": str(sales_revenue - (salary_expense + purchase_expense + other_expenses) + inhouse_material_value),
                 "profit_loss_status": "NO PROFIT / NO LOSS",
             }])
 
@@ -4145,8 +4145,8 @@ def profit_loss_entry(request):
             sales_revenue = other_income = salary_expense = purchase_expense = other_expenses = inhouse_material_value = Decimal("0")
 
         total_income = sales_revenue + other_income
-        total_expenses = salary_expense + purchase_expense + other_expenses + inhouse_material_value
-        profit_loss_amount = total_income - total_expenses
+        total_expenses = salary_expense + purchase_expense + other_expenses
+        profit_loss_amount = total_income - total_expenses + inhouse_material_value
 
         if profit_loss_amount > 0:
             profit_loss_status = "PROFIT"
