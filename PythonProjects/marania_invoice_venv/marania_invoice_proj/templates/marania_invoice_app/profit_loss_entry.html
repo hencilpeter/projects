@@ -220,6 +220,29 @@
       </form>
     </div>
 
+    <div id="plSummaryPanel" class="card mb-2 shadow-sm border-primary" style="display:none;">
+      <div class="card-body py-1 px-3">
+        <div class="row g-1 text-center">
+          <div class="col-md-3 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Filtered Records</div>
+            <div class="fw-bold lh-1" id="summary-filtered-count">0</div>
+          </div>
+          <div class="col-md-3 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Total Income</div>
+            <div class="fw-bold lh-1 text-success" id="summary-total-income">0.00</div>
+          </div>
+          <div class="col-md-3 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Total Expenses</div>
+            <div class="fw-bold lh-1 text-danger" id="summary-total-expenses">0.00</div>
+          </div>
+          <div class="col-md-3 col-sm-4">
+            <div class="small text-muted lh-1">Net Profit/Loss</div>
+            <div class="fw-bold lh-1" id="summary-net-pl">0.00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="pl-list mt-4">
       {% if profit_losses %}
         <div class="pl-table-wrapper">
@@ -358,12 +381,6 @@ function setFormData(data) {
     document.getElementById('pl_other_expenses').value = data.other_expenses || '0';
     document.getElementById('pl_inhouse_material_value').value = data.inhouse_material_value || '0';
     recalcPL();
-
-    var collapseEl = document.getElementById("plForm");
-    var bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, {toggle: false});
-    if (!collapseEl.classList.contains("show")) {
-        bsCollapse.show();
-    }
 }
 
 function recalcPL() {
@@ -407,16 +424,37 @@ function resetPL() {
     recalcPL();
 }
 
-function clearFilters() {
-    var filterInputs = document.querySelectorAll('#pl-filter-row .filter-input');
-    filterInputs.forEach(function(input) {
-        input.value = '';
+function updatePLSummary() {
+    var panel = document.getElementById('plSummaryPanel');
+    if (!panel) return;
+    var table = document.getElementById('profit-loss-table');
+    if (!table) { panel.style.display = 'none'; return; }
+    var tbody = table.querySelector('tbody');
+    if (!tbody) { panel.style.display = 'none'; return; }
+
+    var filteredCount = 0;
+    var totalIncome = 0;
+    var totalExpenses = 0;
+    var netPL = 0;
+
+    tbody.querySelectorAll('tr').forEach(function(row) {
+        if (row.style.display === 'none') return;
+        var cells = row.querySelectorAll('td');
+        if (cells.length < 12) return;
+        filteredCount++;
+        totalIncome += parseFloat(cells[9].textContent) || 0;
+        totalExpenses += parseFloat(cells[10].textContent) || 0;
+        netPL += parseFloat(cells[11].textContent) || 0;
     });
-    var filterSelects = document.querySelectorAll('#pl-filter-row .filter-select');
-    filterSelects.forEach(function(select) {
-        select.selectedIndex = 0;
-    });
-    applyFilters();
+
+    document.getElementById('summary-filtered-count').textContent = filteredCount;
+    document.getElementById('summary-total-income').textContent = totalIncome.toFixed(2);
+    document.getElementById('summary-total-expenses').textContent = totalExpenses.toFixed(2);
+    var netPLEl = document.getElementById('summary-net-pl');
+    netPLEl.textContent = netPL.toFixed(2);
+    netPLEl.className = 'fw-bold lh-1 ' + (netPL > 0 ? 'text-success' : netPL < 0 ? 'text-danger' : '');
+
+    panel.style.display = filteredCount > 0 ? '' : 'none';
 }
 
 (function() {
@@ -443,12 +481,18 @@ function clearFilters() {
             });
             row.style.display = show ? '' : 'none';
         });
+        updatePLSummary();
     }
+
+    window.applyFilters = applyFilters;
 
     document.querySelectorAll('#pl-filter-row input, #pl-filter-row select')
         .forEach(function(el) { el.addEventListener('input', applyFilters); });
     document.querySelectorAll('#pl-filter-row select')
         .forEach(function(el) { el.addEventListener('change', applyFilters); });
+
+    applyFilters();
+    updatePLSummary();
 })();
 
 function clearFilters() {
