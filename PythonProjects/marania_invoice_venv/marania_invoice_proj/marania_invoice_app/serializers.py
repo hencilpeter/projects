@@ -16,6 +16,7 @@ MODEL_REGISTRY = {
     "OrderSpecification": OrderSpecification,
     "Sales": Sales,
     "Purchase": Purchase,
+    "Expense": Expense,
 }
 
 UNIQUE_KEY_MODEL = {
@@ -34,4 +35,5 @@ UNIQUE_KEY_MODEL = {
     "OrderSpecification": "",
     "Sales": "",
     "Purchase": "",
+    "Expense": "",
 }

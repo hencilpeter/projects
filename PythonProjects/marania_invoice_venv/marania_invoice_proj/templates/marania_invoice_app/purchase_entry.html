@@ -230,20 +230,32 @@
     <div id="purchaseSummaryPanel" class="card mb-2 shadow-sm border-primary" style="display:none;">
       <div class="card-body py-1 px-3">
         <div class="row g-1 text-center">
-          <div class="col-md-3 col-sm-4 border-end">
-            <div class="small text-muted lh-1">Filtered Records</div>
+          <div class="col border-end">
+            <div class="small text-muted lh-1">Records</div>
             <div class="fw-bold lh-1" id="summary-filtered-count">0</div>
           </div>
-          <div class="col-md-3 col-sm-4 border-end">
-            <div class="small text-muted lh-1">Total Amount</div>
+          <div class="col border-end">
+            <div class="small text-muted lh-1">Qty/Wt</div>
+            <div class="fw-bold lh-1" id="summary-total-qty">0</div>
+          </div>
+          <div class="col border-end">
+            <div class="small text-muted lh-1">Subtotal</div>
+            <div class="fw-bold lh-1 text-success" id="summary-total-subtotal">0.00</div>
+          </div>
+          <div class="col border-end">
+            <div class="small text-muted lh-1">GST Amt</div>
+            <div class="fw-bold lh-1 text-warning" id="summary-total-gst">0.00</div>
+          </div>
+          <div class="col border-end">
+            <div class="small text-muted lh-1">Total Amt</div>
             <div class="fw-bold lh-1" id="summary-total-amount">0.00</div>
           </div>
-          <div class="col-md-3 col-sm-4 border-end">
-            <div class="small text-muted lh-1">Total Paid</div>
-            <div class="fw-bold lh-1" id="summary-total-paid">0.00</div>
+          <div class="col border-end">
+            <div class="small text-muted lh-1">Paid</div>
+            <div class="fw-bold lh-1 text-success" id="summary-total-paid">0.00</div>
           </div>
-          <div class="col-md-3 col-sm-4">
-            <div class="small text-muted lh-1">Total Balance</div>
+          <div class="col">
+            <div class="small text-muted lh-1">Balance</div>
             <div class="fw-bold lh-1 text-danger" id="summary-total-balance">0.00</div>
           </div>
         </div>
@@ -753,6 +765,9 @@ function updatePurchaseSummary() {
     if (!tbody) { panel.style.display = 'none'; return; }
 
     var filteredCount = 0;
+    var totalQty = 0;
+    var totalSubtotal = 0;
+    var totalGST = 0;
     var totalAmount = 0;
     var totalPaid = 0;
     var totalBalance = 0;
@@ -762,12 +777,18 @@ function updatePurchaseSummary() {
         var cells = row.querySelectorAll('td');
         if (cells.length < 17) return;
         filteredCount++;
+        totalQty += parseFloat(cells[8].textContent) || 0;
+        totalSubtotal += parseFloat(cells[11].textContent) || 0;
+        totalGST += parseFloat(cells[13].textContent) || 0;
         totalAmount += parseFloat(cells[14].textContent) || 0;
         totalPaid += parseFloat(cells[15].textContent) || 0;
         totalBalance += parseFloat(cells[16].textContent) || 0;
     });
 
     document.getElementById('summary-filtered-count').textContent = filteredCount;
+    document.getElementById('summary-total-qty').textContent = totalQty.toFixed(2);
+    document.getElementById('summary-total-subtotal').textContent = totalSubtotal.toFixed(2);
+    document.getElementById('summary-total-gst').textContent = totalGST.toFixed(2);
     document.getElementById('summary-total-amount').textContent = totalAmount.toFixed(2);
     document.getElementById('summary-total-paid').textContent = totalPaid.toFixed(2);
     document.getElementById('summary-total-balance').textContent = totalBalance.toFixed(2);
