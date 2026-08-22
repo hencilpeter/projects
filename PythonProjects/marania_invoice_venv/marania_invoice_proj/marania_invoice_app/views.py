@@ -4399,6 +4399,7 @@ def twine_inventory_entry(request):
             "stock_in": stock_in,
             "sales_out": sales_out,
             "waste_used": waste_used,
+            "balance": opening_stock + stock_in - sales_out - waste_used,
             "daily_usage": daily_usage,
             "usage_basis": usage_basis,
             "days_left": days_left,
@@ -4428,6 +4429,7 @@ def twine_inventory_entry(request):
                     if prev_ti:
                         # Use previous month's balance as opening stock
                         data["opening_stock"] = prev_ti.balance
+                        data["balance"] = prev_ti.balance + stock_in - sales_out - waste_used
                 
                 TwineInventory.objects.create(**data)
 
