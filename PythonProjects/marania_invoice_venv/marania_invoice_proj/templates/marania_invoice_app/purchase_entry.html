@@ -336,15 +336,21 @@
                       </div>
                     </div>
                 </th>
-                <th><input class="filter-input" placeholder="Vendor" list="vendor_list_filter"></th>
                 <th>
-                  <select class="filter-select">
+                  <select class="filter-select" id="filter-vendor">
                     <option value="">All</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
                   </select>
                 </th>
-                <th><input class="filter-input" placeholder="Material Code" list="material_code_list_filter"></th>
+                <th>
+                  <select class="filter-select" id="filter-is-twine">
+                    <option value="">All</option>
+                  </select>
+                </th>
+                <th>
+                  <select class="filter-select" id="filter-material-code">
+                    <option value="">All</option>
+                  </select>
+                </th>
                 <th><input class="filter-input" placeholder="Description"></th>
                 <th><input class="filter-input" placeholder="Qty"></th>
                 <th><input class="filter-input" placeholder="Unit"></th>
@@ -356,11 +362,8 @@
                 <th><input class="filter-input" placeholder="Paid"></th>
                 <th><input class="filter-input" placeholder="Balance"></th>
                 <th>
-                  <select class="filter-select">
+                  <select class="filter-select" id="filter-status">
                     <option value="">All</option>
-                    <option value="PENDING" style="background-color:#8B2252;color:#fff;">PENDING</option>
-                    <option value="PARTIALLY PAID" style="background-color:#0dcaf0;color:#000;">PARTIALLY PAID</option>
-                    <option value="PAID" style="background-color:#d4edda;color:#155724;">PAID</option>
                   </select>
                 </th>
               </tr>
@@ -830,7 +833,7 @@ function updatePurchaseSummary() {
                     }
                     return;
                 }
-                if (index === 5) {
+                if (index === 4 || index === 5 || index === 6 || index === 17) {
                     if (cellText.trim() !== filter) show = false;
                 } else {
                     if (!cellText.includes(filter)) show = false;
@@ -842,6 +845,75 @@ function updatePurchaseSummary() {
     }
 
     window.applyFilters = applyFilters;
+
+    function populateDropdownFilters() {
+        var vendorVals = {};
+        var twineVals = {};
+        var matCodeVals = {};
+        var statusVals = {};
+        var statusStyles = {
+            'PENDING': 'background-color:#8B2252;color:#fff;',
+            'PARTIALLY PAID': 'background-color:#0dcaf0;color:#000;',
+            'PAID': 'background-color:#d4edda;color:#155724;'
+        };
+        tbody.querySelectorAll('tr').forEach(function(row) {
+            var cells = row.querySelectorAll('td');
+            if (cells.length < 17) return;
+            var vendor = cells[4].textContent.trim();
+            if (vendor) vendorVals[vendor] = true;
+            var twine = cells[5].textContent.trim();
+            if (twine) twineVals[twine] = true;
+            var matCode = cells[6].textContent.trim();
+            if (matCode) matCodeVals[matCode] = true;
+            var status = cells[17].textContent.trim();
+            if (status) statusVals[status] = true;
+        });
+
+        var vendorSel = document.getElementById('filter-vendor');
+        var curVendor = vendorSel.value;
+        vendorSel.innerHTML = '<option value="">All</option>';
+        Object.keys(vendorVals).sort().forEach(function(v) {
+            var opt = document.createElement('option');
+            opt.value = v;
+            opt.textContent = v;
+            vendorSel.appendChild(opt);
+        });
+        vendorSel.value = curVendor;
+
+        var twineSel = document.getElementById('filter-is-twine');
+        var curTwine = twineSel.value;
+        twineSel.innerHTML = '<option value="">All</option>';
+        Object.keys(twineVals).sort().forEach(function(v) {
+            var opt = document.createElement('option');
+            opt.value = v;
+            opt.textContent = v;
+            twineSel.appendChild(opt);
+        });
+        twineSel.value = curTwine;
+
+        var matCodeSel = document.getElementById('filter-material-code');
+        var curMatCode = matCodeSel.value;
+        matCodeSel.innerHTML = '<option value="">All</option>';
+        Object.keys(matCodeVals).sort().forEach(function(v) {
+            var opt = document.createElement('option');
+            opt.value = v;
+            opt.textContent = v;
+            matCodeSel.appendChild(opt);
+        });
+        matCodeSel.value = curMatCode;
+
+        var statusSel = document.getElementById('filter-status');
+        var curStatus = statusSel.value;
+        statusSel.innerHTML = '<option value="">All</option>';
+        Object.keys(statusVals).sort().forEach(function(v) {
+            var opt = document.createElement('option');
+            opt.value = v;
+            opt.textContent = v;
+            if (statusStyles[v]) opt.setAttribute('style', statusStyles[v]);
+            statusSel.appendChild(opt);
+        });
+        statusSel.value = curStatus;
+    }
 
     document.querySelectorAll('#purchase-filter-row input, #purchase-filter-row select')
         .forEach(function(el) { el.addEventListener('input', applyFilters); });
@@ -860,6 +932,7 @@ function updatePurchaseSummary() {
 
     try { initDeliveryDatePicker(); } catch(e) {}
     try { initPaymentDatePicker(); } catch(e) {}
+    populateDropdownFilters();
     applyFilters();
     updatePurchaseSummary();
 })();
