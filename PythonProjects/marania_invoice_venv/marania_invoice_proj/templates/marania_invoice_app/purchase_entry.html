@@ -3,6 +3,8 @@
 
 {% block main %}
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
 <style>
 .invoice-table-wrapper {
     max-height: 820px;
@@ -56,6 +58,21 @@
 
 .row-status-paid {
     background-color: #d4edda !important;
+}
+
+.date-filter-container {
+    display: flex;
+    gap: 2px;
+}
+.date-filter-container .form-control {
+    min-width: 0;
+    flex: 1;
+}
+.date-filter-container .btn {
+    flex-shrink: 0;
+    line-height: 1.2;
+    padding: 1px 4px;
+    font-size: 0.75rem;
 }
 </style>
 
@@ -210,6 +227,29 @@
       </form>
     </div>
 
+    <div id="purchaseSummaryPanel" class="card mb-2 shadow-sm border-primary" style="display:none;">
+      <div class="card-body py-1 px-3">
+        <div class="row g-1 text-center">
+          <div class="col-md-3 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Filtered Records</div>
+            <div class="fw-bold lh-1" id="summary-filtered-count">0</div>
+          </div>
+          <div class="col-md-3 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Total Amount</div>
+            <div class="fw-bold lh-1" id="summary-total-amount">0.00</div>
+          </div>
+          <div class="col-md-3 col-sm-4 border-end">
+            <div class="small text-muted lh-1">Total Paid</div>
+            <div class="fw-bold lh-1" id="summary-total-paid">0.00</div>
+          </div>
+          <div class="col-md-3 col-sm-4">
+            <div class="small text-muted lh-1">Total Balance</div>
+            <div class="fw-bold lh-1 text-danger" id="summary-total-balance">0.00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="purchase-list mt-4">
       {% if purchases %}
         <div class="invoice-table-wrapper">
@@ -240,8 +280,50 @@
                 <th>
                   <button class="btn btn-warning btn-sm" id="clear-purchase-filters">Clear</button>
                 </th>
-                <th><input class="filter-input" placeholder="Delivery"></th>
-                <th><input class="filter-input" placeholder="Payment"></th>
+                <th>
+                    <div class="date-filter-container">
+                      <input type="text" id="deliveryDateFilter" class="form-control form-control-sm" placeholder="Delivery...">
+                      <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary dropdown-toggle py-0" data-bs-toggle="dropdown" title="Quick date filters"><i class="bi bi-clock"></i></button>
+                        <ul class="dropdown-menu">
+                          <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('today');return false;">Today</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('thisweek');return false;">This Week</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('thismonth');return false;">This Month</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('thisyear');return false;">This Year</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('yesterday');return false;">Yesterday</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('lastweek');return false;">Last Week</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('lastmonth');return false;">Last Month</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('lastyear');return false;">Last Year</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item text-danger" href="#" onclick="clearDeliveryDateFilter();return false;">Clear</a></li>
+                        </ul>
+                      </div>
+                    </div>
+                </th>
+                <th>
+                    <div class="date-filter-container">
+                      <input type="text" id="paymentDateFilter" class="form-control form-control-sm" placeholder="Payment...">
+                      <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary dropdown-toggle py-0" data-bs-toggle="dropdown" title="Quick date filters"><i class="bi bi-clock"></i></button>
+                        <ul class="dropdown-menu">
+                          <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('today');return false;">Today</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('thisweek');return false;">This Week</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('thismonth');return false;">This Month</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('thisyear');return false;">This Year</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('yesterday');return false;">Yesterday</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('lastweek');return false;">Last Week</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('lastmonth');return false;">Last Month</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('lastyear');return false;">Last Year</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item text-danger" href="#" onclick="clearPaymentDateFilter();return false;">Clear</a></li>
+                        </ul>
+                      </div>
+                    </div>
+                </th>
                 <th><input class="filter-input" placeholder="Vendor" list="vendor_list_filter"></th>
                 <th>
                   <select class="filter-select">
@@ -341,9 +423,12 @@
 
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
 let drafts = [];
 let draftIdCounter = 0;
+var deliveryDateFilterState = null;
+var paymentDateFilterState = null;
 
 function getFormData() {
     return {
@@ -393,7 +478,6 @@ function setFormData(data) {
     document.getElementById('payment_status').value = data.payment_status || 'PENDING';
     document.getElementById('balance').value = data.balance || '';
     document.getElementById('comments').value = data.comments || '';
-
     var collapseEl = document.getElementById("purchaseForm");
     var bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, {toggle: false});
     if (!collapseEl.classList.contains("show")) {
@@ -426,7 +510,6 @@ function resetForm() {
     document.getElementById('invoice_no').value = '';
     document.getElementById('purchase_key').value = '';
     document.getElementById('delivery_date').value = '{% now "Y-m-d" %}';
-
     document.getElementById('payment_date').value = '';
     document.getElementById('vendor').value = '';
     document.getElementById('is_twine').checked = true;
@@ -452,7 +535,6 @@ function toggleMaterialField() {
     var isTwine = document.getElementById('is_twine').checked;
     document.getElementById('material_field').style.display = isTwine ? 'none' : 'block';
     if (isTwine) document.getElementById('material').value = '';
-    // Enable/disable material_code field based on is_twine
     document.getElementById('material_code_field').style.display = isTwine ? 'block' : 'none';
     if (!isTwine) document.getElementById('material_code').value = '';
 }
@@ -462,18 +544,14 @@ function calcTotals() {
     var price = parseFloat(document.getElementById('unit_price').value) || 0;
     var gstPct = parseFloat(document.getElementById('gst_percent').value) || 0;
     var paid = parseFloat(document.getElementById('amount_paid').value) || 0;
-
     var subtotal = qty * price;
     var gstAmt = subtotal * (gstPct / 100);
     var total = subtotal + gstAmt;
     var balance = total - paid;
-
     document.getElementById('subtotal').value = subtotal.toFixed(2);
     document.getElementById('gst_amount').value = gstAmt.toFixed(2);
     document.getElementById('total_amount').value = total.toFixed(2);
     document.getElementById('balance').value = balance.toFixed(2);
-
-    // Auto-update payment status
     var statusSelect = document.getElementById('payment_status');
     if (total > 0 && paid >= total) {
         statusSelect.value = 'PAID';
@@ -529,7 +607,174 @@ function submitCart() {
     document.getElementById('purchaseFormTag').submit();
 }
 
-// Filter functionality
+function initDeliveryDatePicker() {
+    var input = document.getElementById('deliveryDateFilter');
+    if (!input || input._flatpickr) return;
+    flatpickr(input, {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        onChange: function(selectedDates) {
+            if (selectedDates.length === 2) {
+                deliveryDateFilterState = {
+                    from: this.formatDate(selectedDates[0], "Y-m-d"),
+                    to: this.formatDate(selectedDates[1], "Y-m-d")
+                };
+            } else if (selectedDates.length === 1) {
+                var d = this.formatDate(selectedDates[0], "Y-m-d");
+                deliveryDateFilterState = { from: d, to: d };
+            } else {
+                deliveryDateFilterState = null;
+            }
+            applyFilters();
+        },
+        onClear: function() {
+            deliveryDateFilterState = null;
+            applyFilters();
+        }
+    });
+}
+
+function initPaymentDatePicker() {
+    var input = document.getElementById('paymentDateFilter');
+    if (!input || input._flatpickr) return;
+    flatpickr(input, {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        onChange: function(selectedDates) {
+            if (selectedDates.length === 2) {
+                paymentDateFilterState = {
+                    from: this.formatDate(selectedDates[0], "Y-m-d"),
+                    to: this.formatDate(selectedDates[1], "Y-m-d")
+                };
+            } else if (selectedDates.length === 1) {
+                var d = this.formatDate(selectedDates[0], "Y-m-d");
+                paymentDateFilterState = { from: d, to: d };
+            } else {
+                paymentDateFilterState = null;
+            }
+            applyFilters();
+        },
+        onClear: function() {
+            paymentDateFilterState = null;
+            applyFilters();
+        }
+    });
+}
+
+function setDateFilterQuick(range, stateVar, inputId) {
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = now.getMonth();
+    var d = now.getDate();
+    function fmt(date) {
+        return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
+    }
+    var from, to;
+    switch (range) {
+        case 'today':
+            from = to = now;
+            break;
+        case 'thisweek': {
+            var dayOfWeek = now.getDay();
+            var diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+            from = new Date(now.getFullYear(), now.getMonth(), diff);
+            to = new Date(from);
+            to.setDate(to.getDate() + 6);
+            break;
+        }
+        case 'thismonth':
+            from = new Date(y, m, 1);
+            to = new Date(y, m + 1, 0);
+            break;
+        case 'thisyear':
+            from = new Date(y, 0, 1);
+            to = new Date(y, 11, 31);
+            break;
+        case 'yesterday':
+            from = to = new Date(y, m, d - 1);
+            break;
+        case 'lastweek': {
+            var dayOfWeek = now.getDay();
+            var diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) - 7;
+            from = new Date(now.getFullYear(), now.getMonth(), diff);
+            to = new Date(from);
+            to.setDate(to.getDate() + 6);
+            break;
+        }
+        case 'lastmonth':
+            from = new Date(y, m - 1, 1);
+            to = new Date(y, m, 0);
+            break;
+        case 'lastyear':
+            from = new Date(y - 1, 0, 1);
+            to = new Date(y - 1, 11, 31);
+            break;
+    }
+    if (stateVar === 'delivery') {
+        deliveryDateFilterState = { from: fmt(from), to: fmt(to) };
+    } else {
+        paymentDateFilterState = { from: fmt(from), to: fmt(to) };
+    }
+    var fp = document.getElementById(inputId);
+    if (fp && fp._flatpickr) {
+        fp._flatpickr.setDate([from, to], true);
+    }
+    applyFilters();
+}
+
+function setDeliveryDateFilterQuick(range) {
+    setDateFilterQuick(range, 'delivery', 'deliveryDateFilter');
+}
+
+function setPaymentDateFilterQuick(range) {
+    setDateFilterQuick(range, 'payment', 'paymentDateFilter');
+}
+
+function clearDeliveryDateFilter() {
+    deliveryDateFilterState = null;
+    var fp = document.getElementById('deliveryDateFilter');
+    if (fp && fp._flatpickr) fp._flatpickr.clear();
+    applyFilters();
+}
+
+function clearPaymentDateFilter() {
+    paymentDateFilterState = null;
+    var fp = document.getElementById('paymentDateFilter');
+    if (fp && fp._flatpickr) fp._flatpickr.clear();
+    applyFilters();
+}
+
+function updatePurchaseSummary() {
+    var panel = document.getElementById('purchaseSummaryPanel');
+    if (!panel) return;
+    var table = document.getElementById('purchase-table');
+    if (!table) { panel.style.display = 'none'; return; }
+    var tbody = table.querySelector('tbody');
+    if (!tbody) { panel.style.display = 'none'; return; }
+
+    var filteredCount = 0;
+    var totalAmount = 0;
+    var totalPaid = 0;
+    var totalBalance = 0;
+
+    tbody.querySelectorAll('tr').forEach(function(row) {
+        if (row.style.display === 'none') return;
+        var cells = row.querySelectorAll('td');
+        if (cells.length < 17) return;
+        filteredCount++;
+        totalAmount += parseFloat(cells[14].textContent) || 0;
+        totalPaid += parseFloat(cells[15].textContent) || 0;
+        totalBalance += parseFloat(cells[16].textContent) || 0;
+    });
+
+    document.getElementById('summary-filtered-count').textContent = filteredCount;
+    document.getElementById('summary-total-amount').textContent = totalAmount.toFixed(2);
+    document.getElementById('summary-total-paid').textContent = totalPaid.toFixed(2);
+    document.getElementById('summary-total-balance').textContent = totalBalance.toFixed(2);
+
+    panel.style.display = filteredCount > 0 ? '' : 'none';
+}
+
 (function() {
     var table = document.getElementById('purchase-table');
     if (!table) return;
@@ -547,26 +792,35 @@ function submitCart() {
             var cells = row.querySelectorAll('td');
             var show = true;
             filters.forEach(function(filter, index) {
-                if (!filter) return;
-                if (!cells[index]) {
-                    show = false;
+                if (!filter && !(index === 2 && deliveryDateFilterState) && !(index === 3 && paymentDateFilterState)) return;
+                if (!cells[index]) { show = false; return; }
+                var cellText = cells[index].textContent.toLowerCase();
+                if (index === 2 && deliveryDateFilterState) {
+                    var cellDate = cellText.trim();
+                    if (cellDate < deliveryDateFilterState.from || cellDate > deliveryDateFilterState.to) {
+                        show = false;
+                    }
                     return;
                 }
-                // Special handling for is_twine column (index 5) - exact match
+                if (index === 3 && paymentDateFilterState) {
+                    var cellDate = cellText.trim();
+                    if (cellDate < paymentDateFilterState.from || cellDate > paymentDateFilterState.to) {
+                        show = false;
+                    }
+                    return;
+                }
                 if (index === 5) {
-                    var cellText = cells[index].textContent.toLowerCase().trim();
-                    if (cellText !== filter) {
-                        show = false;
-                    }
+                    if (cellText.trim() !== filter) show = false;
                 } else {
-                    if (!cells[index].textContent.toLowerCase().includes(filter)) {
-                        show = false;
-                    }
+                    if (!cellText.includes(filter)) show = false;
                 }
             });
             row.style.display = show ? '' : 'none';
         });
+        updatePurchaseSummary();
     }
+
+    window.applyFilters = applyFilters;
 
     document.querySelectorAll('#purchase-filter-row input, #purchase-filter-row select')
         .forEach(function(el) { el.addEventListener('input', applyFilters); });
@@ -579,8 +833,14 @@ function submitCart() {
                 .forEach(function(i) { i.value = ''; });
             document.querySelectorAll('#purchase-filter-row select')
                 .forEach(function(s) { s.selectedIndex = 0; });
-            applyFilters();
+            clearDeliveryDateFilter();
+            clearPaymentDateFilter();
         });
+
+    try { initDeliveryDatePicker(); } catch(e) {}
+    try { initPaymentDatePicker(); } catch(e) {}
+    applyFilters();
+    updatePurchaseSummary();
 })();
 </script>
 
