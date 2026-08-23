@@ -37,9 +37,9 @@
     </div>
 
     <!-- Configuration Summary -->
-    <div class="card shadow-sm p-3 mb-4">
-      <h6 class="mb-3">Configuration Summary</h6>
-      <div class="row g-3" style="font-size:0.85rem;">
+    <div class="card shadow-sm p-2 mb-3">
+      <h6 class="mb-2">Configuration Summary</h6>
+      <div class="row g-1" style="font-size:0.85rem;">
         <div class="col-md-2">
           <strong>Product:</strong><br>
           {{ config.product_code|default:"N/A" }}
@@ -84,11 +84,11 @@
     </div>
 
     <!-- Price List Table -->
-    <h5 class="mb-3">Price List</h5>
+    <h5 class="mb-2">Price List</h5>
 
     {% if price_list_rows %}
-    <div class="mb-3">
-      <label class="form-label small mb-0">Filter by Daily Profit Label</label>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <span class="small mb-0">Filter by Daily Profit Label</span>
       <select id="profit-filter" class="form-select form-select-sm" style="width:auto;">
         <option value="">All</option>
       </select>
