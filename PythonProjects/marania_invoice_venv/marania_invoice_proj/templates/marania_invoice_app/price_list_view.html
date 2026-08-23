@@ -17,10 +17,12 @@
     position: sticky;
     top: 0;
     z-index: 2;
+    font-size: 0.95rem;
+    font-weight: bold;
 }
 #price-table thead .info-header th {
     font-weight: normal;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
 }
 .col-mesh { width: 80px; }
 .col-price { width: 100px; }
@@ -115,7 +117,7 @@
           {% for row in price_list_rows %}
           <tr>
             <td>{{ row.mesh_range }}</td>
-            <td>{{ row.calculated_price }}</td>
+            <td>{{ row.calculated_price|floatformat:0 }}</td>
             <td>{{ row.daily_production }}</td>
             <td>{{ row.profit_label }}</td>
             <td>{{ row.profit_value }}</td>
@@ -164,6 +166,10 @@
     });
     var thead = table.querySelector('thead');
     thead.style.backgroundColor = '';
+    thead.style.color = '';
+    Array.from(thead.querySelectorAll('th')).forEach(function(th) {
+      th.style.color = '';
+    });
     thead.classList.add('table-dark');
   }
 
@@ -180,8 +186,16 @@
     if (darkColor) {
       thead.classList.remove('table-dark');
       thead.style.backgroundColor = darkColor;
+      thead.style.color = '#ffffff';
+      Array.from(thead.querySelectorAll('th')).forEach(function(th) {
+        th.style.color = '#ffffff';
+      });
     } else {
       thead.style.backgroundColor = '';
+      thead.style.color = '';
+      Array.from(thead.querySelectorAll('th')).forEach(function(th) {
+        th.style.color = '';
+      });
       thead.classList.add('table-dark');
     }
   }
