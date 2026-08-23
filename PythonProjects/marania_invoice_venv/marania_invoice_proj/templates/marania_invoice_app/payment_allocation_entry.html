@@ -193,6 +193,9 @@
         <button type="button" class="btn btn-info btn-lg ms-2" onclick="showBalanceHistory()">
           <i class="bi bi-graph-up"></i> Outstanding Summary
         </button>
+        <button type="button" class="btn btn-outline-info btn-lg ms-2" onclick="showAllocationSummary()">
+          <i class="bi bi-clipboard-check"></i> Outstanding Allocation Summary
+        </button>
       </div>
     </form>
 
@@ -277,6 +280,22 @@
   </div>
 </div>
 
+<!-- Outstanding Allocation Summary Modal -->
+<div class="modal fade" id="allocationSummaryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-clipboard-check"></i> Outstanding Allocation Summary</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="allocationSummaryBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -284,6 +303,7 @@
 var paymentData = {{ payment_data_json|safe }};
 var invoiceData = {{ invoice_data_json|safe }};
 var balanceHistoryData = {{ balance_history_json|safe }};
+var allAllocationItems = {{ all_allocation_items_json|safe }};
 
 var filteredPayments = [];
 var filteredInvoices = [];
@@ -743,6 +763,105 @@ function showBalanceHistory() {
         body.innerHTML = html;
     }
     var modal = new bootstrap.Modal(document.getElementById('balanceHistoryModal'));
+    modal.show();
+}
+
+function showAllocationSummary() {
+    var val = document.getElementById('alloc_customer').value.trim().toLowerCase();
+    var code = val.split('-')[0].trim();
+    if (code.length < 2) {
+        alert('Select a customer first.');
+        return;
+    }
+
+    var items = allAllocationItems[code] || [];
+
+    // Collect current allocation amounts from invoice-tbody form inputs
+    var currentAllocMap = {};
+    var totalAllocating = 0;
+    document.querySelectorAll('#invoice-tbody tr').forEach(function(row) {
+        var inp = row.querySelector('input[name="allocated_amount[]"]');
+        var hidden = row.querySelector('input[name="invoice_number[]"]');
+        if (inp && hidden) {
+            var amt = parseFloat(inp.value) || 0;
+            if (amt > 0) {
+                currentAllocMap[hidden.value] = amt;
+                totalAllocating += amt;
+            }
+        }
+    });
+
+    // Filter out items where amount is 0
+    items = items.filter(function(e) {
+        return e.amount > 0;
+    });
+
+    var body = document.getElementById('allocationSummaryBody');
+    var customerName = val;
+    var parts = val.split('-');
+    if (parts.length > 1) customerName = parts.slice(1).join('-').trim().toUpperCase();
+    var today = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+    var headerHtml = '<div class="d-flex justify-content-between align-items-center mb-2 p-2 rounded text-white" style="background:linear-gradient(135deg,#1a237e,#283593);font-size:0.9rem;width:700px">'
+        + '<strong><i class="bi bi-person-circle"></i> ' + customerName + '</strong>'
+        + '<span><i class="bi bi-calendar3"></i> ' + today + '</span>'
+        + '</div>';
+
+    if (items.length === 0) {
+        body.innerHTML = headerHtml + '<p class="text-muted text-center">No items found for this customer.</p>';
+    } else {
+        // Compute running balance
+        var running = 0.0;
+        items.forEach(function(e) {
+            if (e.type === 'Dr') {
+                running += e.amount;
+            } else {
+                running -= e.amount;
+            }
+            e.running_balance = Math.round(running * 100) / 100;
+        });
+
+        var html = headerHtml + '<table class="table table-sm table-bordered" style="border-color:#c0c0c0;margin-bottom:0;table-layout:fixed;width:700px;">'
+            + '<thead><tr style="background:linear-gradient(135deg,#1a237e,#283593);color:#fff;font-size:0.85rem;">'
+            + '<th style="width:30px;">#</th><th style="width:90px;">Date</th><th style="width:150px;">Invoice/Ref #</th><th style="width:340px;">Description</th><th style="text-align:right;width:90px;">Amount</th></tr></thead><tbody>';
+        items.forEach(function(e, i) {
+            var rowBg = i % 2 === 0 ? '#ffffff' : '#f0f4ff';
+            var prefix = e.type === 'Cr' ? '+' : '-';
+            var amtClass = e.type === 'Cr' ? 'text-success' : 'text-danger';
+            // Strike through if already fully allocated or perfectly allocated in current session
+            var allocAmt = currentAllocMap[e.invoice_ref] || 0;
+            var isPerfectAlloc = (allocAmt > 0 && Math.abs(allocAmt - e.balance) < 0.01);
+            // For Cr entries (payments), strike through if total allocating equals available amount
+            var isPerfectPayment = (e.type === 'Cr' && totalAllocating > 0 && Math.abs(totalAllocating - e.amount) < 0.01);
+            var strikeStyle = (e.is_fully_allocated || isPerfectAlloc || isPerfectPayment) ? 'text-decoration:line-through;' : '';
+            html += '<tr style="background:' + rowBg + ';font-size:0.85rem;' + strikeStyle + '">'
+                + '<td style="padding:4px 5px;">' + (i+1) + '</td>'
+                + '<td style="padding:4px 5px;">' + (e.entry_date || '') + '</td>'
+                + '<td style="padding:4px 5px;">' + (e.invoice_ref || '') + '</td>'
+                + '<td style="padding:4px 5px;">' + e.description + '</td>'
+                + '<td style="padding:4px 5px;text-align:right;" class="fw-bold ' + amtClass + '">' + prefix + e.amount.toFixed(2) + '</td>'
+                + '</tr>';
+        });
+        html += '</tbody></table>';
+        var lastBalance = items.length > 0 ? items[items.length - 1].running_balance : 0;
+        var balanceLabel, balanceBg;
+        if (lastBalance > 0) {
+            balanceLabel = 'Outstanding Balance';
+            balanceBg = 'linear-gradient(135deg,#fd7e14,#e06b00)';
+        } else if (lastBalance < 0) {
+            balanceLabel = 'Credit Balance';
+            balanceBg = 'linear-gradient(135deg,#198754,#157347)';
+        } else {
+            balanceLabel = 'Balance';
+            balanceBg = 'linear-gradient(135deg,#1a237e,#283593)';
+        }
+        html += '<table class="table table-sm table-bordered" style="border-color:#c0c0c0;margin-top:0;width:700px;">'
+            + '<tbody><tr style="background:' + balanceBg + ';color:#fff;font-size:0.85rem;">'
+            + '<td colspan="4" style="padding:5px 4px;text-align:right;"><strong>' + balanceLabel + '</strong></td>'
+            + '<td style="padding:5px 4px;text-align:right;"><strong>Rs ' + Math.abs(lastBalance).toFixed(2) + '</strong></td>'
+            + '</tr></tbody></table>';
+        body.innerHTML = html;
+    }
+    var modal = new bootstrap.Modal(document.getElementById('allocationSummaryModal'));
     modal.show();
 }
 

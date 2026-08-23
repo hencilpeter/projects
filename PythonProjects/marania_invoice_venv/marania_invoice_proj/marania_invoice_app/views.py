@@ -3680,12 +3680,147 @@ def payment_allocation_entry(request):
 
         balance_history[code.lower()] = entries
 
+    # Build all allocation items per customer (including fully allocated) for Allocation Summary
+    all_allocation_items = {}
+    for party in parties:
+        code = party.code
+        items = []
+
+        # Opening balances
+        for ob in OpeningBalance.objects.filter(customer__code=code):
+            alloc_total = PaymentAllocation.objects.filter(
+                opening_balance=ob
+            ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+            balance = float(ob.amount) - float(alloc_total)
+            ob_num = ob.ob_number or f"OBAL-{ob.opening_balance_id}"
+            comment = ob.display_comment or ''
+            desc = 'Opening Balance'
+            if comment:
+                desc += f' ({comment})'
+            dr_cr = 'Dr' if ob.balance_type == 'Debit' else 'Cr'
+            items.append({
+                'entry_date': str(ob.opening_date),
+                'invoice_ref': f'OBAL-{ob.opening_balance_id}',
+                'description': desc,
+                'type': dr_cr,
+                'amount': balance,
+                'gross_total': float(ob.amount),
+                'allocated': float(alloc_total),
+                'balance': balance,
+                'is_fully_allocated': balance <= 0,
+            })
+
+        # Invoices
+        for inv in Invoice.objects.filter(customer_code=code):
+            alloc_total = PaymentAllocation.objects.filter(
+                invoice=inv
+            ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+            balance = float(inv.gross_total) - float(alloc_total)
+            items.append({
+                'entry_date': str(inv.invoice_date) if inv.invoice_date else '',
+                'invoice_ref': inv.invoice_number or '',
+                'description': 'Invoice issued',
+                'type': 'Dr',
+                'amount': balance,
+                'gross_total': float(inv.gross_total),
+                'allocated': float(alloc_total),
+                'balance': balance,
+                'is_fully_allocated': balance <= 0,
+            })
+
+        # Customer expenses
+        for exp in Expense.objects.filter(bill_to='Customer'):
+            vendor = exp.vendor or ''
+            if vendor and vendor != 'Not Applicable':
+                exp_code = vendor.split('-')[0].strip()
+                if exp_code == code:
+                    alloc_total = PaymentAllocation.objects.filter(
+                        expense=exp
+                    ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+                    balance = float(exp.expense_amount) - float(alloc_total)
+                    comment = exp.display_comment or ''
+                    desc = exp.expense_category or 'Expense'
+                    if comment:
+                        desc += f' ({comment})'
+                    items.append({
+                        'entry_date': str(exp.expense_date) if exp.expense_date else '',
+                        'invoice_ref': f'EXP-{exp.expense_id}',
+                        'description': desc,
+                        'type': 'Dr',
+                        'amount': balance,
+                        'gross_total': float(exp.expense_amount),
+                        'allocated': float(alloc_total),
+                        'balance': balance,
+                        'is_fully_allocated': balance <= 0,
+                    })
+
+        # Settlement invoices
+        for si in SettlementInvoice.objects.filter(customer__code=code):
+            alloc_total = PaymentAllocation.objects.filter(
+                settlement_invoice=si
+            ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+            balance = float(si.amount) - float(alloc_total)
+            comment = si.display_comment or ''
+            desc = 'SI'
+            if comment:
+                desc += f' ({comment})'
+            items.append({
+                'entry_date': str(si.settlement_date) if si.settlement_date else '',
+                'invoice_ref': f'SI-{si.settlement_id}',
+                'description': desc,
+                'type': 'Dr',
+                'amount': balance,
+                'gross_total': float(si.amount),
+                'allocated': float(alloc_total),
+                'balance': balance,
+                'is_fully_allocated': balance <= 0,
+            })
+
+        # Payment receipts
+        for receipt in PaymentReceipt.objects.filter(customer__code=code):
+            alloc_total = PaymentAllocation.objects.filter(
+                payment=receipt
+            ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+            available = float(receipt.total_received) - float(alloc_total)
+            ttype = receipt.transaction_type or 'Payment'
+            comment = receipt.display_comment or ''
+            if ttype == 'Payment':
+                desc = 'Payment Received'
+                entry_type = 'Cr'
+            elif ttype == 'Adjustment(Cr)':
+                desc = 'Payment Adjustment(Cr)'
+                entry_type = 'Cr'
+            elif ttype == 'Adjustment(Dr)':
+                desc = 'Payment Adjustment(Dr)'
+                entry_type = 'Dr'
+            else:
+                desc = 'Received Payment'
+                entry_type = 'Cr'
+            if comment:
+                desc += f' ({comment})'
+            items.append({
+                'entry_date': str(receipt.payment_date) if receipt.payment_date else '',
+                'invoice_ref': receipt.receipt_no or '',
+                'description': desc,
+                'type': entry_type,
+                'amount': available,
+                'gross_total': float(receipt.total_received),
+                'allocated': float(alloc_total),
+                'balance': available,
+                'is_fully_allocated': available <= 0,
+            })
+
+        # Sort by date
+        items.sort(key=lambda e: e['entry_date'])
+        all_allocation_items[code.lower()] = items
+
     return render(request, 'marania_invoice_app/payment_allocation_entry.html', {
         'parties': parties,
         'payment_data_json': json.dumps(payment_data),
         'invoice_data_json': json.dumps(invoice_data),
         'existing_allocations': existing_allocations,
         'balance_history_json': json.dumps(balance_history, default=str),
+        'all_allocation_items_json': json.dumps(all_allocation_items, default=str),
     })
 
 
