@@ -72,7 +72,7 @@
           </div>
           <div class="col-md-2">
             <label class="form-label small mb-0">Twine Price</label>
-            <input type="number" step="0.01" name="twine_price" id="twine_price" class="form-control form-control-sm" value="{{ default_twine_price }}">
+            <input type="number" step="0.01" name="twine_price" id="twine_price" class="form-control form-control-sm" placeholder="Auto-populated on product select">
           </div>
           <div class="col-md-2">
             <label class="form-label small mb-0">&nbsp;</label>
@@ -224,6 +224,28 @@ const configsData = JSON.parse('{{ configs_json|escapejs }}' || '[]');
 let dailyProfits = [];
 let meshRanges = [];
 let editMode = false;
+
+/* ========================
+   Product Change -> Fetch Twine Price
+   ======================== */
+document.getElementById('product_code').addEventListener('change', function() {
+  var productCode = this.value;
+  var twineInput = document.getElementById('twine_price');
+  if (!productCode) {
+    twineInput.value = '';
+    return;
+  }
+  fetch('/invoice/price-list-generator/get-twine-price/?product_code=' + encodeURIComponent(productCode), {
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    twineInput.value = data.twine_price !== '' ? data.twine_price : '';
+  })
+  .catch(function() {
+    twineInput.value = '';
+  });
+});
 
 /* ========================
    Daily Profit Functions
@@ -388,7 +410,7 @@ function deleteConfig(pk) {
 document.getElementById('cancel-edit-btn').addEventListener('click', function() {
   document.getElementById('edit_price_list_key').value = '';
   document.getElementById('product_code').value = '';
-  document.getElementById('twine_price').value = '{{ default_twine_price }}';
+  document.getElementById('twine_price').value = '';
   document.getElementById('gst_included').checked = false;
   document.getElementById('colour_price').value = '{{ default_colour_price }}';
   document.getElementById('small_mesh_size').value = '{{ default_small_mesh_size }}';

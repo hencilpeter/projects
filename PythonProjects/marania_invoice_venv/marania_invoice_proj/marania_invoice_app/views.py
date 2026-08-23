@@ -6427,9 +6427,6 @@ def price_list_generator(request):
     default_small_mesh_size = int(settings_obj.small_mesh_size)
     default_small_mesh_price = float(settings_obj.small_mesh_size_charge)
 
-    latest_twine = Purchase.objects.filter(is_twine=True).order_by("-delivery_date", "-purchase_key").first()
-    default_twine_price = float(latest_twine.unit_price) if latest_twine and latest_twine.unit_price else 0
-
     configs_json = []
     for c in configs:
         configs_json.append({
@@ -6543,7 +6540,6 @@ def price_list_generator(request):
         "default_colour_price": default_colour_price,
         "default_small_mesh_size": default_small_mesh_size,
         "default_small_mesh_price": default_small_mesh_price,
-        "default_twine_price": default_twine_price,
     })
 
 
@@ -6616,4 +6612,26 @@ def view_price_list(request, pk):
         "config": config,
         "price_list_rows": price_list_rows,
     })
+
+
+@login_required
+def get_twine_price_for_product(request):
+    product_code = request.GET.get("product_code", "").strip()
+    if not product_code:
+        return JsonResponse({"twine_price": ""})
+
+    product = Product.objects.filter(code=product_code).first()
+    if not product or not product.material:
+        return JsonResponse({"twine_price": ""})
+
+    material_code = product.material.code
+    latest_purchase = Purchase.objects.filter(
+        material_code=material_code,
+        is_twine=True
+    ).order_by("-delivery_date", "-purchase_key").first()
+
+    if latest_purchase and latest_purchase.unit_price is not None:
+        return JsonResponse({"twine_price": float(latest_purchase.unit_price)})
+
+    return JsonResponse({"twine_price": ""})
 
