@@ -4886,11 +4886,9 @@ def trend_analytics(request):
             if sale.customer not in customer_data:
                 customer_data[sale.customer] = {
                     'customer': sale.customer,
-                    'orders': 0,
                     'sales': Decimal('0'),
                     'specifications': {}
                 }
-            customer_data[sale.customer]['orders'] += 1
             customer_data[sale.customer]['sales'] += sale.total_amount
             # Combine product code with normalized specification
             full_spec = f"{sale.product_code}-{sale.normalized_specification}" if sale.product_code and sale.normalized_specification and sale.normalized_specification != "Unknown" else (sale.product_code or sale.normalized_specification or "Unknown")
@@ -4900,7 +4898,10 @@ def trend_analytics(request):
                 customer_data[sale.customer]['specifications'][full_spec] = Decimal('0')
             customer_data[sale.customer]['specifications'][full_spec] += weight
     
-    # Convert to list and sort by orders
+    # Set orders = unique specification count, then sort
+    for customer in customer_data.values():
+        customer['orders'] = len(customer['specifications'])
+    
     top_customers = sorted(
         customer_data.values(),
         key=lambda x: x['orders'],
