@@ -4894,10 +4894,11 @@ def trend_analytics(request):
             customer_data[sale.customer]['sales'] += sale.total_amount
             # Combine product code with normalized specification
             full_spec = f"{sale.product_code}-{sale.normalized_specification}" if sale.product_code and sale.normalized_specification and sale.normalized_specification != "Unknown" else (sale.product_code or sale.normalized_specification or "Unknown")
-            # Track count per specification
+            # Track weight per specification (use processed_weight if available, otherwise initial_weight)
+            weight = sale.processed_weight if sale.processed_weight > 0 else sale.initial_weight
             if full_spec not in customer_data[sale.customer]['specifications']:
-                customer_data[sale.customer]['specifications'][full_spec] = 0
-            customer_data[sale.customer]['specifications'][full_spec] += 1
+                customer_data[sale.customer]['specifications'][full_spec] = Decimal('0')
+            customer_data[sale.customer]['specifications'][full_spec] += weight
     
     # Convert to list and sort by orders
     top_customers = sorted(
@@ -4906,9 +4907,9 @@ def trend_analytics(request):
         reverse=True
     )[:10]
     
-    # Convert specifications dict to comma-separated strings with counts
+    # Convert specifications dict to comma-separated strings with weight in kg
     for customer in top_customers:
-        spec_strings = [f"{spec}({count})" for spec, count in sorted(customer['specifications'].items(), key=lambda x: x[1], reverse=True)]
+        spec_strings = [f"{spec}({weight:.2f} kg)" for spec, weight in sorted(customer['specifications'].items(), key=lambda x: x[1], reverse=True)]
         customer['specifications'] = ', '.join(spec_strings)
     
     # Generate recommendations (without season comparison for now)

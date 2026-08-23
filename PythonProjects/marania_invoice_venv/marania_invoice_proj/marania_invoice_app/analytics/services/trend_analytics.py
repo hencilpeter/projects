@@ -57,6 +57,7 @@ class TrendAnalyticsService:
                 normalized_specification=normalized_spec,
                 total_amount=sale.total_amount or Decimal('0'),
                 processed_weight=sale.processed_weight or Decimal('0'),
+                initial_weight=sale.initial_weight or Decimal('0'),
                 piece_count=sale.piece_count,
                 customer=sale.customer or '',
                 colour=sale.colour or '',

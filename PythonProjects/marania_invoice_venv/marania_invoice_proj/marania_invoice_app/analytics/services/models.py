@@ -20,6 +20,7 @@ class NormalizedSale:
     normalized_specification: str
     total_amount: Decimal
     processed_weight: Decimal
+    initial_weight: Decimal
     piece_count: Optional[int]
     customer: str
     colour: str
