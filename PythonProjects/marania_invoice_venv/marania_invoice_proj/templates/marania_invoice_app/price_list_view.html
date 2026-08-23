@@ -18,6 +18,13 @@
     top: 0;
     z-index: 2;
 }
+#price-table thead .info-header th {
+    font-weight: normal;
+    font-size: 0.8rem;
+    background-color: #343a40;
+}
+.col-mesh { width: 80px; }
+.col-price { width: 100px; }
 </style>
 
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
@@ -71,25 +78,40 @@
     <h5 class="mb-3">Price List</h5>
 
     {% if price_list_rows %}
+    <div class="mb-3">
+      <label class="form-label small mb-0">Filter by Daily Profit Label</label>
+      <select id="profit-filter" class="form-select form-select-sm" style="width:auto;">
+        <option value="">All</option>
+      </select>
+    </div>
     <div class="price-table-wrapper">
       <table class="table table-bordered table-hover table-sm" id="price-table">
         <thead class="table-dark">
+          <tr class="info-header">
+            <th colspan="2">
+              Marania - {{ config.product_code|default:"Product" }} NET Price<br>
+              {% if not config.gst_included %}-GST Extra{% else %}-GST Included{% endif %}
+              {% if config.colour_price > 0 %}<br>Rs {{ config.colour_price }} extra for colouring{% endif %}
+              {% if config.small_mesh_price > 0 %}<br>Rs {{ config.small_mesh_price }} extra for &lt;= {{ config.small_mesh_size }} MD{% endif %}
+            </th>
+            <th colspan="3"></th>
+          </tr>
           <tr>
-            <th>Mesh Size (MM)</th>
+            <th class="col-mesh">Mesh Size (MM)</th>
+            <th class="col-price">{{ config.product_code|default:"Product" }} Price/KG (Rs)</th>
             <th>Daily Production (KG)</th>
             <th>Daily Profit Label</th>
             <th>Daily Profit Value</th>
-            <th>{{ config.product_code|default:"Product" }} Price/KG (Rs)</th>
           </tr>
         </thead>
         <tbody>
           {% for row in price_list_rows %}
           <tr>
             <td>{{ row.mesh_range }}</td>
+            <td>{{ row.calculated_price }}</td>
             <td>{{ row.daily_production }}</td>
             <td>{{ row.profit_label }}</td>
             <td>{{ row.profit_value }}</td>
-            <td>{{ row.calculated_price }}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -105,5 +127,79 @@
 
   </div>
 </main>
+
+<script>
+(function() {
+  var filterSelect = document.getElementById('profit-filter');
+  var table = document.getElementById('price-table');
+  if (!table) return;
+
+  var colors = ['#00bcd4', '#4caf50', '#ffeb3b', '#ff9800', '#e91e63'];
+  var darkColors = ['#00838f', '#2e7d32', '#f9a825', '#e65100', '#ad1457'];
+  var labels = [];
+  var labelColorMap = {};
+  var labelDarkMap = {};
+
+  Array.from(table.tBodies[0].rows).forEach(function(row) {
+    var label = row.cells[3].innerText.trim();
+    if (label && labels.indexOf(label) === -1) labels.push(label);
+  });
+  labels.sort();
+  labels.forEach(function(l, i) {
+    labelColorMap[l] = colors[i % colors.length];
+    labelDarkMap[l] = darkColors[i % darkColors.length];
+  });
+
+  function clearCellColors() {
+    Array.from(table.tBodies[0].rows).forEach(function(row) {
+      row.cells[0].style.backgroundColor = '';
+      row.cells[1].style.backgroundColor = '';
+    });
+    var hdrRows = table.querySelectorAll('thead tr');
+    hdrRows.forEach(function(tr) { tr.style.backgroundColor = ''; });
+  }
+
+  function applyCellColors(selectedLabel) {
+    Array.from(table.tBodies[0].rows).forEach(function(row) {
+      if (row.style.display === 'none') return;
+      var label = row.cells[3].innerText.trim();
+      var color = labelColorMap[label] || '';
+      row.cells[0].style.backgroundColor = color;
+      row.cells[1].style.backgroundColor = color;
+    });
+    var darkColor = labelDarkMap[selectedLabel] || '';
+    var hdrRows = table.querySelectorAll('thead tr');
+    if (darkColor) {
+      hdrRows.forEach(function(tr) { tr.style.backgroundColor = darkColor; });
+    } else {
+      hdrRows.forEach(function(tr) { tr.style.backgroundColor = ''; });
+    }
+  }
+
+  if (filterSelect) {
+    labels.forEach(function(l) {
+      var opt = document.createElement('option');
+      opt.value = l;
+      opt.textContent = l;
+      filterSelect.appendChild(opt);
+    });
+    filterSelect.addEventListener('change', function() {
+      var val = this.value;
+      Array.from(table.tBodies[0].rows).forEach(function(row) {
+        if (!val || row.cells[3].innerText.trim() === val) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+      if (!val) {
+        clearCellColors();
+      } else {
+        applyCellColors(val);
+      }
+    });
+  }
+})();
+</script>
 
 {% endblock %}
