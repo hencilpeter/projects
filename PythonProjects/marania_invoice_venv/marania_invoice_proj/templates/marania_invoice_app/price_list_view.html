@@ -56,6 +56,14 @@
           <strong>Small Mesh Price:</strong><br>
           {{ config.small_mesh_price }}
         </div>
+        <div class="col-md-2">
+          <strong>Machine:</strong><br>
+          {{ config.machine_number|default:"N/A" }}
+        </div>
+        <div class="col-md-2">
+          <strong>Mesh Depth:</strong><br>
+          {{ config.mesh_depth }}
+        </div>
       </div>
     </div>
 
@@ -67,16 +75,18 @@
       <table class="table table-bordered table-hover table-sm" id="price-table">
         <thead class="table-dark">
           <tr>
-            <th>Mesh Size Range</th>
+            <th>Mesh Size (MM)</th>
+            <th>Daily Production (KG)</th>
             <th>Daily Profit Label</th>
             <th>Daily Profit Value</th>
-            <th>Calculated Price</th>
+            <th>{{ config.product_code|default:"Product" }} Price/KG (Rs)</th>
           </tr>
         </thead>
         <tbody>
           {% for row in price_list_rows %}
           <tr>
             <td>{{ row.mesh_range }}</td>
+            <td>{{ row.daily_production }}</td>
             <td>{{ row.profit_label }}</td>
             <td>{{ row.profit_value }}</td>
             <td>{{ row.calculated_price }}</td>

@@ -254,6 +254,8 @@ class PriceListConfiguration(models.Model):
     colour_price = models.DecimalField(max_digits=10, decimal_places=2, default=10)
     small_mesh_size = models.PositiveIntegerField(default=50)
     small_mesh_price = models.DecimalField(max_digits=10, decimal_places=2, default=10)
+    machine_number = models.CharField(max_length=50, blank=True, null=True)
+    mesh_depth = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     daily_profit_values = models.TextField(default='[]')
     mesh_size_ranges = models.TextField(default='[]')
     created_at = models.DateTimeField(auto_now_add=True)

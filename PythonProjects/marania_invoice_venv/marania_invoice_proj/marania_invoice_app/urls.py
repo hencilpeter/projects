@@ -30,6 +30,7 @@ path('settings/company/', views.company_settings_view, name='company_settings'),
  path('price-list-generator/load/<int:pk>/', views.load_price_list_config, name='load_price_list_config'),
  path('price-list-generator/view/<int:pk>/', views.view_price_list, name='view_price_list'),
  path('price-list-generator/get-twine-price/', views.get_twine_price_for_product, name='get_twine_price_for_product'),
+ path('price-list-generator/get-machine-for-product/', views.get_machine_for_product, name='get_machine_for_product'),
 
 # customer price catalog
 path('customer-price-catalog/', views.customer_price_catalog, name='customer_price_catalog'),

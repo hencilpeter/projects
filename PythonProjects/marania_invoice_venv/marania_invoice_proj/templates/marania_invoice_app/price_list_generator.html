@@ -99,6 +99,23 @@
           </div>
         </div>
 
+        <!-- Row 3: Machine, Mesh Depth -->
+        <div class="row mb-3 align-items-end g-2">
+          <div class="col-md-3">
+            <label class="form-label small mb-0">Machine</label>
+            <select name="machine_number" id="machine_number" class="form-select form-select-sm">
+              <option value="">-- Select Machine --</option>
+              {% for m in machines %}
+              <option value="{{ m.machine_number }}">{{ m.machine_number }} (Knots/Day: {{ m.knots_capacity_per_day }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small mb-0">Mesh Depth</label>
+            <input type="number" step="0.01" name="mesh_depth" id="mesh_depth" class="form-control form-control-sm" value="0">
+          </div>
+        </div>
+
         <hr>
 
         <!-- Daily Profit Section -->
@@ -226,13 +243,17 @@ let meshRanges = [];
 let editMode = false;
 
 /* ========================
-   Product Change -> Fetch Twine Price
+   Product Change -> Fetch Twine Price, Machine, Mesh Depth
    ======================== */
 document.getElementById('product_code').addEventListener('change', function() {
   var productCode = this.value;
   var twineInput = document.getElementById('twine_price');
+  var machineSelect = document.getElementById('machine_number');
+  var meshDepthInput = document.getElementById('mesh_depth');
   if (!productCode) {
     twineInput.value = '';
+    machineSelect.value = '';
+    meshDepthInput.value = '0';
     return;
   }
   fetch('/invoice/price-list-generator/get-twine-price/?product_code=' + encodeURIComponent(productCode), {
@@ -244,6 +265,18 @@ document.getElementById('product_code').addEventListener('change', function() {
   })
   .catch(function() {
     twineInput.value = '';
+  });
+  fetch('/invoice/price-list-generator/get-machine-for-product/?product_code=' + encodeURIComponent(productCode), {
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    machineSelect.value = data.machine_number || '';
+    meshDepthInput.value = data.mesh_depth || '0';
+  })
+  .catch(function() {
+    machineSelect.value = '';
+    meshDepthInput.value = '0';
   });
 });
 
@@ -361,6 +394,8 @@ function loadConfig(pk) {
     document.getElementById('colour_price').value = data.colour_price || 10;
     document.getElementById('small_mesh_size').value = data.small_mesh_size || 50;
     document.getElementById('small_mesh_price').value = data.small_mesh_price || 10;
+    document.getElementById('machine_number').value = data.machine_number || '';
+    document.getElementById('mesh_depth').value = data.mesh_depth || 0;
     dailyProfits = data.daily_profit_values || [];
     meshRanges = data.mesh_size_ranges || [];
     document.getElementById('edit_price_list_key').value = data.price_list_key;
@@ -385,6 +420,8 @@ function cloneConfig(pk) {
     document.getElementById('colour_price').value = data.colour_price || 10;
     document.getElementById('small_mesh_size').value = data.small_mesh_size || 50;
     document.getElementById('small_mesh_price').value = data.small_mesh_price || 10;
+    document.getElementById('machine_number').value = data.machine_number || '';
+    document.getElementById('mesh_depth').value = data.mesh_depth || 0;
     dailyProfits = JSON.parse(JSON.stringify(data.daily_profit_values || []));
     meshRanges = JSON.parse(JSON.stringify(data.mesh_size_ranges || []));
     document.getElementById('edit_price_list_key').value = '';
@@ -415,6 +452,8 @@ document.getElementById('cancel-edit-btn').addEventListener('click', function() 
   document.getElementById('colour_price').value = '{{ default_colour_price }}';
   document.getElementById('small_mesh_size').value = '{{ default_small_mesh_size }}';
   document.getElementById('small_mesh_price').value = '{{ default_small_mesh_price }}';
+  document.getElementById('machine_number').value = '';
+  document.getElementById('mesh_depth').value = '0';
   dailyProfits = [];
   meshRanges = [];
   editMode = false;
