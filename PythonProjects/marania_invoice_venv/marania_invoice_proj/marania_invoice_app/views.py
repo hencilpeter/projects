@@ -6629,17 +6629,14 @@ def view_price_list(request, pk):
             pass
 
     processing_cost_per_kg = config.processing_cost_per_kg or Decimal("0")
-    color_cost_per_kg = Decimal("0")
-    small_depth_size_cost_per_kg = Decimal("0")
-    if config.product and config.product.material:
-        try:
-            pc = ProcessingCost.objects.get(material_code=config.product.material.code)
-            color_cost_per_kg = pc.color_cost_per_kg
-            small_depth_size_cost_per_kg = pc.small_depth_size_cost_per_kg
-        except ProcessingCost.DoesNotExist:
-            pass
-
     additional_cost_per_kg = config.additional_cost_per_kg or Decimal("0")
+
+    waste_percentage = Decimal("0")
+    addl = AdditionalCost.objects.first()
+    if addl:
+        waste_percentage = addl.waste_percentage or Decimal("0")
+
+    twine_price_with_waste = config.twine_price * (Decimal("1") + waste_percentage / Decimal("100"))
 
     conversion_factor = Decimal("0")
     if config.product and config.product.material:
@@ -6669,10 +6666,15 @@ def view_price_list(request, pk):
             else:
                 machine_cost_per_kg = Decimal("0")
 
-            per_kg_cost = (machine_cost_per_kg + processing_cost_per_kg + color_cost_per_kg +
-                           small_depth_size_cost_per_kg + additional_cost_per_kg + config.twine_price)
+            per_kg_cost = (machine_cost_per_kg + processing_cost_per_kg +
+                           additional_cost_per_kg + twine_price_with_waste)
 
-            calculated_price = per_kg_cost + profit_value
+            if daily_production > 0:
+                profit_per_kg = profit_value / daily_production
+            else:
+                profit_per_kg = Decimal("0")
+
+            calculated_price = per_kg_cost + profit_per_kg
 
             if config.additional_cost_starting_depth_md and mesh_end <= config.additional_cost_starting_depth_md:
                 calculated_price += config.small_mesh_depth_price_per_kg
@@ -6689,7 +6691,7 @@ def view_price_list(request, pk):
                 "mesh_start": mesh_start,
                 "mesh_end": mesh_end,
                 "profit_label": profit_label,
-                "profit_value": float(profit_value),
+                "profit_value": round(float(profit_per_kg), 2),
                 "calculated_price": round(float(calculated_price), 2),
                 "daily_production": round(float(daily_production), 2),
             })
