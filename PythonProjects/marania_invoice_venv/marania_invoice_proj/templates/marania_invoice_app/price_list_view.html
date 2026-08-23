@@ -24,14 +24,14 @@
     font-weight: normal;
     font-size: 0.85rem;
 }
-.col-mesh { width: 120px; }
+.col-mesh { width: 130px; }
 .col-price { width: 150px; }
 </style>
 
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-  <div class="container-fluid my-5">
+  <div class="container-fluid my-2">
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
       <h3>Generated Price List</h3>
       <a href="{% url 'price_list_generator' %}" class="btn btn-secondary btn-sm">&larr; Back to Generator</a>
     </div>
@@ -84,10 +84,8 @@
     </div>
 
     <!-- Price List Table -->
-    <h5 class="mb-2">Price List</h5>
-
     {% if price_list_rows %}
-    <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="d-flex align-items-center gap-2 mb-2">
       <span class="small mb-0">Filter by Daily Profit Label</span>
       <select id="profit-filter" class="form-select form-select-sm" style="width:auto;">
         <option value="">All</option>
@@ -100,8 +98,8 @@
             <th colspan="2">
               Marania - {{ config.product_code|default:"Product" }} NET Price<br>
               {% if not config.gst_included %}-GST Extra{% else %}-GST Included{% endif %}
-              {% if config.colour_price_per_kg > 0 %}<br>Rs {{ config.colour_price_per_kg }} extra for colouring{% endif %}
-              {% if config.small_mesh_depth_price_per_kg > 0 %}<br>Rs {{ config.small_mesh_depth_price_per_kg }} extra for &lt;= {{ config.additional_cost_starting_depth_md }} MD{% endif %}
+              {% if config.colour_price_per_kg > 0 %}<br>-Rs {{ config.colour_price_per_kg }} extra for colouring{% endif %}
+              {% if config.small_mesh_depth_price_per_kg > 0 %}<br>-Rs {{ config.small_mesh_depth_price_per_kg }} extra for &lt;= {{ config.additional_cost_starting_depth_md }} MD{% endif %}
             </th>
             <th colspan="3"></th>
           </tr>
