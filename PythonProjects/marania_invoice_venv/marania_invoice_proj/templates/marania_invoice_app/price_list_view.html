@@ -21,7 +21,6 @@
 #price-table thead .info-header th {
     font-weight: normal;
     font-size: 0.8rem;
-    background-color: #343a40;
 }
 .col-mesh { width: 80px; }
 .col-price { width: 100px; }
@@ -155,8 +154,9 @@
       row.cells[0].style.backgroundColor = '';
       row.cells[1].style.backgroundColor = '';
     });
-    var hdrRows = table.querySelectorAll('thead tr');
-    hdrRows.forEach(function(tr) { tr.style.backgroundColor = ''; });
+    var thead = table.querySelector('thead');
+    thead.style.backgroundColor = '';
+    thead.classList.add('table-dark');
   }
 
   function applyCellColors(selectedLabel) {
@@ -168,11 +168,13 @@
       row.cells[1].style.backgroundColor = color;
     });
     var darkColor = labelDarkMap[selectedLabel] || '';
-    var hdrRows = table.querySelectorAll('thead tr');
+    var thead = table.querySelector('thead');
     if (darkColor) {
-      hdrRows.forEach(function(tr) { tr.style.backgroundColor = darkColor; });
+      thead.classList.remove('table-dark');
+      thead.style.backgroundColor = darkColor;
     } else {
-      hdrRows.forEach(function(tr) { tr.style.backgroundColor = ''; });
+      thead.style.backgroundColor = '';
+      thead.classList.add('table-dark');
     }
   }
 
