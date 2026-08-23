@@ -760,7 +760,8 @@ class ProcessingCost(models.Model):
     material_code = models.CharField(max_length=50, unique=True)
     processing_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2)
     color_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2)
-    small_size_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2)
+    small_depth_size_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2)
+    small_depth_starting_depth = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -863,7 +864,7 @@ class ProfitAnalytics(models.Model):
     processing_total = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     color_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     color_total = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    small_size_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    small_depth_size_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     small_size_total = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     additional_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     additional_total = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)

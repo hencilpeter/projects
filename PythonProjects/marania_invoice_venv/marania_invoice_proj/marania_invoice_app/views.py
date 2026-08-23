@@ -5457,10 +5457,11 @@ def processing_cost_view(request):
                 request.POST.getlist("material_code"),
                 request.POST.getlist("processing_cost_per_kg"),
                 request.POST.getlist("color_cost_per_kg"),
-                request.POST.getlist("small_size_cost_per_kg"),
+                request.POST.getlist("small_depth_size_cost_per_kg"),
+                request.POST.getlist("small_depth_starting_depth"),
             )
             
-            for material_code, processing_cost, color_cost, small_size_cost in rows:
+            for material_code, processing_cost, color_cost, small_size_cost, small_mesh_depth in rows:
                 if not material_code:
                     continue
                 ProcessingCost.objects.update_or_create(
@@ -5468,7 +5469,8 @@ def processing_cost_view(request):
                     defaults={
                         "processing_cost_per_kg": processing_cost or 0,
                         "color_cost_per_kg": color_cost or 0,
-                        "small_size_cost_per_kg": small_size_cost or 0,
+                        "small_depth_size_cost_per_kg": small_size_cost or 0,
+                        "small_depth_starting_depth": small_mesh_depth or 0,
                     }
                 )
             messages.success(request, "Processing Cost saved successfully.")
@@ -5861,7 +5863,7 @@ def profit_analytics_view(request):
                         "processing_total": float(entry.get("processing_total") or 0) or None,
                         "color_cost_per_kg": float(entry.get("color_cost_per_kg") or 0) or None,
                         "color_total": float(entry.get("color_total") or 0) or None,
-                        "small_size_cost_per_kg": float(entry.get("small_size_cost_per_kg") or 0) or None,
+                        "small_depth_size_cost_per_kg": float(entry.get("small_size_cost_per_kg") or 0) or None,
                         "small_size_total": float(entry.get("small_size_total") or 0) or None,
                         "additional_cost_per_kg": float(entry.get("additional_cost_per_kg") or 0) or None,
                         "additional_total": float(entry.get("additional_total") or 0) or None,
@@ -5943,7 +5945,7 @@ def profit_analytics_view(request):
 
     # Get processing costs
     processing_costs = ProcessingCost.objects.all().order_by("material_code")
-    processing_data = [{"code": pc.material_code, "cost_per_kg": str(pc.processing_cost_per_kg), "color_cost": str(pc.color_cost_per_kg), "small_size_cost": str(pc.small_size_cost_per_kg)} for pc in processing_costs]
+    processing_data = [{"code": pc.material_code, "cost_per_kg": str(pc.processing_cost_per_kg), "color_cost": str(pc.color_cost_per_kg), "small_size_cost": str(pc.small_depth_size_cost_per_kg)} for pc in processing_costs]
 
     # Get materials for twine name lookup
     from .models import Materials
@@ -5977,7 +5979,7 @@ def profit_analytics_view(request):
             "processing_total": str(pr.processing_total) if pr.processing_total else "",
             "color_cost_per_kg": str(pr.color_cost_per_kg) if pr.color_cost_per_kg else "",
             "color_total": str(pr.color_total) if pr.color_total else "",
-            "small_size_cost_per_kg": str(pr.small_size_cost_per_kg) if pr.small_size_cost_per_kg else "",
+            "small_size_cost_per_kg": str(pr.small_depth_size_cost_per_kg) if pr.small_depth_size_cost_per_kg else "",
             "small_size_total": str(pr.small_size_total) if pr.small_size_total else "",
             "additional_cost_per_kg": str(pr.additional_cost_per_kg) if pr.additional_cost_per_kg else "",
             "additional_total": str(pr.additional_total) if pr.additional_total else "",
@@ -6604,13 +6606,13 @@ def view_price_list(request, pk):
 
     processing_cost_per_kg = Decimal("0")
     color_cost_per_kg = Decimal("0")
-    small_size_cost_per_kg = Decimal("0")
+    small_depth_size_cost_per_kg = Decimal("0")
     if config.product and config.product.material:
         try:
             pc = ProcessingCost.objects.get(material_code=config.product.material.code)
             processing_cost_per_kg = pc.processing_cost_per_kg
             color_cost_per_kg = pc.color_cost_per_kg
-            small_size_cost_per_kg = pc.small_size_cost_per_kg
+            small_depth_size_cost_per_kg = pc.small_depth_size_cost_per_kg
         except ProcessingCost.DoesNotExist:
             pass
 
@@ -6648,7 +6650,7 @@ def view_price_list(request, pk):
                 machine_cost_per_kg = Decimal("0")
 
             per_kg_cost = (machine_cost_per_kg + processing_cost_per_kg + color_cost_per_kg +
-                           small_size_cost_per_kg + additional_cost_per_kg + config.twine_price)
+                           small_depth_size_cost_per_kg + additional_cost_per_kg + config.twine_price)
 
             calculated_price = per_kg_cost + profit_value
 
