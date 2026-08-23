@@ -25,4 +25,5 @@ admin.site.register(PaymentAllocation)
 admin.site.register(OpeningBalance)
 admin.site.register(Purchase)
 admin.site.register(Expense)
+admin.site.register(PriceListConfiguration)
 

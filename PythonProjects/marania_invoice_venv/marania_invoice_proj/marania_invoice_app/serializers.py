@@ -17,6 +17,7 @@ MODEL_REGISTRY = {
     "Sales": Sales,
     "Purchase": Purchase,
     "Expense": Expense,
+    "PriceListConfiguration": PriceListConfiguration,
 }
 
 UNIQUE_KEY_MODEL = {
@@ -36,4 +37,5 @@ UNIQUE_KEY_MODEL = {
     "Sales": "",
     "Purchase": "",
     "Expense": "",
+    "PriceListConfiguration": "",
 }

@@ -82,6 +82,7 @@ from .models import (
     MachineOperationalCost,
     AdditionalCost,
     SettlementInvoice,
+    PriceListConfiguration,
 
 )
 
@@ -6409,5 +6410,210 @@ def outstanding_payment_list_view(request):
         'sort_order': sort_order,
         'total_outstanding': total_outstanding,
         'total_credit': total_credit,
+    })
+
+
+# =======================
+# Price List Generator
+# =======================
+
+@login_required
+def price_list_generator(request):
+    settings_obj = CompanySettings.objects.get(id=1)
+    products = Product.objects.all().order_by("code")
+    configs = PriceListConfiguration.objects.all().order_by("-created_at")
+
+    default_colour_price = float(settings_obj.colour_charge)
+    default_small_mesh_size = int(settings_obj.small_mesh_size)
+    default_small_mesh_price = float(settings_obj.small_mesh_size_charge)
+
+    latest_twine = Purchase.objects.filter(is_twine=True).order_by("-delivery_date", "-purchase_key").first()
+    default_twine_price = float(latest_twine.unit_price) if latest_twine and latest_twine.unit_price else 0
+
+    configs_json = []
+    for c in configs:
+        configs_json.append({
+            "price_list_key": c.price_list_key,
+            "product_code": c.product_code or "",
+            "twine_price": float(c.twine_price),
+            "gst_included": c.gst_included,
+            "colour_price": float(c.colour_price),
+            "small_mesh_size": c.small_mesh_size,
+            "small_mesh_price": float(c.small_mesh_price),
+            "daily_profit_values": json.loads(c.daily_profit_values) if c.daily_profit_values else [],
+            "mesh_size_ranges": json.loads(c.mesh_size_ranges) if c.mesh_size_ranges else [],
+            "created_at": c.created_at.strftime("%d-%b-%Y %H:%M") if c.created_at else "",
+        })
+
+    if request.method == "POST":
+        action = request.POST.get("action", "save")
+
+        if action == "delete":
+            pk = request.POST.get("price_list_key")
+            if pk:
+                PriceListConfiguration.objects.filter(price_list_key=pk).delete()
+                messages.success(request, "Configuration deleted successfully.")
+            return redirect("price_list_generator")
+
+        product_code = request.POST.get("product_code", "").strip()
+        twine_price = request.POST.get("twine_price", "0")
+        gst_included = request.POST.get("gst_included") == "on"
+        colour_price = request.POST.get("colour_price", "10")
+        small_mesh_size_val = request.POST.get("small_mesh_size", "50")
+        small_mesh_price = request.POST.get("small_mesh_price", "10")
+        daily_profit_raw = request.POST.get("daily_profit_values", "[]")
+        mesh_ranges_raw = request.POST.get("mesh_size_ranges", "[]")
+
+        try:
+            twine_price_dec = Decimal(twine_price)
+        except Exception:
+            twine_price_dec = Decimal("0")
+        try:
+            colour_price_dec = Decimal(colour_price)
+        except Exception:
+            colour_price_dec = Decimal("10")
+        try:
+            small_mesh_size_int = int(small_mesh_size_val)
+        except Exception:
+            small_mesh_size_int = 50
+        try:
+            small_mesh_price_dec = Decimal(small_mesh_price)
+        except Exception:
+            small_mesh_price_dec = Decimal("10")
+
+        if not product_code:
+            messages.error(request, "Product is required.")
+            return redirect("price_list_generator")
+
+        try:
+            daily_profits = json.loads(daily_profit_raw)
+        except Exception:
+            daily_profits = []
+        try:
+            mesh_ranges = json.loads(mesh_ranges_raw)
+        except Exception:
+            mesh_ranges = []
+
+        if not daily_profits:
+            messages.error(request, "At least one daily profit value is required.")
+            return redirect("price_list_generator")
+        if not mesh_ranges:
+            messages.error(request, "At least one mesh size range is required.")
+            return redirect("price_list_generator")
+
+        product_obj = Product.objects.filter(code=product_code).first()
+
+        pk_edit = request.POST.get("edit_price_list_key")
+        if pk_edit:
+            try:
+                config = PriceListConfiguration.objects.get(price_list_key=pk_edit)
+                config.product = product_obj
+                config.product_code = product_code
+                config.twine_price = twine_price_dec
+                config.gst_included = gst_included
+                config.colour_price = colour_price_dec
+                config.small_mesh_size = small_mesh_size_int
+                config.small_mesh_price = small_mesh_price_dec
+                config.daily_profit_values = json.dumps(daily_profits)
+                config.mesh_size_ranges = json.dumps(mesh_ranges)
+                config.save()
+                messages.success(request, "Configuration updated successfully.")
+            except PriceListConfiguration.DoesNotExist:
+                messages.error(request, "Configuration not found.")
+        else:
+            PriceListConfiguration.objects.create(
+                product=product_obj,
+                product_code=product_code,
+                twine_price=twine_price_dec,
+                gst_included=gst_included,
+                colour_price=colour_price_dec,
+                small_mesh_size=small_mesh_size_int,
+                small_mesh_price=small_mesh_price_dec,
+                daily_profit_values=json.dumps(daily_profits),
+                mesh_size_ranges=json.dumps(mesh_ranges),
+            )
+            messages.success(request, "Configuration saved successfully.")
+
+        return redirect("price_list_generator")
+
+    return render(request, "marania_invoice_app/price_list_generator.html", {
+        "products": products,
+        "configs": configs,
+        "configs_json": json.dumps(configs_json),
+        "default_colour_price": default_colour_price,
+        "default_small_mesh_size": default_small_mesh_size,
+        "default_small_mesh_price": default_small_mesh_price,
+        "default_twine_price": default_twine_price,
+    })
+
+
+@login_required
+def load_price_list_config(request, pk):
+    try:
+        config = PriceListConfiguration.objects.get(price_list_key=pk)
+        return JsonResponse({
+            "price_list_key": config.price_list_key,
+            "product_code": config.product_code or "",
+            "twine_price": float(config.twine_price),
+            "gst_included": config.gst_included,
+            "colour_price": float(config.colour_price),
+            "small_mesh_size": config.small_mesh_size,
+            "small_mesh_price": float(config.small_mesh_price),
+            "daily_profit_values": json.loads(config.daily_profit_values) if config.daily_profit_values else [],
+            "mesh_size_ranges": json.loads(config.mesh_size_ranges) if config.mesh_size_ranges else [],
+        })
+    except PriceListConfiguration.DoesNotExist:
+        return JsonResponse({"error": "Not found"}, status=404)
+
+
+@login_required
+def view_price_list(request, pk):
+    try:
+        config = PriceListConfiguration.objects.get(price_list_key=pk)
+    except PriceListConfiguration.DoesNotExist:
+        messages.error(request, "Configuration not found.")
+        return redirect("price_list_generator")
+
+    daily_profits = json.loads(config.daily_profit_values) if config.daily_profit_values else []
+    mesh_ranges = json.loads(config.mesh_size_ranges) if config.mesh_size_ranges else []
+
+    price_list_rows = []
+    for mesh_range in mesh_ranges:
+        mesh_start = int(mesh_range.get("start", 0))
+        mesh_end = int(mesh_range.get("end", 0))
+        range_label = f"{mesh_start}\u2013{mesh_end}"
+
+        base_for_range = float(config.twine_price)
+
+        for dp in daily_profits:
+            profit_label = dp.get("label", "")
+            profit_value = float(dp.get("value", 0))
+
+            calculated_price = base_for_range + float(config.colour_price) + profit_value
+
+            if config.small_mesh_size and mesh_end <= config.small_mesh_size:
+                calculated_price += float(config.small_mesh_price)
+
+            if config.gst_included:
+                gst_rate = float(company_settings.igst) if company_settings.igst else 0
+                if gst_rate == 0:
+                    gst_rate = float(company_settings.cgst + company_settings.sgst) if company_settings.cgst and company_settings.sgst else 0
+                if gst_rate > 0:
+                    calculated_price = round(calculated_price / (1 + gst_rate / 100), 2)
+
+            price_list_rows.append({
+                "mesh_range": range_label,
+                "mesh_start": mesh_start,
+                "mesh_end": mesh_end,
+                "profit_label": profit_label,
+                "profit_value": profit_value,
+                "calculated_price": round(calculated_price, 2),
+            })
+
+    price_list_rows.sort(key=lambda r: (r["mesh_start"], r["profit_value"]))
+
+    return render(request, "marania_invoice_app/price_list_view.html", {
+        "config": config,
+        "price_list_rows": price_list_rows,
     })
 

@@ -222,8 +222,9 @@ class CompanySettings(models.Model):
     bank_branch = models.CharField(max_length=50, blank=True, null=True)
     bank_ifsc  = models.CharField(max_length=50, blank=True, null=True)
 
-    small_mesh_size_charge = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    colour_charge = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    small_mesh_size = models.PositiveIntegerField(default=50)
+    small_mesh_size_charge = models.DecimalField(max_digits=5, decimal_places=2, default=10)
+    colour_charge = models.DecimalField(max_digits=5, decimal_places=2, default=10)
     
 
     updated_at = models.DateTimeField(auto_now=True)
@@ -235,6 +236,32 @@ class CompanySettings(models.Model):
         verbose_name = "Company Setting"
         verbose_name_plural = "Company Settings"
     
+
+class PriceListConfiguration(models.Model):
+    price_list_key = models.AutoField(primary_key=True)
+    product = models.ForeignKey(
+        Product,
+        to_field="code",
+        on_delete=models.DO_NOTHING,
+        related_name='price_list_configs',
+        db_constraint=False,
+        null=True,
+        blank=True,
+    )
+    product_code = models.CharField(max_length=50, blank=True, null=True)
+    twine_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    gst_included = models.BooleanField(default=False)
+    colour_price = models.DecimalField(max_digits=10, decimal_places=2, default=10)
+    small_mesh_size = models.PositiveIntegerField(default=50)
+    small_mesh_price = models.DecimalField(max_digits=10, decimal_places=2, default=10)
+    daily_profit_values = models.TextField(default='[]')
+    mesh_size_ranges = models.TextField(default='[]')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.product_code or 'N/A'} - Config #{self.price_list_key}"
+
 
 ###################################################
  # TODO - List 

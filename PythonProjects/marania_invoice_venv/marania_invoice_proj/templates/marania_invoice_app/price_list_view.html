@@ -1,0 +1,99 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block main %}
+
+<style>
+.price-table-wrapper {
+    max-height: 600px;
+    overflow: auto;
+    border: 1px solid #ddd;
+}
+#price-table {
+    min-width: 700px;
+    font-size: 0.85rem;
+}
+#price-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+</style>
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container-fluid my-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h3>Generated Price List</h3>
+      <a href="{% url 'price_list_generator' %}" class="btn btn-secondary btn-sm">&larr; Back to Generator</a>
+    </div>
+
+    <!-- Configuration Summary -->
+    <div class="card shadow-sm p-3 mb-4">
+      <h6 class="mb-3">Configuration Summary</h6>
+      <div class="row g-3" style="font-size:0.85rem;">
+        <div class="col-md-2">
+          <strong>Product:</strong><br>
+          {{ config.product_code|default:"N/A" }}
+        </div>
+        <div class="col-md-2">
+          <strong>Twine Price:</strong><br>
+          {{ config.twine_price }}
+        </div>
+        <div class="col-md-2">
+          <strong>GST Included:</strong><br>
+          {% if config.gst_included %}Yes{% else %}No{% endif %}
+        </div>
+        <div class="col-md-2">
+          <strong>Colour Price:</strong><br>
+          {{ config.colour_price }}
+        </div>
+        <div class="col-md-2">
+          <strong>Small Mesh Size:</strong><br>
+          {{ config.small_mesh_size }}
+        </div>
+        <div class="col-md-2">
+          <strong>Small Mesh Price:</strong><br>
+          {{ config.small_mesh_price }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Price List Table -->
+    <h5 class="mb-3">Price List</h5>
+
+    {% if price_list_rows %}
+    <div class="price-table-wrapper">
+      <table class="table table-bordered table-hover table-sm" id="price-table">
+        <thead class="table-dark">
+          <tr>
+            <th>Mesh Size Range</th>
+            <th>Daily Profit Label</th>
+            <th>Daily Profit Value</th>
+            <th>Calculated Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in price_list_rows %}
+          <tr>
+            <td>{{ row.mesh_range }}</td>
+            <td>{{ row.profit_label }}</td>
+            <td>{{ row.profit_value }}</td>
+            <td>{{ row.calculated_price }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">No prices could be generated. Please check the configuration values.</div>
+    {% endif %}
+
+    <div class="mt-3">
+      <button type="button" class="btn btn-outline-primary btn-sm" onclick="window.print()">Print</button>
+    </div>
+
+  </div>
+</main>
+
+{% endblock %}

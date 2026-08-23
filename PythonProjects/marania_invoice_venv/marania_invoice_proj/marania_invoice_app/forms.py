@@ -325,6 +325,7 @@ class CompanySettingsForm(forms.ModelForm):
             "bank_account_number",
             "bank_branch",
             "bank_ifsc",
+            "small_mesh_size",
             "colour_charge",
             "small_mesh_size_charge",
 
@@ -349,8 +350,9 @@ class CompanySettingsForm(forms.ModelForm):
             "bank_account_number":"Account Number",
             "bank_branch": "Bank Branch Name",
             "bank_ifsc": "Branch IFSC",
-            "colour_charge":"Colour Charge",
-            "small_mesh_size_charge":"Small Mesh Size Charge",
+            "small_mesh_size": "Small Mesh Size",
+            "colour_charge":"Colour Price",
+            "small_mesh_size_charge":"Small Mesh Price",
         }
 
         widgets = {
@@ -374,6 +376,7 @@ class CompanySettingsForm(forms.ModelForm):
             "bank_account_number":forms.TextInput(attrs={"class": "form-control"}),
             "bank_branch": forms.TextInput(attrs={"class": "form-control"}),
             "bank_ifsc": forms.TextInput(attrs={"class": "form-control"}),
+            "small_mesh_size": forms.NumberInput(attrs={"class": "form-control"}),
             "colour_charge":forms.NumberInput(attrs={"class": "form-control"}),
             "small_mesh_size_charge":forms.NumberInput(attrs={"class": "form-control"}),
 
