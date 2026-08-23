@@ -51,16 +51,24 @@
           {% if config.gst_included %}Yes{% else %}No{% endif %}
         </div>
         <div class="col-md-2">
-          <strong>Colour Price:</strong><br>
-          {{ config.colour_price }}
+          <strong>Colour Price/Kg:</strong><br>
+          {{ config.colour_price_per_kg }}
         </div>
         <div class="col-md-2">
-          <strong>Small Mesh Size:</strong><br>
-          {{ config.small_mesh_size }}
+          <strong>Additional Cost Starting Depth(MD):</strong><br>
+          {{ config.additional_cost_starting_depth_md }}
         </div>
         <div class="col-md-2">
-          <strong>Small Mesh Price:</strong><br>
-          {{ config.small_mesh_price }}
+          <strong>Small Mesh Depth Price/Kg:</strong><br>
+          {{ config.small_mesh_depth_price_per_kg }}
+        </div>
+        <div class="col-md-2">
+          <strong>Processing Cost/Kg:</strong><br>
+          {{ config.processing_cost_per_kg }}
+        </div>
+        <div class="col-md-2">
+          <strong>Additional Cost/Kg:</strong><br>
+          {{ config.additional_cost_per_kg }}
         </div>
         <div class="col-md-2">
           <strong>Machine:</strong><br>
@@ -90,8 +98,8 @@
             <th colspan="2">
               Marania - {{ config.product_code|default:"Product" }} NET Price<br>
               {% if not config.gst_included %}-GST Extra{% else %}-GST Included{% endif %}
-              {% if config.colour_price > 0 %}<br>Rs {{ config.colour_price }} extra for colouring{% endif %}
-              {% if config.small_mesh_price > 0 %}<br>Rs {{ config.small_mesh_price }} extra for &lt;= {{ config.small_mesh_size }} MD{% endif %}
+              {% if config.colour_price_per_kg > 0 %}<br>Rs {{ config.colour_price_per_kg }} extra for colouring{% endif %}
+              {% if config.small_mesh_depth_price_per_kg > 0 %}<br>Rs {{ config.small_mesh_depth_price_per_kg }} extra for &lt;= {{ config.additional_cost_starting_depth_md }} MD{% endif %}
             </th>
             <th colspan="3"></th>
           </tr>

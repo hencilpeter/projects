@@ -89,19 +89,27 @@
           </div>
         </div>
 
-        <!-- Row 2: Colour Price, Small Mesh Size, Small Mesh Price, GST Included -->
+        <!-- Row 2: Colour Price, Additional Cost Starting Depth, Small Mesh Depth Price, Processing Cost, Additional Cost, GST -->
         <div class="row mb-3 align-items-end g-2">
           <div class="col-md-2">
-            <label class="form-label small mb-0">Colour Price</label>
-            <input type="number" step="0.01" name="colour_price" id="colour_price" class="form-control form-control-sm" value="{{ default_colour_price }}">
+            <label class="form-label small mb-0">Colour Price/Kg</label>
+            <input type="number" step="0.01" name="colour_price_per_kg" id="colour_price_per_kg" class="form-control form-control-sm" value="{{ default_colour_price }}">
           </div>
           <div class="col-md-2">
-            <label class="form-label small mb-0">Small Mesh Size</label>
-            <input type="number" step="1" name="small_mesh_size" id="small_mesh_size" class="form-control form-control-sm" value="{{ default_small_mesh_size }}">
+            <label class="form-label small mb-0">Additional Cost Starting Depth(MD)</label>
+            <input type="number" step="1" name="additional_cost_starting_depth_md" id="additional_cost_starting_depth_md" class="form-control form-control-sm" value="{{ default_small_mesh_size }}">
           </div>
           <div class="col-md-2">
-            <label class="form-label small mb-0">Small Mesh Price</label>
-            <input type="number" step="0.01" name="small_mesh_price" id="small_mesh_price" class="form-control form-control-sm" value="{{ default_small_mesh_price }}">
+            <label class="form-label small mb-0">Small Mesh Depth Price/Kg</label>
+            <input type="number" step="0.01" name="small_mesh_depth_price_per_kg" id="small_mesh_depth_price_per_kg" class="form-control form-control-sm" value="{{ default_small_mesh_price }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small mb-0">Processing Cost/Kg</label>
+            <input type="number" step="0.01" name="processing_cost_per_kg" id="processing_cost_per_kg" class="form-control form-control-sm" value="0" readonly>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small mb-0">Additional Cost/Kg</label>
+            <input type="number" step="0.01" name="additional_cost_per_kg" id="additional_cost_per_kg" class="form-control form-control-sm" value="{{ default_additional_cost }}">
           </div>
           <div class="col-md-2">
             <label class="form-label small mb-0">&nbsp;</label>
@@ -181,23 +189,29 @@
             <th style="min-width:60px;">GST
               <input type="text" class="form-control form-control-sm filter-input" data-col="3">
             </th>
-            <th style="min-width:80px;">Colour Price
+            <th style="min-width:80px;">Colour Price/Kg
               <input type="text" class="form-control form-control-sm filter-input" data-col="4">
             </th>
-            <th style="min-width:80px;">Small Mesh
+            <th style="min-width:80px;">Addl Start Depth
               <input type="text" class="form-control form-control-sm filter-input" data-col="5">
             </th>
-            <th style="min-width:80px;">Small Mesh Price
+            <th style="min-width:80px;">Small Mesh Depth Price/Kg
               <input type="text" class="form-control form-control-sm filter-input" data-col="6">
             </th>
-            <th style="min-width:150px;">Daily Profit Values
+            <th style="min-width:80px;">Processing Cost/Kg
               <input type="text" class="form-control form-control-sm filter-input" data-col="7">
             </th>
-            <th style="min-width:150px;">Mesh Size Ranges
+            <th style="min-width:80px;">Additional Cost/Kg
               <input type="text" class="form-control form-control-sm filter-input" data-col="8">
             </th>
-            <th style="min-width:100px;">Created
+            <th style="min-width:150px;">Daily Profit Values
               <input type="text" class="form-control form-control-sm filter-input" data-col="9">
+            </th>
+            <th style="min-width:150px;">Mesh Size Ranges
+              <input type="text" class="form-control form-control-sm filter-input" data-col="10">
+            </th>
+            <th style="min-width:100px;">Created
+              <input type="text" class="form-control form-control-sm filter-input" data-col="11">
             </th>
           </tr>
         </thead>
@@ -216,9 +230,11 @@
             <td>{{ c.product_code|default:"" }}</td>
             <td>{{ c.twine_price }}</td>
             <td>{% if c.gst_included %}Yes{% else %}No{% endif %}</td>
-            <td>{{ c.colour_price }}</td>
-            <td>{{ c.small_mesh_size }}</td>
-            <td>{{ c.small_mesh_price }}</td>
+            <td>{{ c.colour_price_per_kg }}</td>
+            <td>{{ c.additional_cost_starting_depth_md }}</td>
+            <td>{{ c.small_mesh_depth_price_per_kg }}</td>
+            <td>{{ c.processing_cost_per_kg }}</td>
+            <td>{{ c.additional_cost_per_kg }}</td>
             <td>{{ c.daily_profit_values }}</td>
             <td>{{ c.mesh_size_ranges }}</td>
             <td>{{ c.created_at|date:"d-M-Y H:i" }}</td>
@@ -246,10 +262,12 @@ document.getElementById('product_code').addEventListener('change', function() {
   var twineInput = document.getElementById('twine_price');
   var machineSelect = document.getElementById('machine_number');
   var meshDepthInput = document.getElementById('mesh_depth');
+  var processingCostInput = document.getElementById('processing_cost_per_kg');
   if (!productCode) {
     twineInput.value = '';
     machineSelect.value = '';
     meshDepthInput.value = '0';
+    processingCostInput.value = '0';
     return;
   }
   fetch('/invoice/price-list-generator/get-twine-price/?product_code=' + encodeURIComponent(productCode), {
@@ -273,6 +291,16 @@ document.getElementById('product_code').addEventListener('change', function() {
   .catch(function() {
     machineSelect.value = '';
     meshDepthInput.value = '0';
+  });
+  fetch('/invoice/price-list-generator/get-processing-cost-for-product/?product_code=' + encodeURIComponent(productCode), {
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    processingCostInput.value = data.processing_cost_per_kg !== '' ? data.processing_cost_per_kg : '0';
+  })
+  .catch(function() {
+    processingCostInput.value = '0';
   });
 });
 
@@ -387,9 +415,11 @@ function loadConfig(pk) {
     document.getElementById('product_code').value = data.product_code || '';
     document.getElementById('twine_price').value = data.twine_price || 0;
     document.getElementById('gst_included').checked = data.gst_included;
-    document.getElementById('colour_price').value = data.colour_price || 10;
-    document.getElementById('small_mesh_size').value = data.small_mesh_size || 50;
-    document.getElementById('small_mesh_price').value = data.small_mesh_price || 10;
+    document.getElementById('colour_price_per_kg').value = data.colour_price_per_kg || 10;
+    document.getElementById('additional_cost_starting_depth_md').value = data.additional_cost_starting_depth_md || 50;
+    document.getElementById('small_mesh_depth_price_per_kg').value = data.small_mesh_depth_price_per_kg || 10;
+    document.getElementById('processing_cost_per_kg').value = data.processing_cost_per_kg || 0;
+    document.getElementById('additional_cost_per_kg').value = data.additional_cost_per_kg || 0;
     document.getElementById('machine_number').value = data.machine_number || '';
     document.getElementById('mesh_depth').value = data.mesh_depth || 0;
     dailyProfits = data.daily_profit_values || [];
@@ -413,9 +443,11 @@ function cloneConfig(pk) {
     document.getElementById('product_code').value = data.product_code || '';
     document.getElementById('twine_price').value = data.twine_price || 0;
     document.getElementById('gst_included').checked = data.gst_included;
-    document.getElementById('colour_price').value = data.colour_price || 10;
-    document.getElementById('small_mesh_size').value = data.small_mesh_size || 50;
-    document.getElementById('small_mesh_price').value = data.small_mesh_price || 10;
+    document.getElementById('colour_price_per_kg').value = data.colour_price_per_kg || 10;
+    document.getElementById('additional_cost_starting_depth_md').value = data.additional_cost_starting_depth_md || 50;
+    document.getElementById('small_mesh_depth_price_per_kg').value = data.small_mesh_depth_price_per_kg || 10;
+    document.getElementById('processing_cost_per_kg').value = data.processing_cost_per_kg || 0;
+    document.getElementById('additional_cost_per_kg').value = data.additional_cost_per_kg || 0;
     document.getElementById('machine_number').value = data.machine_number || '';
     document.getElementById('mesh_depth').value = data.mesh_depth || 0;
     dailyProfits = JSON.parse(JSON.stringify(data.daily_profit_values || []));
@@ -445,9 +477,11 @@ document.getElementById('cancel-edit-btn').addEventListener('click', function() 
   document.getElementById('product_code').value = '';
   document.getElementById('twine_price').value = '';
   document.getElementById('gst_included').checked = false;
-  document.getElementById('colour_price').value = '{{ default_colour_price }}';
-  document.getElementById('small_mesh_size').value = '{{ default_small_mesh_size }}';
-  document.getElementById('small_mesh_price').value = '{{ default_small_mesh_price }}';
+  document.getElementById('colour_price_per_kg').value = '{{ default_colour_price }}';
+  document.getElementById('additional_cost_starting_depth_md').value = '{{ default_small_mesh_size }}';
+  document.getElementById('small_mesh_depth_price_per_kg').value = '{{ default_small_mesh_price }}';
+  document.getElementById('processing_cost_per_kg').value = '0';
+  document.getElementById('additional_cost_per_kg').value = '{{ default_additional_cost }}';
   document.getElementById('machine_number').value = '';
   document.getElementById('mesh_depth').value = '0';
   dailyProfits = [];

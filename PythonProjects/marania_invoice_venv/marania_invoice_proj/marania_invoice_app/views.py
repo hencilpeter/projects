@@ -6430,6 +6430,11 @@ def price_list_generator(request):
     default_small_mesh_size = int(settings_obj.small_mesh_size)
     default_small_mesh_price = float(settings_obj.small_mesh_size_charge)
 
+    default_additional_cost = Decimal("0")
+    addl = AdditionalCost.objects.first()
+    if addl:
+        default_additional_cost = addl.transportation_cost_per_kg + addl.packing_cost_per_kg
+
     configs_json = []
     for c in configs:
         configs_json.append({
@@ -6437,9 +6442,11 @@ def price_list_generator(request):
             "product_code": c.product_code or "",
             "twine_price": float(c.twine_price),
             "gst_included": c.gst_included,
-            "colour_price": float(c.colour_price),
-            "small_mesh_size": c.small_mesh_size,
-            "small_mesh_price": float(c.small_mesh_price),
+            "colour_price_per_kg": float(c.colour_price_per_kg),
+            "additional_cost_starting_depth_md": c.additional_cost_starting_depth_md,
+            "small_mesh_depth_price_per_kg": float(c.small_mesh_depth_price_per_kg),
+            "processing_cost_per_kg": float(c.processing_cost_per_kg),
+            "additional_cost_per_kg": float(c.additional_cost_per_kg),
             "machine_number": c.machine_number or "",
             "mesh_depth": float(c.mesh_depth),
             "daily_profit_values": json.loads(c.daily_profit_values) if c.daily_profit_values else [],
@@ -6460,9 +6467,11 @@ def price_list_generator(request):
         product_code = request.POST.get("product_code", "").strip()
         twine_price = request.POST.get("twine_price", "0")
         gst_included = request.POST.get("gst_included") == "on"
-        colour_price = request.POST.get("colour_price", "10")
-        small_mesh_size_val = request.POST.get("small_mesh_size", "50")
-        small_mesh_price = request.POST.get("small_mesh_price", "10")
+        colour_price = request.POST.get("colour_price_per_kg", "10")
+        small_mesh_size_val = request.POST.get("additional_cost_starting_depth_md", "50")
+        small_mesh_price = request.POST.get("small_mesh_depth_price_per_kg", "10")
+        processing_cost = request.POST.get("processing_cost_per_kg", "0")
+        additional_cost = request.POST.get("additional_cost_per_kg", "0")
         machine_number = request.POST.get("machine_number", "").strip()
         mesh_depth_val = request.POST.get("mesh_depth", "0")
         daily_profit_raw = request.POST.get("daily_profit_values", "[]")
@@ -6484,6 +6493,14 @@ def price_list_generator(request):
             small_mesh_price_dec = Decimal(small_mesh_price)
         except Exception:
             small_mesh_price_dec = Decimal("10")
+        try:
+            processing_cost_dec = Decimal(processing_cost)
+        except Exception:
+            processing_cost_dec = Decimal("0")
+        try:
+            additional_cost_dec = Decimal(additional_cost)
+        except Exception:
+            additional_cost_dec = Decimal("0")
         try:
             mesh_depth_dec = Decimal(mesh_depth_val)
         except Exception:
@@ -6519,9 +6536,11 @@ def price_list_generator(request):
                 config.product_code = product_code
                 config.twine_price = twine_price_dec
                 config.gst_included = gst_included
-                config.colour_price = colour_price_dec
-                config.small_mesh_size = small_mesh_size_int
-                config.small_mesh_price = small_mesh_price_dec
+                config.colour_price_per_kg = colour_price_dec
+                config.additional_cost_starting_depth_md = small_mesh_size_int
+                config.small_mesh_depth_price_per_kg = small_mesh_price_dec
+                config.processing_cost_per_kg = processing_cost_dec
+                config.additional_cost_per_kg = additional_cost_dec
                 config.machine_number = machine_number
                 config.mesh_depth = mesh_depth_dec
                 config.daily_profit_values = json.dumps(daily_profits)
@@ -6536,9 +6555,11 @@ def price_list_generator(request):
                 product_code=product_code,
                 twine_price=twine_price_dec,
                 gst_included=gst_included,
-                colour_price=colour_price_dec,
-                small_mesh_size=small_mesh_size_int,
-                small_mesh_price=small_mesh_price_dec,
+                colour_price_per_kg=colour_price_dec,
+                additional_cost_starting_depth_md=small_mesh_size_int,
+                small_mesh_depth_price_per_kg=small_mesh_price_dec,
+                processing_cost_per_kg=processing_cost_dec,
+                additional_cost_per_kg=additional_cost_dec,
                 machine_number=machine_number,
                 mesh_depth=mesh_depth_dec,
                 daily_profit_values=json.dumps(daily_profits),
@@ -6556,6 +6577,7 @@ def price_list_generator(request):
         "default_colour_price": default_colour_price,
         "default_small_mesh_size": default_small_mesh_size,
         "default_small_mesh_price": default_small_mesh_price,
+        "default_additional_cost": float(default_additional_cost),
     })
 
 
@@ -6568,9 +6590,11 @@ def load_price_list_config(request, pk):
             "product_code": config.product_code or "",
             "twine_price": float(config.twine_price),
             "gst_included": config.gst_included,
-            "colour_price": float(config.colour_price),
-            "small_mesh_size": config.small_mesh_size,
-            "small_mesh_price": float(config.small_mesh_price),
+            "colour_price_per_kg": float(config.colour_price_per_kg),
+            "additional_cost_starting_depth_md": config.additional_cost_starting_depth_md,
+            "small_mesh_depth_price_per_kg": float(config.small_mesh_depth_price_per_kg),
+            "processing_cost_per_kg": float(config.processing_cost_per_kg),
+            "additional_cost_per_kg": float(config.additional_cost_per_kg),
             "machine_number": config.machine_number or "",
             "mesh_depth": float(config.mesh_depth),
             "daily_profit_values": json.loads(config.daily_profit_values) if config.daily_profit_values else [],
@@ -6604,22 +6628,18 @@ def view_price_list(request, pk):
         except MachineOperationalCost.DoesNotExist:
             pass
 
-    processing_cost_per_kg = Decimal("0")
+    processing_cost_per_kg = config.processing_cost_per_kg or Decimal("0")
     color_cost_per_kg = Decimal("0")
     small_depth_size_cost_per_kg = Decimal("0")
     if config.product and config.product.material:
         try:
             pc = ProcessingCost.objects.get(material_code=config.product.material.code)
-            processing_cost_per_kg = pc.processing_cost_per_kg
             color_cost_per_kg = pc.color_cost_per_kg
             small_depth_size_cost_per_kg = pc.small_depth_size_cost_per_kg
         except ProcessingCost.DoesNotExist:
             pass
 
-    additional_cost_per_kg = Decimal("0")
-    addl = AdditionalCost.objects.first()
-    if addl:
-        additional_cost_per_kg = addl.transportation_cost_per_kg + addl.packing_cost_per_kg
+    additional_cost_per_kg = config.additional_cost_per_kg or Decimal("0")
 
     conversion_factor = Decimal("0")
     if config.product and config.product.material:
@@ -6654,8 +6674,8 @@ def view_price_list(request, pk):
 
             calculated_price = per_kg_cost + profit_value
 
-            if config.small_mesh_size and mesh_end <= config.small_mesh_size:
-                calculated_price += config.small_mesh_price
+            if config.additional_cost_starting_depth_md and mesh_end <= config.additional_cost_starting_depth_md:
+                calculated_price += config.small_mesh_depth_price_per_kg
 
             if config.gst_included:
                 gst_rate = company_settings.igst if company_settings.igst else Decimal("0")
@@ -6709,6 +6729,32 @@ def get_machine_for_product(request):
     product_code = request.GET.get("product_code", "").strip()
     if not product_code:
         return JsonResponse({"machine_number": "", "mesh_depth": ""})
+
+    moc = MachineOperationalCost.objects.filter(running_product_code=product_code).first()
+    if moc:
+        return JsonResponse({
+            "machine_number": moc.machine_number,
+            "mesh_depth": moc.number_of_shuttles,
+        })
+
+    return JsonResponse({"machine_number": "", "mesh_depth": ""})
+
+
+@login_required
+def get_processing_cost_for_product(request):
+    product_code = request.GET.get("product_code", "").strip()
+    if not product_code:
+        return JsonResponse({"processing_cost_per_kg": ""})
+
+    product = Product.objects.filter(code=product_code).first()
+    if not product or not product.material:
+        return JsonResponse({"processing_cost_per_kg": ""})
+
+    try:
+        pc = ProcessingCost.objects.get(material_code=product.material.code)
+        return JsonResponse({"processing_cost_per_kg": float(pc.processing_cost_per_kg)})
+    except ProcessingCost.DoesNotExist:
+        return JsonResponse({"processing_cost_per_kg": ""})
 
     moc = MachineOperationalCost.objects.filter(running_product_code=product_code).first()
     if moc:
