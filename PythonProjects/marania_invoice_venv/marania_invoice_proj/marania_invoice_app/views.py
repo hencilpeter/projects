@@ -6458,7 +6458,7 @@ def price_list_generator(request):
         action = request.POST.get("action", "save")
 
         if action == "delete":
-            pk = request.POST.get("price_list_key")
+            pk = request.POST.get("edit_price_list_key")
             if pk:
                 PriceListConfiguration.objects.filter(price_list_key=pk).delete()
                 messages.success(request, "Configuration deleted successfully.")
