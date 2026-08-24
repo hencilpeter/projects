@@ -6558,14 +6558,9 @@ def outstanding_payment_list_view(request):
 
 @login_required
 def price_list_generator(request):
-    settings_obj = CompanySettings.objects.get(id=1)
     products = Product.objects.all().order_by("code")
     configs = PriceListConfiguration.objects.all().order_by("-created_at")
     machines = MachineOperationalCost.objects.all().order_by("machine_number")
-
-    default_colour_price = float(settings_obj.colour_charge)
-    default_small_mesh_size = int(settings_obj.small_mesh_size)
-    default_small_mesh_price = float(settings_obj.small_mesh_size_charge)
 
     default_additional_cost = Decimal("0")
     addl = AdditionalCost.objects.first()
@@ -6711,9 +6706,6 @@ def price_list_generator(request):
         "configs": configs,
         "configs_json": json.dumps(configs_json),
         "machines": machines,
-        "default_colour_price": default_colour_price,
-        "default_small_mesh_size": default_small_mesh_size,
-        "default_small_mesh_price": default_small_mesh_price,
         "default_additional_cost": float(default_additional_cost),
     })
 
@@ -6891,7 +6883,12 @@ def get_processing_cost_for_product(request):
 
     try:
         pc = ProcessingCost.objects.get(material_code=product.material.code)
-        return JsonResponse({"processing_cost_per_kg": float(pc.processing_cost_per_kg)})
+        return JsonResponse({
+            "processing_cost_per_kg": float(pc.processing_cost_per_kg),
+            "colour_price_per_kg": float(pc.color_cost_per_kg),
+            "additional_cost_starting_depth_md": int(pc.small_depth_starting_depth),
+            "small_mesh_depth_price_per_kg": float(pc.small_depth_size_cost_per_kg),
+        })
     except ProcessingCost.DoesNotExist:
         return JsonResponse({"processing_cost_per_kg": ""})
 

@@ -97,15 +97,15 @@
           </div>
           <div class="col-md-2">
             <label class="form-label small mb-0">Colour Price/Kg</label>
-            <input type="number" step="0.01" name="colour_price_per_kg" id="colour_price_per_kg" class="form-control form-control-sm" value="{{ default_colour_price }}">
+            <input type="number" step="0.01" name="colour_price_per_kg" id="colour_price_per_kg" class="form-control form-control-sm" value="10">
           </div>
           <div class="col-md-2">
             <label class="form-label small mb-0">Additional Cost Starting Depth(MD)</label>
-            <input type="number" step="1" name="additional_cost_starting_depth_md" id="additional_cost_starting_depth_md" class="form-control form-control-sm" value="{{ default_small_mesh_size }}">
+            <input type="number" step="1" name="additional_cost_starting_depth_md" id="additional_cost_starting_depth_md" class="form-control form-control-sm" value="50">
           </div>
           <div class="col-md-2">
             <label class="form-label small mb-0">Small Mesh Depth Price/Kg</label>
-            <input type="number" step="0.01" name="small_mesh_depth_price_per_kg" id="small_mesh_depth_price_per_kg" class="form-control form-control-sm" value="{{ default_small_mesh_price }}">
+            <input type="number" step="0.01" name="small_mesh_depth_price_per_kg" id="small_mesh_depth_price_per_kg" class="form-control form-control-sm" value="10">
           </div>
           <div class="col-md-2">
             <label class="form-label small mb-0">Additional Cost/Kg</label>
@@ -263,11 +263,17 @@ document.getElementById('product_code').addEventListener('change', function() {
   var machineSelect = document.getElementById('machine_number');
   var meshDepthInput = document.getElementById('mesh_depth');
   var processingCostInput = document.getElementById('processing_cost_per_kg');
+  var colourPriceInput = document.getElementById('colour_price_per_kg');
+  var startingDepthInput = document.getElementById('additional_cost_starting_depth_md');
+  var smallMeshPriceInput = document.getElementById('small_mesh_depth_price_per_kg');
   if (!productCode) {
     twineInput.value = '';
     machineSelect.value = '';
     meshDepthInput.value = '0';
     processingCostInput.value = '0';
+    colourPriceInput.value = '10';
+    startingDepthInput.value = '50';
+    smallMeshPriceInput.value = '10';
     return;
   }
   fetch('/invoice/price-list-generator/get-twine-price/?product_code=' + encodeURIComponent(productCode), {
@@ -298,6 +304,15 @@ document.getElementById('product_code').addEventListener('change', function() {
   .then(function(res) { return res.json(); })
   .then(function(data) {
     processingCostInput.value = data.processing_cost_per_kg !== '' ? data.processing_cost_per_kg : '0';
+    if (data.colour_price_per_kg !== undefined && data.colour_price_per_kg !== '') {
+      colourPriceInput.value = data.colour_price_per_kg;
+    }
+    if (data.additional_cost_starting_depth_md !== undefined && data.additional_cost_starting_depth_md !== '') {
+      startingDepthInput.value = data.additional_cost_starting_depth_md;
+    }
+    if (data.small_mesh_depth_price_per_kg !== undefined && data.small_mesh_depth_price_per_kg !== '') {
+      smallMeshPriceInput.value = data.small_mesh_depth_price_per_kg;
+    }
   })
   .catch(function() {
     processingCostInput.value = '0';
@@ -477,9 +492,9 @@ document.getElementById('cancel-edit-btn').addEventListener('click', function() 
   document.getElementById('product_code').value = '';
   document.getElementById('twine_price').value = '';
   document.getElementById('gst_included').checked = false;
-  document.getElementById('colour_price_per_kg').value = '{{ default_colour_price }}';
-  document.getElementById('additional_cost_starting_depth_md').value = '{{ default_small_mesh_size }}';
-  document.getElementById('small_mesh_depth_price_per_kg').value = '{{ default_small_mesh_price }}';
+  document.getElementById('colour_price_per_kg').value = '10';
+  document.getElementById('additional_cost_starting_depth_md').value = '50';
+  document.getElementById('small_mesh_depth_price_per_kg').value = '10';
   document.getElementById('processing_cost_per_kg').value = '0';
   document.getElementById('additional_cost_per_kg').value = '{{ default_additional_cost }}';
   document.getElementById('machine_number').value = '';
