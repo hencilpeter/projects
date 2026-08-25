@@ -880,6 +880,14 @@ def update_invoice_payment_status(invoice):
         invoice.payment_status = 'Pending'
     invoice.save(update_fields=['payment_status'])
 
+    from datetime import date
+    sales_records = Sales.objects.filter(invoice_no=invoice.invoice_number)
+    if sales_records.exists():
+        if invoice.payment_status == 'Paid':
+            sales_records.update(status='PAID', payment_date=date.today())
+        elif invoice.payment_status == 'Partial':
+            sales_records.update(status='PARTIALLY_PAID', payment_date=date.today())
+
 def update_expense_payment_status(expense):
     """Recalculate payment_status for an expense based on allocations vs expense_amount."""
     total_alloc = PaymentAllocation.objects.filter(
