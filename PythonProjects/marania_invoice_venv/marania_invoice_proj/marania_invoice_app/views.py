@@ -4767,6 +4767,132 @@ def get_twine_inventory_data(request):
     })
 
 
+def refresh_twine_inventory(request):
+    from .models import Purchase, Sales, Materials, TwineInventory, Product
+    from decimal import Decimal
+
+    month_year = request.GET.get("month_year", "")
+
+    try:
+        parts = month_year.split("-")
+        year = int(parts[0])
+        month = int(parts[1])
+    except (ValueError, IndexError, TypeError):
+        return JsonResponse({"success": False, "error": "Invalid month format"})
+
+    entries = TwineInventory.objects.filter(month=month, year=year)
+    if not entries.exists():
+        return JsonResponse({"success": False, "error": "No entries found for this month"})
+
+    results = []
+    for entry in entries:
+        material_code = entry.twine.split("-")[0].strip() if entry.twine else ""
+        material_name = None
+        try:
+            material = Materials.objects.get(code=material_code)
+            material_name = material.name
+        except Materials.DoesNotExist:
+            pass
+
+        synonyms = [material_code]
+        if material_name:
+            synonyms.append(material_name)
+        products_with_this_material = Product.objects.filter(material__code=material_code)
+        product_codes = list(products_with_this_material.values_list('code', flat=True))
+        synonyms.extend(product_codes)
+
+        stock_in = Decimal("0")
+        purchases = Purchase.objects.filter(
+            is_twine=True, delivery_date__year=year, delivery_date__month=month
+        )
+        for purchase in purchases:
+            match_found = False
+            if purchase.material_code and purchase.material_code in synonyms:
+                match_found = True
+            elif purchase.material and any(s in purchase.material for s in synonyms):
+                match_found = True
+            elif purchase.material and material_code in purchase.material:
+                match_found = True
+            elif purchase.material_code and material_name and material_name in purchase.material_code:
+                match_found = True
+            if match_found and purchase.quantity_weight:
+                stock_in += purchase.quantity_weight
+
+        sales_out = Decimal("0")
+        sales = Sales.objects.filter(sales_entry_date__year=year, sales_entry_date__month=month)
+        for sale in sales:
+            match_found = False
+            for synonym in synonyms:
+                if sale.twine and synonym in sale.twine:
+                    match_found = True
+                    break
+            if not match_found and sale.speification:
+                for synonym in synonyms:
+                    if synonym in sale.speification:
+                        match_found = True
+                        break
+            if not match_found:
+                if sale.twine and material_code in sale.twine:
+                    match_found = True
+                elif sale.speification and material_code in sale.speification:
+                    match_found = True
+            if not match_found and material_name:
+                if sale.twine and material_name in sale.twine:
+                    match_found = True
+                elif sale.speification and material_name in sale.speification:
+                    match_found = True
+            if match_found:
+                if sale.processed_weight:
+                    sales_out += sale.processed_weight
+                elif sale.initial_weight:
+                    sales_out += sale.initial_weight
+
+        prev_month = month - 1
+        prev_year = year
+        if prev_month == 0:
+            prev_month = 12
+            prev_year = year - 1
+        prev_inventory = TwineInventory.objects.filter(
+            year=prev_year, month=prev_month, twine__icontains=material_code
+        ).first()
+        opening_stock = prev_inventory.balance if prev_inventory else (entry.opening_stock or Decimal("0"))
+        daily_usage = prev_inventory.daily_usage if prev_inventory else (entry.daily_usage or Decimal("0"))
+
+        balance = opening_stock + stock_in - sales_out - (entry.waste_used or Decimal("0"))
+
+        days_left = None
+        est_stock_out_date = None
+        if daily_usage > 0 and balance > 0:
+            from datetime import date, timedelta
+            days_left = int((balance / daily_usage).quantize(Decimal("1")))
+            est_date = date.today() + timedelta(days=days_left)
+            est_stock_out_date = est_date.strftime("%Y-%m-%d")
+
+        TwineInventory.objects.filter(ti_key=entry.ti_key).update(
+            opening_stock=opening_stock,
+            stock_in=stock_in,
+            sales_out=sales_out,
+            balance=balance,
+            daily_usage=daily_usage,
+            days_left=days_left,
+            est_stock_out_date=est_stock_out_date,
+        )
+
+        results.append({
+            "ti_key": entry.ti_key,
+            "twine": entry.twine or "",
+            "opening_stock": str(opening_stock),
+            "stock_in": str(stock_in),
+            "sales_out": str(sales_out),
+            "daily_usage": str(daily_usage),
+            "balance": str(balance),
+            "days_left": days_left,
+            "est_stock_out_date": est_stock_out_date or "",
+        })
+
+    return JsonResponse({"success": True, "data": results})
+
+
 def invoice_aging_report(request):
     from .models import Invoice, PaymentAllocation, PaymentReceipt
     from datetime import date, timedelta

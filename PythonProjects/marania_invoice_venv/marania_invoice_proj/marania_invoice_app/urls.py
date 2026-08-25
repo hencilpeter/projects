@@ -106,6 +106,7 @@ path('profit-loss', views.profit_loss_entry, name='profit_loss_entry'),
 # twine inventory
 path('twine-inventory', views.twine_inventory_entry, name='twine_inventory_entry'),
 path('get-twine-inventory-data/', views.get_twine_inventory_data, name='get_twine_inventory_data'),
+path('refresh-twine-inventory/', views.refresh_twine_inventory, name='refresh_twine_inventory'),
 
 # invoice aging report
 path('invoice-aging-report', views.invoice_aging_report, name='invoice_aging_report'),

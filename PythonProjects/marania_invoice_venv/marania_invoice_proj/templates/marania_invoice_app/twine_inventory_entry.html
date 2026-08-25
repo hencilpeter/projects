@@ -93,6 +93,9 @@
         <div class="col-md-2">
           <button type="button" class="btn btn-secondary btn-sm w-100" onclick="resetTI()">Clear</button>
         </div>
+        <div class="col-md-2">
+          <button type="button" class="btn btn-info btn-sm w-100" onclick="refreshAllTwineDetails()" id="refresh-all-btn">Refresh All</button>
+        </div>
       </div>
 
       <div class="row mb-3">
@@ -444,6 +447,67 @@ function resetTI() {
     document.getElementById('ti_days_left').value = '';
     document.getElementById('ti_est_stock_out_date').value = '';
     document.getElementById('ti_remark').value = '';
+}
+
+function refreshAllTwineDetails() {
+    var monthYear = document.getElementById('ti_month_year').value;
+    if (!monthYear) {
+        alert('Please select a Year-Month first.');
+        return;
+    }
+
+    var btn = document.getElementById('refresh-all-btn');
+    btn.disabled = true;
+    btn.textContent = 'Refreshing...';
+
+    fetch('/invoice/refresh-twine-inventory/?month_year=' + monthYear)
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (!data.success) {
+                alert('Error: ' + data.error);
+                return;
+            }
+
+            var updated = 0;
+            data.data.forEach(function(item) {
+                var row = document.querySelector('#ti-table-body tr[data-ti-key="' + item.ti_key + '"]');
+                if (row) {
+                    var cells = row.getElementsByTagName('td');
+                    cells[4].textContent = parseFloat(item.opening_stock).toFixed(2);
+                    cells[5].textContent = parseFloat(item.stock_in).toFixed(2);
+                    cells[6].textContent = parseFloat(item.sales_out).toFixed(2);
+                    cells[8].textContent = parseFloat(item.balance).toFixed(2);
+                    cells[9].textContent = parseFloat(item.daily_usage).toFixed(2);
+                    cells[11].textContent = item.days_left != null ? item.days_left : '';
+                    cells[12].textContent = item.est_stock_out_date || '';
+                    updated++;
+                }
+            });
+
+            // Also update tiData array for edit functionality
+            data.data.forEach(function(item) {
+                var existing = tiData.find(function(t) { return String(t.ti_key) === String(item.ti_key); });
+                if (existing) {
+                    existing.opening_stock = item.opening_stock;
+                    existing.stock_in = item.stock_in;
+                    existing.sales_out = item.sales_out;
+                    existing.balance = item.balance;
+                    existing.daily_usage = item.daily_usage;
+                    existing.days_left = item.days_left;
+                    existing.est_stock_out_date = item.est_stock_out_date;
+                }
+            });
+
+            alert('Refreshed ' + updated + ' twine entries for ' + monthYear + '.');
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+            alert('An error occurred while refreshing.');
+        })
+        .finally(function() {
+            btn.disabled = false;
+            btn.textContent = 'Refresh All';
+        });
 }
 
 function clearFilters() {
