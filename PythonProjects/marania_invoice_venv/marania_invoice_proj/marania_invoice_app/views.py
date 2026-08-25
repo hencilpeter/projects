@@ -6850,7 +6850,10 @@ def get_twine_price_for_product(request):
     ).order_by("-delivery_date", "-purchase_key").first()
 
     if latest_purchase and latest_purchase.unit_price is not None:
-        return JsonResponse({"twine_price": float(latest_purchase.unit_price)})
+        unit_price = latest_purchase.unit_price
+        gst_percent = latest_purchase.gst_percent or 0
+        twine_price_incl_gst = unit_price * (Decimal("1") + gst_percent / Decimal("100"))
+        return JsonResponse({"twine_price": float(twine_price_incl_gst.quantize(Decimal("0.01")))})
 
     return JsonResponse({"twine_price": ""})
 
