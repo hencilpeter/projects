@@ -247,6 +247,7 @@
                 <th>
                   <button class="btn btn-warning btn-sm" id="clear-order-filters">Clear</button>
                   <button type="button" class="btn btn-outline-success btn-sm ms-1" id="copySelectedOrdersBtn" onclick="copySelectedOrders()" disabled><i class="bi bi-arrow-right-circle"></i> Copy to Sales</button>
+                  <button type="button" class="btn btn-outline-primary btn-sm ms-1" id="viewSelectedOrdersBtn" onclick="viewSelectedOrderList()" disabled><i class="bi bi-list-ul"></i> View</button>
                 </th>
                 <th><input class="filter-input" placeholder="Order #"></th>
                 <th><input class="filter-input" placeholder="O.Date"></th>
@@ -713,6 +714,70 @@ function viewOrderList() {
     modal.show();
 }
 
+function viewSelectedOrderList() {
+    var checked = document.querySelectorAll('.order-checkbox:checked');
+    if (checked.length === 0) return;
+
+    var selectedKeys = [];
+    checked.forEach(function(cb) { selectedKeys.push(String(cb.value)); });
+
+    var selectedOrders = ordersData.filter(function(o) {
+        return selectedKeys.indexOf(String(o.order_key)) !== -1;
+    });
+
+    if (selectedOrders.length === 0) return;
+
+    var lines = [];
+    var ordersByNumber = {};
+    selectedOrders.forEach(function(o) {
+        var num = o.order_number || 'Unknown';
+        if (!ordersByNumber[num]) ordersByNumber[num] = [];
+        ordersByNumber[num].push(o);
+    });
+
+    Object.keys(ordersByNumber).forEach(function(orderNumber) {
+        var items = ordersByNumber[orderNumber];
+        var header = '*' + (items[0].twine || '') + ' Order(Date: ' + (items[0].order_date || '') + ', Order# ' + orderNumber + ')*';
+        lines.push(header);
+        lines.push('\u2550'.repeat(header.length));
+
+        items.forEach(function(d, idx) {
+            var specs = d.specifications && d.specifications.length ? d.specifications : [d];
+            var tw = d.twine || '';
+            var ms = specs[0] ? (specs[0].mesh_size || '') : '';
+            var qty = Math.round(parseFloat(d.quantity) || 0);
+            var unit = (d.quantity_unit || 'Bag').toUpperCase().replace(/S$/, '') + '(s)';
+            if (specs.length === 1) {
+                var s = specs[0];
+                var md = s.mesh_depth || '';
+                var mdDisp = md.toUpperCase().includes('MD') ? md : md + 'MD';
+                var sal = s.salvage || '';
+                var salDisp = (sal.toUpperCase().includes('SEL') ? sal : sal + ' Sel').trim();
+                var pw = s.piece_weight || '';
+                var col = s.colour || 'White';
+                lines.push('(' + (idx + 1) + ') _' + tw + '-' + ms + 'mm-' + mdDisp + '-' + salDisp + '-PW(' + pw + ')-' + col + ' - ' + qty + ' ' + unit + '_');
+            } else {
+                lines.push('(' + (idx + 1) + ') _' + tw + '-' + ms + 'mm- ' + qty + ' ' + unit + '_');
+                specs.forEach(function(s) {
+                    var md = s.mesh_depth || '';
+                    var mdDisp = md.toUpperCase().includes('MD') ? md : md + 'MD';
+                    var sal = s.salvage || '';
+                    var salDisp = sal.toUpperCase().includes('SEL') ? sal : sal + 'Sel';
+                    var pw = s.piece_weight || '';
+                    var pcs = s.no_of_pcs || '';
+                    var col = s.colour || 'White';
+                    lines.push('* ' + mdDisp + '-' + salDisp + (pw ? '-PW(' + pw + ')' : '') + (pcs ? '-PCs(' + pcs + ')' : '') + '-' + col);
+                });
+            }
+        });
+        lines.push('\u2550'.repeat(41));
+    });
+
+    document.getElementById('order-list-content').textContent = lines.join('\n');
+    var modal = new bootstrap.Modal(document.getElementById('orderListModal'));
+    modal.show();
+}
+
 function addToCart() {
     const twine = document.getElementById('twine').value.trim();
     const customer = document.getElementById('customer').value.trim();
@@ -1015,6 +1080,8 @@ function updateCopyOrdersBtn() {
     var checked = document.querySelectorAll('.order-checkbox:checked').length;
     var btn = document.getElementById('copySelectedOrdersBtn');
     if (btn) btn.disabled = checked === 0;
+    var viewBtn = document.getElementById('viewSelectedOrdersBtn');
+    if (viewBtn) viewBtn.disabled = checked === 0;
 }
 
 function copySelectedOrders() {
