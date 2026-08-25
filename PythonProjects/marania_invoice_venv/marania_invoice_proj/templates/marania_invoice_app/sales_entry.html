@@ -670,8 +670,35 @@ function updateStatusStyle(select) {
 }
 var statusSelect = document.getElementById('status');
 if (statusSelect) {
-    statusSelect.addEventListener('change', function() { updateStatusStyle(this); });
+    statusSelect.addEventListener('change', function() {
+        updateStatusStyle(this);
+        var val = this.value;
+        var today = new Date().toISOString().slice(0, 10);
+        if (val === 'PENDING') {
+            var del = document.getElementById('delivery_date');
+            if (!del.value) del.value = today;
+        }
+        if (val === 'PAID') {
+            var pay = document.getElementById('payment_date');
+            if (!pay.value) pay.value = today;
+        }
+    });
     updateStatusStyle(statusSelect);
+}
+
+var invoiceNoInput = document.getElementById('invoice_no');
+if (invoiceNoInput) {
+    invoiceNoInput.addEventListener('change', function() {
+        if (this.value.trim()) {
+            var statusEl = document.getElementById('status');
+            var del = document.getElementById('delivery_date');
+            if (statusEl.value === 'ON_HOLD_PROCESSING' && !del.value) {
+                statusEl.value = 'PENDING';
+                updateStatusStyle(statusEl);
+                del.value = new Date().toISOString().slice(0, 10);
+            }
+        }
+    });
 }
 
 function setDateField(id, value) {
