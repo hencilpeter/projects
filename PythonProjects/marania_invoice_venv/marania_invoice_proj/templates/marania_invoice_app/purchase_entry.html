@@ -135,7 +135,7 @@
             </div>
             <div class="col-md-3" id="material_code_field">
               <label class="form-label" style="font-size:0.75rem;margin-bottom:1px;">Material Code</label>
-              <input type="text" name="material_code" id="material_code" class="form-control form-control-sm" placeholder="" list="material_code_list">
+              <input type="text" name="material_code" id="material_code" class="form-control form-control-sm" placeholder="" list="material_code_list" oninput="populateOrderDescription()">
               <datalist id="material_code_list">
                 {% for mat in materials %}
                   <option value="{{ mat.code }}">
@@ -194,7 +194,7 @@
             </div>
             <div class="col-md-2">
               <label class="form-label" style="font-size:0.75rem;margin-bottom:1px;">Payment Status</label>
-              <select name="payment_status" id="payment_status" class="form-control form-control-sm">
+              <select name="payment_status" id="payment_status" class="form-control form-control-sm" onchange="autoPopulatePaymentDate()">
                 <option value="PENDING" style="background-color:#8B2252;color:#fff;">PENDING</option>
                 <option value="PARTIALLY_PAID" style="background-color:#0dcaf0;color:#000;">PARTIALLY PAID</option>
                 <option value="PAID" style="background-color:#198754;color:#fff;">PAID</option>
@@ -501,6 +501,11 @@ function setFormData(data) {
 }
 
 const purchasesData = JSON.parse('{{ purchases_json|escapejs }}' || '[]');
+const materialMap = {
+    {% for mat in materials %}
+    '{{ mat.code }}': '{{ mat.displayname|default:mat.name|escapejs }}'{% if not forloop.last %},{% endif %}
+    {% endfor %}
+};
 
 function loadPurchase(purchaseKey) {
     var p = purchasesData.find(function(o) { return String(o.purchase_key) === String(purchaseKey); });
@@ -554,6 +559,27 @@ function toggleMaterialField() {
     if (!isTwine) document.getElementById('material_code').value = '';
 }
 
+function populateOrderDescription() {
+    if (!document.getElementById('is_twine').checked) return;
+    var code = document.getElementById('material_code').value.trim();
+    var descField = document.getElementById('order_description');
+    if (code && materialMap[code]) {
+        descField.value = materialMap[code];
+    }
+}
+
+function autoPopulatePaymentDate() {
+    var status = document.getElementById('payment_status').value;
+    var dateField = document.getElementById('payment_date');
+    if (status === 'PAID' && !dateField.value) {
+        var today = new Date();
+        var yyyy = today.getFullYear();
+        var mm = String(today.getMonth() + 1).padStart(2, '0');
+        var dd = String(today.getDate()).padStart(2, '0');
+        dateField.value = yyyy + '-' + mm + '-' + dd;
+    }
+}
+
 function calcTotals() {
     var qty = parseFloat(document.getElementById('quantity_weight').value) || 0;
     var price = parseFloat(document.getElementById('unit_price').value) || 0;
@@ -575,6 +601,7 @@ function calcTotals() {
     } else {
         statusSelect.value = 'PENDING';
     }
+    autoPopulatePaymentDate();
 }
 
 function addToCart() {
