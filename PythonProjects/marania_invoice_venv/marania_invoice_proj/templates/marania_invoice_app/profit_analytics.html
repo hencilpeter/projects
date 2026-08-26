@@ -1,6 +1,35 @@
 {% extends 'partials/base.html' %}
 {% load static %}
 {% block main %}
+
+<style>
+.invoice-table-wrapper {
+    max-height: 820px;
+    overflow: auto;
+    border: 1px solid #ddd;
+}
+
+#profit-table {
+    table-layout: fixed;
+    font-size: 0.8rem;
+}
+
+#profit-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    white-space: nowrap;
+}
+
+#profit-table th input.filter-input,
+#profit-table th select.filter-select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 2px 4px;
+    font-size: 0.85rem;
+    margin-bottom: 2px;
+}
+</style>
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
   <div class="container my-4">
     <h3>Profit Analytics</h3>
@@ -229,7 +258,7 @@
         <button type="submit" class="btn btn-danger btn-sm" id="bulk-delete-btn" style="display:none;">Delete Selected</button>
       </div>
 
-      <div class="table-responsive">
+      <div class="invoice-table-wrapper">
         <datalist id="profit-product-list">
           {% for p in products %}
             <option value="{{ p.code }}">
@@ -240,14 +269,37 @@
             <option value="{{ m.machine_number }}">
           {% endfor %}
         </datalist>
-        <table class="table table-bordered table-hover table-sm" id="profit-table">
+        <table class="table table-bordered table-hover table-sm align-middle" id="profit-table">
+          <colgroup>
+            <col style="width:30px">
+            <col style="width:90px">
+            <col style="width:90px">
+            <col style="width:250px">
+            <col style="width:80px">
+            <col style="width:70px">
+            <col style="width:65px">
+            <col style="width:80px">
+            <col style="width:65px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:75px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:70px">
+            <col style="width:70px">
+            <col style="width:65px">
+            <col style="width:120px">
+          </colgroup>
           <thead class="table-dark">
             <tr>
-              <th style="width:40px"><input type="checkbox" id="select-all-profit"></th>
-              <th style="min-width: 90px;">Action</th>
-              <th style="min-width: 90px;">Date</th>
-              <th style="min-width: 320px;">Customer</th>
-              <th style="min-width: 90px;">Product</th>
+              <th><input type="checkbox" id="select-all-profit"></th>
+              <th>Action</th>
+              <th>Date</th>
+              <th>Customer</th>
+              <th>Product</th>
               <th>Machine</th>
               <th>Est Wt</th>
               <th>Daily Output</th>
