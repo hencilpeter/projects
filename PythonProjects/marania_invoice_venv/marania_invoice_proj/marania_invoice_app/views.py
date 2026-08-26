@@ -5868,7 +5868,7 @@ def additional_cost_view(request):
 
 @login_required
 def production_entry_view(request):
-    from .models import Production, Order, OrderSpecification, Product, MaterialConversionRatio, MachineOperationalCost
+    from .models import Production, Order, OrderSpecification, Product, MaterialConversionRatio, MachineOperationalCost, Parties
     import json
 
     if request.method == "POST":
@@ -6012,6 +6012,7 @@ def production_entry_view(request):
     context = {
         "orders_json": orders_data,
         "products": products,
+        "parties": Parties.objects.all().order_by("code"),
         "machines": machines,
         "machines_json": machines_json,
         "twine_options_json": twine_options,

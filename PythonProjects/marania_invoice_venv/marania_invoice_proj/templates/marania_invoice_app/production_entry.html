@@ -1,5 +1,13 @@
 {% extends 'partials/base.html' %}
 {% load static %}
+{% block css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+.date-filter-container { display: flex; gap: 2px; }
+.date-filter-container .form-control { min-width: 0; flex: 1; }
+.date-filter-container .btn { flex-shrink: 0; line-height: 1.2; padding: 1px 4px; font-size: 0.75rem; }
+</style>
+{% endblock %}
 {% block main %}
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
   <div class="container my-4">
@@ -157,6 +165,17 @@
       </form>
     </div>
 
+    <datalist id="filter-product-list">
+      {% for p in products %}
+        <option value="{{ p.code }}">
+      {% endfor %}
+    </datalist>
+    <datalist id="filter-customer-list">
+      {% for party in parties %}
+        <option value="{{ party.code }}-{{ party.name }}">
+      {% endfor %}
+    </datalist>
+
     <hr>
 
     <h5>Production Details</h5>
@@ -176,58 +195,77 @@
             </th>
 
             <th style="min-width: 90px;">Date
-              <input type="text" class="form-control form-control-sm text-filter" data-col="0">
+              <div class="date-filter-container">
+                <input type="text" id="dateFilter" class="form-control form-control-sm" placeholder="Date...">
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-secondary dropdown-toggle py-0" data-bs-toggle="dropdown" title="Quick date filters"><i class="bi bi-clock"></i></button>
+                  <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('today');return false;">Today</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('thisweek');return false;">This Week</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('thismonth');return false;">This Month</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('thisyear');return false;">This Year</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('yesterday');return false;">Yesterday</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('lastweek');return false;">Last Week</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('lastmonth');return false;">Last Month</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setDateFilterQuick('lastyear');return false;">Last Year</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="#" onclick="clearDateFilter();return false;">Clear</a></li>
+                  </ul>
+                </div>
+              </div>
             </th>
-            <th  style="min-width: 250px;">Reference
-              <input type="text" class="form-control form-control-sm text-filter" data-col="1">
-            </th>
-            <th  style="min-width: 240px;">Customer
+            <th style="min-width: 250px;">Reference
               <input type="text" class="form-control form-control-sm text-filter" data-col="2">
             </th>
-            <th  style="min-width: 200px;">Specification
-              <input type="text" class="form-control form-control-sm text-filter" data-col="3">
+            <th style="min-width: 240px;">Customer
+              <input type="text" class="form-control form-control-sm text-filter" data-col="3" list="filter-customer-list" placeholder="Customer">
             </th>
-            <th  style="width: 70px;">Product
+            <th style="min-width: 200px;">Specification
               <input type="text" class="form-control form-control-sm text-filter" data-col="4">
             </th>
-            <th style="width: 60px;">Machine
-              <input type="text" class="form-control form-control-sm text-filter" data-col="5">
-            </th>
-            <th style="width: 70px;">Knot Cap/Day
-              <input type="text" class="form-control form-control-sm text-filter" data-col="6">
-            </th>
-            <th style="width: 70px;">Total Meshes
-              <input type="text" class="form-control form-control-sm text-filter" data-col="7">
-            </th>
-            <th style="width: 80px;">Est.Weight
-              <input type="text" class="form-control form-control-sm text-filter" data-col="8">
-            </th>
-            <th style="width: 70px;">Weight
-              <input type="text" class="form-control form-control-sm text-filter" data-col="9">
-            </th>
-            <th style="width: 70px;">Unit
-              <input type="text" class="form-control form-control-sm text-filter" data-col="10">
-            </th>
-            <th style="width: 70px;">Addl.NET Twine
-              <input type="text" class="form-control form-control-sm text-filter" data-col="11">
-            </th>
-            <th style="width: 70px;">Total Twine
-              <input type="text" class="form-control form-control-sm text-filter" data-col="12">
-            </th>
-            <th>NET Twine Details
-              <input type="text" class="form-control form-control-sm text-filter" data-col="13">
-            </th>
-            <th>SEL Twine Details
-              <input type="text" class="form-control form-control-sm text-filter" data-col="14">
-            </th>
-            <th>NET Addl Details
-              <input type="text" class="form-control form-control-sm text-filter" data-col="15">
+            <th style="width: 70px;">Product
+              <input type="text" class="form-control form-control-sm text-filter" data-col="5" list="filter-product-list" placeholder="Product">
             </th>
             <th>Total Daily Output(KG)
-              <input type="text" class="form-control form-control-sm text-filter" data-col="16">
+              <input type="text" class="form-control form-control-sm text-filter" data-col="6">
             </th>
             <th>Required Days
+              <input type="text" class="form-control form-control-sm text-filter" data-col="7">
+            </th>
+            <th style="width: 80px;">Est. Weight (KG)
+              <input type="text" class="form-control form-control-sm text-filter" data-col="8">
+            </th>
+            <th style="width: 60px;">Machine
+              <input type="text" class="form-control form-control-sm text-filter" data-col="9">
+            </th>
+            <th style="width: 70px;">Knot Cap/Day
+              <input type="text" class="form-control form-control-sm text-filter" data-col="10">
+            </th>
+            <th style="width: 70px;">Total Meshes
+              <input type="text" class="form-control form-control-sm text-filter" data-col="11">
+            </th>
+            <th style="width: 70px;">Weight
+              <input type="text" class="form-control form-control-sm text-filter" data-col="12">
+            </th>
+            <th style="width: 70px;">Unit
+              <input type="text" class="form-control form-control-sm text-filter" data-col="13">
+            </th>
+            <th style="width: 70px;">Addl.NET Twine
+              <input type="text" class="form-control form-control-sm text-filter" data-col="14">
+            </th>
+            <th style="width: 70px;">Total Twine
+              <input type="text" class="form-control form-control-sm text-filter" data-col="15">
+            </th>
+            <th>NET Twine Details
+              <input type="text" class="form-control form-control-sm text-filter" data-col="16">
+            </th>
+            <th>SEL Twine Details
               <input type="text" class="form-control form-control-sm text-filter" data-col="17">
+            </th>
+            <th>NET Addl Details
+              <input type="text" class="form-control form-control-sm text-filter" data-col="18">
             </th>
            
           </tr>
@@ -252,10 +290,12 @@
             <td>{{ p.customer }}</td>
             <td>{{ p.specification }}</td>
             <td>{{ p.product }}</td>
+            <td>{{ p.total_daily_output }}</td>
+            <td>{{ p.required_days }}</td>
+            <td>{{ p.est_weight }}</td>
             <td>{{ p.machine }}</td>
             <td>{{ p.knots_capacity_per_day }}</td>
             <td>{{ p.total_meshes }}</td>
-            <td>{{ p.est_weight }}</td>
             <td>{{ p.required_weight }}</td>
             <td>{{ p.quantity_unit }}</td>
             <td>{{ p.addl_net_twine }}</td>
@@ -293,8 +333,6 @@
                 </small>
               {% endif %}
             </td>
-            <td>{{ p.total_daily_output }}</td>
-            <td>{{ p.required_days }}</td>
            
           </tr>
           {% endfor %}
@@ -819,26 +857,108 @@ document.addEventListener("click", e => {
 });
 
 /* Table filters */
+var dateFilterState = null;
 const prodTable = document.getElementById("productions-table");
-if (prodTable) {
-  const filters = document.querySelectorAll("#productions-table .text-filter");
-  filters.forEach(f => f.addEventListener("input", () => {
-    [...prodTable.tBodies[0].rows].forEach(row => {
-      let show = true;
-      filters.forEach(f => {
-        const col = f.dataset.col;
-        if (f.value && !row.cells[col].innerText.toLowerCase().includes(f.value.toLowerCase())) {
-          show = false;
-        }
-      });
-      row.style.display = show ? "" : "none";
-    });
-  }));
 
-  document.getElementById("clear-filters").addEventListener("click", () => {
-    filters.forEach(f => f.value = "");
-    filters[0].dispatchEvent(new Event("input"));
+function applyProdFilters() {
+  if (!prodTable) return;
+  const textFilters = prodTable.querySelectorAll(".text-filter");
+  [...prodTable.tBodies[0].rows].forEach(row => {
+    let show = true;
+    textFilters.forEach(f => {
+      const col = parseInt(f.dataset.col);
+      if (!f.value) return;
+      const cellText = (row.cells[col] ? row.cells[col].innerText : "").toLowerCase();
+      if (!cellText.includes(f.value.toLowerCase())) show = false;
+    });
+    if (show && dateFilterState) {
+      const cellDate = (row.cells[1] ? row.cells[1].innerText : "").trim();
+      if (cellDate < dateFilterState.from || cellDate > dateFilterState.to) show = false;
+    }
+    row.style.display = show ? "" : "none";
   });
 }
+
+if (prodTable) {
+  prodTable.querySelectorAll(".text-filter").forEach(f => f.addEventListener("input", applyProdFilters));
+
+  document.getElementById("clear-filters").addEventListener("click", () => {
+    prodTable.querySelectorAll(".text-filter").forEach(f => f.value = "");
+    clearDateFilter();
+    applyProdFilters();
+  });
+}
+
+/* Date range filter */
+function initDateFilter() {
+  var input = document.getElementById("dateFilter");
+  if (!input || input._flatpickr) return;
+  flatpickr(input, {
+    mode: "range",
+    dateFormat: "Y-m-d",
+    onChange: function(selectedDates) {
+      if (selectedDates.length === 2) {
+        dateFilterState = {
+          from: this.formatDate(selectedDates[0], "Y-m-d"),
+          to: this.formatDate(selectedDates[1], "Y-m-d")
+        };
+      } else if (selectedDates.length === 1) {
+        var d = this.formatDate(selectedDates[0], "Y-m-d");
+        dateFilterState = { from: d, to: d };
+      } else {
+        dateFilterState = null;
+      }
+      applyProdFilters();
+    },
+    onClear: function() {
+      dateFilterState = null;
+      applyProdFilters();
+    }
+  });
+}
+
+function setDateFilterQuick(range) {
+  var now = new Date();
+  var y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
+  function fmt(dt) {
+    return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+  }
+  var from, to;
+  switch (range) {
+    case 'today': from = to = now; break;
+    case 'thisweek': {
+      var day = now.getDay(), diff = now.getDate() - day + (day === 0 ? -6 : 1);
+      from = new Date(y, m, diff); to = new Date(from); to.setDate(to.getDate() + 6); break;
+    }
+    case 'thismonth': from = new Date(y, m, 1); to = new Date(y, m + 1, 0); break;
+    case 'thisyear': from = new Date(y, 0, 1); to = new Date(y, 11, 31); break;
+    case 'yesterday': from = to = new Date(y, m, d - 1); break;
+    case 'lastweek': {
+      var day2 = now.getDay(), diff2 = now.getDate() - day2 + (day2 === 0 ? -6 : 1) - 7;
+      from = new Date(y, m, diff2); to = new Date(from); to.setDate(to.getDate() + 6); break;
+    }
+    case 'lastmonth': from = new Date(y, m - 1, 1); to = new Date(y, m, 0); break;
+    case 'lastyear': from = new Date(y - 1, 0, 1); to = new Date(y - 1, 11, 31); break;
+  }
+  dateFilterState = { from: fmt(from), to: fmt(to) };
+  var fp = document.getElementById("dateFilter")._flatpickr;
+  if (fp) fp.setDate([from, to], true);
+  applyProdFilters();
+}
+
+function clearDateFilter() {
+  dateFilterState = null;
+  var fp = document.getElementById("dateFilter");
+  if (fp && fp._flatpickr) fp._flatpickr.clear();
+}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+window.addEventListener('load', function() {
+  try { initDateFilter(); } catch(e) {}
+});
 </script>
 {% endblock %}
