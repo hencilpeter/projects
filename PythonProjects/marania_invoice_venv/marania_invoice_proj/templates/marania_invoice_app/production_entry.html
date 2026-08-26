@@ -252,19 +252,19 @@
             <th style="width: 70px;">Unit
               <input type="text" class="form-control form-control-sm text-filter" data-col="13">
             </th>
-            <th style="width: 70px;">Addl.NET Twine
+            <th>NET Twine Details
               <input type="text" class="form-control form-control-sm text-filter" data-col="14">
             </th>
-            <th style="width: 70px;">Total Twine
+            <th>SEL Twine Details
               <input type="text" class="form-control form-control-sm text-filter" data-col="15">
             </th>
-            <th>NET Twine Details
+            <th style="width: 70px;">Addl.NET Twine
               <input type="text" class="form-control form-control-sm text-filter" data-col="16">
             </th>
-            <th>SEL Twine Details
+            <th>NET Addl Details
               <input type="text" class="form-control form-control-sm text-filter" data-col="17">
             </th>
-            <th>NET Addl Details
+            <th style="width: 70px;">Total Twine
               <input type="text" class="form-control form-control-sm text-filter" data-col="18">
             </th>
            
@@ -298,8 +298,6 @@
             <td>{{ p.total_meshes }}</td>
             <td>{{ p.required_weight }}</td>
             <td>{{ p.quantity_unit }}</td>
-            <td>{{ p.addl_net_twine }}</td>
-            <td>{{ p.total_twine }}</td>
             <td>
               {% if p.twine_rows %}
                 <small>
@@ -322,6 +320,7 @@
                 </small>
               {% endif %}
             </td>
+            <td>{{ p.addl_net_twine }}</td>
             <td>
               {% if p.twine_rows %}
                 <small>
@@ -333,6 +332,7 @@
                 </small>
               {% endif %}
             </td>
+            <td>{{ p.total_twine }}</td>
            
           </tr>
           {% endfor %}
