@@ -188,8 +188,6 @@
 
     <hr>
 
-    <h5>Saved Profit Analytics</h5>
-
     {% if profits %}
     <div id="profitSummaryPanel" class="card mb-3 shadow-sm border-success" style="display:none;">
       <div class="card-body py-2 px-3">
@@ -232,14 +230,24 @@
       </div>
 
       <div class="table-responsive">
+        <datalist id="profit-product-list">
+          {% for p in products %}
+            <option value="{{ p.code }}">
+          {% endfor %}
+        </datalist>
+        <datalist id="profit-machine-list">
+          {% for m in machines %}
+            <option value="{{ m.machine_number }}">
+          {% endfor %}
+        </datalist>
         <table class="table table-bordered table-hover table-sm" id="profit-table">
           <thead class="table-dark">
             <tr>
+              <th style="width:40px"><input type="checkbox" id="select-all-profit"></th>
               <th style="min-width: 90px;">Action</th>
-              <th><input type="checkbox" id="select-all-profit"></th>
               <th style="min-width: 90px;">Date</th>
               <th style="min-width: 320px;">Customer</th>
-              <th>Product</th>
+              <th style="min-width: 90px;">Product</th>
               <th>Machine</th>
               <th>Est Wt</th>
               <th>Daily Output</th>
@@ -256,6 +264,29 @@
               <th>Profit/Day</th>
               <th>Margin %</th>
               <th>Remarks</th>
+            </tr>
+            <tr id="profit-filter-row">
+              <th></th>
+              <th><button class="btn btn-warning btn-sm" id="clear-profit-filters">Clear</button></th>
+              <th></th>
+              <th><input class="filter-input" placeholder="Customer"></th>
+              <th><input class="filter-input" placeholder="Product" list="profit-product-list"></th>
+              <th><input class="filter-input" placeholder="Machine" list="profit-machine-list"></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -295,11 +326,11 @@
                 data-remarks="{{ pr.remarks }}"
                 data-raw-twine="{{ pr.raw_twine_data }}"
                 data-production-key="{{ pr.production.production_key|default:'' }}">
+              <td><input type="checkbox" class="profit-row-check" value="{{ pr.profit_key }}"></td>
               <td>
                 <button type="button" class="btn btn-primary btn-sm edit-profit" data-key="{{ pr.profit_key }}">&#9998;</button>
                 <button type="button" class="btn btn-danger btn-sm delete-profit" data-key="{{ pr.profit_key }}">&times;</button>
               </td>
-              <td><input type="checkbox" class="profit-row-check" value="{{ pr.profit_key }}"></td>
               <td>{{ pr.profit_date }}</td>
               <td>{{ pr.customer }}</td>
               <td>{{ pr.product }}</td>
@@ -802,11 +833,57 @@ function updateProfitSummary() {
   panel.style.display = count > 0 ? "" : "none";
 }
 
+/* Select All - filter aware */
 document.getElementById("select-all-profit")?.addEventListener("change", e => {
-  profitCheckboxes.forEach(cb => cb.checked = e.target.checked);
+  const filterThs = document.querySelectorAll('#profit-filter-row th');
+  let hasFilters = false;
+  filterThs.forEach(th => {
+    const input = th.querySelector('input');
+    if (input && input.value && input.value.trim() !== '') hasFilters = true;
+  });
+  if (hasFilters && e.target.checked) {
+    profitCheckboxes.forEach(cb => {
+      const row = cb.closest('tr');
+      cb.checked = row && row.style.display !== 'none';
+    });
+  } else {
+    profitCheckboxes.forEach(cb => cb.checked = e.target.checked);
+  }
   updateBulkDeleteBtn();
 });
 profitCheckboxes.forEach(cb => cb.addEventListener("change", updateBulkDeleteBtn));
+
+/* Table filters */
+function applyProfitFilters() {
+  if (!profitTable) return;
+  const filterThs = document.querySelectorAll('#profit-filter-row th');
+  const filters = [];
+  filterThs.forEach(th => {
+    const input = th.querySelector('input');
+    filters.push(input ? input.value.toLowerCase() : '');
+  });
+  profitTable.tBodies[0].querySelectorAll('tr').forEach(row => {
+    let show = true;
+    filters.forEach((filter, i) => {
+      if (!filter) return;
+      const cell = row.cells[i];
+      if (!cell) { show = false; return; }
+      if (!cell.textContent.toLowerCase().includes(filter)) show = false;
+    });
+    row.style.display = show ? '' : 'none';
+  });
+  updateProfitSummary();
+}
+
+if (profitTable) {
+  profitTable.querySelectorAll('#profit-filter-row input').forEach(input => {
+    input.addEventListener('input', applyProfitFilters);
+  });
+  document.getElementById('clear-profit-filters')?.addEventListener('click', () => {
+    profitTable.querySelectorAll('#profit-filter-row input').forEach(i => { i.value = ''; });
+    applyProfitFilters();
+  });
+}
 
 function updateBulkDeleteBtn() {
   const checked = document.querySelectorAll(".profit-row-check:checked");

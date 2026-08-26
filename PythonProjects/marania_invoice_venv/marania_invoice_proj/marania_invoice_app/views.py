@@ -6104,7 +6104,7 @@ def production_detail_view(request):
 
 @login_required
 def profit_analytics_view(request):
-    from .models import ProfitAnalytics, Production, MachineOperationalCost, ProcessingCost, AdditionalCost
+    from .models import ProfitAnalytics, Production, MachineOperationalCost, ProcessingCost, AdditionalCost, Product
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -6277,6 +6277,8 @@ def profit_analytics_view(request):
         "additional_json": additional_data,
         "materials_json": materials_data,
         "profits": profits_data,
+        "products": Product.objects.all().order_by("code"),
+        "machines": MachineOperationalCost.objects.all().order_by("machine_number"),
     }
     return render(request, "marania_invoice_app/profit_analytics.html", context)
 
