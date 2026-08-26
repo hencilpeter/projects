@@ -326,7 +326,7 @@ const allOrderOptions = [];
 ordersData.forEach(o => {
   const opt = document.createElement("option");
   opt.value = o.order_key;
-  opt.textContent = `${o.order_number} - ${o.customer} - ${o.twine || ''}`;
+  opt.textContent = `${o.order_number}-${o.customer}-${o.order_date || ''}`;
   opt.dataset.order = JSON.stringify(o);
   allOrderOptions.push(opt);
 });
@@ -370,6 +370,7 @@ function populateOrderFields() {
   row.querySelector(".prod-qty").value = o.quantity || "";
   row.querySelector(".prod-unit").value = o.quantity_unit || "KG";
   row.querySelector(".prod-product").value = o.product_code || "";
+  updateEstWeight(row);
   updateReferenceNumber(o);
 }
 
