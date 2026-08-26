@@ -3775,6 +3775,7 @@ def payment_allocation_entry(request):
             items.append({
                 'entry_date': str(si.settlement_date) if si.settlement_date else '',
                 'invoice_ref': f'SI-{si.settlement_id}',
+                'settlement_invoice_number': si.settlement_invoice_number or f'SI-{si.settlement_id}',
                 'description': desc,
                 'type': 'Dr',
                 'amount': balance,

@@ -836,7 +836,7 @@ function showAllocationSummary() {
             html += '<tr style="background:' + rowBg + ';font-size:0.85rem;' + strikeStyle + '">'
                 + '<td style="padding:4px 5px;">' + (i+1) + '</td>'
                 + '<td style="padding:4px 5px;">' + (e.entry_date || '') + '</td>'
-                + '<td style="padding:4px 5px;">' + (e.invoice_ref || '') + '</td>'
+                + '<td style="padding:4px 5px;">' + (e.settlement_invoice_number || e.invoice_ref || '') + '</td>'
                 + '<td style="padding:4px 5px;">' + e.description + '</td>'
                 + '<td style="padding:4px 5px;text-align:right;" class="fw-bold ' + amtClass + '">' + prefix + e.amount.toFixed(2) + '</td>'
                 + '</tr>';
