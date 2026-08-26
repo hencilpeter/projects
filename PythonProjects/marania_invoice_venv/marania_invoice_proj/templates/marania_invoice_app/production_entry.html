@@ -370,6 +370,15 @@ function populateOrderFields() {
   row.querySelector(".prod-qty").value = o.quantity || "";
   row.querySelector(".prod-unit").value = o.quantity_unit || "KG";
   row.querySelector(".prod-product").value = o.product_code || "";
+  const productCode = (o.product_code || "").trim();
+  if (productCode) {
+    const match = machinesData.find(m => (m.running_product_code || "").trim().toLowerCase() === productCode.toLowerCase());
+    if (match) {
+      row.querySelector(".prod-machine").value = match.machine_number;
+      row.querySelector(".prod-total-meshes").value = match.number_of_shuttles || "";
+      row.querySelector(".prod-knot-cap").value = match.knots_capacity_per_day || "";
+    }
+  }
   updateEstWeight(row);
   updateReferenceNumber(o);
 }

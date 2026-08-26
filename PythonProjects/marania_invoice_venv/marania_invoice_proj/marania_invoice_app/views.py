@@ -5967,7 +5967,7 @@ def production_entry_view(request):
 
     products = Product.objects.all().order_by("code")
     machines = MachineOperationalCost.objects.all().order_by("machine_number")
-    machines_json = [{"machine_number": m.machine_number, "number_of_shuttles": m.number_of_shuttles or 0, "knots_capacity_per_day": str(m.knots_capacity_per_day) if m.knots_capacity_per_day else ""} for m in machines]
+    machines_json = [{"machine_number": m.machine_number, "number_of_shuttles": m.number_of_shuttles or 0, "knots_capacity_per_day": str(m.knots_capacity_per_day) if m.knots_capacity_per_day else "", "running_product_code": m.running_product_code or ""} for m in machines]
 
     from .models import MaterialConversionRatio
     conversion_ratios = MaterialConversionRatio.objects.all().order_by("material_code")
