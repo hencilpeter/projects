@@ -5962,6 +5962,7 @@ def production_entry_view(request):
             "pw": spec.piece_weight if spec else "",
             "product_code": o.twine or "",
             "no_of_pcs": spec.no_of_pcs if spec else "",
+            "order_date": o.order_date.strftime("%Y%m%d") if o.order_date else "",
         })
 
     products = Product.objects.all().order_by("code")

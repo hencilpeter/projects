@@ -56,10 +56,6 @@
                   <input type="text" name="specification" class="form-control form-control-sm prod-spec" placeholder="MM-MD-SEL">
                 </div>
                 <div class="col-md-1">
-                  <label class="form-label small mb-0">Reference</label>
-                  <input type="text" name="reference" class="form-control form-control-sm prod-ref" placeholder="Ref">
-                </div>
-                <div class="col-md-1">
                   <label class="form-label small mb-0">MM</label>
                   <input type="text" name="mm" class="form-control form-control-sm prod-mm" placeholder="MM">
                 </div>
@@ -115,9 +111,13 @@
                   <label class="form-label small mb-0">Addl.NET Twine</label>
                   <input type="number" step="0.1" class="form-control form-control-sm prod-addl-net-twine" placeholder="Addl Twine">
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                   <label class="form-label small mb-0 fw-bold text-primary">Total Twine</label>
                   <input type="text" class="form-control form-control-sm prod-total-twine bg-light fw-bold" placeholder="Total Twine" readonly>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0 fw-bold text-primary">Reference #</label>
+                  <input type="text" name="reference" class="form-control form-control-sm prod-reference bg-light fw-bold" placeholder="Reference #">
                 </div>
                 <div class="col-md-2 d-flex align-items-end gap-1">
                   <button type="button" class="btn btn-sm btn-success add-net-row">+ Net</button>
@@ -354,9 +354,12 @@ filterProductSelect.addEventListener("change", () => {
 /* Populate fields from selected order */
 function populateOrderFields() {
   const opt = orderSelect.selectedOptions[0];
-  if (!opt || !opt.dataset.order) return;
-  const o = JSON.parse(opt.dataset.order);
   const row = productionContainer.querySelector(".production-row");
+  if (!opt || !opt.dataset.order) {
+    updateReferenceNumber(null);
+    return;
+  }
+  const o = JSON.parse(opt.dataset.order);
   row.querySelector(".prod-customer").value = o.customer || "";
   row.querySelector(".prod-spec").value = o.specification || "";
   row.querySelector(".prod-mm").value = o.mm || "";
@@ -366,10 +369,41 @@ function populateOrderFields() {
   row.querySelector(".prod-qty").value = o.quantity || "";
   row.querySelector(".prod-unit").value = o.quantity_unit || "KG";
   row.querySelector(".prod-product").value = o.product_code || "";
+  updateReferenceNumber(o);
+}
+
+/* Auto-populate Reference # */
+function updateReferenceNumber(orderData) {
+  const row = productionContainer.querySelector(".production-row");
+  const refField = row.querySelector(".prod-reference");
+  if (orderData) {
+    const orderNum = orderData.order_number || "";
+    const customer = orderData.customer || "";
+    const mm = orderData.mm || "";
+    const orderDate = orderData.order_date || "";
+    refField.value = [orderNum, customer, mm + "MM", orderDate].filter(Boolean).join("-");
+  } else {
+    const now = new Date();
+    const ts = now.getFullYear()
+      + String(now.getMonth() + 1).padStart(2, "0")
+      + String(now.getDate()).padStart(2, "0") + "-"
+      + String(now.getHours()).padStart(2, "0")
+      + String(now.getMinutes()).padStart(2, "0")
+      + String(now.getSeconds()).padStart(2, "0");
+    refField.value = "CUSTOM-" + ts;
+  }
 }
 
 document.getElementById("fetch-order-btn").addEventListener("click", populateOrderFields);
 orderSelect.addEventListener("change", populateOrderFields);
+
+/* Production date change -> update CUSTOM reference if no order selected */
+document.getElementById("production-date").addEventListener("change", function() {
+  const opt = orderSelect.selectedOptions[0];
+  if (!opt || !opt.value) {
+    updateReferenceNumber(null);
+  }
+});
 
 /* Machine change -> populate Total Meshes and Knot Cap/Day */
 productionContainer.addEventListener("change", e => {
@@ -612,7 +646,7 @@ document.getElementById("production-form").addEventListener("submit", e => {
       production_date: date,
       customer: row.querySelector(".prod-customer").value,
       specification: row.querySelector(".prod-spec").value,
-      reference: row.querySelector(".prod-ref").value,
+      reference: row.querySelector(".prod-reference").value,
       mm: row.querySelector(".prod-mm").value,
       md: row.querySelector(".prod-md").value,
       product: row.querySelector(".prod-product").value,
@@ -698,7 +732,7 @@ document.addEventListener("click", e => {
     document.getElementById("production-date").value = data.production_date || "";
     row.querySelector(".prod-customer").value = data.customer || "";
     row.querySelector(".prod-spec").value = data.specification || "";
-    row.querySelector(".prod-ref").value = data.reference || "";
+    row.querySelector(".prod-reference").value = data.reference || "";
     row.querySelector(".prod-mm").value = data.mm || "";
     row.querySelector(".prod-md").value = data.md || "";
     row.querySelector(".prod-product").value = data.product || "";
