@@ -6016,6 +6016,7 @@ def production_entry_view(request):
         "machines_json": machines_json,
         "twine_options_json": twine_options,
         "productions": productions_data,
+        "default_bag_weight": str(company_settings.default_bag_weight) if company_settings else "0",
     }
     return render(request, "marania_invoice_app/production_entry.html", context)
 

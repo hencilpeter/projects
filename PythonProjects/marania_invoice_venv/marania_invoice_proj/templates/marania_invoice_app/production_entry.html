@@ -87,7 +87,7 @@
 
               <div class="row mb-2 align-items-end g-1">
                 <div class="col-md-1">
-                  <label class="form-label small mb-0">Est.Weight</label>
+                  <label class="form-label small mb-0">Est. Weight (KG)</label>
                   <input type="number" step="0.01" class="form-control form-control-sm prod-est-weight" placeholder="Est Wt">
                 </div>
                 <div class="col-md-2">
@@ -315,6 +315,7 @@
 const ordersData = JSON.parse(document.getElementById("orders-data").textContent);
 const machinesData = JSON.parse(document.getElementById("machines-data").textContent);
 const twineOptions = JSON.parse(document.getElementById("twine-options-data").textContent);
+const defaultBagWeight = parseFloat("{{ default_bag_weight }}") || 0;
 const productionContainer = document.getElementById("production-rows");
 
 /* Populate all orders in memory and populate dropdown */
@@ -378,7 +379,7 @@ function updateReferenceNumber(orderData) {
   const refField = row.querySelector(".prod-reference");
   if (orderData) {
     const orderNum = orderData.order_number || "";
-    const customer = orderData.customer || "";
+    const customer = (orderData.customer || "").split("-")[0];
     const mm = orderData.mm || "";
     const orderDate = orderData.order_date || "";
     refField.value = [orderNum, customer, mm + "MM", orderDate].filter(Boolean).join("-");
@@ -502,6 +503,32 @@ productionContainer.addEventListener("input", e => {
   if (e.target.classList.contains("prod-addl-net-twine")) {
     const row = e.target.closest(".production-row");
     updateTotalTwine(row);
+  }
+});
+
+/* Auto-populate Est. Weight based on Unit and Quantity */
+function updateEstWeight(row) {
+  const unit = row.querySelector(".prod-unit").value;
+  const qty = parseFloat(row.querySelector(".prod-qty").value) || 0;
+  const estField = row.querySelector(".prod-est-weight");
+  if (unit === "Bag" && qty > 0 && defaultBagWeight > 0) {
+    estField.value = (defaultBagWeight * qty).toFixed(2);
+  } else if (unit === "KG" && qty > 0) {
+    estField.value = qty.toFixed(2);
+  }
+}
+
+productionContainer.addEventListener("input", e => {
+  if (e.target.classList.contains("prod-qty")) {
+    const row = e.target.closest(".production-row");
+    updateEstWeight(row);
+  }
+});
+
+productionContainer.addEventListener("change", e => {
+  if (e.target.classList.contains("prod-unit")) {
+    const row = e.target.closest(".production-row");
+    updateEstWeight(row);
   }
 });
 

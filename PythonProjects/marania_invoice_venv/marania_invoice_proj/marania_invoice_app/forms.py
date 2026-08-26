@@ -325,6 +325,7 @@ class CompanySettingsForm(forms.ModelForm):
             "bank_account_number",
             "bank_branch",
             "bank_ifsc",
+            "default_bag_weight",
 
         ]
 
@@ -347,6 +348,7 @@ class CompanySettingsForm(forms.ModelForm):
             "bank_account_number":"Account Number",
             "bank_branch": "Bank Branch Name",
             "bank_ifsc": "Branch IFSC",
+            "default_bag_weight": "Default Bag Weight (KG)",
         }
 
         widgets = {
@@ -370,6 +372,7 @@ class CompanySettingsForm(forms.ModelForm):
             "bank_account_number":forms.TextInput(attrs={"class": "form-control"}),
             "bank_branch": forms.TextInput(attrs={"class": "form-control"}),
             "bank_ifsc": forms.TextInput(attrs={"class": "form-control"}),
+            "default_bag_weight": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
 
         }
 

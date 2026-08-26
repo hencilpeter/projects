@@ -222,6 +222,8 @@ class CompanySettings(models.Model):
     bank_branch = models.CharField(max_length=50, blank=True, null=True)
     bank_ifsc  = models.CharField(max_length=50, blank=True, null=True)
 
+    # Fishnet settings
+    default_bag_weight = models.DecimalField(max_digits=10, decimal_places=2, default=0, blank=True)
 
     updated_at = models.DateTimeField(auto_now=True)
 
