@@ -69,6 +69,10 @@
                   <input type="text" class="form-control form-control-sm prof-customer bg-light" placeholder="Customer" readonly>
                 </div>
                 <div class="col-md-2">
+                  <label class="form-label small mb-0">Specification</label>
+                  <input type="text" class="form-control form-control-sm prof-specification bg-light" placeholder="Specification" readonly>
+                </div>
+                <div class="col-md-2">
                   <label class="form-label small mb-0">Product</label>
                   <input type="text" class="form-control form-control-sm prof-product bg-light" placeholder="Product" readonly>
                 </div>
@@ -274,9 +278,10 @@
             <col style="width:30px">
             <col style="width:90px">
             <col style="width:90px">
-            <col style="width:250px">
+            <col style="width:200px">
+            <col style="width:200px">
+            <col style="width:100px">
             <col style="width:80px">
-            <col style="width:70px">
             <col style="width:65px">
             <col style="width:80px">
             <col style="width:65px">
@@ -299,6 +304,7 @@
               <th>Action</th>
               <th>Date</th>
               <th>Customer</th>
+              <th>Specification</th>
               <th>Product</th>
               <th>Machine</th>
               <th>Est Wt</th>
@@ -322,6 +328,7 @@
               <th><button class="btn btn-warning btn-sm" id="clear-profit-filters">Clear</button></th>
               <th></th>
               <th><input class="filter-input" placeholder="Customer"></th>
+              <th><input class="filter-input" placeholder="Specification"></th>
               <th><input class="filter-input" placeholder="Product" list="profit-product-list"></th>
               <th><input class="filter-input" placeholder="Machine" list="profit-machine-list"></th>
               <th></th>
@@ -352,6 +359,7 @@
                 data-profit-key="{{ pr.profit_key }}"
                 data-profit-date="{{ pr.profit_date }}"
                 data-customer="{{ pr.customer }}"
+                data-specification="{{ pr.specification }}"
                 data-product="{{ pr.product }}"
                 data-machine="{{ pr.machine }}"
                 data-est-weight="{{ pr.est_weight }}"
@@ -385,6 +393,7 @@
               </td>
               <td>{{ pr.profit_date }}</td>
               <td>{{ pr.customer }}</td>
+              <td>{{ pr.specification }}</td>
               <td>{{ pr.product }}</td>
               <td>{{ pr.machine }}</td>
               <td>{{ pr.est_weight }}</td>
@@ -449,7 +458,8 @@ prodSelect.addEventListener("change", () => {
   if (!opt || !opt.dataset.production) return;
   const o = JSON.parse(opt.dataset.production);
   const row = profitContainer.querySelector(".profit-row");
-  row.querySelector(".prof-customer").value = o.specification ? `${o.customer} (${o.specification})` : (o.customer || "");
+  row.querySelector(".prof-customer").value = o.customer || "";
+  row.querySelector(".prof-specification").value = o.specification || "";
   row.querySelector(".prof-product").value = o.product || "";
   row.querySelector(".prof-machine").value = o.machine || "";
   row.querySelector(".prof-est-wt").value = o.est_weight || "";
@@ -702,6 +712,7 @@ document.getElementById("profit-form").addEventListener("submit", e => {
       profit_key: row.dataset.editProfitKey || "",
       production_key: row.dataset.productionKey || "",
       customer: row.querySelector(".prof-customer").value,
+      specification: row.querySelector(".prof-specification").value,
       product: row.querySelector(".prof-product").value,
       machine: row.querySelector(".prof-machine").value,
       est_weight: row.querySelector(".prof-est-wt").value,
@@ -755,6 +766,7 @@ document.addEventListener("click", e => {
   const row = profitContainer.querySelector(".profit-row");
   row.dataset.editProfitKey = tr.dataset.profitKey || "";
   row.querySelector(".prof-customer").value = tr.dataset.customer || "";
+  row.querySelector(".prof-specification").value = tr.dataset.specification || "";
   row.querySelector(".prof-product").value = tr.dataset.product || "";
   row.querySelector(".prof-machine").value = tr.dataset.machine || "";
   row.querySelector(".prof-est-wt").value = tr.dataset.estWeight || "";

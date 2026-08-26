@@ -851,6 +851,7 @@ class ProfitAnalytics(models.Model):
     production = models.ForeignKey(Production, to_field='production_key', on_delete=models.SET_NULL, null=True, blank=True, related_name='profit_analytics')
     profit_date = models.DateField(default='today')
     customer = models.CharField(max_length=255, blank=True, null=True)
+    specification = models.CharField(max_length=255, blank=True, null=True)
     product = models.CharField(max_length=100, blank=True, null=True)
     machine = models.CharField(max_length=50, blank=True, null=True)
     est_weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
