@@ -59,7 +59,7 @@
             </div>
           </div>
 
-          <hr>
+          
 
           <div id="profit-rows">
             <div class="profit-row">
@@ -135,7 +135,7 @@
                   <input type="text" class="form-control form-control-sm prof-color-total bg-light" placeholder="Color Total" readonly>
                 </div>
                 <div class="col-md-3">
-                  <label class="form-label small mb-0">Small Size Cost/KG <small class="text-muted">(MD&lt;=50)</small></label>
+                  <label class="form-label small mb-0">Small Size Cost/KG <small class="text-muted">(Per Processing Cost Config)</small></label>
                   <input type="number" step="0.01" class="form-control form-control-sm prof-small-size-cost" placeholder="Small Size/KG">
                 </div>
                 <div class="col-md-3">
@@ -480,13 +480,21 @@ prodSelect.addEventListener("change", () => {
   const procCost = proc ? proc.cost_per_kg : "";
   const colorCost = proc ? proc.color_cost : "";
   const smallSizeCost = proc ? proc.small_size_cost : "";
+  const smallDepthStartingDepth = proc ? (parseFloat(proc.small_depth_starting_depth) || 0) : 0;
   row.querySelector(".prof-proc-cost").value = procCost;
   row.dataset.procCost = procCost;
-  row.querySelector(".prof-color-cost").value = colorCost;
-  row.dataset.colorCost = colorCost;
-  /* Apply small size cost only if MD <= 50 */
+  /* Apply colour cost only for non-white colours */
+  const colour = (o.colour || "").trim().toLowerCase();
+  if (colour && colour !== "white") {
+    row.querySelector(".prof-color-cost").value = colorCost;
+    row.dataset.colorCost = colorCost;
+  } else {
+    row.querySelector(".prof-color-cost").value = "";
+    row.dataset.colorCost = "";
+  }
+  /* Apply small size cost only if MD <= small_depth_starting_depth */
   const md = parseFloat(o.md) || 0;
-  if (md > 0 && md <= 50) {
+  if (md > 0 && smallDepthStartingDepth > 0 && md <= smallDepthStartingDepth) {
     row.querySelector(".prof-small-size-cost").value = smallSizeCost;
     row.dataset.smallSizeCost = smallSizeCost;
   } else {

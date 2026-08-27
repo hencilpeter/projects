@@ -6235,6 +6235,11 @@ def profit_analytics_view(request):
             twine_rows = json.loads(p.remarks) if p.remarks else []
         except (json.JSONDecodeError, TypeError):
             twine_rows = []
+        colour = ""
+        if p.order:
+            spec = p.order.specifications.first()
+            if spec:
+                colour = spec.colour or ""
         productions_data.append({
             "production_key": p.production_key,
             "production_date": str(p.production_date) if p.production_date else "",
@@ -6244,6 +6249,7 @@ def profit_analytics_view(request):
             "machine": p.machine or "",
             "mm": str(p.mm) if p.mm else "",
             "md": str(p.md) if p.md else "",
+            "colour": colour,
             "est_weight": str(p.est_weight) if p.est_weight else "",
             "knots_capacity_per_day": str(p.knots_capacity_per_day) if p.knots_capacity_per_day else "",
             "addl_net_twine": str(p.addl_net_twine) if p.addl_net_twine else "",
@@ -6272,7 +6278,7 @@ def profit_analytics_view(request):
 
     # Get processing costs
     processing_costs = ProcessingCost.objects.all().order_by("material_code")
-    processing_data = [{"code": pc.material_code, "cost_per_kg": str(pc.processing_cost_per_kg), "color_cost": str(pc.color_cost_per_kg), "small_size_cost": str(pc.small_depth_size_cost_per_kg)} for pc in processing_costs]
+    processing_data = [{"code": pc.material_code, "cost_per_kg": str(pc.processing_cost_per_kg), "color_cost": str(pc.color_cost_per_kg), "small_size_cost": str(pc.small_depth_size_cost_per_kg), "small_depth_starting_depth": str(pc.small_depth_starting_depth)} for pc in processing_costs]
 
     # Get materials for twine name lookup
     from .models import Materials
