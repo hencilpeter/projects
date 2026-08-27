@@ -428,12 +428,14 @@
 {{ machines_json|json_script:"machines-data" }}
 {{ processing_json|json_script:"processing-data" }}
 {{ additional_json|json_script:"additional-data" }}
+{{ gst_json|json_script:"gst-data" }}
 {{ materials_json|json_script:"materials-data" }}
 <script>
 const productionsData = JSON.parse(document.getElementById("productions-data").textContent);
 const machinesData = JSON.parse(document.getElementById("machines-data").textContent);
 const processingData = JSON.parse(document.getElementById("processing-data").textContent);
 const additionalData = JSON.parse(document.getElementById("additional-data").textContent);
+const gstData = JSON.parse(document.getElementById("gst-data").textContent);
 const materialsData = JSON.parse(document.getElementById("materials-data").textContent);
 const profitContainer = document.getElementById("profit-rows");
 
@@ -508,6 +510,25 @@ prodSelect.addEventListener("change", () => {
   if (additionalData.packing) addlCost += parseFloat(additionalData.packing);
   row.querySelector(".prof-addl-cost").value = addlCost ? addlCost.toFixed(2) : "";
   row.dataset.addlCost = addlCost;
+
+  /* Auto-populate Sale Price/KG from Order unit_price + GST */
+  const unitPrice = parseFloat(o.unit_price) || 0;
+  const isGstIncluded = o.is_gst_included;
+  if (unitPrice > 0) {
+    let salePriceKg;
+    if (isGstIncluded) {
+      salePriceKg = unitPrice;
+    } else {
+      const igst = parseFloat(gstData.igst) || 0;
+      const cgst = parseFloat(gstData.cgst) || 0;
+      const sgst = parseFloat(gstData.sgst) || 0;
+      const totalGst = igst > 0 ? igst : (cgst + sgst);
+      salePriceKg = unitPrice * (1 + totalGst / 100);
+    }
+    row.querySelector(".prof-sale-price").value = salePriceKg.toFixed(2);
+  } else {
+    row.querySelector(".prof-sale-price").value = "";
+  }
 
   /* Populate raw twine rows */
   const twineContainer = document.getElementById("raw-twine-rows");

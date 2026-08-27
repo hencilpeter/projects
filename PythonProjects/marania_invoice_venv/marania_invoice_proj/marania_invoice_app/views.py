@@ -6245,10 +6245,14 @@ def profit_analytics_view(request):
         except (json.JSONDecodeError, TypeError):
             twine_rows = []
         colour = ""
+        unit_price = ""
+        is_gst_included = False
         if p.order:
             spec = p.order.specifications.first()
             if spec:
                 colour = spec.colour or ""
+            unit_price = str(p.order.unit_price) if p.order.unit_price else ""
+            is_gst_included = p.order.is_gst_included
         productions_data.append({
             "production_key": p.production_key,
             "production_date": str(p.production_date) if p.production_date else "",
@@ -6259,6 +6263,8 @@ def profit_analytics_view(request):
             "mm": str(p.mm) if p.mm else "",
             "md": str(p.md) if p.md else "",
             "colour": colour,
+            "unit_price": unit_price,
+            "is_gst_included": is_gst_included,
             "est_weight": str(p.est_weight) if p.est_weight else "",
             "knots_capacity_per_day": str(p.knots_capacity_per_day) if p.knots_capacity_per_day else "",
             "addl_net_twine": str(p.addl_net_twine) if p.addl_net_twine else "",
@@ -6302,6 +6308,14 @@ def profit_analytics_view(request):
         "waste": str(additional.waste_percentage) if additional else "",
     }
 
+    # Get Company Settings GST
+    company_settings = CompanySettings.objects.first()
+    gst_data = {
+        "igst": str(company_settings.igst) if company_settings else "0",
+        "cgst": str(company_settings.cgst) if company_settings else "0",
+        "sgst": str(company_settings.sgst) if company_settings else "0",
+    }
+
     # Get saved profit analytics
     profits = ProfitAnalytics.objects.all()
     profits_data = []
@@ -6343,6 +6357,7 @@ def profit_analytics_view(request):
         "machines_json": machines_data,
         "processing_json": processing_data,
         "additional_json": additional_data,
+        "gst_json": gst_data,
         "materials_json": materials_data,
         "profits": profits_data,
         "products": Product.objects.all().order_by("code"),
