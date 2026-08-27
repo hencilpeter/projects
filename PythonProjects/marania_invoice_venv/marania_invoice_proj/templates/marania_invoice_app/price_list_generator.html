@@ -178,10 +178,15 @@
         <thead class="table-dark">
           <tr>
             <th style="width:160px;">Action
-              <input type="text" class="form-control form-control-sm filter-input" data-col="0">
+              <button class="btn btn-warning btn-sm" id="clear-config-filters">Clear</button>
             </th>
-            <th style="width:70px;">Product
-              <input type="text" class="form-control form-control-sm filter-input" data-col="1">
+            <th style="width:90px;">Product
+              <select class="form-select form-select-sm filter-select" data-col="1">
+                <option value="">All</option>
+                {% for p in products %}
+                <option value="{{ p.code }}">{{ p.code }}</option>
+                {% endfor %}
+              </select>
             </th>
             <th style="min-width:80px;">Twine Price
               <input type="text" class="form-control form-control-sm filter-input" data-col="2">
@@ -512,20 +517,40 @@ document.getElementById('cancel-edit-btn').addEventListener('click', function() 
    ======================== */
 const configTable = document.getElementById('config-table');
 const filters = configTable.querySelectorAll('.filter-input');
-filters.forEach(function(f) {
-  f.addEventListener('input', function() {
-    Array.from(configTable.tBodies[0].rows).forEach(function(row) {
-      var show = true;
-      filters.forEach(function(fl) {
-        var col = parseInt(fl.dataset.col);
-        if (fl.value && !row.cells[col].innerText.toLowerCase().includes(fl.value.toLowerCase())) {
-          show = false;
-        }
-      });
-      row.style.display = show ? '' : 'none';
+const selectFilters = configTable.querySelectorAll('.filter-select');
+
+function applyFilters() {
+  Array.from(configTable.tBodies[0].rows).forEach(function(row) {
+    var show = true;
+    filters.forEach(function(fl) {
+      var col = parseInt(fl.dataset.col);
+      if (fl.value && !row.cells[col].innerText.toLowerCase().includes(fl.value.toLowerCase())) {
+        show = false;
+      }
     });
+    selectFilters.forEach(function(fl) {
+      var col = parseInt(fl.dataset.col);
+      if (fl.value && row.cells[col].innerText.trim() !== fl.value) {
+        show = false;
+      }
+    });
+    row.style.display = show ? '' : 'none';
   });
+}
+
+filters.forEach(function(f) {
+  f.addEventListener('input', applyFilters);
 });
+selectFilters.forEach(function(f) {
+  f.addEventListener('change', applyFilters);
+});
+
+document.getElementById('clear-config-filters')
+  .addEventListener('click', function() {
+    filters.forEach(function(i) { i.value = ''; });
+    selectFilters.forEach(function(s) { s.value = ''; });
+    applyFilters();
+  });
 
 /* Init */
 renderDailyProfits();
