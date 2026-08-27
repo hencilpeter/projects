@@ -7,11 +7,16 @@
 .price-table-wrapper {
     max-height: 600px;
     overflow: auto;
-    border: 1px solid #ddd;
+    border: 1.5px solid #bbb;
 }
 #price-table {
     min-width: 700px;
     font-size: 0.85rem;
+    border-collapse: collapse;
+}
+#price-table th,
+#price-table td {
+    border: 1.5px solid #999 !important;
 }
 #price-table thead th {
     position: sticky;
@@ -145,9 +150,15 @@
 
   /* Colour name -> HSL hue lookup */
   var colourHues = {
-    'green': 120, 'blue': 240, 'orange': 30, 'red': 0,
-    'purple': 270, 'yellow': 60, 'cyan': 180, 'pink': 330,
-    'teal': 170, 'maroon': 0
+    'red': 0, 'crimson': 348, 'maroon': 0, 'orange red': 16,
+    'orange': 30, 'amber': 45, 'yellow': 60, 'lime': 82,
+    'green': 120, 'emerald': 140, 'teal': 170, 'cyan': 180,
+    'sky blue': 200, 'blue': 215, 'indigo': 230, 'purple': 270,
+    'deep purple': 260, 'pink': 330, 'rose': 350,
+    'brown': 18, 'slate grey': 200, 'black': 0
+  };
+  var colourSat = {
+    'maroon': 100, 'brown': 45, 'slate grey': 25, 'black': 0
   };
 
   function hslToHex(h, s, l) {
@@ -193,7 +204,7 @@
     var hueKey = baseColour.toLowerCase().trim();
     var hue = colourHues[hueKey];
     if (hue !== undefined) {
-      var saturation = (hueKey === 'maroon') ? 40 : 65;
+      var saturation = colourSat[hueKey] !== undefined ? colourSat[hueKey] : 65;
       labels.forEach(function(l, i) {
         var ratio = labels.length > 1 ? i / (labels.length - 1) : 0.5;
         var lightness = 82 - ratio * 50;
