@@ -145,10 +145,10 @@
           <tr>
             <th class="col-mesh">Mesh Size (MM)</th>
             <th class="col-price">{{ config.product_code|default:"Product" }} Price/KG (Rs)</th>
+            <th class="col-breakdown">Expense Breakdown</th>
             <th>Daily Production (KG)</th>
             <th>Daily Profit Label</th>
             <th>Profit/KG (Rs)</th>
-            <th class="col-breakdown">Expense Breakdown</th>
           </tr>
         </thead>
         <tbody>
@@ -156,9 +156,6 @@
           <tr>
             <td>{{ row.mesh_range }}</td>
             <td>{{ row.calculated_price|floatformat:0 }}</td>
-            <td>{{ row.daily_production }}</td>
-            <td>{{ row.profit_label }}</td>
-            <td>{{ row.profit_value }}</td>
             <td>
               <span class="expense-toggle" onclick="toggleBreakdown(this)">View Breakdown</span>
               <div class="expense-details">
@@ -182,6 +179,10 @@
                 </table>
               </div>
             </td>
+            <td>{{ row.daily_production }}</td>
+            <td>{{ row.profit_label }}</td>
+            <td>{{ row.profit_value }}</td>
+            
           </tr>
           {% endfor %}
         </tbody>
@@ -253,7 +254,7 @@ function toggleBreakdown(el) {
   /* Collect unique labels from table rows */
   var labels = [];
   Array.from(table.tBodies[0].rows).forEach(function(row) {
-    var label = row.cells[3].innerText.trim();
+    var label = row.cells[4].innerText.trim();
     if (label && labels.indexOf(label) === -1) labels.push(label);
   });
 
@@ -306,7 +307,7 @@ function toggleBreakdown(el) {
   function applyCellColors(selectedLabel) {
     Array.from(table.tBodies[0].rows).forEach(function(row) {
       if (row.style.display === 'none') return;
-      var label = row.cells[3].innerText.trim();
+      var label = row.cells[4].innerText.trim();
       var color = labelColorMap[label] || '';
       row.cells[0].style.backgroundColor = color;
       row.cells[1].style.backgroundColor = color;
@@ -340,7 +341,7 @@ function toggleBreakdown(el) {
     filterSelect.addEventListener('change', function() {
       var val = this.value;
       Array.from(table.tBodies[0].rows).forEach(function(row) {
-        if (!val || row.cells[3].innerText.trim() === val) {
+        if (!val || row.cells[4].innerText.trim() === val) {
           row.style.display = '';
         } else {
           row.style.display = 'none';
