@@ -826,13 +826,12 @@ class ExtraMeshConfig(models.Model):
 
 
 class PriceListColourConfiguration(models.Model):
-    product = models.ForeignKey(
+    product = models.OneToOneField(
         Product,
         to_field='code',
         on_delete=models.CASCADE,
         related_name='price_list_colours',
         db_constraint=False,
-        unique=True,
     )
     base_colour = models.CharField(
         max_length=50,
