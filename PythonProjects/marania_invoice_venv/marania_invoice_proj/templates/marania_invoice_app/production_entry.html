@@ -740,6 +740,7 @@ document.getElementById("production-form").addEventListener("submit", e => {
       }
     }
     entries.push({
+      order_key: orderSelect.value || "",
       production_date: date,
       customer: row.querySelector(".prod-customer").value,
       specification: row.querySelector(".prod-spec").value,

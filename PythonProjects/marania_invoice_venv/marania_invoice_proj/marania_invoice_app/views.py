@@ -5956,8 +5956,17 @@ def production_entry_view(request):
                     remarks = ""
                     if twine_rows_data:
                         remarks = json.dumps(twine_rows_data)
-                    
+
+                    order_obj = None
+                    order_key = entry.get("order_key")
+                    if order_key:
+                        try:
+                            order_obj = Order.objects.get(order_key=order_key)
+                        except Order.DoesNotExist:
+                            order_obj = None
+
                     Production.objects.create(
+                        order=order_obj,
                         production_date=production_date,
                         customer=(entry.get("customer") or "").strip(),
                         specification=(entry.get("specification") or "").strip(),
@@ -6228,7 +6237,7 @@ def profit_analytics_view(request):
         return redirect("profit_analytics")
 
     # Get all production analytics entries for selection
-    productions = Production.objects.all().order_by("-production_date", "-production_key")
+    productions = Production.objects.select_related("order").prefetch_related("order__specifications").all().order_by("-production_date", "-production_key")
     productions_data = []
     for p in productions:
         try:
