@@ -84,6 +84,7 @@ from .models import (
     ExtraMeshConfig,
     SettlementInvoice,
     PriceListConfiguration,
+    PriceListColourConfiguration,
 
 )
 
@@ -5916,6 +5917,55 @@ def get_extra_mesh(request):
 
 
 @login_required
+def price_list_colour_config_view(request):
+    if request.method == 'POST':
+        action = request.POST.get("action")
+
+        if action == "save":
+            product_codes = request.POST.getlist("product_code")
+            base_colours = request.POST.getlist("base_colour")
+
+            for product_code, base_colour in zip(product_codes, base_colours):
+                if not product_code or not base_colour:
+                    continue
+                product_obj = Product.objects.filter(code=product_code).first()
+                if not product_obj:
+                    continue
+                PriceListColourConfiguration.objects.update_or_create(
+                    product=product_obj,
+                    defaults={"base_colour": base_colour.strip()}
+                )
+            messages.success(request, "Price List Colour Configuration saved successfully.")
+
+        elif action == "delete":
+            product_codes = request.POST.getlist("product_code")
+            for product_code in product_codes:
+                if product_code:
+                    PriceListColourConfiguration.objects.filter(
+                        product__code=product_code
+                    ).delete()
+            messages.success(request, "Price List Colour Configuration deleted successfully.")
+
+    context = {
+        "configs": PriceListColourConfiguration.objects.select_related("product").all(),
+        "products": Product.objects.all().order_by("code"),
+    }
+    return render(request, "marania_invoice_app/price_list_colour_config.html", context)
+
+
+@login_required
+def get_product_colour(request):
+    product_code = request.GET.get("product_code", "").strip()
+    if not product_code:
+        return JsonResponse({"base_colour": ""})
+    try:
+        plc = PriceListColourConfiguration.objects.get(product__code=product_code)
+        return JsonResponse({"base_colour": plc.base_colour})
+    except PriceListColourConfiguration.DoesNotExist:
+        return JsonResponse({"base_colour": ""})
+
+
+@login_required
 def production_entry_view(request):
     from .models import Production, Order, OrderSpecification, Product, MaterialConversionRatio, MachineOperationalCost, Parties
     import json
@@ -7051,9 +7101,18 @@ def view_price_list(request, pk):
 
     price_list_rows.sort(key=lambda r: (r["mesh_start"], r["profit_value"]))
 
+    base_colour = ""
+    if config.product_code:
+        try:
+            plc = PriceListColourConfiguration.objects.get(product__code=config.product_code)
+            base_colour = plc.base_colour
+        except PriceListColourConfiguration.DoesNotExist:
+            pass
+
     return render(request, "marania_invoice_app/price_list_view.html", {
         "config": config,
         "price_list_rows": price_list_rows,
+        "base_colour": base_colour,
     })
 
 

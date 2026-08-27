@@ -125,6 +125,8 @@ path('configuration/machine-operational-cost', views.machine_operational_cost_vi
 path('configuration/additional-cost', views.additional_cost_view, name='additional_cost'),
 path('configuration/extra-mesh-config', views.extra_mesh_config_view, name='extra_mesh_config'),
 path('configuration/get-extra-mesh', views.get_extra_mesh, name='get_extra_mesh'),
+path('configuration/price-list-colour-config', views.price_list_colour_config_view, name='price_list_colour_config'),
+path('configuration/get-product-colour', views.get_product_colour, name='get_product_colour'),
 
 # Production Analytics
 path('production/entry', views.production_entry_view, name='production_entry'),

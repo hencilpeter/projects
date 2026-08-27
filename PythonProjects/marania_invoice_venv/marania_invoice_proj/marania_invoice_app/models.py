@@ -825,6 +825,30 @@ class ExtraMeshConfig(models.Model):
         verbose_name_plural = "Extra Mesh Configurations"
 
 
+class PriceListColourConfiguration(models.Model):
+    product = models.ForeignKey(
+        Product,
+        to_field='code',
+        on_delete=models.CASCADE,
+        related_name='price_list_colours',
+        db_constraint=False,
+        unique=True,
+    )
+    base_colour = models.CharField(
+        max_length=50,
+        help_text="Base colour name, e.g. Green, Blue, Orange"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Price List Colour Configuration"
+        verbose_name_plural = "Price List Colour Configurations"
+
+    def __str__(self):
+        return f"{self.product.code} -> {self.base_colour}"
+
+
 class Production(models.Model):
     production_key = models.AutoField(primary_key=True)
     production_date = models.DateField(default='today')

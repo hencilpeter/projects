@@ -141,21 +141,75 @@
   var table = document.getElementById('price-table');
   if (!table) return;
 
-  var colors = ['#00bcd4', '#4caf50', '#ffeb3b', '#ff9800', '#e91e63'];
-  var darkColors = ['#00838f', '#2e7d32', '#f9a825', '#e65100', '#ad1457'];
-  var labels = [];
-  var labelColorMap = {};
-  var labelDarkMap = {};
+  var baseColour = '{{ base_colour|escapejs }}';
 
+  /* Colour name -> HSL hue lookup */
+  var colourHues = {
+    'green': 120, 'blue': 240, 'orange': 30, 'red': 0,
+    'purple': 270, 'yellow': 60, 'cyan': 180, 'pink': 330,
+    'teal': 170, 'maroon': 0
+  };
+
+  function hslToHex(h, s, l) {
+    s /= 100; l /= 100;
+    var c = (1 - Math.abs(2 * l - 1)) * s;
+    var x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    var m = l - c / 2;
+    var r, g, b;
+    if (h < 60)       { r = c; g = x; b = 0; }
+    else if (h < 120) { r = x; g = c; b = 0; }
+    else if (h < 180) { r = 0; g = c; b = x; }
+    else if (h < 240) { r = 0; g = x; b = c; }
+    else if (h < 300) { r = x; g = 0; b = c; }
+    else              { r = c; g = 0; b = x; }
+    r = Math.round((r + m) * 255).toString(16).padStart(2, '0');
+    g = Math.round((g + m) * 255).toString(16).padStart(2, '0');
+    b = Math.round((b + m) * 255).toString(16).padStart(2, '0');
+    return '#' + r + g + b;
+  }
+
+  function darkenHsl(h, s, l) {
+    return hslToHex(h, s, Math.max(l - 0.25, 10));
+  }
+
+  /* Collect unique labels from table rows */
+  var labels = [];
   Array.from(table.tBodies[0].rows).forEach(function(row) {
     var label = row.cells[3].innerText.trim();
     if (label && labels.indexOf(label) === -1) labels.push(label);
   });
+
+  /* Sort labels alphabetically for consistent ordering */
   labels.sort();
-  labels.forEach(function(l, i) {
-    labelColorMap[l] = colors[i % colors.length];
-    labelDarkMap[l] = darkColors[i % darkColors.length];
-  });
+
+  /* Build colour maps */
+  var labelColorMap = {};
+  var labelDarkMap = {};
+
+  var defaultColors  = ['#00bcd4', '#4caf50', '#ffeb3b', '#ff9800', '#e91e63'];
+  var defaultDarks   = ['#00838f', '#2e7d32', '#f9a825', '#e65100', '#ad1457'];
+
+  if (baseColour) {
+    var hueKey = baseColour.toLowerCase().trim();
+    var hue = colourHues[hueKey];
+    if (hue !== undefined) {
+      var saturation = (hueKey === 'maroon') ? 40 : 65;
+      labels.forEach(function(l, i) {
+        var ratio = labels.length > 1 ? i / (labels.length - 1) : 0.5;
+        var lightness = 82 - ratio * 50;
+        labelColorMap[l] = hslToHex(hue, saturation, lightness);
+        labelDarkMap[l]  = darkenHsl(hue, saturation, lightness);
+      });
+    }
+  }
+
+  /* Fallback to default colours if no base colour or unknown colour */
+  if (Object.keys(labelColorMap).length === 0) {
+    labels.forEach(function(l, i) {
+      labelColorMap[l] = defaultColors[i % defaultColors.length];
+      labelDarkMap[l]  = defaultDarks[i % defaultDarks.length];
+    });
+  }
 
   function clearCellColors() {
     Array.from(table.tBodies[0].rows).forEach(function(row) {
