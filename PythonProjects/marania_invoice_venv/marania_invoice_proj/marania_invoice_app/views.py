@@ -81,6 +81,7 @@ from .models import (
     ProcessingCost,
     MachineOperationalCost,
     AdditionalCost,
+    ExtraMeshConfig,
     SettlementInvoice,
     PriceListConfiguration,
 
@@ -5864,6 +5865,54 @@ def additional_cost_view(request):
         "cost": cost_obj,
     }
     return render(request, "marania_invoice_app/additional_cost.html", context)
+
+
+@login_required
+def extra_mesh_config_view(request):
+    if request.method == 'POST':
+        action = request.POST.get("action")
+
+        if action == "save":
+            mm_max_list = request.POST.getlist("mm_max")
+            extra_mesh_list = request.POST.getlist("extra_mesh")
+
+            for mm_max_val, extra_mesh_val in zip(mm_max_list, extra_mesh_list):
+                if not mm_max_val:
+                    continue
+                ExtraMeshConfig.objects.update_or_create(
+                    mm_max=mm_max_val,
+                    defaults={"extra_mesh": extra_mesh_val or 0}
+                )
+            messages.success(request, "Extra Mesh Configuration saved successfully.")
+
+        elif action == "delete":
+            mm_max_list = request.POST.getlist("mm_max")
+            for mm_max_val in mm_max_list:
+                if mm_max_val:
+                    ExtraMeshConfig.objects.filter(mm_max=mm_max_val).delete()
+            messages.success(request, "Extra Mesh Configuration deleted successfully.")
+
+    context = {
+        "configs": ExtraMeshConfig.objects.all(),
+    }
+    return render(request, "marania_invoice_app/extra_mesh_config.html", context)
+
+
+@login_required
+def get_extra_mesh(request):
+    from django.http import JsonResponse
+    mm_value = request.GET.get("mm")
+    if not mm_value:
+        return JsonResponse({"extra_mesh": ""})
+    try:
+        mm = float(mm_value)
+    except (TypeError, ValueError):
+        return JsonResponse({"extra_mesh": ""})
+
+    config = ExtraMeshConfig.objects.filter(mm_max__gte=mm).order_by("mm_max").first()
+    if config:
+        return JsonResponse({"extra_mesh": str(config.extra_mesh)})
+    return JsonResponse({"extra_mesh": ""})
 
 
 @login_required

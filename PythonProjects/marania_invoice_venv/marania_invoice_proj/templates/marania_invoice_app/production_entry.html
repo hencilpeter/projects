@@ -423,6 +423,22 @@ function populateOrderFields() {
   }
   updateEstWeight(row);
   updateReferenceNumber(o);
+
+  /* Auto-populate Extra Mesh based on order MM */
+  if (o.mm) {
+    fetch(`/invoice/configuration/get-extra-mesh?mm=${encodeURIComponent(o.mm)}`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+      row.querySelector(".prod-extra-mesh").value = data.extra_mesh || "";
+    })
+    .catch(() => {
+      row.querySelector(".prod-extra-mesh").value = "";
+    });
+  } else {
+    row.querySelector(".prod-extra-mesh").value = "";
+  }
 }
 
 /* Auto-populate Reference # */

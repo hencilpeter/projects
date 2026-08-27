@@ -122,6 +122,8 @@ path('configuration/material-conversion-ratio', views.material_conversion_ratio_
 path('configuration/processing-cost', views.processing_cost_view, name='processing_cost'),
 path('configuration/machine-operational-cost', views.machine_operational_cost_view, name='machine_operational_cost'),
 path('configuration/additional-cost', views.additional_cost_view, name='additional_cost'),
+path('configuration/extra-mesh-config', views.extra_mesh_config_view, name='extra_mesh_config'),
+path('configuration/get-extra-mesh', views.get_extra_mesh, name='get_extra_mesh'),
 
 # Production Analytics
 path('production/entry', views.production_entry_view, name='production_entry'),

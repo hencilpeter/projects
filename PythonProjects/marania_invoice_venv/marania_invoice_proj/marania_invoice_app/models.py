@@ -810,6 +810,21 @@ class AdditionalCost(models.Model):
         verbose_name_plural = "Additional Costs"
 
 
+class ExtraMeshConfig(models.Model):
+    mm_max = models.DecimalField(max_digits=10, decimal_places=2, unique=True, help_text="Upper bound of MM range")
+    extra_mesh = models.DecimalField(max_digits=10, decimal_places=2, help_text="Extra Mesh value for this range")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"MM ≤ {self.mm_max} → Extra Mesh = {self.extra_mesh}"
+
+    class Meta:
+        ordering = ['mm_max']
+        verbose_name = "Extra Mesh Configuration"
+        verbose_name_plural = "Extra Mesh Configurations"
+
+
 class Production(models.Model):
     production_key = models.AutoField(primary_key=True)
     production_date = models.DateField(default='today')

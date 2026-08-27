@@ -1,0 +1,169 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container my-4">
+    <h3>Extra Mesh Configuration</h3>
+    <p class="text-muted small">Configure MM ranges and their corresponding Extra Mesh values. When an order is selected in Production Analytics, the Extra Mesh field will be auto-populated based on the order's MM value.</p>
+
+    <button class="btn btn-primary mb-3" type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#configForm">
+      Manage Extra Mesh Configuration
+    </button>
+
+    <div class="collapse" id="configForm">
+      <form method="POST" id="config-form">
+        {% csrf_token %}
+        <div class="card p-4 mb-4 shadow-sm">
+
+          <div id="config-rows">
+            <div class="row mb-2 config-row align-items-center">
+              <div class="col-md-4">
+                <label class="form-label small mb-0 fw-bold">MM ≤ (Upper Limit)</label>
+                <input type="number" step="0.01" name="mm_max" class="form-control form-control-sm" placeholder="e.g. 30">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small mb-0 fw-bold">Extra Mesh Value</label>
+                <input type="number" step="0.01" name="extra_mesh" class="form-control form-control-sm" placeholder="e.g. 1">
+              </div>
+              <div class="col-md-4 d-flex justify-content-end gap-1">
+                <button type="button" class="btn btn-warning btn-sm clear-row">Clear</button>
+                <button type="button" class="btn btn-danger btn-sm delete-row">Delete</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <button type="button" id="add-config" class="btn btn-secondary">
+              + Add Row
+            </button>
+          </div>
+
+          <div class="text-center">
+            <button type="submit" name="action" value="save" class="btn btn-success">Save</button>
+            <button type="submit" name="action" value="delete" class="btn btn-danger">Delete</button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <hr>
+
+    <h5>Saved Configuration</h5>
+
+    {% if configs %}
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover table-sm" id="config-table">
+        <thead class="table-dark">
+          <tr>
+            <th>MM ≤ (Upper Limit)
+              <input type="text" class="form-control form-control-sm text-filter" data-col="0">
+            </th>
+            <th>Extra Mesh Value
+              <input type="text" class="form-control form-control-sm text-filter" data-col="1">
+            </th>
+            <th>
+              Action
+              <div class="mt-1">
+                <button type="button" id="clear-filters" class="btn btn-warning btn-sm">
+                  Clear
+                </button>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in configs %}
+          <tr>
+            <td>{{ c.mm_max }}</td>
+            <td>{{ c.extra_mesh }}</td>
+            <td>
+              <button type="button"
+                      class="btn btn-primary btn-sm load-config"
+                      data-mm-max="{{ c.mm_max }}"
+                      data-extra-mesh="{{ c.extra_mesh }}">
+                Edit
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">No Extra Mesh configuration found. Add rows above to configure MM ranges.</div>
+    {% endif %}
+  </div>
+</main>
+
+<script>
+const configContainer = document.getElementById("config-rows");
+
+/* ================== ADD ROW ================== */
+document.getElementById("add-config").addEventListener("click", () => {
+  const firstRow = configContainer.querySelector(".config-row");
+  const newRow = firstRow.cloneNode(true);
+  newRow.querySelectorAll("input").forEach(i => i.value = "");
+  configContainer.appendChild(newRow);
+});
+
+/* ================== CLEAR ROW ================== */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("clear-row")) return;
+  const row = e.target.closest(".config-row");
+  row.querySelectorAll("input").forEach(i => i.value = "");
+});
+
+/* ================== DELETE ROW ================== */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("delete-row")) return;
+  const rows = document.querySelectorAll(".config-row");
+  if (rows.length <= 1) {
+    alert("At least one row is required.");
+    return;
+  }
+  e.target.closest(".config-row").remove();
+});
+
+/* ================== LOAD / EDIT ================== */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("load-config")) return;
+
+  const mmMax = e.target.dataset.mmMax;
+  const extraMesh = e.target.dataset.extraMesh;
+
+  const row = configContainer.querySelector(".config-row");
+  row.querySelector('[name="mm_max"]').value = mmMax;
+  row.querySelector('[name="extra_mesh"]').value = extraMesh;
+
+  const collapseEl = document.getElementById("configForm");
+  const bs = bootstrap.Collapse.getInstance(collapseEl)
+    || new bootstrap.Collapse(collapseEl, { toggle: false });
+  bs.show();
+});
+
+/* ================== TABLE FILTERS ================== */
+const table = document.getElementById("config-table");
+const filters = document.querySelectorAll(".text-filter");
+
+filters.forEach(f => f.addEventListener("input", () => {
+  [...table.tBodies[0].rows].forEach(row => {
+    let show = true;
+    filters.forEach(f => {
+      const col = f.dataset.col;
+      if (f.value && !row.cells[col].innerText.toLowerCase().includes(f.value.toLowerCase())) {
+        show = false;
+      }
+    });
+    row.style.display = show ? "" : "none";
+  });
+}));
+
+document.getElementById("clear-filters").addEventListener("click", () => {
+  filters.forEach(f => f.value = "");
+  filters[0].dispatchEvent(new Event("input"));
+});
+</script>
+{% endblock %}
