@@ -817,6 +817,7 @@ class Production(models.Model):
     customer = models.CharField(max_length=255)
     specification = models.CharField(max_length=255, blank=True, null=True)
     reference = models.CharField(max_length=100, blank=True, null=True)
+    extra_mesh = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     mm = models.CharField(max_length=50, blank=True, null=True)
     md = models.CharField(max_length=50, blank=True, null=True)
     product = models.CharField(max_length=100, blank=True, null=True)
