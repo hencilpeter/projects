@@ -47,8 +47,8 @@
       /* Sidebar enhancements */
       .parent-menu:hover { background-color: #e9f2ff; cursor: pointer; }
       .nav-link:hover { background-color: #f1f5f9; border-radius: 4px; }
-      .collapse-icon { transition: transform 0.3s ease; }
-      .collapse.show .collapse-icon { transform: rotate(90deg); }
+  .collapse-icon { transition: transform 0.3s ease; display: inline-block; font-size: 18px; font-weight: bold; line-height: 1; }
+  .collapse.show .collapse-icon { transform: rotate(90deg); }
     </style>
   </head>
   <body>
@@ -89,7 +89,7 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
                       data-bs-target="#MastersSubmenu" 
                       aria-expanded="false" 
                       aria-controls="MastersSubmenu">
-                <span class="collapse-icon" data-feather="chevron-right"></span>
+                <span class="collapse-icon">&#10095;</span>
               </button>
             </div>
             <div class="collapse" id="MastersSubmenu">
@@ -147,7 +147,7 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
                       data-bs-target="#TransactionsSubmenu" 
                       aria-expanded="false" 
                       aria-controls="TransactionsSubmenu">
-                <span class="collapse-icon" data-feather="chevron-right"></span>
+                <span class="collapse-icon">&#10095;</span>
               </button>
             </div>
             <div class="collapse" id="TransactionsSubmenu">
@@ -193,7 +193,7 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
                       data-bs-target="#AccountingSubmenu" 
                       aria-expanded="false" 
                       aria-controls="AccountingSubmenu">
-                <span class="collapse-icon" data-feather="chevron-right"></span>
+                <span class="collapse-icon">&#10095;</span>
               </button>
             </div>
             <div class="collapse" id="AccountingSubmenu">
@@ -251,7 +251,7 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
                       data-bs-target="#ReportsSubmenu" 
                       aria-expanded="false" 
                       aria-controls="ReportsSubmenu">
-                <span class="collapse-icon" data-feather="chevron-right"></span>
+                <span class="collapse-icon">&#10095;</span>
               </button>
             </div>
             <div class="collapse" id="ReportsSubmenu">
@@ -303,7 +303,7 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
                       data-bs-target="#ConfigurationSubmenu"
                       aria-expanded="false"
                       aria-controls="ConfigurationSubmenu">
-                <span class="collapse-icon" data-feather="chevron-right"></span>
+                <span class="collapse-icon">&#10095;</span>
               </button>
             </div>
             <div class="collapse" id="ConfigurationSubmenu">
@@ -361,7 +361,7 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
                       data-bs-target="#AnalyticsSubmenu"
                       aria-expanded="false"
                       aria-controls="AnalyticsSubmenu">
-                <span class="collapse-icon" data-feather="chevron-right"></span>
+                <span class="collapse-icon">&#10095;</span>
               </button>
             </div>
             <div class="collapse" id="AnalyticsSubmenu">
@@ -414,7 +414,7 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
                       data-bs-target="#AdminSubmenu"
                       aria-expanded="false"
                       aria-controls="AdminSubmenu">
-                <span class="collapse-icon" data-feather="chevron-right"></span>
+                <span class="collapse-icon">&#10095;</span>
               </button>
             </div>
             <div class="collapse" id="AdminSubmenu">
@@ -488,13 +488,11 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
     const collapseEl = document.querySelector(targetId);
 
     collapseEl.addEventListener('show.bs.collapse', function () {
-      btn.querySelector('.collapse-icon').setAttribute('data-feather','chevron-down');
-      feather.replace();
+      btn.querySelector('.collapse-icon').innerHTML = '&#10093;';
     });
 
     collapseEl.addEventListener('hide.bs.collapse', function () {
-      btn.querySelector('.collapse-icon').setAttribute('data-feather','chevron-right');
-      feather.replace();
+      btn.querySelector('.collapse-icon').innerHTML = '&#10095;';
     });
   });
 
@@ -521,6 +519,11 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
     font-size: 16px;
     font-weight: bold;
     transition: all 0.3s ease;
+  }
+
+  .collapse-btn svg {
+    width: 14px;
+    height: 14px;
   }
 
   .collapse-btn:focus {
