@@ -31,6 +31,40 @@
 }
 .col-mesh { width: 130px; }
 .col-price { width: 150px; }
+.col-breakdown { width: 220px; }
+.expense-toggle {
+    cursor: pointer;
+    color: #0d6efd;
+    text-decoration: underline;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+.expense-details {
+    display: none;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    padding: 4px 0 0 0;
+}
+.expense-details table {
+    margin: 0;
+    border: none;
+}
+.expense-details td {
+    border: none !important;
+    padding: 1px 6px 1px 0;
+    white-space: nowrap;
+}
+.expense-details tr.expense-total td {
+    border-top: 1px solid #999 !important;
+    font-weight: bold;
+    padding-top: 3px;
+}
+.expense-details tr.expense-final td {
+    border-top: 1.5px solid #666 !important;
+    font-weight: bold;
+    color: #0d6efd;
+    padding-top: 3px;
+}
 </style>
 
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
@@ -114,6 +148,7 @@
             <th>Daily Production (KG)</th>
             <th>Daily Profit Label</th>
             <th>Profit/KG (Rs)</th>
+            <th class="col-breakdown">Expense Breakdown</th>
           </tr>
         </thead>
         <tbody>
@@ -124,6 +159,29 @@
             <td>{{ row.daily_production }}</td>
             <td>{{ row.profit_label }}</td>
             <td>{{ row.profit_value }}</td>
+            <td>
+              <span class="expense-toggle" onclick="toggleBreakdown(this)">View Breakdown</span>
+              <div class="expense-details">
+                <table>
+                  <tr><td>Twine Price/Kg:</td><td>Rs. {{ row.twine_price_per_kg|floatformat:2 }}</td></tr>
+                  <tr><td>Operational Cost/Kg:</td><td>Rs. {{ row.machine_cost_per_kg|floatformat:2 }}</td></tr>
+                  <tr><td>Processing Cost/Kg:</td><td>Rs. {{ row.processing_cost_per_kg|floatformat:2 }}</td></tr>
+                  {% if row.colour_cost_per_kg > 0 %}
+                  <tr><td>Colour Cost/Kg:</td><td>Rs. {{ row.colour_cost_per_kg|floatformat:2 }}</td></tr>
+                  {% endif %}
+                  <tr><td>Additional Cost/Kg:</td><td>Rs. {{ row.additional_cost_per_kg|floatformat:2 }}</td></tr>
+                  {% if row.small_mesh_surcharge > 0 %}
+                  <tr><td>Small Mesh Surcharge:</td><td>Rs. {{ row.small_mesh_surcharge|floatformat:2 }}</td></tr>
+                  {% endif %}
+                  {% if row.waste_percentage > 0 %}
+                  <tr><td>Waste ({{ row.waste_percentage }}%):</td><td>Included in Twine</td></tr>
+                  {% endif %}
+                  <tr class="expense-total"><td>Total Expense/Kg:</td><td>Rs. {{ row.total_expense|floatformat:2 }}</td></tr>
+                  <tr><td>Profit/Kg ({{ row.profit_label }}):</td><td>Rs. {{ row.profit_value|floatformat:2 }}</td></tr>
+                  <tr class="expense-final"><td>Final Price/Kg:</td><td>Rs. {{ row.calculated_price|floatformat:2 }}</td></tr>
+                </table>
+              </div>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -141,6 +199,15 @@
 </main>
 
 <script>
+/* ======================== EXPENSE BREAKDOWN TOGGLE ======================== */
+function toggleBreakdown(el) {
+  var details = el.nextElementSibling;
+  if (!details) return;
+  var visible = details.style.display === 'block';
+  details.style.display = visible ? 'none' : 'block';
+  el.textContent = visible ? 'View Breakdown' : 'Hide Breakdown';
+}
+
 (function() {
   var filterSelect = document.getElementById('profit-filter');
   var table = document.getElementById('price-table');

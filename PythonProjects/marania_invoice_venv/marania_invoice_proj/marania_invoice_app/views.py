@@ -7079,14 +7079,19 @@ def view_price_list(request, pk):
 
             calculated_price = per_kg_cost + profit_per_kg
 
+            small_mesh_surcharge = Decimal("0")
             if config.additional_cost_starting_depth_md and mesh_end <= config.additional_cost_starting_depth_md:
-                calculated_price += config.small_mesh_depth_price_per_kg
+                small_mesh_surcharge = config.small_mesh_depth_price_per_kg
+                calculated_price += small_mesh_surcharge
 
+            gst_rate = Decimal("0")
+            gst_amount = Decimal("0")
             if config.gst_included:
                 gst_rate = company_settings.igst if company_settings.igst else Decimal("0")
                 if gst_rate == 0:
                     gst_rate = (company_settings.cgst or Decimal("0")) + (company_settings.sgst or Decimal("0"))
                 if gst_rate > 0:
+                    gst_amount = calculated_price * gst_rate / (Decimal("100") + gst_rate)
                     calculated_price = calculated_price / (Decimal("1") + gst_rate / Decimal("100"))
 
             price_list_rows.append({
@@ -7097,6 +7102,14 @@ def view_price_list(request, pk):
                 "profit_value": round(float(profit_per_kg), 2),
                 "calculated_price": round(float(calculated_price), 2),
                 "daily_production": round(float(daily_production), 2),
+                "twine_price_per_kg": round(float(twine_price_with_waste), 2),
+                "machine_cost_per_kg": round(float(machine_cost_per_kg), 2),
+                "processing_cost_per_kg": round(float(processing_cost_per_kg), 2),
+                "colour_cost_per_kg": round(float(config.colour_price_per_kg or 0), 2),
+                "additional_cost_per_kg": round(float(additional_cost_per_kg), 2),
+                "small_mesh_surcharge": round(float(small_mesh_surcharge), 2),
+                "total_expense": round(float(per_kg_cost + small_mesh_surcharge), 2),
+                "waste_percentage": round(float(waste_percentage), 2),
             })
 
     price_list_rows.sort(key=lambda r: (r["mesh_start"], r["profit_value"]))
