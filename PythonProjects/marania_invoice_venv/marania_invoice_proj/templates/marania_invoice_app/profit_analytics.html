@@ -273,6 +273,11 @@
             <option value="{{ m.machine_number }}">
           {% endfor %}
         </datalist>
+        <datalist id="profit-customer-list">
+          {% for party in parties %}
+            <option value="{{ party.code }}-{{ party.name }}">
+          {% endfor %}
+        </datalist>
         <table class="table table-bordered table-hover table-sm align-middle" id="profit-table">
           <colgroup>
             <col style="width:30px">
@@ -282,9 +287,12 @@
             <col style="width:200px">
             <col style="width:100px">
             <col style="width:80px">
-            <col style="width:65px">
             <col style="width:80px">
             <col style="width:65px">
+            <col style="width:70px">
+            <col style="width:65px">
+            <col style="width:65px">
+            <col style="width:80px">
             <col style="width:80px">
             <col style="width:80px">
             <col style="width:80px">
@@ -293,9 +301,6 @@
             <col style="width:75px">
             <col style="width:80px">
             <col style="width:80px">
-            <col style="width:70px">
-            <col style="width:70px">
-            <col style="width:65px">
             <col style="width:120px">
           </colgroup>
           <thead class="table-dark">
@@ -307,6 +312,10 @@
               <th>Specification</th>
               <th>Product</th>
               <th>Machine</th>
+              <th>Profit</th>
+              <th>Profit/KG</th>
+              <th>Profit/Day</th>
+              <th>Margin %</th>
               <th>Est Wt</th>
               <th>Daily Output</th>
               <th>Req Days</th>
@@ -317,17 +326,13 @@
               <th>Total Cost</th>
               <th>Sale Price/KG</th>
               <th>Revenue</th>
-              <th>Profit</th>
-              <th>Profit/KG</th>
-              <th>Profit/Day</th>
-              <th>Margin %</th>
               <th>Remarks</th>
             </tr>
             <tr id="profit-filter-row">
               <th></th>
               <th><button class="btn btn-warning btn-sm" id="clear-profit-filters">Clear</button></th>
               <th></th>
-              <th><input class="filter-input" placeholder="Customer"></th>
+              <th><input class="filter-input" placeholder="Customer" list="profit-customer-list"></th>
               <th><input class="filter-input" placeholder="Specification"></th>
               <th><input class="filter-input" placeholder="Product" list="profit-product-list"></th>
               <th><input class="filter-input" placeholder="Machine" list="profit-machine-list"></th>
@@ -396,6 +401,10 @@
               <td>{{ pr.specification }}</td>
               <td>{{ pr.product }}</td>
               <td>{{ pr.machine }}</td>
+              <td class="fw-bold text-success">{{ pr.total_profit }}</td>
+              <td>{{ pr.profit_per_kg }}</td>
+              <td>{{ pr.profit_per_day }}</td>
+              <td>{{ pr.profit_margin_pct }}</td>
               <td>{{ pr.est_weight }}</td>
               <td>{{ pr.total_daily_output }}</td>
               <td>{{ pr.required_days }}</td>
@@ -406,10 +415,6 @@
               <td>{{ pr.total_cost }}</td>
               <td>{{ pr.sale_price_per_kg }}</td>
               <td>{{ pr.total_revenue }}</td>
-              <td class="fw-bold text-success">{{ pr.total_profit }}</td>
-              <td>{{ pr.profit_per_kg }}</td>
-              <td>{{ pr.profit_per_day }}</td>
-              <td>{{ pr.profit_margin_pct }}</td>
               <td>{{ pr.remarks }}</td>
             </tr>
             {% endfor %}
