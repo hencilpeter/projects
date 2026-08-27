@@ -561,6 +561,25 @@ prodSelect.addEventListener("change", () => {
       }
       twineContainer.appendChild(div);
     });
+
+    /* Auto-populate Cost/KG from latest purchase price for each twine */
+    const costKgPromises = [];
+    twineContainer.querySelectorAll(".twine-cost-row").forEach(div => {
+      const twineCode = div.querySelector(".twine-name").dataset.twineCode || "";
+      if (!twineCode) return;
+      const promise = fetch(`/invoice/get-twine-cost-per-kg/?material_code=${encodeURIComponent(twineCode)}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.cost_per_kg) {
+          div.querySelector(".twine-cost-kg").value = data.cost_per_kg;
+        }
+      })
+      .catch(() => {});
+      costKgPromises.push(promise);
+    });
+    Promise.all(costKgPromises).then(() => recalcProfit(row));
   }
 
   recalcProfit(row);

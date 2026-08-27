@@ -7068,6 +7068,26 @@ def get_machine_for_product(request):
 
 
 @login_required
+def get_twine_cost_per_kg(request):
+    material_code = request.GET.get("material_code", "").strip()
+    if not material_code:
+        return JsonResponse({"cost_per_kg": ""})
+
+    latest_purchase = Purchase.objects.filter(
+        material_code=material_code,
+        is_twine=True
+    ).order_by("-delivery_date", "-purchase_key").first()
+
+    if latest_purchase and latest_purchase.unit_price is not None:
+        unit_price = latest_purchase.unit_price
+        gst_percent = latest_purchase.gst_percent or 0
+        cost_incl_gst = unit_price * (Decimal("1") + gst_percent / Decimal("100"))
+        return JsonResponse({"cost_per_kg": float(cost_incl_gst.quantize(Decimal("0.01")))})
+
+    return JsonResponse({"cost_per_kg": ""})
+
+
+@login_required
 def get_processing_cost_for_product(request):
     product_code = request.GET.get("product_code", "").strip()
     if not product_code:
