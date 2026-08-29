@@ -519,6 +519,17 @@ def dashboard(request):
     else:
         purchase_change_pct = 0.0 if total_purchase_amount == 0 else 100.0
 
+    # -------- INVOICED AMOUNT SUMMARY --------
+    invoice_current_month = Invoice.objects.filter(invoice_date__month=current_month, invoice_date__year=current_year)
+    total_invoiced_amount = sum(inv.gross_total for inv in invoice_current_month if inv.gross_total)
+
+    invoice_prev_month = Invoice.objects.filter(invoice_date__month=prev_month, invoice_date__year=prev_year)
+    total_invoiced_amount_prev = sum(inv.gross_total for inv in invoice_prev_month if inv.gross_total)
+    if total_invoiced_amount_prev > 0:
+        invoice_change_pct = round(((total_invoiced_amount - total_invoiced_amount_prev) / total_invoiced_amount_prev) * 100, 1)
+    else:
+        invoice_change_pct = 0.0 if total_invoiced_amount == 0 else 100.0
+
     # -------- LATEST CUSTOMERS --------
     latest_customers = Parties.objects.order_by("-created_at")[:5]
 
@@ -609,6 +620,9 @@ def dashboard(request):
         "total_purchase_amount": total_purchase_amount,
         "purchase_change_pct": purchase_change_pct,
         "pending_purchases": pending_purchases,
+
+        "total_invoiced_amount": total_invoiced_amount,
+        "invoice_change_pct": invoice_change_pct,
     }
 
     #TODO - check customer price catalog

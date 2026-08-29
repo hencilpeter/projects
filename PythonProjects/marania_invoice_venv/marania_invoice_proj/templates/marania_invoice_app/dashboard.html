@@ -444,61 +444,86 @@
 
     <!-- KEY METRIC BANNERS -->
     <div class="row g-3 mb-4">
-        <div class="col-lg-4 col-md-6 anim-in anim-d2">
-            <div class="metric-banner metric-gradient-1">
-                <div class="metric-label">Monthly Sales Revenue</div>
-                <div class="metric-value">Rs {{ total_sales_amount|inr }}</div>
-                <div class="metric-sub" style="display:flex;align-items:center;gap:6px;">
+        <div class="col-lg-3 col-md-6 col-sm-6 anim-in anim-d1">
+            <div class="metric-banner" style="background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%); padding: 18px 20px;">
+                <div class="metric-label" style="font-size:0.72rem;">Monthly Invoiced Amount</div>
+                <div class="metric-value" style="font-size:1.35rem;">Rs {{ total_invoiced_amount|inr }}</div>
+                <div class="metric-sub" style="display:flex;align-items:center;gap:5px;font-size:0.72rem;">
+                    {% if invoice_change_pct > 0 %}
+                        <span style="display:inline-flex;align-items:center;gap:2px;background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:10px;font-weight:600;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                            {{ invoice_change_pct }}%
+                        </span>
+                    {% elif invoice_change_pct < 0 %}
+                        <span style="display:inline-flex;align-items:center;gap:2px;background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:10px;font-weight:600;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                            {{ invoice_change_pct|floatformat:0 }}%
+                        </span>
+                    {% else %}
+                        <span style="display:inline-flex;align-items:center;gap:2px;background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:10px;font-weight:600;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            0%
+                        </span>
+                    {% endif %}
+                    <span style="opacity:0.75;">vs Prev Month</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 col-sm-6 anim-in anim-d2">
+            <div class="metric-banner metric-gradient-1" style="padding: 18px 20px;">
+                <div class="metric-label" style="font-size:0.72rem;">Monthly Sales Revenue</div>
+                <div class="metric-value" style="font-size:1.35rem;">Rs {{ total_sales_amount|inr }}</div>
+                <div class="metric-sub" style="display:flex;align-items:center;gap:5px;font-size:0.72rem;">
                     {% if sales_change_pct > 0 %}
-                        <span style="display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:12px;font-weight:600;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                        <span style="display:inline-flex;align-items:center;gap:2px;background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:10px;font-weight:600;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
                             {{ sales_change_pct }}%
                         </span>
                     {% elif sales_change_pct < 0 %}
-                        <span style="display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:12px;font-weight:600;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        <span style="display:inline-flex;align-items:center;gap:2px;background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:10px;font-weight:600;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                             {{ sales_change_pct|floatformat:0 }}%
                         </span>
                     {% else %}
-                        <span style="display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:12px;font-weight:600;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <span style="display:inline-flex;align-items:center;gap:2px;background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:10px;font-weight:600;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             0%
                         </span>
                     {% endif %}
-                    <span style="opacity:0.75;">vs. Previous Month</span>
+                    <span style="opacity:0.75;">vs Prev Month</span>
                 </div>
             </div>
         </div>
-        <div class="col-lg-4 col-md-6 anim-in anim-d3">
-            <div class="metric-banner metric-gradient-2">
-                <div class="metric-label">Monthly Purchase Amount</div>
-                <div class="metric-value">Rs {{ total_purchase_amount|inr }}</div>
-                <div class="metric-sub" style="display:flex;align-items:center;gap:6px;">
+        <div class="col-lg-3 col-md-6 col-sm-6 anim-in anim-d3">
+            <div class="metric-banner metric-gradient-2" style="padding: 18px 20px;">
+                <div class="metric-label" style="font-size:0.72rem;">Monthly Purchase Amount</div>
+                <div class="metric-value" style="font-size:1.35rem;">Rs {{ total_purchase_amount|inr }}</div>
+                <div class="metric-sub" style="display:flex;align-items:center;gap:5px;font-size:0.72rem;">
                     {% if purchase_change_pct > 0 %}
-                        <span style="display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:12px;font-weight:600;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                        <span style="display:inline-flex;align-items:center;gap:2px;background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:10px;font-weight:600;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
                             {{ purchase_change_pct }}%
                         </span>
                     {% elif purchase_change_pct < 0 %}
-                        <span style="display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:12px;font-weight:600;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        <span style="display:inline-flex;align-items:center;gap:2px;background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:10px;font-weight:600;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                             {{ purchase_change_pct|floatformat:0 }}%
                         </span>
                     {% else %}
-                        <span style="display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:12px;font-weight:600;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <span style="display:inline-flex;align-items:center;gap:2px;background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:10px;font-weight:600;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             0%
                         </span>
                     {% endif %}
-                    <span style="opacity:0.75;">vs. Previous Month</span>
+                    <span style="opacity:0.75;">vs Prev Month</span>
                 </div>
             </div>
         </div>
-        <div class="col-lg-4 col-md-12 anim-in anim-d4">
-            <div class="metric-banner metric-gradient-3">
-                <div class="metric-label">Total Twine Balance</div>
-                <div class="metric-value">{{ total_twine_balance|floatformat:2 }}</div>
-                <div class="metric-sub">Current month inventory</div>
+        <div class="col-lg-3 col-md-6 col-sm-6 anim-in anim-d4">
+            <div class="metric-banner metric-gradient-3" style="padding: 18px 20px;">
+                <div class="metric-label" style="font-size:0.72rem;">Total Twine Balance</div>
+                <div class="metric-value" style="font-size:1.35rem;">{{ total_twine_balance|floatformat:2 }}</div>
+                <div class="metric-sub" style="font-size:0.72rem;">Current month inventory</div>
             </div>
         </div>
     </div>
