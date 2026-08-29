@@ -129,7 +129,11 @@ class Configurations:
         #self.config['SGST'] = configurations['SGST']
         #self.config['IGST'] = configurations['IGST']
 
-company_settings, created = CompanySettings.objects.get_or_create(id=1)
+try:
+    company_settings, created = CompanySettings.objects.get_or_create(id=1)
+except Exception:
+    # DB schema not ready yet (e.g. during migrations). Callers handle None.
+    company_settings = None
 
 #######################################################-Common Functions-#############
 def round_half_up(value, decimals=0):

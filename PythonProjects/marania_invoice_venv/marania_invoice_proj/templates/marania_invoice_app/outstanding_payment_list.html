@@ -1,4 +1,5 @@
 {% extends "partials/base.html" %}
+{% load dict_extras %}
 
 {% block main %}
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
@@ -40,7 +41,7 @@
       <div class="card" style="border-color: #ff9800;">
         <div class="card-body text-center py-2">
           <h6 class="card-title text-muted mb-1">Total Outstanding Balance</h6>
-          <h4 style="color: #ff9800;" class="mb-0">Rs {{ total_outstanding|floatformat:2 }}</h4>
+          <h4 style="color: #ff9800;" class="mb-0">Rs {{ total_outstanding|inr }}</h4>
         </div>
       </div>
     </div>
@@ -48,7 +49,7 @@
       <div class="card border-success">
         <div class="card-body text-center py-2">
           <h6 class="card-title text-muted mb-1">Total Credit Balance</h6>
-          <h4 class="text-success mb-0">Rs {{ total_credit|floatformat:2 }}</h4>
+          <h4 class="text-success mb-0">Rs {{ total_credit|inr }}</h4>
         </div>
       </div>
     </div>
@@ -81,7 +82,7 @@
               <td>{{ entry.ref_number }}</td>
               <td>{{ entry.description }}</td>
               <td style="text-align:right; font-weight:bold; color: {% if entry.type == 'Dr' %}red{% else %}green{% endif %};">
-                {% if entry.type == 'Dr' %}-{% else %}+{% endif %}{{ entry.amount|floatformat:2 }}
+                {% if entry.type == 'Dr' %}-{% else %}+{% endif %}{{ entry.amount|inr }}
               </td>
             </tr>
             {% endfor %}
@@ -98,7 +99,7 @@
                 {% endif %}
               </td>
               <td style="text-align:right;">
-                Rs {{ cs.outstanding_balance|floatformat:2 }}
+                Rs {{ cs.outstanding_balance|inr }}
               </td>
             </tr>
           </tfoot>

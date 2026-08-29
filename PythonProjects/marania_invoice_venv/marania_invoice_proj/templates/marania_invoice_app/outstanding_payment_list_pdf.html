@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% load dict_extras %}
 <html>
 <head>
   <meta charset="utf-8">
@@ -109,9 +110,9 @@
         <td>{{ entry.description }}</td>
         <td class="text-end">
           {% if entry.type == 'Dr' %}
-            <span class="dr-amount">-{{ entry.amount|floatformat:2 }}</span>
+            <span class="dr-amount">-{{ entry.amount|inr }}</span>
           {% else %}
-            <span class="cr-amount">+{{ entry.amount|floatformat:2 }}</span>
+            <span class="cr-amount">+{{ entry.amount|inr }}</span>
           {% endif %}
         </td>
       </tr>
@@ -128,7 +129,7 @@
             Balance
           {% endif %}
         </td>
-        <td class="text-end">Rs {{ cs.outstanding_balance|floatformat:2 }}</td>
+        <td class="text-end">Rs {{ cs.outstanding_balance|inr }}</td>
       </tr>
     </tfoot>
   </table>
@@ -137,11 +138,11 @@
   <table class="summary-table">
     <tr>
       <td><strong>Total Outstanding Balance:</strong></td>
-      <td class="text-end" style="color: #ff9800; font-weight: bold;">Rs {{ total_outstanding|floatformat:2 }}</td>
+      <td class="text-end" style="color: #ff9800; font-weight: bold;">Rs {{ total_outstanding|inr }}</td>
     </tr>
     <tr>
       <td><strong>Total Credit Balance:</strong></td>
-      <td class="text-end" style="color: #4caf50; font-weight: bold;">Rs {{ total_credit|floatformat:2 }}</td>
+      <td class="text-end" style="color: #4caf50; font-weight: bold;">Rs {{ total_credit|inr }}</td>
     </tr>
   </table>
 </body>
