@@ -462,8 +462,8 @@ tr.row-status-on_hold_processing td {
                       </div>
                     </div>
                   </th>
-                <th><input class="filter-input" placeholder="Customer" list="customer_list"></th>
-                <th><input class="filter-input" placeholder="Twine" list="twine_list"></th>
+                <th><input class="filter-input" placeholder="Customer" list="filter_customer_list"></th>
+                <th><input class="filter-input" placeholder="Twine" list="filter_twine_list"></th>
                 <th><input class="filter-input" placeholder="Spec"></th>
                 <th><input class="filter-input" placeholder="Colour"></th>
                 <th><input class="filter-input" placeholder="Piece Ct"></th>
@@ -566,6 +566,8 @@ tr.row-status-on_hold_processing td {
               {% endfor %}
             </tbody>
           </table>
+          <datalist id="filter_customer_list"></datalist>
+          <datalist id="filter_twine_list"></datalist>
         </div>
       {% else %}
         <p class="text-muted">No sales found.</p>
@@ -1579,7 +1581,35 @@ if (salesTable) {
             row.style.display = show ? '' : 'none';
         });
         updateSalesSummary();
+        updateFilterDatalists();
         saveSalesFiltersToStorage();
+    }
+
+    // Excel-like AutoFilter: offer only values present in the currently visible rows.
+    function updateFilterDatalists() {
+        // Column indices in the sales table: 6 = Customer, 7 = Twine
+        var mappings = { customer: { col: 6, dl: document.getElementById('filter_customer_list') },
+                         twine: { col: 7, dl: document.getElementById('filter_twine_list') } };
+        Object.keys(mappings).forEach(function(key) {
+            var m = mappings[key];
+            if (!m.dl) return;
+            var values = [];
+            salesTbody.querySelectorAll('tr').forEach(function(row) {
+                if (row.style.display === 'none') return;
+                var cell = row.cells[m.col];
+                if (!cell) return;
+                var val = cell.textContent.trim();
+                if (val && values.indexOf(val) === -1) values.push(val);
+            });
+            values.sort(function(a, b) { return a.localeCompare(b); });
+            m.dl.innerHTML = values.map(function(v) {
+                return '<option value="' + escapeHtml(v) + '">';
+            }).join('');
+        });
+    }
+
+    function escapeHtml(str) {
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
     document.querySelectorAll('#sales-filter-row input, #sales-filter-row select')
