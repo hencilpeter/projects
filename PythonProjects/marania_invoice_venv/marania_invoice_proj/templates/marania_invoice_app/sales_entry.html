@@ -594,6 +594,29 @@ tr.row-status-on_hold_processing td {
 </div>
 
 <script>
+// --- INR number formatting helper (Indian comma grouping, e.g. 1,00,000.00) ---
+function indianFormat(value) {
+    var num = parseFloat(value);
+    if (isNaN(num)) return '';
+    var neg = num < 0 ? '-' : '';
+    num = Math.abs(num);
+    var fixed = num.toFixed(2);
+    var parts = fixed.split('.');
+    var intPart = parts[0];
+    var decPart = parts[1];
+    if (intPart.length > 3) {
+        var head = intPart.slice(0, -3);
+        var tail = intPart.slice(-3);
+        var chunks = [];
+        while (head.length > 2) {
+            chunks.unshift(head.slice(-2));
+            head = head.slice(0, -2);
+        }
+        if (head.length > 0) chunks.unshift(head);
+        intPart = chunks.join(',') + ',' + tail;
+    }
+    return neg + intPart + '.' + decPart;
+}
 const productNames = {
   {% for product in products %}
   "{{ product.code|escapejs }}": "{{ product.display_name|default:product.name|escapejs }}",
@@ -1114,9 +1137,9 @@ function updateSalesSummary() {
     var grandTotal = totalActualAmount + totalGSTAmount;
 
     document.getElementById('summary-filtered-orders').textContent = filteredCount;
-    document.getElementById('summary-total-actual').textContent = totalActualAmount.toFixed(2);
-    document.getElementById('summary-total-gst').textContent = totalGSTAmount.toFixed(2);
-    document.getElementById('summary-grand-total').textContent = grandTotal.toFixed(2);
+    document.getElementById('summary-total-actual').textContent = indianFormat(totalActualAmount);
+    document.getElementById('summary-total-gst').textContent = indianFormat(totalGSTAmount);
+    document.getElementById('summary-grand-total').textContent = indianFormat(grandTotal);
     document.getElementById('summary-total-init-wt').textContent = totalInitWeight.toFixed(2);
     document.getElementById('summary-total-proc-wt').textContent = totalProcWeight.toFixed(2);
 
@@ -1905,9 +1928,9 @@ function updateSalesSummary() {
     var grandTotal = totalActualAmount + totalGSTAmount;
 
     document.getElementById('summary-filtered-orders').textContent = filteredCount;
-    document.getElementById('summary-total-actual').textContent = totalActualAmount.toFixed(2);
-    document.getElementById('summary-total-gst').textContent = totalGSTAmount.toFixed(2);
-    document.getElementById('summary-grand-total').textContent = grandTotal.toFixed(2);
+    document.getElementById('summary-total-actual').textContent = indianFormat(totalActualAmount);
+    document.getElementById('summary-total-gst').textContent = indianFormat(totalGSTAmount);
+    document.getElementById('summary-grand-total').textContent = indianFormat(grandTotal);
     document.getElementById('summary-total-init-wt').textContent = totalInitWeight.toFixed(2);
     document.getElementById('summary-total-proc-wt').textContent = totalProcWeight.toFixed(2);
 
