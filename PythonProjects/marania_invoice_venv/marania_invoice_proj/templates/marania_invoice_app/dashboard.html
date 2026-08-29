@@ -5,279 +5,657 @@
 {% block main %}
 
 <style>
-    body {
-        background: #f4f6f9;
+    :root {
+        --primary: #4f46e5;
+        --primary-light: #818cf8;
+        --secondary: #0ea5e9;
+        --accent: #f59e0b;
+        --success: #10b981;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+        --info: #06b6d4;
+        --bg-body: #f0f2f5;
+        --bg-card: #ffffff;
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --text-muted: #94a3b8;
+        --border-color: #e2e8f0;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+        --shadow-md: 0 4px 12px rgba(0,0,0,0.07);
+        --shadow-lg: 0 10px 30px rgba(0,0,0,0.1);
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --radius-xl: 20px;
+        --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .card {
-        border-radius: 16px;
+    body { background: var(--bg-body); }
+
+    /* ---- PAGE HEADER ---- */
+    .dash-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 28px;
+    }
+    .dash-header h1 {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin: 0;
+        letter-spacing: -0.025em;
+    }
+    .dash-header p {
+        color: var(--text-secondary);
+        margin: 2px 0 0;
+        font-size: 0.9rem;
+    }
+    .dash-header-right {
+        display: flex;
+        gap: 8px;
+    }
+    .btn-quick {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: var(--radius-sm);
+        font-size: 0.82rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: var(--transition);
+        border: none;
+        cursor: pointer;
+    }
+    .btn-quick-primary {
+        background: var(--primary);
+        color: #fff;
+    }
+    .btn-quick-primary:hover {
+        background: #4338ca;
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+    .btn-quick-outline {
+        background: var(--bg-card);
+        color: var(--text-primary);
+        border: 1.5px solid var(--border-color);
+    }
+    .btn-quick-outline:hover {
+        border-color: var(--primary-light);
+        color: var(--primary);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
     }
 
-    .header-title {
-        font-size: 2rem;
-        font-weight: bold;
+    /* ---- STAT CARDS ---- */
+    .stat-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-md);
+        padding: 20px 22px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        border: 1px solid var(--border-color);
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
     }
-
-    .summary-box {
-        font-size: 1.2rem;
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0;
+        width: 4px;
+        height: 100%;
+        border-radius: 4px 0 0 4px;
+    }
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-lg);
+        border-color: transparent;
+    }
+    .stat-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+    .stat-content { flex: 1; min-width: 0; }
+    .stat-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+    }
+    .stat-value {
+        font-size: 1.65rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1.1;
+    }
+    .stat-sub {
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+        margin-top: 3px;
+    }
+    .stat-sub .badge {
+        font-size: 0.7rem;
+        padding: 2px 8px;
+        border-radius: 20px;
         font-weight: 600;
     }
 
-    /* BAR CHART */
-    .bar-chart-container {
-        height: 350px;
+    /* Card accent colors */
+    .stat-card.accent-blue::before { background: var(--primary); }
+    .stat-card.accent-blue .stat-icon { background: #eef2ff; color: var(--primary); }
+    .stat-card.accent-green::before { background: var(--success); }
+    .stat-card.accent-green .stat-icon { background: #ecfdf5; color: var(--success); }
+    .stat-card.accent-cyan::before { background: var(--info); }
+    .stat-card.accent-cyan .stat-icon { background: #ecfeff; color: var(--info); }
+    .stat-card.accent-amber::before { background: var(--accent); }
+    .stat-card.accent-amber .stat-icon { background: #fffbeb; color: var(--accent); }
+    .stat-card.accent-red::before { background: var(--danger); }
+    .stat-card.accent-red .stat-icon { background: #fef2f2; color: var(--danger); }
+    .stat-card.accent-purple::before { background: #8b5cf6; }
+    .stat-card.accent-purple .stat-icon { background: #f5f3ff; color: #8b5cf6; }
+
+    /* ---- KEY METRIC BANNERS ---- */
+    .metric-banner {
+        border-radius: var(--radius-md);
+        padding: 24px 28px;
+        color: #fff;
         position: relative;
+        overflow: hidden;
+        transition: var(--transition);
+    }
+    .metric-banner:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-lg);
+    }
+    .metric-banner::after {
+        content: '';
+        position: absolute;
+        top: -40%;
+        right: -20%;
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.08);
+    }
+    .metric-banner::before {
+        content: '';
+        position: absolute;
+        bottom: -30%;
+        left: -10%;
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.05);
+    }
+    .metric-banner .metric-label {
+        font-size: 0.82rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        opacity: 0.85;
+        margin-bottom: 6px;
+    }
+    .metric-banner .metric-value {
+        font-size: 1.85rem;
+        font-weight: 800;
+        line-height: 1.1;
+        position: relative;
+        z-index: 1;
+    }
+    .metric-banner .metric-sub {
+        font-size: 0.78rem;
+        opacity: 0.7;
+        margin-top: 4px;
+    }
+    .metric-gradient-1 { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%); }
+    .metric-gradient-2 { background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%); }
+    .metric-gradient-3 { background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); }
+
+    /* ---- SECTION CARDS ---- */
+    .section-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+        transition: var(--transition);
+    }
+    .section-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+    .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 22px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .section-header h5 {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    .section-header .badge {
+        font-size: 0.7rem;
+        padding: 3px 10px;
+    }
+    .section-body {
+        padding: 16px 22px;
+    }
+    .chart-body {
+        padding: 16px 22px 12px;
+        height: 340px;
+        position: relative;
+    }
+
+    /* ---- TABLES ---- */
+    .table-modern {
+        margin: 0;
+        font-size: 0.82rem;
+    }
+    .table-modern thead th {
+        background: #f8fafc;
+        border-bottom: 2px solid var(--border-color);
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 10px 14px;
+        white-space: nowrap;
+    }
+    .table-modern tbody td {
+        padding: 10px 14px;
+        vertical-align: middle;
+        border-color: #f1f5f9;
+        color: var(--text-primary);
+    }
+    .table-modern tbody tr {
+        transition: var(--transition);
+    }
+    .table-modern tbody tr:hover {
+        background: #f8fafc;
+    }
+    .table-modern tbody tr:last-child td {
+        border-bottom: none;
+    }
+    .badge-status {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+    }
+    .badge-paid { background: #ecfdf5; color: #059669; }
+    .badge-pending { background: #fffbeb; color: #d97706; }
+    .badge-default { background: #f1f5f9; color: #64748b; }
+
+    .empty-state {
+        text-align: center;
+        padding: 28px 16px;
+        color: var(--text-muted);
+    }
+    .empty-state svg {
+        width: 40px;
+        height: 40px;
+        margin-bottom: 8px;
+        opacity: 0.4;
+    }
+
+    /* ---- ANIMATIONS ---- */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .anim-in { animation: fadeInUp 0.4s ease both; }
+    .anim-d1 { animation-delay: 0.05s; }
+    .anim-d2 { animation-delay: 0.10s; }
+    .anim-d3 { animation-delay: 0.15s; }
+    .anim-d4 { animation-delay: 0.20s; }
+    .anim-d5 { animation-delay: 0.25s; }
+    .anim-d6 { animation-delay: 0.30s; }
+
+    /* ---- RESPONSIVE ---- */
+    @media (max-width: 768px) {
+        .dash-header { flex-direction: column; align-items: flex-start; }
+        .stat-value { font-size: 1.3rem; }
+        .metric-banner .metric-value { font-size: 1.4rem; }
+        .chart-body { height: 260px; }
     }
 </style>
 
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+<div class="container-fluid py-4">
 
-<div class="container py-4">
-
-    <div class="text-center mb-4">
-        <h1 class="header-title">Marania Filaments – Dashboard</h1>
-        <p class="text-muted">Business Overview & Insights</p>
-    </div>
-
-    <!-- SUMMARY CARDS -->
-    <div class="row g-4">
-        <div class="col-md-2">
-            <div class="card shadow-sm p-3 text-center" style="border-left: 4px solid #007bff;">
-                <h6 class="text-muted mb-1">Customers</h6>
-                <div class="summary-box">{{ total_customers }}</div>
-            </div>
+    <!-- PAGE HEADER -->
+    <div class="dash-header anim-in">
+        <div>
+            <h1>Dashboard</h1>
+            <p>Business overview & insights</p>
         </div>
-
-        <div class="col-md-2">
-            <div class="card shadow-sm p-3 text-center" style="border-left: 4px solid #28a745;">
-                <h6 class="text-muted mb-1">Products</h6>
-                <div class="summary-box">{{ total_products }}</div>
-            </div>
-        </div>
-
-        <div class="col-md-2">
-            <div class="card shadow-sm p-3 text-center" style="border-left: 4px solid #17a2b8;">
-                <h6 class="text-muted mb-1">Invoices</h6>
-                <div class="summary-box">{{ total_invoices }}</div>
-            </div>
-        </div>
-
-        <div class="col-md-2">
-            <div class="card shadow-sm p-3 text-center" style="border-left: 4px solid #ffc107;">
-                <h6 class="text-muted mb-1">Sales</h6>
-                <div class="summary-box">{{ total_sales }}</div>
-                <small class="text-muted">{{ pending_sales }} Pending</small>
-            </div>
-        </div>
-
-        <div class="col-md-2">
-            <div class="card shadow-sm p-3 text-center" style="border-left: 4px solid #dc3545;">
-                <h6 class="text-muted mb-1">Purchases</h6>
-                <div class="summary-box">{{ total_purchases }}</div>
-                <small class="text-muted">{{ pending_purchases }} Pending</small>
-            </div>
-        </div>
-
-        <div class="col-md-2">
-            <div class="card shadow-sm p-3 text-center" style="border-left: 4px solid #6f42c1;">
-                <h6 class="text-muted mb-1">Twine Inv</h6>
-                <div class="summary-box">{{ total_twine_inventory }}</div>
-                <small class="text-muted">{{ total_twine_balance|floatformat:2 }} Balance</small>
-            </div>
+        <div class="dash-header-right">
+            <a href="{% url 'invoice_entry' %}" class="btn-quick btn-quick-primary">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                New Invoice
+            </a>
+            <a href="{% url 'sales_entry' %}" class="btn-quick btn-quick-outline">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                New Sale
+            </a>
+            <a href="{% url 'report_page' %}" class="btn-quick btn-quick-outline">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-5 5"/></svg>
+                Reports
+            </a>
         </div>
     </div>
 
-    <!-- KEY METRICS -->
-    <div class="row mt-4 g-4">
-        <div class="col-md-4">
-            <div class="card shadow-sm p-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                <h6 class="mb-2">Monthly Sales Revenue</h6>
-                <h2 class="mb-0">Rs {{ total_sales_amount|inr }}</h2>
-                <small class="opacity-75">Current month</small>
+    <!-- STAT CARDS ROW -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6 anim-in anim-d1">
+            <div class="stat-card accent-blue">
+                <div class="stat-icon">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Customers</div>
+                    <div class="stat-value counter" data-target="{{ total_customers }}">0</div>
+                </div>
             </div>
         </div>
-
-        <div class="col-md-4">
-            <div class="card shadow-sm p-4" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
-                <h6 class="mb-2">Monthly Purchase Amount</h6>
-                <h2 class="mb-0">Rs {{ total_purchase_amount|inr }}</h2>
-                <small class="opacity-75">Current month</small>
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6 anim-in anim-d2">
+            <div class="stat-card accent-green">
+                <div class="stat-icon">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Products</div>
+                    <div class="stat-value counter" data-target="{{ total_products }}">0</div>
+                </div>
             </div>
         </div>
-
-        <div class="col-md-4">
-            <div class="card shadow-sm p-4" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
-                <h6 class="mb-2">Total Twine Balance</h6>
-                <h2 class="mb-0">{{ total_twine_balance|floatformat:2 }}</h2>
-                <small class="opacity-75">Current month inventory</small>
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6 anim-in anim-d3">
+            <div class="stat-card accent-cyan">
+                <div class="stat-icon">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Invoices</div>
+                    <div class="stat-value counter" data-target="{{ total_invoices }}">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6 anim-in anim-d4">
+            <div class="stat-card accent-amber">
+                <div class="stat-icon">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Sales</div>
+                    <div class="stat-value counter" data-target="{{ total_sales }}">0</div>
+                    <div class="stat-sub">{{ pending_sales }} pending</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6 anim-in anim-d5">
+            <div class="stat-card accent-red">
+                <div class="stat-icon">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Purchases</div>
+                    <div class="stat-value counter" data-target="{{ total_purchases }}">0</div>
+                    <div class="stat-sub">{{ pending_purchases }} pending</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6 anim-in anim-d6">
+            <div class="stat-card accent-purple">
+                <div class="stat-icon">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Twine Inv</div>
+                    <div class="stat-value counter" data-target="{{ total_twine_inventory }}">0</div>
+                    <div class="stat-sub">{{ total_twine_balance|floatformat:2 }} bal</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- CHARTS -->
-    <div class="row mt-3 g-3">
+    <!-- KEY METRIC BANNERS -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-4 col-md-6 anim-in anim-d2">
+            <div class="metric-banner metric-gradient-1">
+                <div class="metric-label">Monthly Sales Revenue</div>
+                <div class="metric-value">Rs {{ total_sales_amount|inr }}</div>
+                <div class="metric-sub">Current month</div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6 anim-in anim-d3">
+            <div class="metric-banner metric-gradient-2">
+                <div class="metric-label">Monthly Purchase Amount</div>
+                <div class="metric-value">Rs {{ total_purchase_amount|inr }}</div>
+                <div class="metric-sub">Current month</div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-12 anim-in anim-d4">
+            <div class="metric-banner metric-gradient-3">
+                <div class="metric-label">Total Twine Balance</div>
+                <div class="metric-value">{{ total_twine_balance|floatformat:2 }}</div>
+                <div class="metric-sub">Current month inventory</div>
+            </div>
+        </div>
+    </div>
 
-        <!-- BAR CHART -->
-        <div class="col-md-6">
-            <div class="card shadow-sm p-4">
-                <h5 class="mb-3">Invoices by Month</h5>
-                <div class="bar-chart-container">
+    <!-- CHARTS ROW -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6 anim-in anim-d3">
+            <div class="section-card">
+                <div class="section-header">
+                    <h5>Invoices by Month</h5>
+                    <span class="badge bg-primary bg-opacity-10 text-primary">GST Breakdown</span>
+                </div>
+                <div class="chart-body">
                     <canvas id="invoiceChart"></canvas>
                 </div>
             </div>
         </div>
-
-        <!-- BAR CHART -->
-        <div class="col-md-6">
-            <div class="card shadow-sm p-4">
-                <h5 class="mb-3">Sales Revenue by Month</h5>
-                <div class="bar-chart-container">
+        <div class="col-lg-6 anim-in anim-d4">
+            <div class="section-card">
+                <div class="section-header">
+                    <h5>Sales Revenue by Month</h5>
+                    <span class="badge bg-success bg-opacity-10 text-success">Revenue</span>
+                </div>
+                <div class="chart-body">
                     <canvas id="salesRevChart"></canvas>
                 </div>
             </div>
         </div>
-
     </div>
 
-    <!-- TABLES -->
-    <div class="row mt-3 g-3">
-
-        <div class="col-md-6">
-            <div class="card shadow-sm p-4">
-                <h5 class="mb-3">Latest Customers</h5>
-                <div class="table-responsive">
-                    <table class="table table-striped table-sm">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Code</th>
-                                <th>Name</th>
-                                <th>Phone</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for c in latest_customers %}
-                            <tr>
-                                <td>{{ c.code }}</td>
-                                <td>{{ c.name }}</td>
-                                <td>{{ c.phone }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="3" class="text-center text-muted">No data</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+    <!-- TABLES ROW 1 -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6 anim-in anim-d4">
+            <div class="section-card">
+                <div class="section-header">
+                    <h5>Latest Customers</h5>
+                    <a href="{% url 'parties' %}" class="btn-quick btn-quick-outline" style="padding:4px 12px;font-size:0.72rem;">View All</a>
+                </div>
+                <div class="section-body" style="padding:0;">
+                    <div class="table-responsive">
+                        <table class="table table-modern mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Name</th>
+                                    <th>Phone</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in latest_customers %}
+                                <tr>
+                                    <td><strong>{{ c.code }}</strong></td>
+                                    <td>{{ c.name }}</td>
+                                    <td>{{ c.phone }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="empty-state">No customers yet</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-6">
-            <div class="card shadow-sm p-4">
-                <h5 class="mb-3">Recent Invoices</h5>
-                <div class="table-responsive">
-                    <table class="table table-striped table-sm">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Inv #</th>
-                                <th>Date</th>
-                                <th>Customer</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for i in recent_invoices %}
-                            <tr>
-                                <td>{{ i.invoice_number }}</td>
-                                <td>{{ i.invoice_date }}</td>
-                                <td>{{ i.customer_name }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="3" class="text-center text-muted">No data</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+        <div class="col-lg-6 anim-in anim-d5">
+            <div class="section-card">
+                <div class="section-header">
+                    <h5>Recent Invoices</h5>
+                    <a href="{% url 'invoice_entry' %}" class="btn-quick btn-quick-outline" style="padding:4px 12px;font-size:0.72rem;">View All</a>
+                </div>
+                <div class="section-body" style="padding:0;">
+                    <div class="table-responsive">
+                        <table class="table table-modern mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Inv #</th>
+                                    <th>Date</th>
+                                    <th>Customer</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for i in recent_invoices %}
+                                <tr>
+                                    <td><strong>{{ i.invoice_number }}</strong></td>
+                                    <td>{{ i.invoice_date }}</td>
+                                    <td>{{ i.customer_name }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="empty-state">No invoices yet</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLES ROW 2 -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6 anim-in anim-d5">
+            <div class="section-card">
+                <div class="section-header">
+                    <h5>Recent Sales</h5>
+                    <a href="{% url 'sales_entry' %}" class="btn-quick btn-quick-outline" style="padding:4px 12px;font-size:0.72rem;">View All</a>
+                </div>
+                <div class="section-body" style="padding:0;">
+                    <div class="table-responsive">
+                        <table class="table table-modern mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Order No</th>
+                                    <th>Customer</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for s in recent_sales %}
+                                <tr>
+                                    <td><strong>{{ s.order_no }}</strong></td>
+                                    <td>{{ s.customer }}</td>
+                                    <td>₹{{ s.total_amount|floatformat:2 }}</td>
+                                    <td>
+                                        {% if s.status == 'PAID' %}
+                                            <span class="badge-status badge-paid">PAID</span>
+                                        {% elif s.status == 'PENDING' %}
+                                            <span class="badge-status badge-pending">PENDING</span>
+                                        {% else %}
+                                            <span class="badge-status badge-default">{{ s.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="empty-state">No sales yet</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-6">
-            <div class="card shadow-sm p-4">
-                <h5 class="mb-3">Recent Sales</h5>
-                <div class="table-responsive">
-                    <table class="table table-striped table-sm">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Order No</th>
-                                <th>Customer</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for s in recent_sales %}
-                            <tr>
-                                <td>{{ s.order_no }}</td>
-                                <td>{{ s.customer }}</td>
-                                <td>₹{{ s.total_amount|floatformat:2 }}</td>
-                                <td>
-                                    <span class="badge {% if s.status == 'PAID' %}bg-success{% elif s.status == 'PENDING' %}bg-warning{% else %}bg-secondary{% endif %}">
-                                        {{ s.status }}
-                                    </span>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="4" class="text-center text-muted">No data</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+        <div class="col-lg-6 anim-in anim-d6">
+            <div class="section-card">
+                <div class="section-header">
+                    <h5>Recent Purchases</h5>
+                    <a href="{% url 'purchase_entry' %}" class="btn-quick btn-quick-outline" style="padding:4px 12px;font-size:0.72rem;">View All</a>
+                </div>
+                <div class="section-body" style="padding:0;">
+                    <div class="table-responsive">
+                        <table class="table table-modern mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Invoice No</th>
+                                    <th>Vendor</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in recent_purchases %}
+                                <tr>
+                                    <td><strong>{{ p.invoice_no }}</strong></td>
+                                    <td>{{ p.vendor }}</td>
+                                    <td>₹{{ p.total_amount|floatformat:2 }}</td>
+                                    <td>
+                                        {% if p.payment_status == 'PAID' %}
+                                            <span class="badge-status badge-paid">PAID</span>
+                                        {% elif p.payment_status == 'PENDING' %}
+                                            <span class="badge-status badge-pending">PENDING</span>
+                                        {% else %}
+                                            <span class="badge-status badge-default">{{ p.payment_status }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="empty-state">No purchases yet</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-6">
-            <div class="card shadow-sm p-4">
-                <h5 class="mb-3">Recent Purchases</h5>
-                <div class="table-responsive">
-                    <table class="table table-striped table-sm">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Invoice No</th>
-                                <th>Vendor</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for p in recent_purchases %}
-                            <tr>
-                                <td>{{ p.invoice_no }}</td>
-                                <td>{{ p.vendor }}</td>
-                                <td>₹{{ p.total_amount|floatformat:2 }}</td>
-                                <td>
-                                    <span class="badge {% if p.payment_status == 'PAID' %}bg-success{% elif p.payment_status == 'PENDING' %}bg-warning{% else %}bg-secondary{% endif %}">
-                                        {{ p.payment_status }}
-                                    </span>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="4" class="text-center text-muted">No data</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
     </div>
 
 </div>
-
 </main>
 
 <!-- JSON DATA (SAFE) -->
@@ -292,109 +670,139 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-    const invoiceLabels = JSON.parse(
-        document.getElementById('invoice-months').textContent
-    );
-    const invoiceValues = JSON.parse(
-        document.getElementById('invoice-counts').textContent,
-    );
+    // Animated counters
+    document.querySelectorAll('.counter').forEach(function(el) {
+        const target = parseInt(el.getAttribute('data-target')) || 0;
+        const duration = 1200;
+        const start = performance.now();
+        function animate(now) {
+            const elapsed = now - start;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            el.textContent = Math.floor(eased * target).toLocaleString('en-IN');
+            if (progress < 1) requestAnimationFrame(animate);
+        }
+        requestAnimationFrame(animate);
+    });
 
-    const totalGstAmount = JSON.parse(
-        document.getElementById('total_gst_amount').textContent
-    );
+    // Chart data
+    const invoiceLabels = JSON.parse(document.getElementById('invoice-months').textContent);
+    const invoiceValues = JSON.parse(document.getElementById('invoice-counts').textContent);
+    const totalGstAmount = JSON.parse(document.getElementById('total_gst_amount').textContent);
+    const totalAmountWithGst = JSON.parse(document.getElementById('total_amount_with_gst').textContent);
+    const salesRevLabels = JSON.parse(document.getElementById('sales-rev-months').textContent);
+    const salesRevValues = JSON.parse(document.getElementById('sales-rev-values').textContent);
 
-    const totalAmountWithGst = JSON.parse(
-        document.getElementById('total_amount_with_gst').textContent
-    );
+    // Shared chart defaults
+    Chart.defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    Chart.defaults.color = '#64748b';
 
-    const salesRevLabels = JSON.parse(
-        document.getElementById('sales-rev-months').textContent
-    );
-    const salesRevValues = JSON.parse(
-        document.getElementById('sales-rev-values').textContent
-    );
+    const invoiceCtx = document.getElementById('invoiceChart').getContext('2d');
+    const invoiceGrad = invoiceCtx.createLinearGradient(0, 0, 0, 320);
+    invoiceGrad.addColorStop(0, 'rgba(99, 102, 241, 0.85)');
+    invoiceGrad.addColorStop(1, 'rgba(99, 102, 241, 0.35)');
 
-
-    /* BAR CHART */
-    new Chart(document.getElementById('invoiceChart'), {
+    new Chart(invoiceCtx, {
         type: 'bar',
         data: {
             labels: invoiceLabels,
-            datasets: [
-                {
-                    label: 'Invoices',
-                    data: invoiceValues,
-                    backgroundColor: 'rgba(54,162,235,0.7)'
-                }
-            ]
+            datasets: [{
+                label: 'Invoices',
+                data: invoiceValues,
+                backgroundColor: invoiceGrad,
+                borderRadius: 6,
+                borderSkipped: false,
+                barThickness: 28,
+            }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',   // 👈 shows all values on hover
-                intersect: false
-            },
+            interaction: { mode: 'index', intersect: false },
             plugins: {
-                // tooltip: {
-                //     enabled: true
-                // }
-                 tooltip: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    titleColor: '#f8fafc',
+                    bodyColor: '#cbd5e1',
+                    borderColor: '#334155',
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    padding: 12,
+                    displayColors: false,
                     callbacks: {
-                        label: function (context) {
+                        label: function(context) {
                             const index = context.dataIndex;
                             const gst = Number(totalGstAmount[index]).toFixed(3);
                             const total = Number(totalAmountWithGst[index]).toFixed(3);
-
                             return [
-                                `Invoices: ${invoiceValues[index]}`,
-                                `GST Amount: ${gst}`,
-                                `Total Amount: ${total}`
+                                'Invoices: ' + invoiceValues[index],
+                                'GST Amount: Rs ' + gst,
+                                'Total Amount: Rs ' + total
                             ];
-                        }
-                    }
-                }
-            }
-        }
-    });
-    
-    /* SALES REVENUE BAR CHART */
-    new Chart(document.getElementById('salesRevChart'), {
-        type: 'bar',
-        data: {
-            labels: salesRevLabels,
-            datasets: [
-                {
-                    label: 'Sales Revenue',
-                    data: salesRevValues,
-                    backgroundColor: 'rgba(255,159,64,0.7)'
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false
-            },
-            plugins: {
-                tooltip: {
-                    callbacks: {
-                        label: function (context) {
-                            const value = Number(salesRevValues[context.dataIndex]) || 0;
-                            return `Sales Revenue: Rs ${value.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                         }
                     }
                 }
             },
             scales: {
-                y: {
-                    ticks: {
-                        callback: function (value) {
-                            return 'Rs ' + value.toLocaleString('en-IN');
+                x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+                y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 } }, beginAtZero: true }
+            }
+        }
+    });
+
+    const salesCtx = document.getElementById('salesRevChart').getContext('2d');
+    const salesGrad = salesCtx.createLinearGradient(0, 0, 0, 320);
+    salesGrad.addColorStop(0, 'rgba(16, 185, 129, 0.85)');
+    salesGrad.addColorStop(1, 'rgba(16, 185, 129, 0.35)');
+
+    new Chart(salesCtx, {
+        type: 'bar',
+        data: {
+            labels: salesRevLabels,
+            datasets: [{
+                label: 'Sales Revenue',
+                data: salesRevValues,
+                backgroundColor: salesGrad,
+                borderRadius: 6,
+                borderSkipped: false,
+                barThickness: 28,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    titleColor: '#f8fafc',
+                    bodyColor: '#cbd5e1',
+                    borderColor: '#334155',
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    padding: 12,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            const value = Number(salesRevValues[context.dataIndex]) || 0;
+                            return 'Sales Revenue: Rs ' + value.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
                         }
                     }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+                y: {
+                    grid: { color: '#f1f5f9' },
+                    ticks: {
+                        font: { size: 11 },
+                        callback: function(value) {
+                            return 'Rs ' + value.toLocaleString('en-IN');
+                        }
+                    },
+                    beginAtZero: true
                 }
             }
         }
