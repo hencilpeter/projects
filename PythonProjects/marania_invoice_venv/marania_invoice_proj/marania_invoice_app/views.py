@@ -547,16 +547,17 @@ def dashboard(request):
     total_gst_amount = [d["total_gst_amount"] for d in invoice_data]
     total_amount_with_gst = [d["total_amount_with_gst"] for d in invoice_data]
 
-    # -------- PRICE CATALOG CHART: ITEMS PER CUSTOMER GROUP --------
-    price_group_data = (
-        PriceCatalog.objects
-        .values("customer_group")
-        .annotate(count=Count("id"))
-        .order_by("customer_group")
+    # -------- SALES REVENUE CHART: SALES REVENUE PER MONTH --------
+    sales_rev_data = (
+        Sales.objects
+        .annotate(month=TruncMonth("sales_entry_date"))
+        .values("month")
+        .annotate(total_revenue=Coalesce(Sum("total_amount"), Decimal("0.00")))
+        .order_by("month")
     )
 
-    catalog_groups = [d["customer_group"] for d in price_group_data]
-    catalog_group_counts = [d["count"] for d in price_group_data]
+    sales_rev_months = [d["month"].strftime("%b %Y") for d in sales_rev_data]
+    sales_rev_values = [d["total_revenue"] for d in sales_rev_data]
 
     # -------- CONTEXT FOR TEMPLATE --------
     context = {
@@ -578,8 +579,8 @@ def dashboard(request):
         "total_gst_amount": total_gst_amount,
         "total_amount_with_gst":total_amount_with_gst,
 
-        "catalog_groups": catalog_groups,
-        "catalog_group_counts": catalog_group_counts,
+        "sales_rev_months": sales_rev_months,
+        "sales_rev_values": sales_rev_values,
 
         "total_twine_balance": total_twine_balance,
         "total_sales_amount": total_sales_amount,

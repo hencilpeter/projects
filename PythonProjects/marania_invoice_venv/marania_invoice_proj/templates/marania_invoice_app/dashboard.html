@@ -28,14 +28,6 @@
         height: 350px;
         position: relative;
     }
-
-    /* PIE CHART – FIXED SIZE */
-    .pie-chart-container {
-        width: 320px;
-        height: 320px;
-        margin: 0 auto;
-        position: relative;
-    }
 </style>
 
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
@@ -135,12 +127,12 @@
             </div>
         </div>
 
-        <!-- PIE CHART -->
+        <!-- BAR CHART -->
         <div class="col-md-6">
-            <div class="card shadow-sm p-4 text-center">
-                <h5 class="mb-3">Products per Catalog Group</h5>
-                <div class="pie-chart-container">
-                    <canvas id="catalogChart"></canvas>
+            <div class="card shadow-sm p-4">
+                <h5 class="mb-3">Sales Revenue by Month</h5>
+                <div class="bar-chart-container">
+                    <canvas id="salesRevChart"></canvas>
                 </div>
             </div>
         </div>
@@ -293,8 +285,8 @@
 {{ invoice_counts|json_script:"invoice-counts" }}
 {{ total_gst_amount|json_script:"total_gst_amount" }}
 {{ total_amount_with_gst|json_script:"total_amount_with_gst" }}
-{{ catalog_groups|json_script:"catalog-groups" }}
-{{ catalog_group_counts|json_script:"catalog-group-counts" }}
+{{ sales_rev_months|json_script:"sales-rev-months" }}
+{{ sales_rev_values|json_script:"sales-rev-values" }}
 
 <!-- CHART.JS -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -315,11 +307,11 @@
         document.getElementById('total_amount_with_gst').textContent
     );
 
-    const catalogLabels = JSON.parse(
-        document.getElementById('catalog-groups').textContent
+    const salesRevLabels = JSON.parse(
+        document.getElementById('sales-rev-months').textContent
     );
-    const catalogValues = JSON.parse(
-        document.getElementById('catalog-group-counts').textContent
+    const salesRevValues = JSON.parse(
+        document.getElementById('sales-rev-values').textContent
     );
 
 
@@ -366,21 +358,43 @@
         }
     });
     
-    /* PIE CHART */
-    new Chart(document.getElementById('catalogChart'), {
-        type: 'pie',
+    /* SALES REVENUE BAR CHART */
+    new Chart(document.getElementById('salesRevChart'), {
+        type: 'bar',
         data: {
-            labels: catalogLabels,
-            datasets: [{
-                data: catalogValues
-            }]
+            labels: salesRevLabels,
+            datasets: [
+                {
+                    label: 'Sales Revenue',
+                    data: salesRevValues,
+                    backgroundColor: 'rgba(255,159,64,0.7)'
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
             plugins: {
-                legend: {
-                    position: 'bottom'
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const value = Number(salesRevValues[context.dataIndex]) || 0;
+                            return `Sales Revenue: Rs ${value.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    ticks: {
+                        callback: function (value) {
+                            return 'Rs ' + value.toLocaleString('en-IN');
+                        }
+                    }
                 }
             }
         }
