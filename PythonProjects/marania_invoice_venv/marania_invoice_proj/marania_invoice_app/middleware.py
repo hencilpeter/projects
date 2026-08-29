@@ -40,7 +40,18 @@ _PUBLIC_URL_NAMES = {
 class ModuleAccessMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
+    # enable below code to bypass the login
+    # def __call__(self, request):
+    #     # ---- AUTO-LOGIN: bypasses user-specific login (temporary dev override) ----
+    #     from django.contrib.auth import get_user_model
+    #     User = get_user_model()
+    #     force_user = User.objects.filter(is_superuser=True).first()
+    #     if force_user is not None:
+    #         request.user = force_user
+    #     # --------------------------------------------------------------------------
+    #     return self.get_response(request)
 
+    # And, disable below code to bypass the login
     def __call__(self, request):
         if not self._access_allowed(request):
             if request.user.is_authenticated:
