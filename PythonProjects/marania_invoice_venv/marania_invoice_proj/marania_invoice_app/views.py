@@ -494,10 +494,30 @@ def dashboard(request):
     total_sales_amount = sum(s.total_amount for s in sales_current_month if s.total_amount)
     pending_sales = Sales.objects.filter(status='PENDING').count()
 
+    # Previous month sales
+    if current_month == 1:
+        prev_month, prev_year = 12, current_year - 1
+    else:
+        prev_month, prev_year = current_month - 1, current_year
+    sales_prev_month = Sales.objects.filter(sales_entry_date__month=prev_month, sales_entry_date__year=prev_year)
+    total_sales_amount_prev = sum(s.total_amount for s in sales_prev_month if s.total_amount)
+    if total_sales_amount_prev > 0:
+        sales_change_pct = round(((total_sales_amount - total_sales_amount_prev) / total_sales_amount_prev) * 100, 1)
+    else:
+        sales_change_pct = 0.0 if total_sales_amount == 0 else 100.0
+
     # -------- PURCHASE SUMMARY --------
     purchase_current_month = Purchase.objects.filter(delivery_date__month=current_month, delivery_date__year=current_year)
     total_purchase_amount = sum(p.total_amount for p in purchase_current_month if p.total_amount)
     pending_purchases = Purchase.objects.filter(payment_status='PENDING').count()
+
+    # Previous month purchases
+    purchase_prev_month = Purchase.objects.filter(delivery_date__month=prev_month, delivery_date__year=prev_year)
+    total_purchase_amount_prev = sum(p.total_amount for p in purchase_prev_month if p.total_amount)
+    if total_purchase_amount_prev > 0:
+        purchase_change_pct = round(((total_purchase_amount - total_purchase_amount_prev) / total_purchase_amount_prev) * 100, 1)
+    else:
+        purchase_change_pct = 0.0 if total_purchase_amount == 0 else 100.0
 
     # -------- LATEST CUSTOMERS --------
     latest_customers = Parties.objects.order_by("-created_at")[:5]
@@ -584,8 +604,10 @@ def dashboard(request):
 
         "total_twine_balance": total_twine_balance,
         "total_sales_amount": total_sales_amount,
+        "sales_change_pct": sales_change_pct,
         "pending_sales": pending_sales,
         "total_purchase_amount": total_purchase_amount,
+        "purchase_change_pct": purchase_change_pct,
         "pending_purchases": pending_purchases,
     }
 
