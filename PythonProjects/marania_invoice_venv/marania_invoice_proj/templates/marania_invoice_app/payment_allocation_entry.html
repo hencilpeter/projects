@@ -483,7 +483,7 @@ function allocateSequential() {
             var bal = parseAmount(balCell ? balCell.textContent.trim() : '0');
             if (bal > 0) {
                 var alloc = Math.min(bal, remaining);
-                inp.value = indianFormat(alloc);
+                inp.value = alloc.toFixed(2);
                 remaining -= alloc;
             } else {
                 inp.value = '';
@@ -553,7 +553,7 @@ function allocatePerfect() {
         // Allocate perfectly matched invoices fully
         for (var i = 0; i < n; i++) {
             if (perfectMask & (1 << i)) {
-                selectedInvoices[i].inp.value = indianFormat(selectedInvoices[i].bal);
+                selectedInvoices[i].inp.value = selectedInvoices[i].bal.toFixed(2);
                 remaining -= selectedInvoices[i].bal;
             }
         }
@@ -565,7 +565,7 @@ function allocatePerfect() {
             if (remaining <= 0.001) break;
             if (selectedInvoices[i].inp.value === '') {
                 var alloc = Math.min(selectedInvoices[i].bal, remaining);
-                selectedInvoices[i].inp.value = indianFormat(alloc);
+                selectedInvoices[i].inp.value = alloc.toFixed(2);
                 remaining -= alloc;
             }
         }
@@ -605,13 +605,18 @@ function validateAllocations() {
         inputs.forEach(function(inp) { inp.disabled = !cb.checked; });
     });
 
+    // Normalize allocation amounts (strip INR comma grouping) before submit
+    document.querySelectorAll('input[name="allocated_amount[]"]').forEach(function(inp) {
+        inp.value = parseAmount(inp.value).toFixed(2);
+    });
+
     // Check at least one checked invoice has an allocation
     var hasAlloc = false;
     document.querySelectorAll('#invoice-tbody tr').forEach(function(row) {
         var cb = row.querySelector('.invoice-checkbox');
         if (cb && cb.checked) {
             var inp = row.querySelector('input[name="allocated_amount[]"]');
-            if (inp && parseFloat(inp.value) > 0) hasAlloc = true;
+            if (inp && parseAmount(inp.value) > 0) hasAlloc = true;
         }
     });
     if (!hasAlloc) {
@@ -789,7 +794,7 @@ function showBalanceHistory() {
         html += '<table class="table table-sm table-bordered" style="border-color:#c0c0c0;margin-top:0;width:700px;">'
             + '<tbody><tr style="background:' + balanceBg + ';color:#fff;font-size:0.85rem;">'
             + '<td colspan="4" style="padding:5px 4px;text-align:right;"><strong>' + balanceLabel + '</strong></td>'
-            + '<td style="padding:5px 4px;text-align:right;"><strong>Rs ' + Math.abs(lastBalance).toFixed(2) + '</strong></td>'
+            + '<td style="padding:5px 4px;text-align:right;"><strong>Rs ' + indianFormat(Math.abs(lastBalance)) + '</strong></td>'
             + '</tr></tbody></table>';
         body.innerHTML = html;
     }
@@ -814,7 +819,7 @@ function showAllocationSummary() {
         var inp = row.querySelector('input[name="allocated_amount[]"]');
         var hidden = row.querySelector('input[name="invoice_number[]"]');
         if (inp && hidden) {
-            var amt = parseFloat(inp.value) || 0;
+            var amt = parseAmount(inp.value) || 0;
             if (amt > 0) {
                 currentAllocMap[hidden.value] = amt;
                 totalAllocating += amt;
@@ -888,7 +893,7 @@ function showAllocationSummary() {
         html += '<table class="table table-sm table-bordered" style="border-color:#c0c0c0;margin-top:0;width:700px;">'
             + '<tbody><tr style="background:' + balanceBg + ';color:#fff;font-size:0.85rem;">'
             + '<td colspan="4" style="padding:5px 4px;text-align:right;"><strong>' + balanceLabel + '</strong></td>'
-            + '<td style="padding:5px 4px;text-align:right;"><strong>Rs ' + Math.abs(lastBalance).toFixed(2) + '</strong></td>'
+            + '<td style="padding:5px 4px;text-align:right;"><strong>Rs ' + indianFormat(Math.abs(lastBalance)) + '</strong></td>'
             + '</tr></tbody></table>';
         body.innerHTML = html;
     }
