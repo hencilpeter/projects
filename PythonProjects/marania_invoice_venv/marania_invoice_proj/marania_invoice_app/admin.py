@@ -27,4 +27,8 @@ admin.site.register(Purchase)
 admin.site.register(Expense)
 admin.site.register(PriceListConfiguration)
 admin.site.register(PriceListColourConfiguration)
+admin.site.register(ApplicationModule)
+admin.site.register(UserCategory)
+admin.site.register(UserProfile)
+admin.site.register(AuditLog)
 

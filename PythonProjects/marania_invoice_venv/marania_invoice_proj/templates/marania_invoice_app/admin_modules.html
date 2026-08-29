@@ -1,0 +1,57 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+        <h1 class="h3">Module Permissions</h1>
+        <a href="{% url 'admin_category_new' %}" class="btn btn-outline-secondary">Manage Categories</a>
+    </div>
+
+    <p class="text-muted">These modules control which areas of the application each user / category can access. Additional modules can be added here and will become selectable for users and roles — no code change required.</p>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Module</th>
+                            <th>Key</th>
+                            <th>URL Prefix</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in modules %}
+                        <tr>
+                            <td class="fw-semibold">{{ m.label }}</td>
+                            <td><code>{{ m.key }}</code></td>
+                            <td class="small">{{ m.url_prefix|default:"—" }}</td>
+                            <td>
+                                {% if m.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <form method="post" action="" class="d-inline" onsubmit="return confirm('Toggle module {{ m.label }}?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="toggle">
+                                    <input type="hidden" name="module_id" value="{{ m.id }}">
+                                    <button class="btn btn-sm btn-outline-secondary">{% if m.is_active %}Deactivate{% else %}Activate{% endif %}</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center text-muted py-4">No modules registered. Run the seed data to populate the default modules.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <div class="container d-flex align-items-center justify-content-center" style="min-height:70vh;">
+        <div class="text-center">
+            <h1 class="display-3 fw-bold text-danger">403</h1>
+            <h3 class="mt-2">{{ error_title|default:"Access Denied" }}</h3>
+            <p class="text-muted mt-2">
+                {{ error_message|default:"You do not have permission to access this module. Please contact your administrator if you believe this is an error." }}
+            </p>
+            <a href="{% url 'dashboard' %}" class="btn btn-primary mt-3">Back to Dashboard</a>
+        </div>
+    </div>
+</main>
+{% endblock %}

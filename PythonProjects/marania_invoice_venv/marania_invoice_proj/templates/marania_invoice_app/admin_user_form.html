@@ -1,0 +1,107 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+        <h1 class="h3">{% if user_obj %}Edit User{% else %}New User{% endif %}</h1>
+        <a href="{% url 'admin_users' %}" class="btn btn-outline-secondary">Back to Users</a>
+    </div>
+
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Username *</label>
+                        {% if user_obj and user_obj.is_superuser and not is_superuser %}
+                            <input type="text" class="form-control" value="{{ user_obj.username }}" disabled>
+                        {% else %}
+                            <input type="text" name="username" class="form-control" required
+                                   value="{% if form_values.username %}{{ form_values.username }}{% elif user_obj %}{{ user_obj.username }}{% endif %}">
+                        {% endif %}
+                        <div class="form-text">Usernames must be unique.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Full Name</label>
+                        <input type="text" name="full_name" class="form-control"
+                               value="{% if form_values.full_name %}{{ form_values.full_name }}{% elif user_obj.user_profile.full_name %}{{ user_obj.user_profile.full_name }}{% endif %}">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Email</label>
+                        <input type="email" name="email" class="form-control"
+                               value="{% if form_values.email %}{{ form_values.email }}{% elif user_obj.email %}{{ user_obj.email }}{% endif %}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Phone</label>
+                        <input type="text" name="phone" class="form-control"
+                               value="{% if form_values.phone %}{{ form_values.phone }}{% elif user_obj.user_profile.phone %}{{ user_obj.user_profile.phone }}{% endif %}">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">User Category / Role</label>
+                        <select name="category" class="form-select">
+                            <option value="">— None —</option>
+                            {% for c in categories %}
+                                <option value="{{ c.id }}"
+                                    {% if form_values.category == c.id|stringformat:"s" or user_obj and user_obj.user_profile.category.id == c.id %}selected{% endif %}>
+                                    {{ c.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Account Status</label>
+                        <select name="status" class="form-select">
+                            {% if user_obj and user_obj.pk == request.user.id and not is_superuser %}
+                                <option value="Active" selected>Active</option>
+                            {% else %}
+                                <option value="Active" {% if not user_obj or user_obj.is_active or form_values.status == "Active" %}selected{% endif %}>Active</option>
+                                <option value="Inactive" {% if user_obj and not user_obj.is_active %}selected{% endif %}>Inactive</option>
+                            {% endif %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Password {% if user_obj %}(leave blank to keep current){% else %}*{% endif %}</label>
+                        <input type="password" name="set_password" class="form-control" autocomplete="new-password">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Confirm Password</label>
+                        <input type="password" name="set_password2" class="form-control" autocomplete="new-password">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Permitted Modules</label>
+                        <div class="border rounded p-3">
+                            <div class="row g-2">
+                                {% for m in all_modules %}
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="modules" value="{{ m.key }}" id="mod_{{ m.key }}"
+                                            {% if m.key in pre_selected %}checked{% endif %}>
+                                        <label class="form-check-label" for="mod_{{ m.key }}">{{ m.label }}</label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="form-text">Select modules this user may access. Category defaults apply automatically; use these checkboxes to grant additional or specific access.</div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Save User</button>
+                    <a href="{% url 'admin_users' %}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+{% endblock %}

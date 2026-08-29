@@ -1,0 +1,70 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+        <h1 class="h3">{% if category %}Edit Category{% else %}New Category{% endif %}</h1>
+        <a href="{% url 'admin_categories' %}" class="btn btn-outline-secondary">Back to Categories</a>
+    </div>
+
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Category Name *</label>
+                        <input type="text" name="name" class="form-control" required value="{{ category.name }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Status</label>
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="is_active" {% if not category or category.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">Active</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Description</label>
+                        <textarea name="description" class="form-control" rows="2">{{ category.description|default:"" }}</textarea>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="is_all_modules" id="is_all_modules"
+                                   {% if category.is_all_modules %}checked{% endif %}>
+                            <label class="form-check-label" for="is_all_modules">Grant access to <strong>all</strong> modules (current and future)</label>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Predefined Module Access</label>
+                        <div class="border rounded p-3">
+                            <div class="row g-2">
+                                {% for m in all_modules %}
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="modules" value="{{ m.key }}" id="cmod_{{ m.key }}"
+                                            {% if m.key in pre_selected %}checked{% endif %}>
+                                        <label class="form-check-label" for="cmod_{{ m.key }}">{{ m.label }}</label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Save Category</button>
+                    <a href="{% url 'admin_categories' %}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+{% endblock %}

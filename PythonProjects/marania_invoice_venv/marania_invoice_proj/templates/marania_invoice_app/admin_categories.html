@@ -1,0 +1,67 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+        <h1 class="h3">User Categories / Roles</h1>
+        <a href="{% url 'admin_category_new' %}" class="btn btn-primary">+ New Category</a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Modules</th>
+                            <th>Users</th>
+                            <th>All Modules</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in categories %}
+                        <tr>
+                            <td class="fw-semibold">{{ c.name }}</td>
+                            <td>{{ c.description|default:"—" }}</td>
+                            <td>
+                                {% if c.is_all_modules %}
+                                    <span class="badge bg-success">All modules</span>
+                                {% else %}
+                                    <span class="badge bg-info text-dark">{{ c.modules.count }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ c.profiles.count }}</td>
+                            <td>{% if c.is_all_modules %}<i class="text-success">Yes</i>{% else %}No{% endif %}</td>
+                            <td>
+                                {% if c.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <a href="{% url 'admin_category_edit' c.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                <form method="post" action="{% url 'admin_category_toggle' c.id %}" class="d-inline"
+                                      onsubmit="return confirm('{% if c.is_active %}Deactivate{% else %}Activate{% endif %} category {{ c.name }}?');">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm {% if c.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}">
+                                        {% if c.is_active %}Deactivate{% else %}Activate{% endif %}
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-center text-muted py-4">No categories defined yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}

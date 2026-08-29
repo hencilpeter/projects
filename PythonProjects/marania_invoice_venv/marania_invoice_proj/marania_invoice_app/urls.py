@@ -1,7 +1,8 @@
 
 from django.urls import path
+from django.contrib.auth import views as django_auth_views
 from . import views
-from django.contrib.auth import views as auth_views
+from . import auth_views
 
 urlpatterns = [
 # parties     
@@ -53,9 +54,50 @@ path("customer-price-dictionary_invoice/", views.customer_price_dictionary_view_
 # view gst calcualtor from the main UI
 path('view_gst_calculator/', views.show_gst_calculator_from_main_UI, name='show_gst_calculator_from_main_UI'),
 
- path('login/', auth_views.LoginView.as_view(template_name='marania_invoice_app/login.html'), name='login'),
+ path('login/', auth_views.login_view, name='login'),
  #path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+ path('logout/', auth_views.logout_view, name='logout'),
  path('dashboard/', views.dashboard, name='dashboard'),
+ path('change-password/', auth_views.change_password_view, name='change_password'),
+
+# ===== Password reset (forgot password) =====
+path('password-reset/',
+     django_auth_views.PasswordResetView.as_view(
+         template_name='marania_invoice_app/password_reset_form.html',
+         email_template_name='marania_invoice_app/password_reset_email.html',
+         subject_template_name='marania_invoice_app/password_reset_subject.txt',
+         success_url='/invoice/password-reset/done/',
+     ),
+     name='password_reset'),
+path('password-reset/done/',
+     django_auth_views.PasswordResetDoneView.as_view(
+         template_name='marania_invoice_app/password_reset_done.html',
+     ),
+     name='password_reset_done'),
+path('password-reset/confirm/<uidb64>/<token>/',
+     django_auth_views.PasswordResetConfirmView.as_view(
+         template_name='marania_invoice_app/password_reset_confirm.html',
+         success_url='/invoice/password-reset/complete/',
+     ),
+     name='password_reset_confirm'),
+path('password-reset/complete/',
+     django_auth_views.PasswordResetCompleteView.as_view(
+         template_name='marania_invoice_app/password_reset_complete.html',
+     ),
+     name='password_reset_complete'),
+
+# ===== User Management & Administration =====
+path('admin/users', auth_views.admin_users, name='admin_users'),
+path('admin/users/new/', auth_views.admin_user_edit, name='admin_user_new'),
+path('admin/users/<int:user_id>/edit/', auth_views.admin_user_edit, name='admin_user_edit'),
+path('admin/users/<int:user_id>/toggle/', auth_views.admin_user_toggle, name='admin_user_toggle'),
+path('admin/users/<int:user_id>/reset-password/', auth_views.admin_user_reset_password, name='admin_user_reset_password'),
+path('admin/categories', auth_views.admin_categories, name='admin_categories'),
+path('admin/categories/new/', auth_views.admin_category_edit, name='admin_category_new'),
+path('admin/categories/<int:category_id>/edit/', auth_views.admin_category_edit, name='admin_category_edit'),
+path('admin/categories/<int:category_id>/toggle/', auth_views.admin_category_toggle, name='admin_category_toggle'),
+path('admin/modules', auth_views.admin_modules, name='admin_modules'),
+path('admin/audit', auth_views.admin_audit, name='admin_audit'),
 
 
 # backup 
@@ -67,7 +109,7 @@ path('clean-all/', views.backup_clean_all, name='backup_clean_all'),
 path('sync/', views.backup_sync, name='backup_sync'),
 
 # log out 
- path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+path('logout/', auth_views.logout_view, name='logout'),
 
 # reports 
 path("reports",  views.report_page, name="report_page"),

@@ -326,6 +326,11 @@ class CompanySettingsForm(forms.ModelForm):
             "bank_branch",
             "bank_ifsc",
             "default_bag_weight",
+            "company_logo",
+            "login_welcome_message",
+            "login_company_name",
+            "login_instructions",
+            "login_footer_text",
 
         ]
 
@@ -349,6 +354,11 @@ class CompanySettingsForm(forms.ModelForm):
             "bank_branch": "Bank Branch Name",
             "bank_ifsc": "Branch IFSC",
             "default_bag_weight": "Default Bag Weight (KG)",
+            "company_logo": "Company Logo (shown on login screen)",
+            "login_welcome_message": "Login Welcome Message",
+            "login_company_name": "Login Company / Application Name",
+            "login_instructions": "Login Instructions",
+            "login_footer_text": "Login Footer Text",
         }
 
         widgets = {
@@ -373,7 +383,11 @@ class CompanySettingsForm(forms.ModelForm):
             "bank_branch": forms.TextInput(attrs={"class": "form-control"}),
             "bank_ifsc": forms.TextInput(attrs={"class": "form-control"}),
             "default_bag_weight": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
-
+            "company_logo": forms.ClearableFileInput(attrs={"class": "form-control"}),
+            "login_welcome_message": forms.TextInput(attrs={"class": "form-control"}),
+            "login_company_name": forms.TextInput(attrs={"class": "form-control"}),
+            "login_instructions": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+            "login_footer_text": forms.TextInput(attrs={"class": "form-control"}),
         }
 
 

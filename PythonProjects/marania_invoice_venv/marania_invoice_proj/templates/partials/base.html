@@ -56,11 +56,31 @@
 <header class="navbar navbar-dark sticky-top" 
 style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; padding: 0; box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15);">
 
-  <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="#"> {{ config.CompanyName }}</a>
+  <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="#">
+    <img src="{{ config.display_logo_url }}" alt="logo" height="28" class="me-2 d-inline-block align-text-top" 
+         onerror="this.style.display='none';">
+    {{ config.CompanyName }}
+  </a>
   <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
   </button>
+
+  <div class="ms-auto me-3 d-flex align-items-center">
+    {% if user.is_authenticated %}
+    <div class="dropdown">
+      <button class="btn btn-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <span data-feather="user"></span> {{ user.username }}
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{% url 'change_password' %}">Change Password</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-danger" href="{% url 'logout' %}">Logout</a></li>
+      </ul>
+    </div>
+    {% endif %}
+  </div>
 </header>
+
 
 <div class="container-fluid">
   <div class="row">
@@ -77,6 +97,7 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
           </li>
 
           <!-- 2. Masters (merged Pricing) -->
+          {% if 'masters' in permitted_module_keys or is_superuser %}
           <li class="nav-item">
             <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
@@ -133,8 +154,10 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
               </ul>
             </div>
           </li>
+          {% endif %}
 
           <!-- 3. Transactions (merged Orders/Sales + Purchases + Inventory) -->
+          {% if 'transactions' in permitted_module_keys or is_superuser %}
           <li class="nav-item">
             <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
@@ -179,8 +202,10 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
               </ul>
             </div>
           </li>
+          {% endif %}
 
           <!-- 4. Accounting -->
+          {% if 'accounting' in permitted_module_keys or is_superuser %}
           <li class="nav-item">
             <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
@@ -237,8 +262,10 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
               </ul>
             </div>
           </li>
+          {% endif %}
 
           <!-- 5. Reports & Tools (merged) -->
+          {% if 'reports_tools' in permitted_module_keys or is_superuser %}
           <li class="nav-item">
             <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
@@ -289,8 +316,10 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
               </ul>
             </div>
           </li>
+          {% endif %}
 
           <!-- 6. Configuration -->
+          {% if 'configuration' in permitted_module_keys or is_superuser %}
           <li class="nav-item">
             <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
@@ -347,8 +376,10 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
               </ul>
             </div>
           </li>
+          {% endif %}
 
           <!-- 7. Analytics -->
+          {% if 'analytics' in permitted_module_keys or is_superuser %}
           <li class="nav-item">
             <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
@@ -400,8 +431,10 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
               </ul>
             </div>
           </li>
+          {% endif %}
 
           <!-- 8. Administration (merged Settings + Backup + Account) -->
+          {% if 'administration' in permitted_module_keys or 'user_management' in permitted_module_keys or is_superuser %}
           <li class="nav-item">
             <div class="d-flex justify-content-between align-items-center mb-1 parent-menu">
               <span>
@@ -419,6 +452,34 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
             </div>
             <div class="collapse" id="AdminSubmenu">
               <ul class="nav flex-column ms-4">
+                {% if 'user_management' in permitted_module_keys or is_superuser %}
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'admin_users' %}">
+                    <span data-feather="users"></span>
+                    Users
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'admin_categories' %}">
+                    <span data-feather="layers"></span>
+                    User Categories / Roles
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'admin_modules' %}">
+                    <span data-feather="shield"></span>
+                    Module Permissions
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'admin_audit' %}">
+                    <span data-feather="list"></span>
+                    Audit Trail
+                  </a>
+                </li>
+                <hr class="my-2">
+                {% endif %}
+                {% if 'administration' in permitted_module_keys or is_superuser %}
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'company_settings' %}">
                     <span data-feather="settings"></span>
@@ -466,18 +527,11 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
                     Sync
                   </a>
                 </li>
-
-                <hr class="my-2">
-
-                <li class="nav-item">
-                  <a class="nav-link" href="{% url 'logout' %}">
-                    <span data-feather="log-out"></span>
-                    Logout
-                  </a>
-                </li>
+                {% endif %}
               </ul>
             </div>
           </li>
+          {% endif %}
 
         </ul>
 

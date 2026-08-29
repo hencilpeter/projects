@@ -225,6 +225,39 @@ class CompanySettings(models.Model):
     # Fishnet settings
     default_bag_weight = models.DecimalField(max_digits=10, decimal_places=2, default=0, blank=True)
 
+    # -------- Login / branding configuration --------
+    company_logo = models.ImageField(
+        upload_to="company/logo",
+        blank=True,
+        null=True,
+        help_text="Company logo shown on the login screen and branding.",
+    )
+    login_welcome_message = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        default="Welcome back",
+        help_text="Primary welcome text shown on the login screen.",
+    )
+    login_company_name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Application / company name shown on the login screen. Defaults to Company Name.",
+    )
+    login_instructions = models.TextField(
+        blank=True,
+        null=True,
+        default="Please sign in with your assigned username and password to continue.",
+        help_text="Instructional text displayed on the login screen.",
+    )
+    login_footer_text = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Optional footer text (e.g. copyright) on the login screen.",
+    )
+
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -233,6 +266,20 @@ class CompanySettings(models.Model):
     class Meta:
         verbose_name = "Company Setting"
         verbose_name_plural = "Company Settings"
+
+    @property
+    def display_logo_url(self):
+        """Return the configured logo URL, falling back to the default static logo."""
+        if self.company_logo and hasattr(self.company_logo, "url") and self.company_logo.name:
+            try:
+                return self.company_logo.url
+            except Exception:
+                return "/static/images/marania_eagle_logo.png"
+        return "/static/images/marania_eagle_logo.png"
+
+    @property
+    def display_login_company_name(self):
+        return self.login_company_name or self.company_title or "Marania"
     
 
 class PriceListConfiguration(models.Model):
@@ -990,3 +1037,160 @@ class SettlementInvoice(models.Model):
 
     class Meta:
         ordering = ['-settlement_date', '-settlement_id']
+
+
+###############################################################
+# == Login & User Management Module ==
+###############################################################
+
+
+class ApplicationModule(models.Model):
+    """A discrete application module that can be permitted to users/categories.
+
+    This is the extensible registry for module-level access control. New modules
+    can be added here (or seeded) without schema/major architectural changes.
+    """
+
+    key = models.CharField(
+        max_length=100, unique=True,
+        help_text="Unique identifier, e.g. 'transaction_orders'.",
+    )
+    label = models.CharField(max_length=100, help_text="Human-readable name, e.g. 'Orders'.")
+    url_prefix = models.CharField(
+        max_length=200, blank=True, null=True,
+        help_text="URL prefix (e.g. '/orders') that gates access to this module.",
+    )
+    icon_name = models.CharField(max_length=50, blank=True, null=True, help_text="Feather icon name.")
+    sort_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.label
+
+    class Meta:
+        ordering = ["sort_order", "label"]
+
+
+class UserCategory(models.Model):
+    """A configurable user role/category with predefined module access."""
+
+    name = models.CharField(max_length=150, unique=True)
+    description = models.TextField(blank=True, null=True)
+    modules = models.ManyToManyField(
+        ApplicationModule,
+        blank=True,
+        related_name="categories",
+        help_text="Modules this category can access by default.",
+    )
+    is_all_modules = models.BooleanField(
+        default=False,
+        help_text="Grant access to all current and future modules.",
+    )
+    is_active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ["name"]
+
+
+class UserProfile(models.Model):
+    """Profile linked 1-to-1 with Django's auth.User for user-management features."""
+
+    STATUS_CHOICES = [
+        ("Active", "Active"),
+        ("Inactive", "Inactive"),
+    ]
+
+    user = models.OneToOneField(
+        "auth.User",
+        on_delete=models.CASCADE,
+        related_name="user_profile",
+    )
+    category = models.ForeignKey(
+        UserCategory,
+        on_delete=models.SET_NULL,
+        related_name="profiles",
+        null=True,
+        blank=True,
+    )
+    modules = models.ManyToManyField(
+        ApplicationModule,
+        blank=True,
+        related_name="profiles",
+        help_text="Additional modules granted to this user (may supplement the category).",
+    )
+    # Decorative label; authoritative active flag lives on auth.User.is_active.
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Active")
+    full_name = models.CharField(max_length=255, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    phone = models.CharField(max_length=50, blank=True, null=True)
+    last_password_change = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.user.username
+
+    def permitted_module_keys(self):
+        """Union of category modules, explicit modules and the all-modules flag."""
+        keys = set(self.modules.values_list("key", flat=True))
+        if self.category:
+            if self.category.is_all_modules:
+                keys.update(ApplicationModule.objects.filter(is_active=True).values_list("key", flat=True))
+            else:
+                keys.update(self.category.modules.values_list("key", flat=True))
+        return keys
+
+    class Meta:
+        ordering = ["user__username"]
+
+
+class AuditLog(models.Model):
+    """Audit trail for administrative and user-management actions."""
+
+    ACTION_CHOICES = [
+        ("CREATE", "Create"),
+        ("UPDATE", "Update"),
+        ("DELETE", "Delete"),
+        ("DEACTIVATE", "Deactivate"),
+        ("ACTIVATE", "Activate"),
+        ("PASSWORD_RESET", "Password Reset"),
+        ("PASSWORD_CHANGE", "Password Change"),
+        ("LOGIN_FAIL", "Login Failed"),
+        ("LOGIN", "Login"),
+        ("LOGOUT", "Logout"),
+        ("PERMISSION", "Permission Change"),
+        ("OTHER", "Other"),
+    ]
+
+    performed_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        related_name="audit_logs",
+        null=True,
+        blank=True,
+    )
+    action = models.CharField(max_length=30, choices=ACTION_CHOICES, default="OTHER")
+    entity_type = models.CharField(max_length=100, blank=True, null=True)
+    entity_id = models.CharField(max_length=100, blank=True, null=True)
+    entity_label = models.CharField(max_length=255, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    detail = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.created_at:%Y-%m-%d %H:%M} - {self.action} - {self.entity_label or self.entity_type}"
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Audit Log"
+        verbose_name_plural = "Audit Logs"

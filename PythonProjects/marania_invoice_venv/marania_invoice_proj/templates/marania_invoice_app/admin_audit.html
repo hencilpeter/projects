@@ -1,0 +1,64 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+        <h1 class="h3">Audit Trail</h1>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="get" class="row g-2 mb-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small mb-1">Search</label>
+                    <input type="text" name="search" value="{{ search }}" class="form-control form-control-sm" placeholder="Entity, description, user...">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-1">Action</label>
+                    <select name="action" class="form-select form-select-sm">
+                        <option value="">All actions</option>
+                        {% for value, label in actions %}
+                            <option value="{{ value }}" {% if selected_action == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-sm btn-outline-primary" type="submit">Filter</button>
+                    <a href="{% url 'admin_audit' %}" class="btn btn-sm btn-outline-secondary">Reset</a>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-hover table-sm align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Performed By</th>
+                            <th>Action</th>
+                            <th>Entity</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in logs %}
+                        <tr>
+                            <td class="small text-nowrap">{{ l.created_at|date:"d M Y H:i:s" }}</td>
+                            <td>{{ l.performed_by.username|default:"System" }}</td>
+                            <td><span class="badge bg-secondary">{{ l.get_action_display }}</span></td>
+                            <td>
+                                <div class="fw-semibold small">{{ l.entity_label|default:l.entity_type }}</div>
+                                {% if l.entity_type %}<div class="text-muted small">{{ l.entity_type }}</div>{% endif %}
+                            </td>
+                            <td class="small">{{ l.description|default:"" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center text-muted py-4">No audit records found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}

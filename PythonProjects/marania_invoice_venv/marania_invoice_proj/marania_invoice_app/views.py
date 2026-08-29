@@ -1120,9 +1120,10 @@ def company_settings_view(request):
     settings, created = CompanySettings.objects.get_or_create(id=1)
 
     if request.method == "POST":
-        form = CompanySettingsForm(request.POST, instance=settings)
+        form = CompanySettingsForm(request.POST, request.FILES, instance=settings)
         if form.is_valid():
             form.save()
+            reset_global_dict()
             messages.success(request, "Settings saved successfully!")
             return redirect("company_settings")  # redirect to same view
 
