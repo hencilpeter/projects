@@ -1018,7 +1018,36 @@ if (orderTable) {
             });
             row.style.display = show ? '' : 'none';
         });
+        updateFilterDatalists();
         saveFiltersToStorage();
+    }
+
+    // Excel-like AutoFilter: offer only values present in the currently visible rows.
+    function updateFilterDatalists() {
+        // Table column indices: 5 = Customer, 6 = Twine
+        var mappings = [
+            { col: 5, dl: document.getElementById('customer_list_filter') },
+            { col: 6, dl: document.getElementById('twine_list_filter') }
+        ];
+        mappings.forEach(function(m) {
+            if (!m.dl) return;
+            var values = [];
+            orderTbody.querySelectorAll('tr').forEach(function(row) {
+                if (row.style.display === 'none') return;
+                var cell = row.cells[m.col];
+                if (!cell) return;
+                var val = cell.textContent.trim();
+                if (val && values.indexOf(val) === -1) values.push(val);
+            });
+            values.sort(function(a, b) { return a.localeCompare(b); });
+            m.dl.innerHTML = values.map(function(v) {
+                return '<option value="' + escapeHtml(v) + '">';
+            }).join('');
+        });
+    }
+
+    function escapeHtml(str) {
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
     document.querySelectorAll('#order-filter-row input.filter-input, #order-filter-row select.filter-select')
