@@ -1,5 +1,6 @@
 {% extends 'partials/base.html' %}
 {% load static %}
+{% load dict_extras %}
 
 {% block main %}
 
@@ -242,7 +243,7 @@
               <td>{{ a.payment.receipt_no }}</td>
               <td>{% if a.invoice %}{{ a.invoice.invoice_number }}{% elif a.expense %}{{ a.expense.expense_category }} (EXP-{{ a.expense.expense_id }}){% elif a.opening_balance %}{{ a.opening_balance.ob_number|default:a.opening_balance.opening_balance_id }} (OB){% elif a.settlement_invoice %}{{ a.settlement_invoice.settlement_invoice_number }} (SI){% endif %}</td>
               <td>{% if a.payment.customer %}{{ a.payment.customer.code }}-{{ a.payment.customer.name }}{% elif a.invoice and a.invoice.customer_code %}{{ a.invoice.customer_code }}{% elif a.opening_balance and a.opening_balance.customer %}{{ a.opening_balance.customer.code }}-{{ a.opening_balance.customer.name }}{% elif a.settlement_invoice and a.settlement_invoice.customer %}{{ a.settlement_invoice.customer.code }}-{{ a.settlement_invoice.customer.name }}{% endif %}</td>
-              <td>{{ a.allocated_amount }}</td>
+              <td>{{ a.allocated_amount|inr }}</td>
               <td>{{ a.allocation_date|date:"Y-m-d" }}</td>
               <td>
                 <form method="POST" action="{% url 'payment_allocation_entry' %}" style="display:inline;" onsubmit="return confirm('Delete this allocation?')">
@@ -309,6 +310,36 @@ var filteredPayments = [];
 var filteredInvoices = [];
 var currentMode = 'perfect';
 
+// --- INR number formatting helpers (Indian comma grouping, e.g. 1,00,000.00) ---
+function indianFormat(value) {
+    var num = parseFloat(value);
+    if (isNaN(num)) return '';
+    var neg = num < 0 ? '-' : '';
+    num = Math.abs(num);
+    var fixed = num.toFixed(2);
+    var parts = fixed.split('.');
+    var intPart = parts[0];
+    var decPart = parts[1];
+    if (intPart.length > 3) {
+        var head = intPart.slice(0, -3);
+        var tail = intPart.slice(-3);
+        var chunks = [];
+        while (head.length > 2) {
+            chunks.unshift(head.slice(-2));
+            head = head.slice(0, -2);
+        }
+        if (head.length > 0) chunks.unshift(head);
+        intPart = chunks.join(',') + ',' + tail;
+    }
+    return neg + intPart + '.' + decPart;
+}
+
+function parseAmount(str) {
+    if (str === null || str === undefined) return 0;
+    return parseFloat(String(str).replace(/[^0-9.\-]/g, '')) || 0;
+}
+
+
 function setAllocationMode(mode) {
     currentMode = mode;
     document.getElementById('allocation_mode').value = mode;
@@ -363,8 +394,8 @@ function renderPayments() {
             + '<td><input type="checkbox" class="payment-checkbox" checked onchange="distribute()"></td>'
             + '<td>' + (p.payment_date || '') + '</td>'
             + '<td>' + (p.display_label || p.receipt_no || '') + '</td>'
-            + '<td>' + (p.total_received || '') + '</td>'
-            + '<td>' + (p.available || '') + '</td>'
+            + '<td>' + indianFormat(p.total_received) + '</td>'
+            + '<td>' + indianFormat(p.available) + '</td>'
             + '</tr>';
     });
     tbody.innerHTML = html;
@@ -416,8 +447,8 @@ function renderInvoices() {
             + '<td><input type="checkbox" class="invoice-checkbox" checked onchange="distribute()"></td>'
             + '<td>' + label + '</td>'
             + '<td>' + dateOrCat + '</td>'
-            + '<td>' + (inv.gross_total || '') + '</td>'
-            + '<td class="balance-cell">' + (inv.balance || '') + '</td>'
+            + '<td>' + indianFormat(inv.gross_total) + '</td>'
+            + '<td class="balance-cell">' + indianFormat(inv.balance) + '</td>'
             + '<td>'
             + '<input type="hidden" name="invoice_number[]" value="' + invNum + '">'
             + '<input type="number" name="allocated_amount[]" class="form-control form-control-sm alloc-input" step="0.01" min="0" placeholder="0.00" oninput="updateTotalAllocating()">'
@@ -434,10 +465,10 @@ function allocateSequential() {
         var row = cb.closest('tr');
         if (row) {
             var availCell = row.cells[4];
-            totalAvailable += parseFloat(availCell ? availCell.textContent : '0') || 0;
+            totalAvailable += parseAmount(availCell ? availCell.textContent : '0');
         }
     });
-    document.getElementById('total-available').textContent = totalAvailable.toFixed(2);
+    document.getElementById('total-available').textContent = indianFormat(totalAvailable);
 
     // Only distribute to SELECTED invoices
     var invoiceRows = document.querySelectorAll('#invoice-tbody tr');
@@ -449,10 +480,10 @@ function allocateSequential() {
         if (!checkbox || !inp) return;
 
         if (checkbox.checked && remaining > 0) {
-            var bal = parseFloat(balCell ? balCell.textContent.trim() : '0') || 0;
+            var bal = parseAmount(balCell ? balCell.textContent.trim() : '0');
             if (bal > 0) {
                 var alloc = Math.min(bal, remaining);
-                inp.value = alloc.toFixed(2);
+                inp.value = indianFormat(alloc);
                 remaining -= alloc;
             } else {
                 inp.value = '';
@@ -472,10 +503,10 @@ function allocatePerfect() {
         var row = cb.closest('tr');
         if (row) {
             var availCell = row.cells[4];
-            totalAvailable += parseFloat(availCell ? availCell.textContent : '0') || 0;
+            totalAvailable += parseAmount(availCell ? availCell.textContent : '0');
         }
     });
-    document.getElementById('total-available').textContent = totalAvailable.toFixed(2);
+    document.getElementById('total-available').textContent = indianFormat(totalAvailable);
 
     // Collect selected invoice data, clear all inputs
     var invoiceRows = document.querySelectorAll('#invoice-tbody tr');
@@ -488,7 +519,7 @@ function allocatePerfect() {
         if (!checkbox || !inp) return;
         inp.value = '';
         if (checkbox.checked) {
-            var bal = parseFloat(balCell ? balCell.textContent.trim() : '0') || 0;
+            var bal = parseAmount(balCell ? balCell.textContent.trim() : '0');
             if (bal > 0) selectedInvoices.push({ inp: inp, bal: bal });
         }
     });
@@ -522,7 +553,7 @@ function allocatePerfect() {
         // Allocate perfectly matched invoices fully
         for (var i = 0; i < n; i++) {
             if (perfectMask & (1 << i)) {
-                selectedInvoices[i].inp.value = selectedInvoices[i].bal.toFixed(2);
+                selectedInvoices[i].inp.value = indianFormat(selectedInvoices[i].bal);
                 remaining -= selectedInvoices[i].bal;
             }
         }
@@ -534,7 +565,7 @@ function allocatePerfect() {
             if (remaining <= 0.001) break;
             if (selectedInvoices[i].inp.value === '') {
                 var alloc = Math.min(selectedInvoices[i].bal, remaining);
-                selectedInvoices[i].inp.value = alloc.toFixed(2);
+                selectedInvoices[i].inp.value = indianFormat(alloc);
                 remaining -= alloc;
             }
         }
@@ -554,10 +585,10 @@ function updateTotalAllocating() {
     var inputs = document.querySelectorAll('input[name="allocated_amount[]"]');
     var total = 0;
     inputs.forEach(function(inp) {
-        var v = parseFloat(inp.value) || 0;
+        var v = parseAmount(inp.value) || 0;
         total += v;
     });
-    document.getElementById('total-allocating').textContent = total.toFixed(2);
+    document.getElementById('total-allocating').textContent = indianFormat(total);
 }
 
 function updateSelectedPaymentsInfo() {
