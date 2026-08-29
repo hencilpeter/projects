@@ -1,5 +1,6 @@
 {% extends 'partials/base.html' %}
 {% load static %}
+{% load dict_extras %}
 
 {% block main %}
 
@@ -99,7 +100,7 @@
         <div class="col-md-4">
             <div class="card shadow-sm p-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                 <h6 class="mb-2">Monthly Sales Revenue</h6>
-                <h2 class="mb-0">₹{{ total_sales_amount|floatformat:2 }}</h2>
+                <h2 class="mb-0">Rs {{ total_sales_amount|inr }}</h2>
                 <small class="opacity-75">Current month</small>
             </div>
         </div>
@@ -107,7 +108,7 @@
         <div class="col-md-4">
             <div class="card shadow-sm p-4" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
                 <h6 class="mb-2">Monthly Purchase Amount</h6>
-                <h2 class="mb-0">₹{{ total_purchase_amount|floatformat:2 }}</h2>
+                <h2 class="mb-0">Rs {{ total_purchase_amount|inr }}</h2>
                 <small class="opacity-75">Current month</small>
             </div>
         </div>
