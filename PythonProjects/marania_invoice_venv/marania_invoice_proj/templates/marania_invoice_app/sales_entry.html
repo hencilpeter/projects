@@ -310,6 +310,12 @@ tr.row-status-on_hold_processing td {
               </select>
               <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Status</small>
             </div>
+            <div class="col-md-2 d-flex align-items-center">
+              <div class="form-check">
+                <input type="checkbox" name="is_new_sale" id="is_new_sale" class="form-check-input" checked onchange="if(this.checked) { document.getElementById('status').value='ON_HOLD_PROCESSING'; if(statusSelect) updateStatusStyle(statusSelect); }">
+                <label class="form-check-label" for="is_new_sale">New Sale</label>
+              </div>
+            </div>
             <div class="col-md-2">
               <input type="date" name="payment_date" id="payment_date" class="form-control form-control-sm" placeholder="">
               <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Payment Date</small>
@@ -627,6 +633,7 @@ const productNames = {
 let drafts = [];
 let draftIdCounter = 0;
 let cartSeq = 0;
+let currentEditDraftId = null;
 let editMode = 'single_edit'; // Default mode
 const cartColors = ['bg-primary', 'bg-success', 'bg-info text-dark', 'bg-warning text-dark', 'bg-danger', 'bg-secondary', 'bg-dark'];
 
@@ -656,6 +663,7 @@ function getFormData() {
         total_amount: document.getElementById('total_amount').value,
         delivery_date: getDateValue('delivery_date'),
         status: document.getElementById('status').value,
+        is_new_sale: document.getElementById('is_new_sale').checked,
         payment_date: getDateValue('payment_date'),
         remarks: document.getElementById('remarks').value.trim(),
     };
@@ -749,6 +757,7 @@ function setFormData(data) {
     setDateField('delivery_date', data.delivery_date);
     document.getElementById('status').value = data.status || 'ON_HOLD_PROCESSING';
     if (statusSelect) updateStatusStyle(statusSelect);
+    document.getElementById('is_new_sale').checked = data.is_new_sale !== undefined ? data.is_new_sale : true;
     setDateField('payment_date', data.payment_date);
     document.getElementById('remarks').value = data.remarks || '';
 
@@ -779,8 +788,12 @@ function resetSalesForm() {
     setDateField('delivery_date', '');
     document.getElementById('status').value = 'ON_HOLD_PROCESSING';
     if (statusSelect) updateStatusStyle(statusSelect);
+    document.getElementById('is_new_sale').checked = true;
     setDateField('payment_date', '');
     document.getElementById('remarks').value = '';
+    currentEditDraftId = null;
+    editMode = 'single_edit';
+    renderDrafts();
 }
 
 function renderDrafts() {
@@ -790,20 +803,58 @@ function renderDrafts() {
     container.innerHTML = '';
     if (drafts.length === 0) {
         list.style.display = 'none';
+        currentEditDraftId = null;
         return;
     }
     list.style.display = 'block';
     count.textContent = drafts.length;
-    const colors = cartColors;
     drafts.forEach((d, i) => {
         const badge = document.createElement('span');
-        const color = colors[i % colors.length];
-        badge.className = 'badge ' + color + ' py-2 px-3 text-start';
+        badge.className = 'badge py-2 px-3 text-start position-relative';
         badge.style.cursor = 'pointer';
         badge.style.fontSize = '13px';
+        badge.style.paddingRight = '22px !important';
+        badge.style.border = '2px solid transparent';
+        badge.style.transition = 'all 0.15s ease';
+
+        // Styling: yellow for new, grey for existing, highlighted border for editing
+        if (d.is_new_sale) {
+            badge.className += ' text-dark';
+            badge.style.background = 'linear-gradient(135deg, #fbbf24, #f59e0b)';
+        } else {
+            badge.className += ' bg-secondary';
+        }
+
+        // Highlight the order currently being edited
+        if (currentEditDraftId !== null && d.draft_id === currentEditDraftId) {
+            badge.style.border = '2px solid #fff';
+            badge.style.boxShadow = '0 0 0 2px #3b82f6, 0 2px 8px rgba(59,130,246,0.4)';
+        }
+
         badge.textContent = (d.cart_seq || (i + 1)) + '- ' + (d.order_no || '?') + ' | ' + (d.customer || '?') + ' | ' + (d.speification || '').substring(0, 30);
         badge.title = 'Click to edit';
-        badge.onclick = function() { loadDraft(d.draft_id); };
+
+        const removeBtn = document.createElement('span');
+        removeBtn.textContent = '\u00d7';
+        removeBtn.style.cssText = 'position:absolute;top:2px;right:4px;font-size:14px;font-weight:bold;opacity:0.7;cursor:pointer;line-height:1;';
+        removeBtn.style.color = d.is_new_sale ? '#000' : '#fff';
+        removeBtn.title = 'Remove from cart';
+        removeBtn.onmouseenter = function() { this.style.opacity = '1'; };
+        removeBtn.onmouseleave = function() { this.style.opacity = '0.7'; };
+        removeBtn.onclick = function(e) {
+            e.stopPropagation();
+            if (confirm('Remove this sale from cart?')) {
+                if (currentEditDraftId === d.draft_id) currentEditDraftId = null;
+                drafts = drafts.filter(dd => dd.draft_id !== d.draft_id);
+                renderDrafts();
+            }
+        };
+        badge.appendChild(removeBtn);
+
+        badge.onclick = function(e) {
+            if (e.target === removeBtn) return;
+            loadDraft(d.draft_id);
+        };
         container.appendChild(badge);
     });
     document.getElementById('drafts_data').value = JSON.stringify(drafts);
@@ -1009,6 +1060,21 @@ function addToCart() {
     if (!twine) { alert("Twine (Product Code) is required."); return; }
     if (!customer) { alert("Customer is required."); return; }
     let data = getFormData();
+
+    // If editing an existing sale (New Sale unchecked + an order is selected), update it in place
+    if (!data.is_new_sale && currentEditDraftId !== null) {
+        const idx = drafts.findIndex(d => d.draft_id === currentEditDraftId);
+        if (idx !== -1) {
+            data.draft_id = drafts[idx].draft_id;
+            data.cart_seq = drafts[idx].cart_seq;
+            drafts[idx] = data;
+            renderDrafts();
+            return;
+        }
+    }
+
+    // Adding as a new sale — clear old sale identifiers so backend creates a fresh record
+    data.sales_key = '';
     data.draft_id = ++draftIdCounter;
     data.cart_seq = ++cartSeq;
     drafts.push(data);
@@ -1018,8 +1084,10 @@ function addToCart() {
 function loadDraft(draftId) {
     const draft = drafts.find(d => d.draft_id === draftId);
     if (!draft) return;
+    currentEditDraftId = draftId;
     setFormData(draft);
-    drafts = drafts.filter(d => d.draft_id !== draftId);
+    // Set checkbox based on whether it's a new or existing sale
+    document.getElementById('is_new_sale').checked = draft.is_new_sale || false;
     renderDrafts();
 }
 
@@ -1068,19 +1136,26 @@ function loadSale(salesKey) {
     const sale = salesData.find(s => s.sales_key == salesKey);
     if (!sale) return;
 
-    const siblings = salesData.filter(s => s.order_no === sale.order_no && s.sales_key != salesKey);
+    // Find ALL sales sharing the same order_no (including the clicked one)
+    const siblings = salesData.filter(s => s.order_no === sale.order_no);
 
     drafts = [];
+    let clickedDraftId = null;
     siblings.forEach(s => {
         let d = {...s};
         d.draft_id = ++draftIdCounter;
         d.cart_seq = ++cartSeq;
+        d.is_new_sale = false;
+        if (s.sales_key == salesKey) clickedDraftId = d.draft_id;
         drafts.push(d);
     });
+    currentEditDraftId = clickedDraftId;
     renderDrafts();
 
     setFormData(sale);
-    
+    // Existing sale is not a new sale
+    document.getElementById('is_new_sale').checked = false;
+
     // Set group_edit mode flag
     editMode = 'group_edit';
 }
@@ -1906,11 +1981,20 @@ function loadEditMode(salesKey) {
     const sale = salesData.find(s => s.sales_key == salesKey);
     if (!sale) return;
 
-    // Clear drafts to start fresh with only the selected order
+    // Clear drafts and add this sale to cart
     drafts = [];
-    
+    let d = {...sale};
+    d.draft_id = ++draftIdCounter;
+    d.cart_seq = ++cartSeq;
+    d.is_new_sale = false;
+    drafts.push(d);
+    currentEditDraftId = d.draft_id;
+    renderDrafts();
+
     setFormData(sale);
-    
+    // Existing sale is not a new sale
+    document.getElementById('is_new_sale').checked = false;
+
     // Set single_edit mode flag
     editMode = 'single_edit';
 }
