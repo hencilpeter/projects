@@ -50,8 +50,8 @@
     }
     .dash-header p {
         color: var(--text-secondary);
-        margin: 2px 0 0;
-        font-size: 0.9rem;
+        margin: 4px 0 0;
+        font-size: 1rem;
     }
     .dash-header-right {
         display: flex;
@@ -346,8 +346,8 @@
     <!-- PAGE HEADER -->
     <div class="dash-header anim-in">
         <div>
-            <h1>Dashboard</h1>
-            <p>Business overview & insights</p>
+            <h1>{{ config.company_title }}</h1>
+            <p>Dashboard – Business Overview & Insights</p>
         </div>
         <div class="dash-header-right">
             <a href="{% url 'invoice_entry' %}" class="btn-quick btn-quick-primary">
