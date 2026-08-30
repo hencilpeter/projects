@@ -721,14 +721,18 @@ if (statusSelect) {
 
 var invoiceNoInput = document.getElementById('invoice_no');
 if (invoiceNoInput) {
-    invoiceNoInput.addEventListener('change', function() {
+    invoiceNoInput.addEventListener('blur', function() {
         if (this.value.trim()) {
             var statusEl = document.getElementById('status');
             var del = document.getElementById('delivery_date');
-            if (statusEl.value === 'ON_HOLD_PROCESSING' && !del.value) {
+            // Always set delivery date if empty
+            if (!del.value) {
+                del.value = new Date().toISOString().slice(0, 10);
+            }
+            // Change status from ON_HOLD_PROCESSING to PENDING
+            if (statusEl.value === 'ON_HOLD_PROCESSING') {
                 statusEl.value = 'PENDING';
                 updateStatusStyle(statusEl);
-                del.value = new Date().toISOString().slice(0, 10);
             }
         }
     });
