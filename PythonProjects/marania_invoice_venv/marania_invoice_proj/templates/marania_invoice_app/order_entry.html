@@ -187,6 +187,12 @@
                 <option value="Rejected">Rejected</option>
               </select>
             </div>
+            <div class="col-md-2 d-flex align-items-center">
+              <div class="form-check">
+                <input type="checkbox" name="is_new_order" id="is_new_order" class="form-check-input" checked onchange="if(this.checked) document.getElementById('status').value='Ordered';">
+                <label class="form-check-label" for="is_new_order">New Order</label>
+              </div>
+            </div>
           </div>
 
           <div class="row mb-3">
@@ -378,6 +384,7 @@ const productNames = {
 };
 let drafts = [];
 let draftIdCounter = 0;
+let currentEditDraftId = null;
 
 function getFormData() {
     const specs = [];
@@ -412,6 +419,7 @@ function getFormData() {
         quantity_unit: document.getElementById('quantity_unit').value,
         unit_price: document.getElementById('unit_price').value,
         is_gst_included: document.getElementById('is_gst_included').checked,
+        is_new_order: document.getElementById('is_new_order').checked,
         status: document.getElementById('status').value,
         order_instructions: document.getElementById('order_instructions').value.trim(),
         comments: document.getElementById('comments').value.trim(),
@@ -533,6 +541,7 @@ function setFormData(data) {
     document.getElementById('quantity_unit').value = data.quantity_unit || 'Bag';
     document.getElementById('unit_price').value = data.unit_price || '';
     document.getElementById('is_gst_included').checked = data.is_gst_included || false;
+    document.getElementById('is_new_order').checked = data.is_new_order !== undefined ? data.is_new_order : true;
     document.getElementById('status').value = data.status || 'Ordered';
     document.getElementById('order_instructions').value = data.order_instructions || '';
     document.getElementById('comments').value = data.comments || '';
@@ -557,11 +566,14 @@ function resetOrderForm() {
     document.getElementById('quantity_unit').value = 'Bag';
     document.getElementById('unit_price').value = '';
     document.getElementById('is_gst_included').checked = false;
+    document.getElementById('is_new_order').checked = true;
     document.getElementById('status').value = 'Ordered';
     document.getElementById('order_instructions').value = '';
     document.getElementById('comments').value = '';
+    currentEditDraftId = null;
     editMode = 'single_edit';
     document.getElementById('edit_mode').value = 'single_edit';
+    renderDrafts();
 }
 
 function previewOrderNumber() {
@@ -581,15 +593,34 @@ function renderDrafts() {
     container.innerHTML = '';
     if (drafts.length === 0) {
         list.style.display = 'none';
+        currentEditDraftId = null;
         return;
     }
     list.style.display = 'block';
     count.textContent = drafts.length;
     drafts.forEach((d, i) => {
         const badge = document.createElement('span');
-        badge.className = 'badge bg-secondary py-2 px-3 text-start';
+        badge.className = 'badge py-2 px-3 text-start position-relative';
         badge.style.cursor = 'pointer';
         badge.style.fontSize = '13px';
+        badge.style.paddingRight = '22px !important';
+        badge.style.border = '2px solid transparent';
+        badge.style.transition = 'all 0.15s ease';
+
+        // Styling: yellow for new, grey for existing, highlighted border for editing
+        if (d.is_new_order) {
+            badge.className += ' text-dark';
+            badge.style.background = 'linear-gradient(135deg, #fbbf24, #f59e0b)';
+        } else {
+            badge.className += ' bg-secondary';
+        }
+
+        // Highlight the order currently being edited
+        if (currentEditDraftId !== null && d.draft_id === currentEditDraftId) {
+            badge.style.border = '2px solid #fff';
+            badge.style.boxShadow = '0 0 0 2px #3b82f6, 0 2px 8px rgba(59,130,246,0.4)';
+        }
+
         const specsList = d.specifications && d.specifications.length ? d.specifications : [d];
         const specStr = specsList.map(s => {
             const md = s.mesh_depth || '';
@@ -602,7 +633,28 @@ function renderDrafts() {
         }).join('/');
         badge.textContent = '#' + (d.draft_seq || (i + 1)) + ' | ' + (d.order_number || '?') + ' | ' + (d.customer || '?') + ' | ' + specStr + ' | ' + d.quantity + ' ' + d.quantity_unit;
         badge.title = 'Click to edit';
-        badge.onclick = function() { loadDraft(d.draft_id); };
+
+        const removeBtn = document.createElement('span');
+        removeBtn.textContent = '\u00d7';
+        removeBtn.style.cssText = 'position:absolute;top:2px;right:4px;font-size:14px;font-weight:bold;opacity:0.7;cursor:pointer;line-height:1;';
+        removeBtn.style.color = d.is_new_order ? '#000' : '#fff';
+        removeBtn.title = 'Remove from cart';
+        removeBtn.onmouseenter = function() { this.style.opacity = '1'; };
+        removeBtn.onmouseleave = function() { this.style.opacity = '0.7'; };
+        removeBtn.onclick = function(e) {
+            e.stopPropagation();
+            if (confirm('Remove this order from cart?')) {
+                if (currentEditDraftId === d.draft_id) currentEditDraftId = null;
+                drafts = drafts.filter(dd => dd.draft_id !== d.draft_id);
+                renderDrafts();
+            }
+        };
+        badge.appendChild(removeBtn);
+
+        badge.onclick = function(e) {
+            if (e.target === removeBtn) return;
+            loadDraft(d.draft_id);
+        };
         container.appendChild(badge);
     });
     document.getElementById('drafts_data').value = JSON.stringify(drafts);
@@ -782,10 +834,24 @@ function addToCart() {
     if (!twine) { alert("Twine (Product Code) is required."); return; }
     if (!customer) { alert("Customer is required."); return; }
     let data = getFormData();
+
+    // If editing an existing order (New Order unchecked + an order is selected), update it in place
+    if (!data.is_new_order && currentEditDraftId !== null) {
+        const idx = drafts.findIndex(d => d.draft_id === currentEditDraftId);
+        if (idx !== -1) {
+            data.draft_id = drafts[idx].draft_id;
+            data.draft_seq = drafts[idx].draft_seq;
+            drafts[idx] = data;
+            renderDrafts();
+            return;
+        }
+    }
+
+    // Adding as a new order — clear old order identifiers so backend creates a fresh record
+    data.order_key = '';
     data.draft_id = ++draftIdCounter;
-    // Calculate next draft_seq based on maximum existing draft_seq
     const maxSeq = drafts.reduce((max, d) => Math.max(max, d.draft_seq || 0), 0);
-    data.draft_seq = maxSeq + 1; // Sequential draft order number
+    data.draft_seq = maxSeq + 1;
     drafts.push(data);
     renderDrafts();
 }
@@ -793,9 +859,10 @@ function addToCart() {
 function loadDraft(draftId) {
     const draft = drafts.find(d => d.draft_id === draftId);
     if (!draft) return;
+    currentEditDraftId = draftId;
     setFormData(draft);
-    drafts = drafts.filter(d => d.draft_id !== draftId);
-    // Don't re-assign draft_seq - keep original numbers consistent
+    // Set checkbox based on whether it's a new or existing order
+    document.getElementById('is_new_order').checked = draft.is_new_order || false;
     renderDrafts();
 }
 
@@ -850,11 +917,19 @@ function loadOrderEditMode(orderKey) {
     const order = ordersData.find(o => o.order_key == orderKey);
     if (!order) return;
 
-    // Clear drafts - Edit button is for single order editing, should start fresh
+    // Clear drafts and add this order to cart
     drafts = [];
-    renderDrafts(); // Update UI to reflect cleared drafts
+    let d = {...order};
+    d.draft_id = ++draftIdCounter;
+    d.draft_seq = 1;
+    d.is_new_order = false;
+    drafts.push(d);
+    currentEditDraftId = d.draft_id;
+    renderDrafts();
 
     setFormData(order);
+    // Existing order is not a new order
+    document.getElementById('is_new_order').checked = false;
 
     // Set single_edit mode flag
     editMode = 'single_edit';
@@ -865,23 +940,30 @@ function loadOrderGroup(orderKey) {
     const order = ordersData.find(o => o.order_key == orderKey);
     if (!order) return;
 
-    // Find sibling orders sharing the same order_number
-    const siblings = ordersData.filter(o => o.order_number === order.order_number && o.order_key != orderKey);
+    // Find ALL orders sharing the same order_number (including the clicked one)
+    const siblings = ordersData.filter(o => o.order_number === order.order_number);
 
     // Clear all existing drafts
     drafts = [];
 
-    // Add group to drafts with sequential numbers starting from 1
+    // Add all orders to drafts with sequential numbers
     let currentMaxSeq = 0;
+    let clickedDraftId = null;
     siblings.forEach((s) => {
         let d = {...s};
         d.draft_id = ++draftIdCounter;
-        d.draft_seq = ++currentMaxSeq; // Start from 1 for new group
+        d.draft_seq = ++currentMaxSeq;
+        d.is_new_order = false;
+        if (s.order_key == orderKey) clickedDraftId = d.draft_id;
         drafts.push(d);
     });
+    currentEditDraftId = clickedDraftId;
     renderDrafts();
 
+    // Load the clicked order into the form
     setFormData(order);
+    // Existing order group is not a new order
+    document.getElementById('is_new_order').checked = false;
 
     // Set group_edit mode flag
     editMode = 'group_edit';
