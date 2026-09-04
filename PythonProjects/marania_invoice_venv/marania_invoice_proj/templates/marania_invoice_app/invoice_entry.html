@@ -2,6 +2,10 @@
 {% load static %}
 {% load crispy_forms_tags %}
 
+{% block css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock %}
+
 {% block main %}
 
 {% load dict_extras %}  <!-- load once at the top -->
@@ -70,6 +74,22 @@
   background: linear-gradient(to bottom, #f9c60a, #d4a500) !important;
   transform: translateY(3px);
   box-shadow: 0 1px 0 #caa600 inset !important;
+}
+
+/* date filter */
+.date-filter-container {
+    display: flex;
+    gap: 2px;
+}
+.date-filter-container .form-control {
+    min-width: 0;
+    flex: 1;
+}
+.date-filter-container .btn {
+    flex-shrink: 0;
+    line-height: 1.2;
+    padding: 1px 4px;
+    font-size: 0.75rem;
 }
 </style>
 
@@ -269,16 +289,32 @@
                     Clear
                   </button>
                 </th>
-                <th><input class="filter-input" placeholder="Date"></th>
-                <th><input class="filter-input" placeholder="Invoice #"></th>
-                <!-- <th><input class="filter-input" placeholder="Customer"></th> -->
                 <th>
-                    <input class="filter-input" placeholder="Customer" list="customer-filter-list">
-                    <datalist id="customer-filter-list">
-                      {% for customer in customers %}
-                        <option value="{{ customer.name }}"></option>
-                      {% endfor %}
-                    </datalist>
+                    <div class="date-filter-container">
+                      <input type="text" id="invoiceDateFilter" class="form-control form-control-sm" placeholder="Date...">
+                      <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary dropdown-toggle py-0" data-bs-toggle="dropdown" title="Quick date filters"><i class="bi bi-clock"></i></button>
+                        <ul class="dropdown-menu">
+                          <li><a class="dropdown-item" href="#" onclick="setInvoiceDateFilterQuick('today');return false;">Today</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setInvoiceDateFilterQuick('thisweek');return false;">This Week</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setInvoiceDateFilterQuick('thismonth');return false;">This Month</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setInvoiceDateFilterQuick('thisyear');return false;">This Year</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item" href="#" onclick="setInvoiceDateFilterQuick('yesterday');return false;">Yesterday</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setInvoiceDateFilterQuick('lastweek');return false;">Last Week</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item" href="#" onclick="setInvoiceDateFilterQuick('lastmonth');return false;">Last Month</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="setInvoiceDateFilterQuick('lastyear');return false;">Last Year</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item text-danger" href="#" onclick="clearInvoiceDateFilter();return false;">Clear</a></li>
+                        </ul>
+                      </div>
+                    </div>
+                </th>
+                <th><input class="filter-input" placeholder="Invoice #"></th>
+                <th>
+                    <input class="filter-input" placeholder="Customer" list="filter_invoice_customer_list">
+                    <datalist id="filter_invoice_customer_list"></datalist>
                 </th>
                 <th><input class="filter-input" placeholder="Weight"></th>
                 <th><input class="filter-input" placeholder="Sub Total"></th>
@@ -1039,26 +1075,161 @@ if (invoiceTable) {
 
   const invoiceTbody = invoiceTable.querySelector('tbody');
 
+  // --- Date filter state ---
+  var invoiceDateFilterState = null; // { from: "YYYY-MM-DD", to: "YYYY-MM-DD" } or null
+
+  function initInvoiceDatePicker() {
+    var input = document.getElementById('invoiceDateFilter');
+    if (!input || input._flatpickr) return;
+    flatpickr(input, {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        onChange: function(selectedDates, dateStr) {
+            if (selectedDates.length === 2) {
+                invoiceDateFilterState = {
+                    from: this.formatDate(selectedDates[0], "Y-m-d"),
+                    to: this.formatDate(selectedDates[1], "Y-m-d")
+                };
+            } else if (selectedDates.length === 1) {
+                var d = this.formatDate(selectedDates[0], "Y-m-d");
+                invoiceDateFilterState = { from: d, to: d };
+            } else {
+                invoiceDateFilterState = null;
+            }
+            applyInvoiceFilters();
+        },
+        onClear: function() {
+            invoiceDateFilterState = null;
+            applyInvoiceFilters();
+        }
+    });
+  }
+
+  function setInvoiceDateFilterQuick(range) {
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = now.getMonth();
+    var d = now.getDate();
+
+    function fmt(date) {
+        return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
+    }
+
+    var from, to;
+    switch (range) {
+        case 'today':
+            from = to = now;
+            break;
+        case 'thisweek': {
+            var dayOfWeek = now.getDay();
+            var diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+            from = new Date(now.getFullYear(), now.getMonth(), diff);
+            to = new Date(from);
+            to.setDate(to.getDate() + 6);
+            break;
+        }
+        case 'thismonth':
+            from = new Date(y, m, 1);
+            to = new Date(y, m + 1, 0);
+            break;
+        case 'thisyear':
+            from = new Date(y, 0, 1);
+            to = new Date(y, 11, 31);
+            break;
+        case 'yesterday':
+            from = to = new Date(y, m, d - 1);
+            break;
+        case 'lastweek': {
+            var dayOfWeek = now.getDay();
+            var diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) - 7;
+            from = new Date(now.getFullYear(), now.getMonth(), diff);
+            to = new Date(from);
+            to.setDate(to.getDate() + 6);
+            break;
+        }
+        case 'lastmonth':
+            from = new Date(y, m - 1, 1);
+            to = new Date(y, m, 0);
+            break;
+        case 'lastyear':
+            from = new Date(y - 1, 0, 1);
+            to = new Date(y - 1, 11, 31);
+            break;
+    }
+
+    invoiceDateFilterState = { from: fmt(from), to: fmt(to) };
+    var fp = document.getElementById('invoiceDateFilter')._flatpickr;
+    if (fp) {
+        fp.setDate([from, to], true);
+    }
+    applyInvoiceFilters();
+  }
+
+  function clearInvoiceDateFilter() {
+    invoiceDateFilterState = null;
+    var fp = document.getElementById('invoiceDateFilter')._flatpickr;
+    if (fp) fp.clear();
+    applyInvoiceFilters();
+  }
+
+  // --- Excel-like AutoFilter for Customer datalist ---
+  function updateInvoiceFilterDatalists() {
+    var dl = document.getElementById('filter_invoice_customer_list');
+    if (!dl) return;
+    var values = [];
+    invoiceTbody.querySelectorAll('tr').forEach(function(row) {
+        if (row.style.display === 'none') return;
+        var cell = row.cells[3]; // Customer column index
+        if (!cell) return;
+        var val = cell.textContent.trim();
+        if (val && values.indexOf(val) === -1) values.push(val);
+    });
+    values.sort(function(a, b) { return a.localeCompare(b); });
+    dl.innerHTML = values.map(function(v) {
+        return '<option value="' + v.replace(/"/g, '&quot;') + '">';
+    }).join('');
+  }
+
   function applyInvoiceFilters() {
-    var filterInputs = document.querySelectorAll('#invoice-filter-row input, #invoice-filter-row select');
+    var filterThs = document.querySelectorAll('#invoice-filter-row th');
     var filters = [];
-    filterInputs.forEach(function(el) {
-      filters.push(el.value ? el.value.toLowerCase() : '');
+    filterThs.forEach(function(th) {
+      var input = th.querySelector('input, select');
+      filters.push(input ? input.value.toLowerCase() : '');
     });
 
     invoiceTbody.querySelectorAll('tr').forEach(function(row) {
       var cells = row.querySelectorAll('td');
       var show = true;
 
+      // filters[0] = Clear button (no input), filters[1] = Date, filters[2] = Invoice #, filters[3] = Customer
       filters.forEach(function(filter, index) {
-        if (!filter) return;
-        if (!cells[index] || !cells[index].textContent.toLowerCase().includes(filter)) {
-          show = false;
+        if (!filter && !(index === 1 && invoiceDateFilterState)) return;
+        if (!cells[index]) { show = false; return; }
+        var cellText = cells[index].textContent.toLowerCase();
+
+        // Date column uses range filtering
+        if (index === 1 && invoiceDateFilterState) {
+            var cellDate = cellText.trim();
+            if (cellDate < invoiceDateFilterState.from || cellDate > invoiceDateFilterState.to) {
+                show = false;
+            }
+            return;
+        }
+
+        var filterInput = filterThs[index].querySelector('input, select');
+        var isSelect = filterInput && filterInput.tagName === 'SELECT';
+        if (isSelect) {
+            if (cellText.trim() !== filter) show = false;
+        } else {
+            if (!cellText.includes(filter)) show = false;
         }
       });
 
       row.style.display = show ? '' : 'none';
     });
+
+    updateInvoiceFilterDatalists();
   }
 
   // attach listeners
@@ -1075,11 +1246,18 @@ if (invoiceTable) {
         .querySelectorAll('#invoice-filter-row input, #invoice-filter-row select')
         .forEach(i => i.value = '');
 
-      applyInvoiceFilters();
+      clearInvoiceDateFilter();
     });
+
+  // Initial setup
+  try { initInvoiceDatePicker(); } catch(e) {}
+  applyInvoiceFilters();
 }
 
 </script>
 
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+{% endblock %}
 
 {% endblock %}
