@@ -334,6 +334,7 @@ tr.row-status-on_hold_processing td {
           <div class="text-center">
             <button type="button" class="btn btn-info me-2" onclick="addToCart()">Add to Cart</button>
             <button type="button" class="btn btn-warning me-2" onclick="submitCart()">Submit Cart</button>
+            <button type="button" class="btn btn-info me-2" onclick="showGSTCalculator()">GST Calculator</button>
             <button type="button" class="btn btn-secondary" onclick="resetSalesForm()">Clear</button>
             <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="viewSalesList()">View</button>
           </div>
@@ -2076,6 +2077,11 @@ resetSalesForm = function() {
     clearPaymentDateFilter();
     sessionStorage.removeItem('salesFilters');
 };
+
+function showGSTCalculator() {
+    const url = `/invoice/invoice_entry/show_gst_calculator`;
+    window.open(url, 'CalculatorPopup', 'width=1000,height=750,top=100,left=200,resizable=yes,scrollbars=yes');
+}
 </script>
 
 {% endblock %}
