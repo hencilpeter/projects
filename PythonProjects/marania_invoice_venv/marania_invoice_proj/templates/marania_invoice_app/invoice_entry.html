@@ -267,6 +267,30 @@
 
     <!-- Invoice List (outside collapse) -->
     <div class="invoice-list mt-4">
+
+    <div id="invoiceSummaryPanel" class="card mb-2 shadow-sm border-primary" style="display:none;">
+      <div class="card-body py-1 px-3">
+        <div class="row g-1 text-center">
+          <div class="col-md-3 col-sm-6 border-end">
+            <div class="small text-muted lh-1">Filtered Invoices</div>
+            <div class="fw-bold lh-1" id="summary-filtered-invoices">0</div>
+          </div>
+          <div class="col-md-3 col-sm-6 border-end">
+            <div class="small text-muted lh-1">Total Weight</div>
+            <div class="fw-bold lh-1" id="summary-total-weight">0.00</div>
+          </div>
+          <div class="col-md-3 col-sm-6 border-end">
+            <div class="small text-muted lh-1">Total Sub Total</div>
+            <div class="fw-bold lh-1" id="summary-total-subtotal">0.00</div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="small text-muted lh-1">Total Invoice Amount</div>
+            <div class="fw-bold lh-1 text-success" id="summary-total-invoice-amount">0.00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
       {% if invoices %}
         <!-- <div class="table-responsive"> -->
           <!-- <table class="table table-striped table-hover table-bordered table-sm align-middle"> -->
@@ -1068,6 +1092,19 @@ row.querySelector('.item-spec').addEventListener('blur', function () {
     document.getElementById("grand-total").innerText = (subTotal + totalGST + Number(round_off)).toFixed(2);
 }
 
+// Indian number format
+function indianFormat(num) {
+    var s = Math.abs(num).toFixed(2);
+    var parts = s.split('.');
+    var intPart = parts[0];
+    var decPart = parts[1];
+    var lastThree = intPart.substring(intPart.length - 3);
+    var otherNumbers = intPart.substring(0, intPart.length - 3);
+    if (otherNumbers !== '') lastThree = ',' + lastThree;
+    var formatted = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + lastThree;
+    return (num < 0 ? '-' : '') + formatted + '.' + decPart;
+}
+
 // ===== Invoice Table Filters =====
 const invoiceTable = document.getElementById('invoice-table');
 
@@ -1190,6 +1227,45 @@ if (invoiceTable) {
     }).join('');
   }
 
+  // --- Invoice Summary Banner ---
+  function updateInvoiceSummary() {
+    var panel = document.getElementById('invoiceSummaryPanel');
+    if (!panel) return;
+
+    var table = document.getElementById('invoice-table');
+    if (!table) { panel.style.display = 'none'; return; }
+
+    var tbody = table.querySelector('tbody');
+    if (!tbody) { panel.style.display = 'none'; return; }
+
+    var filteredCount = 0;
+    var totalWeight = 0;
+    var totalSubTotal = 0;
+    var totalInvoiceAmount = 0;
+
+    tbody.querySelectorAll('tr').forEach(function(row) {
+        if (row.style.display === 'none') return;
+        var cells = row.querySelectorAll('td');
+        if (cells.length < 7) return;
+        filteredCount++;
+
+        var weight = parseFloat(cells[4].textContent.trim()) || 0;
+        var subTotal = parseFloat(cells[5].textContent.trim()) || 0;
+        var invoiceAmount = parseFloat(cells[6].textContent.trim()) || 0;
+
+        totalWeight += weight;
+        totalSubTotal += subTotal;
+        totalInvoiceAmount += invoiceAmount;
+    });
+
+    document.getElementById('summary-filtered-invoices').textContent = filteredCount;
+    document.getElementById('summary-total-weight').textContent = totalWeight.toFixed(2);
+    document.getElementById('summary-total-subtotal').textContent = indianFormat(totalSubTotal);
+    document.getElementById('summary-total-invoice-amount').textContent = indianFormat(totalInvoiceAmount);
+
+    panel.style.display = filteredCount > 0 ? '' : 'none';
+  }
+
   function applyInvoiceFilters() {
     var filterThs = document.querySelectorAll('#invoice-filter-row th');
     var filters = [];
@@ -1230,6 +1306,7 @@ if (invoiceTable) {
     });
 
     updateInvoiceFilterDatalists();
+    updateInvoiceSummary();
   }
 
   // attach listeners
