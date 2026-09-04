@@ -1327,7 +1327,6 @@ if (invoiceTable) {
     });
 
   // Initial setup
-  try { initInvoiceDatePicker(); } catch(e) {}
   applyInvoiceFilters();
 }
 
@@ -1335,6 +1334,11 @@ if (invoiceTable) {
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+window.addEventListener('load', function() {
+    try { initInvoiceDatePicker(); } catch(e) {}
+});
+</script>
 {% endblock %}
 
 {% endblock %}
