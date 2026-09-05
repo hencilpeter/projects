@@ -1943,6 +1943,7 @@ def import_view(request):
 def backup_import_all(request):
     """
     Import all data from uploaded ZIP file containing per-table JSON or CSV files.
+    Respects FK dependencies via IMPORT_ORDER and resolves FK references.
     """
     if request.method == "POST" and request.FILES.get("backup_zip"):
         backup_file = request.FILES["backup_zip"]
@@ -1960,34 +1961,189 @@ def backup_import_all(request):
         with ZipFile(temp_zip_path, "r") as zip_ref:
             zip_ref.extractall(temp_extract_path)
 
-        # Iterate over files and import data
+        # Build a map of model_name -> file_path from extracted files
+        file_map = {}
         for file_name in os.listdir(temp_extract_path):
-            file_path = os.path.join(temp_extract_path, file_name)
             model_name, ext = os.path.splitext(file_name)
-            ext = ext.lower()
+            if ext.lower() in (".json", ".csv"):
+                file_map[model_name] = os.path.join(temp_extract_path, file_name)
+
+        # Auto-detect import order: use IMPORT_ORDER for known models, append unknowns at end
+        from .serializers import IMPORT_ORDER, MODEL_REGISTRY
+        ordered_models = []
+        for name in IMPORT_ORDER:
+            if name in file_map:
+                ordered_models.append(name)
+        # Append any models in file_map not in IMPORT_ORDER (unknown/new models)
+        for name in file_map:
+            if name not in ordered_models:
+                ordered_models.append(name)
+
+        imported_count = 0
+        skipped_count = 0
+        errors = []
+
+        for model_name in ordered_models:
+            if model_name not in file_map:
+                continue
+            file_path = file_map[model_name]
 
             try:
                 model = apps.get_model('marania_invoice_app', model_name)
             except LookupError:
-                continue  # skip unknown models
+                skipped_count += 1
+                continue
 
-            with transaction.atomic():
-                # Optional: clear existing data
-                model.objects.all().delete()
+            ext = os.path.splitext(file_path)[1].lower()
 
-                if ext == ".json":
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        rows = json.load(f)
-                        for row in rows:
-                            model.objects.create(**row)
+            try:
+                with transaction.atomic():
+                    # Read all rows first
+                    if ext == ".json":
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            rows = json.load(f)
+                    elif ext == ".csv":
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            reader = csv.DictReader(f)
+                            rows = list(reader)
+                    else:
+                        continue
 
-                elif ext == ".csv":
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        reader = csv.DictReader(f)
-                        for row in reader:
-                            # Convert empty strings to None
-                            row = {k: (v if v != "" else None) for k, v in row.items()}
-                            model.objects.create(**row)
+                    # Skip empty files (but still clear existing data)
+                    if not rows:
+                        model.objects.all().delete()
+                        imported_count += 1
+                        continue
+
+                    # Get model field info for FK resolution and type conversion
+                    fk_fields = {}
+                    date_fields = set()
+                    decimal_fields = set()
+                    boolean_fields = set()
+                    integer_fields = set()
+                    auto_fields = {"id", "created_at", "updated_at", "pk"}
+
+                    for field in model._meta.fields:
+                        if isinstance(field, ForeignKey):
+                            fk_fields[field.name] = field
+                        elif isinstance(field, models.DateField) and not isinstance(field, models.DateTimeField):
+                            date_fields.add(field.name)
+                        elif isinstance(field, models.DecimalField):
+                            decimal_fields.add(field.name)
+                        elif isinstance(field, models.BooleanField):
+                            boolean_fields.add(field.name)
+                        elif isinstance(field, (models.IntegerField, models.AutoField)):
+                            integer_fields.add(field.name)
+
+                    # Clear existing data
+                    model.objects.all().delete()
+
+                    for row in rows:
+                        clean = {}
+                        skip_record = False
+                        for key, value in row.items():
+                            key = key.strip() if isinstance(key, str) else key
+
+                            # Skip auto-generated fields
+                            if key in auto_fields:
+                                continue
+
+                            # Handle empty values
+                            if value in ("", None, "None", "null"):
+                                clean[key] = None
+                                continue
+
+                            # FK resolution
+                            if key in fk_fields:
+                                fk = fk_fields[key]
+                                rel_model = fk.remote_field.model
+                                rel_field = fk.target_field.name
+                                field_nullable = fk.null
+
+                                # Skip FK fields that reference models not in our app (e.g., auth.User)
+                                try:
+                                    apps.get_model(rel_model._meta.app_label, rel_model.__name__)
+                                except LookupError:
+                                    if field_nullable:
+                                        clean[key] = None
+                                    else:
+                                        skip_record = True
+                                    continue
+
+                                if rel_field == "id":
+                                    # For PK-based FKs, try to lookup by ID
+                                    try:
+                                        clean[key] = rel_model.objects.get(pk=value)
+                                    except (rel_model.DoesNotExist, ValueError, TypeError):
+                                        if field_nullable:
+                                            clean[key] = None
+                                        else:
+                                            skip_record = True
+                                else:
+                                    # For code-based FKs, lookup by the target field
+                                    lookup_value = str(value).strip()
+                                    if lookup_value:
+                                        try:
+                                            clean[key] = rel_model.objects.get(**{rel_field: lookup_value})
+                                        except rel_model.DoesNotExist:
+                                            if field_nullable:
+                                                clean[key] = None
+                                            else:
+                                                skip_record = True
+                                    else:
+                                        if field_nullable:
+                                            clean[key] = None
+                                        else:
+                                            skip_record = True
+                                if skip_record:
+                                    break
+                                continue
+
+                            # Date conversion
+                            if key in date_fields and isinstance(value, str) and value:
+                                try:
+                                    if "/" in value:
+                                        clean[key] = datetime.strptime(value, "%m/%d/%Y").date()
+                                    else:
+                                        clean[key] = datetime.strptime(value, "%Y-%m-%d").date()
+                                except ValueError:
+                                    clean[key] = None
+                                continue
+
+                            # Decimal conversion
+                            if key in decimal_fields:
+                                try:
+                                    clean[key] = Decimal(str(value))
+                                except (ValueError, TypeError, decimal.InvalidOperation):
+                                    clean[key] = Decimal('0')
+                                continue
+
+                            # Boolean conversion
+                            if key in boolean_fields:
+                                clean[key] = str(value).upper() in ("TRUE", "1", "YES", "True")
+                                continue
+
+                            # Integer conversion
+                            if key in integer_fields:
+                                try:
+                                    clean[key] = int(value)
+                                except (ValueError, TypeError):
+                                    clean[key] = 0
+                                continue
+
+                            # String/other fields - keep as-is
+                            clean[key] = value
+
+                        # Skip record if required FK couldn't be resolved
+                        if skip_record:
+                            continue
+
+                        model.objects.create(**clean)
+
+                    imported_count += 1
+
+            except Exception as e:
+                errors.append(f"{model_name}: {str(e)}")
 
         # Cleanup
         os.remove(temp_zip_path)
@@ -1995,10 +2151,28 @@ def backup_import_all(request):
             for file in files:
                 os.remove(os.path.join(root, file))
             for dir in dirs:
-                os.rmdir(os.path.join(root, dir))
-        os.rmdir(temp_extract_path)
+                os.rmdir(dir)
+        try:
+            os.rmdir(temp_extract_path)
+        except OSError:
+            pass
 
-        messages.success(request, "Import All completed successfully.")
+        # Reclaim database space after bulk delete+insert
+        try:
+            from django.db import connection
+            with connection.cursor() as cursor:
+                cursor.execute("VACUUM")
+        except Exception:
+            pass  # VACUUM may not be supported in all DB backends
+
+        if errors:
+            error_msg = f"Imported {imported_count} models. Errors: {'; '.join(errors[:5])}"
+            if len(errors) > 5:
+                error_msg += f" ... and {len(errors) - 5} more"
+            messages.warning(request, error_msg)
+        else:
+            messages.success(request, f"Import All completed successfully. {imported_count} models imported. Database space reclaimed.")
+
         return redirect('dashboard')
 
     return render(request, 'marania_invoice_app/backup_import_all.html')
@@ -2008,6 +2182,7 @@ def backup_export_all(request):
     """
     Export all models in 'marania_invoice_app' as separate JSON or CSV files
     inside a timestamped folder, then compress to a ZIP for download.
+    FK fields are exported as their target field values (e.g., code) for portability.
     """
     export_format = request.GET.get('format')
 
@@ -2028,7 +2203,46 @@ def backup_export_all(request):
         filename = f"{model_name}.{export_format}"
         file_path = os.path.join(backup_folder_path, filename)
 
-        rows = list(model.objects.all().values())
+        # Get FK field mappings for export
+        fk_fields = {}
+        for field in model._meta.fields:
+            if isinstance(field, ForeignKey) and field.remote_field:
+                rel_model = field.remote_field.model
+                rel_field_name = field.target_field.name
+                # Skip if target is 'id' (not portable) - use the first unique field instead
+                if rel_field_name == 'id':
+                    for rel_f in rel_model._meta.fields:
+                        if hasattr(rel_f, 'unique') and rel_f.unique and rel_f.name != 'id':
+                            rel_field_name = rel_f.name
+                            break
+                fk_fields[field.name] = (rel_model, rel_field_name)
+
+        # Get all field names
+        fields = [f.name for f in model._meta.fields]
+
+        rows = []
+        for obj in model.objects.all():
+            row = {}
+            for f_name in fields:
+                # For FK fields, use _id to get raw value without triggering DB lookup
+                if f_name in fk_fields:
+                    raw_value = getattr(obj, f_name + '_id', None)
+                    if raw_value is None:
+                        row[f_name] = None
+                        continue
+                    # Try to resolve to target field value for portability
+                    rel_model, rel_field_name = fk_fields[f_name]
+                    try:
+                        related_obj = rel_model.objects.get(pk=raw_value)
+                        row[f_name] = getattr(related_obj, rel_field_name, raw_value)
+                    except (rel_model.DoesNotExist, Exception):
+                        # If related object doesn't exist, export raw value
+                        row[f_name] = raw_value
+                else:
+                    value = getattr(obj, f_name)
+                    row[f_name] = value
+            rows.append(row)
+
         if export_format == "json":
             with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(rows, f, indent=2, default=str)
@@ -2049,7 +2263,7 @@ def backup_export_all(request):
             for file in files:
                 zipf.write(os.path.join(root, file), arcname=file)
 
-    # Optional: remove the folder after zipping
+    # Cleanup the folder after zipping
     for root, dirs, files in os.walk(backup_folder_path, topdown=False):
         for file in files:
             os.remove(os.path.join(root, file))
