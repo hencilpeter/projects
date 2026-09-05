@@ -441,17 +441,13 @@ def number_to_words(num):
 
 def invoice_summary():
     invoice_items = InvoiceItem.objects.select_related('invoice').all()
-    # invoice_items = (
-    #                     InvoiceItem.objects.select_related('invoice')
-    #                                        .order_by('-invoice__invoice_date', '-invoice__invoice_number')
-    #         )
 
     invoice_summary = {}
 
     for invoice_item in invoice_items:
         invoice_number = invoice_item.invoice.invoice_number
         item_subtotal = Decimal(invoice_item.item_quantity * invoice_item.item_price).quantize(Decimal("0.00"))
-        item_amount = Decimal(item_subtotal * (Decimal(1.05))).quantize(Decimal("0.00"))
+        gross_total = invoice_item.invoice.gross_total
 
         if invoice_number not in invoice_summary:
             invoice_summary[invoice_number] = {
@@ -459,13 +455,12 @@ def invoice_summary():
                 'customer': invoice_item.invoice.customer_name,
                 'weight': invoice_item.item_quantity,
                 'sub_total': item_subtotal,
-                'invoice_amount': item_amount
+                'invoice_amount': gross_total
             }
         else:
             summary = invoice_summary[invoice_number]
             summary['weight'] += invoice_item.item_quantity
             summary['sub_total'] += item_subtotal
-            summary['invoice_amount'] += item_amount
     return invoice_summary
 
 #################################
@@ -3012,8 +3007,9 @@ def submit_invoice_from_spec(request):
                 # Calculate totals
                 total_gst = subtotal * (Decimal(str(gst_rate)) / Decimal('100'))
                 gross_total = subtotal + total_gst
-                round_off = (gross_total * 100).quantize(Decimal('1'), rounding=ROUND_HALF_UP) / 100 - gross_total
-                gross_total = gross_total + round_off
+                rounded_total = gross_total.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+                round_off = rounded_total - gross_total
+                gross_total = rounded_total
 
                 # Update invoice with totals
                 invoice.quantity_total = total_quantity
