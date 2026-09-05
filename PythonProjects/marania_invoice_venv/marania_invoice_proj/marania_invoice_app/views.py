@@ -938,6 +938,8 @@ def update_expense_payment_status(expense):
         expense.payment_status = 'Partially Paid'
     else:
         expense.payment_status = 'Pending'
+    expense.balance_amount = balance
+    expense.save(update_fields=['payment_status', 'balance_amount'])
 
 def update_settlement_invoice_status(si):
     """Recalculate status for a settlement invoice based on allocations vs amount."""
@@ -952,8 +954,6 @@ def update_settlement_invoice_status(si):
     else:
         si.status = 'Pending'
     si.save(update_fields=['status'])
-    expense.balance_amount = balance
-    expense.save(update_fields=['payment_status', 'balance_amount'])
 
 def decimal_to_str(value):
     return format(Decimal(str(value)).normalize(), 'f')
