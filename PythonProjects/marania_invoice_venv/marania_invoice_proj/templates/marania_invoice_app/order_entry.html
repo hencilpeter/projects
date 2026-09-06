@@ -176,7 +176,7 @@
               </div>
             </div>
             <div class="col-md-2">
-              <select name="status" id="status" class="form-control form-control-sm">
+              <select name="status" id="status" class="form-control form-control-sm" onchange="updateLastStatusDate()">
                 <option value="Ordered">Ordered</option>
                 <option value="ProductionQueue">Production Queue</option>
                 <option value="InProduction">In Production</option>
@@ -539,7 +539,10 @@ function setFormData(data) {
     document.getElementById('order_sequence').value = data.order_sequence || data.order_key || '';
     document.getElementById('order_number').value = data.order_number || '';
     document.getElementById('order_date').value = data.order_date || '{% now "Y-m-d" %}';
-    document.getElementById('last_status_date').value = data.last_status_date || '';
+    const lastStatusDateInput = document.getElementById('last_status_date');
+    lastStatusDateInput.value = data.last_status_date ? data.last_status_date : '';
+    lastStatusDateInput.disabled = false;
+    lastStatusDateInput.disabled = true;
     document.getElementById('customer').value = data.customer || '';
     document.getElementById('twine').value = data.twine || '';
     renderSpecRows(data.specifications);
@@ -551,6 +554,8 @@ function setFormData(data) {
     document.getElementById('status').value = data.status || 'Ordered';
     document.getElementById('order_instructions').value = data.order_instructions || '';
     document.getElementById('comments').value = data.comments || '';
+
+    updateLastStatusDate();
 
     const collapseEl = document.getElementById("orderForm");
     const bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, {toggle: false});
@@ -587,6 +592,15 @@ function previewOrderNumber() {
     const orderSeq = document.getElementById('order_sequence').value;
     if (twine && orderSeq) {
         document.getElementById('order_number').value = twine + '-' + orderSeq;
+    }
+}
+
+function updateLastStatusDate() {
+    const statusSelect = document.getElementById('status');
+    const lastStatusDate = document.getElementById('last_status_date');
+    const today = new Date().toISOString().split('T')[0];
+    if (statusSelect.value) {
+        lastStatusDate.value = today;
     }
 }
 
