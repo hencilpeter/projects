@@ -102,8 +102,11 @@
             <div class="col-md-2">
               <input type="date" name="order_date" id="order_date" class="form-control form-control-sm" value="{% now 'Y-m-d' %}">
             </div>
-            <div class="col-md-2">
-              <input type="date" name="last_status_date" id="last_status_date" class="form-control form-control-sm bg-light" readonly placeholder="Status Upd Date" value="{% now 'Y-m-d' %}">
+            <div class="col-md-2 d-flex align-items-center">
+              <div class="form-check">
+                <input type="checkbox" name="is_new_order" id="is_new_order" class="form-check-input" checked onchange="if(this.checked) document.getElementById('status').value='Ordered';">
+                <label class="form-check-label" for="is_new_order">New Order</label>
+              </div>
             </div>
             <div class="col-md-2">
               <input type="text" name="twine" id="twine" class="form-control form-control-sm" placeholder="Twine (Product Code)" list="twine_list">
@@ -187,11 +190,8 @@
                 <option value="Rejected">Rejected</option>
               </select>
             </div>
-            <div class="col-md-2 d-flex align-items-center">
-              <div class="form-check">
-                <input type="checkbox" name="is_new_order" id="is_new_order" class="form-check-input" checked onchange="if(this.checked) document.getElementById('status').value='Ordered';">
-                <label class="form-check-label" for="is_new_order">New Order</label>
-              </div>
+            <div class="col-md-2">
+              <input type="date" name="last_status_date" id="last_status_date" class="form-control form-control-sm bg-light" readonly placeholder="Status Upd Date" value="{% now 'Y-m-d' %}">
             </div>
           </div>
 
