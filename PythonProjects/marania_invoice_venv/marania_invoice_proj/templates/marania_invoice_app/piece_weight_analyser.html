@@ -398,7 +398,7 @@ document.getElementById("add-group-btn").addEventListener("click", () => {
     <div class="group-net-sel-container"></div>
   `;
   groupsContainer.appendChild(groupEl);
-  feather.replace();
+  try { feather.replace(); } catch(e) { console.warn('feather.replace failed:', e); }
 });
 
 /* Add Net to group (delegated) */
@@ -848,7 +848,7 @@ document.addEventListener("click", e => {
         }
       });
     }
-    feather.replace();
+    try { feather.replace(); } catch(e) { console.warn('feather.replace failed:', e); }
 
     /* Open the form */
     const collapseEl = document.getElementById("pwaForm");
