@@ -4481,6 +4481,7 @@ def profit_loss_entry(request):
                     expense_date__gte=sales_start,
                     expense_date__lt=sales_end,
                     expense_category__in=non_salary_categories,
+                    bill_to='Company',
                 )
                 other_expenses = other_qs.aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
 
@@ -4638,6 +4639,7 @@ def get_other_expenses_breakdown(request):
         expense_date__gte=start,
         expense_date__lt=end,
         expense_category__in=non_salary_categories,
+        bill_to='Company',
     ).order_by('expense_category', 'expense_date')
 
     breakdown = []
