@@ -2613,7 +2613,7 @@ def order_entry(request):
     orders_data = list(orders.values(
         'order_key', 'order_sequence', 'order_number', 'order_date', 'customer',
         'twine', 'quantity', 'quantity_unit', 'unit_price', 'is_gst_included',
-        'status', 'order_instructions', 'comments',
+        'status', 'last_status_date', 'order_instructions', 'comments',
     ))
     
     # Ensure order_number is included in the context for templates
