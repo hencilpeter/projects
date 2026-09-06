@@ -269,7 +269,7 @@ function autoPopulateValues() {
 
     console.log('Auto-populating: monthYear=' + monthYear + ', twine=' + twine + ', materialCode=' + materialCode);
 
-    fetch('/invoice/get-twine-inventory-data/?month_year=' + monthYear + '&material_code=' + materialCode)
+    fetch('/invoice/get-twine-inventory-data/?month_year=' + monthYear + '&material_code=' + materialCode + '&twine=' + encodeURIComponent(twine))
         .then(response => response.json())
         .then(data => {
             console.log('Response data:', data);

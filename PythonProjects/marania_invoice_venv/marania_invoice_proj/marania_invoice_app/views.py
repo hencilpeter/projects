@@ -4870,6 +4870,7 @@ def get_twine_inventory_data(request):
 
     month_year = request.GET.get("month_year", "")
     material_code = request.GET.get("material_code", "")
+    twine_value = request.GET.get("twine", "")
 
     stock_in = Decimal("0")
     sales_out = Decimal("0")
@@ -5010,7 +5011,11 @@ def get_twine_inventory_data(request):
         prev_inventory = TwineInventory.objects.filter(
             year=prev_year,
             month=prev_month,
-            twine__icontains=material_code
+            twine=twine_value
+        ).first() if twine_value else TwineInventory.objects.filter(
+            year=prev_year,
+            month=prev_month,
+            twine__iexact=material_code
         ).first()
         
         daily_usage_prev = Decimal("0")
@@ -5110,16 +5115,8 @@ def refresh_twine_inventory(request):
                 elif sale.initial_weight:
                     sales_out += sale.initial_weight
 
-        prev_month = month - 1
-        prev_year = year
-        if prev_month == 0:
-            prev_month = 12
-            prev_year = year - 1
-        prev_inventory = TwineInventory.objects.filter(
-            year=prev_year, month=prev_month, twine__icontains=material_code
-        ).first()
-        opening_stock = prev_inventory.balance if prev_inventory else (entry.opening_stock or Decimal("0"))
-        daily_usage = prev_inventory.daily_usage if prev_inventory else (entry.daily_usage or Decimal("0"))
+        opening_stock = entry.opening_stock or Decimal("0")
+        daily_usage = entry.daily_usage or Decimal("0")
 
         balance = opening_stock + stock_in - sales_out - (entry.waste_used or Decimal("0"))
 
@@ -5132,7 +5129,6 @@ def refresh_twine_inventory(request):
             est_stock_out_date = est_date.strftime("%Y-%m-%d")
 
         TwineInventory.objects.filter(ti_key=entry.ti_key).update(
-            opening_stock=opening_stock,
             stock_in=stock_in,
             sales_out=sales_out,
             balance=balance,
