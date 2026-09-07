@@ -394,13 +394,12 @@ tr.row-status-on_hold_processing td {
               <col style="width:220px">
               <col style="width:65px">
               <col style="width:240px">
-              <col style="width:65px">
-              <col style="width:65px">
-              <col style="width:65px">
-              <col style="width:65px">
               <col style="width:70px">
-              <col style="width:60px">
               <col style="width:65px">
+              <col style="width:65px">
+              <col style="width:65px">
+              <col style="width:65px">
+              <col style="width:60px">
               <col style="width:90px">
               <col style="width:90px">
             </colgroup>
@@ -415,13 +414,13 @@ tr.row-status-on_hold_processing td {
                 <th scope="col">Customer</th>
                 <th scope="col">Twine</th>
                 <th scope="col" class="col-spec">Specification</th>
+                <th scope="col" class="col-narrow">Unit Price</th>
+                <th scope="col" class="col-narrow">Total Amt</th>
                 <th scope="col">Colour</th>
                 <th scope="col" class="col-narrow">Piece Ct</th>
                 <th scope="col" class="col-narrow">Init Wt</th>
                 <th scope="col" class="col-narrow">Proc Wt</th>
-                <th scope="col" class="col-narrow">Unit Price</th>
                 <th scope="col" class="col-narrow">GST Rate</th>
-                <th scope="col" class="col-narrow">Total Amt</th>
                   <th scope="col">Delivery Date</th>
                   <th scope="col">Payment Date</th>
                   <th scope="col">Expense Date</th>
@@ -472,13 +471,13 @@ tr.row-status-on_hold_processing td {
                 <th><input class="filter-input" placeholder="Customer" list="filter_customer_list"></th>
                 <th><input class="filter-input" placeholder="Twine" list="filter_twine_list"></th>
                 <th><input class="filter-input" placeholder="Spec"></th>
+                <th><input class="filter-input" placeholder="U Price"></th>
+                <th><input class="filter-input" placeholder="Total"></th>
                 <th><input class="filter-input" placeholder="Colour"></th>
                 <th><input class="filter-input" placeholder="Piece Ct"></th>
                 <th><input class="filter-input" placeholder="Init Wt"></th>
                 <th><input class="filter-input" placeholder="Proc Wt"></th>
-                <th><input class="filter-input" placeholder="U Price"></th>
                 <th><input class="filter-input" placeholder="GST Rate"></th>
-                <th><input class="filter-input" placeholder="Total"></th>
                   <th>
                     <div class="date-filter-container">
                       <input type="text" id="deliveryDateFilter" class="form-control form-control-sm" placeholder="Delivery date...">
@@ -565,13 +564,13 @@ tr.row-status-on_hold_processing td {
                   <td>{{ sale.customer }}</td>
                   <td>{{ sale.twine }}</td>
                   <td>{{ sale.speification }}{% if sale.piece_weight %}-PW({{ sale.piece_weight }}){% endif %}</td>
+                  <td>{{ sale.unit_price|default:"" }}</td>
+                  <td>{{ sale.total_amount|default:"" }}</td>
                   <td>{{ sale.colour }}</td>
                   <td>{{ sale.piece_count|default:"" }}</td>
                   <td>{{ sale.initial_weight|default:"" }}</td>
                   <td>{{ sale.processed_weight|default:"" }}</td>
-                  <td>{{ sale.unit_price|default:"" }}</td>
                   <td>{{ sale.gst_rate|default:"" }}</td>
-                  <td>{{ sale.total_amount|default:"" }}</td>
                   <td>{{ sale.delivery_date|default:""|date:"Y-m-d" }}</td>
                   <td>{{ sale.payment_date|default:""|date:"Y-m-d" }}</td>
                 </tr>
