@@ -4485,7 +4485,28 @@ def profit_loss_entry(request):
                 )
                 other_expenses = other_qs.aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
 
-                inhouse_material_value = purchase_expense
+                # Calculate in-house material value from twine stock balance × latest purchase price + GST
+                twine_stock_items = TwineInventory.objects.filter(month=month, year=year)
+                inhouse_material_value = Decimal("0")
+                for stock_item in twine_stock_items:
+                    stock_qty = stock_item.balance or Decimal("0")
+                    if stock_qty <= 0:
+                        continue
+                    # Extract material_code from twine field (e.g., "20JINETS-something" -> "20JINETS")
+                    material_code = (stock_item.twine or "").split("-")[0].strip()
+                    if not material_code:
+                        continue
+                    # Get latest purchase price for this twine
+                    latest_purchase = Purchase.objects.filter(
+                        material_code=material_code,
+                        is_twine=True
+                    ).order_by("-delivery_date", "-purchase_key").first()
+                    if latest_purchase and latest_purchase.unit_price is not None:
+                        unit_price = latest_purchase.unit_price
+                        gst_percent = latest_purchase.gst_percent or Decimal("0")
+                        # Material Value = Stock Qty × [Unit Price + (Unit Price × GST Rate / 100)]
+                        material_value = stock_qty * (unit_price + (unit_price * gst_percent / Decimal("100")))
+                        inhouse_material_value += material_value
 
             pl_json = json.dumps([{
                 "pl_key": "",
@@ -4655,6 +4676,49 @@ def get_other_expenses_breakdown(request):
             "payment_method": exp.payment_method or "",
             "payment_status": exp.payment_status or "",
         })
+
+    return JsonResponse({"success": True, "data": breakdown})
+
+
+def get_material_value_breakdown(request):
+    from datetime import datetime
+    from decimal import Decimal
+    from django.http import JsonResponse
+
+    month_year = request.GET.get("month_year", "")
+    try:
+        parts = month_year.split("-")
+        year = int(parts[0])
+        month = int(parts[1])
+    except (ValueError, IndexError, TypeError):
+        return JsonResponse({"success": False, "error": "Invalid month format"})
+
+    twine_stock_items = TwineInventory.objects.filter(month=month, year=year)
+    breakdown = []
+    for stock_item in twine_stock_items:
+        stock_qty = stock_item.balance or Decimal("0")
+        if stock_qty <= 0:
+            continue
+        # Extract material_code from twine field
+        material_code = (stock_item.twine or "").split("-")[0].strip()
+        if not material_code:
+            continue
+        # Get latest purchase price for this twine
+        latest_purchase = Purchase.objects.filter(
+            material_code=material_code,
+            is_twine=True
+        ).order_by("-delivery_date", "-purchase_key").first()
+        if latest_purchase and latest_purchase.unit_price is not None:
+            unit_price = latest_purchase.unit_price
+            gst_percent = latest_purchase.gst_percent or Decimal("0")
+            material_value = stock_qty * (unit_price + (unit_price * gst_percent / Decimal("100")))
+            breakdown.append({
+                "twine": stock_item.twine or "",
+                "stock_qty": str(stock_qty),
+                "unit_price": str(unit_price),
+                "gst_rate": str(gst_percent),
+                "material_value": str(material_value.quantize(Decimal("0.01"))),
+            })
 
     return JsonResponse({"success": True, "data": breakdown})
 
