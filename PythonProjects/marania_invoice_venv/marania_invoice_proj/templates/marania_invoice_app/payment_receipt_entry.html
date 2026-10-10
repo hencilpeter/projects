@@ -345,7 +345,11 @@ function updateOutstandingBalance() {
     var code = customerVal.split('-')[0].trim();
     var bal = customerBalance[code];
     if (bal !== undefined) {
-        el.textContent = 'Outstanding: ' + Math.abs(bal).toFixed(2);
+        if (bal < 0) {
+            el.textContent = 'Credit Balance: ' + Math.abs(bal).toFixed(2);
+        } else {
+            el.textContent = 'Outstanding: ' + bal.toFixed(2);
+        }
     } else {
         el.textContent = 'Outstanding: 0.00';
     }

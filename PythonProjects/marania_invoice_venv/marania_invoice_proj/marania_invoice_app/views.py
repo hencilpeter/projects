@@ -3419,51 +3419,63 @@ def payment_receipt_entry(request):
             'display_comment': r.display_comment or '',
         })
 
-    # Compute outstanding balance per customer
+    # Compute outstanding balance per customer.
+    # NOTE: This must stay synchronized with outstanding_payment_list_view
+    # and payment_allocation_entry's balance_history: per-document netting
+    # with each line floored at 0, and Credit opening balances subtracted.
     from django.db.models import Sum, Q
     customer_balance = {}
     for p in parties:
         code = p.code
 
-        # Opening balance: Dr amounts - Cr amounts, minus allocations against OBs
-        ob_dr = OpeningBalance.objects.filter(customer__code=code, balance_type='Debit').aggregate(total=Sum('amount'))['total'] or 0
-        ob_cr = OpeningBalance.objects.filter(customer__code=code, balance_type='Credit').aggregate(total=Sum('amount'))['total'] or 0
-        ob_alloc = PaymentAllocation.objects.filter(
-            opening_balance__customer__code=code
-        ).aggregate(total=Sum('allocated_amount'))['total'] or 0
-        ob_net = float(ob_dr) - float(ob_cr) - float(ob_alloc)
+        # Opening balances: per-document (amount - allocations), floored at 0.
+        # Dr adds, Cr subtracts. This also tolerates legacy rows whose
+        # amount was zeroed on full allocation (balance goes negative -> 0).
+        ob_net = 0.0
+        for ob in OpeningBalance.objects.filter(customer__code=code):
+            ob_alloc = PaymentAllocation.objects.filter(
+                opening_balance=ob
+            ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+            ob_bal = float(ob.amount) - float(ob_alloc)
+            if ob_bal > 0:
+                if ob.balance_type == 'Credit':
+                    ob_net -= ob_bal
+                else:
+                    ob_net += ob_bal
 
-        # Invoices: gross_total minus allocations against invoices
-        inv_total = Invoice.objects.filter(customer_code=code).aggregate(
-            total=Sum('gross_total'))['total'] or 0
-        inv_alloc = PaymentAllocation.objects.filter(
-            invoice__customer_code=code
-        ).aggregate(total=Sum('allocated_amount'))['total'] or 0
-        inv_net = float(inv_total) - float(inv_alloc)
+        # Invoices: per-invoice (gross_total - allocations), floored at 0
+        inv_net = 0.0
+        for inv in Invoice.objects.filter(customer_code=code):
+            inv_alloc = PaymentAllocation.objects.filter(
+                invoice=inv
+            ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+            inv_bal = float(inv.gross_total) - float(inv_alloc)
+            if inv_bal > 0:
+                inv_net += inv_bal
 
-        # Expenses billed to customer: expense_amount minus allocations
-        exp_total = 0
-        exp_alloc = 0
+        # Expenses billed to customer: per-expense, floored at 0
+        exp_net = 0.0
         for exp in Expense.objects.filter(bill_to='Customer'):
             vendor = exp.vendor or ''
             if vendor and vendor != 'Not Applicable':
                 exp_code = vendor.split('-')[0].strip()
                 if exp_code == code:
-                    exp_total += float(exp.expense_amount)
-                    exp_alloc += float(PaymentAllocation.objects.filter(
+                    exp_alloc = PaymentAllocation.objects.filter(
                         expense=exp
-                    ).aggregate(total=Sum('allocated_amount'))['total'] or 0)
-        exp_net = exp_total - exp_alloc
+                    ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+                    exp_bal = float(exp.expense_amount) - float(exp_alloc)
+                    if exp_bal > 0:
+                        exp_net += exp_bal
 
-        # Settlement invoices: amount minus allocations
-        si_total = 0
-        si_alloc = 0
+        # Settlement invoices: per-document, floored at 0
+        si_net = 0.0
         for si in SettlementInvoice.objects.filter(customer__code=code):
-            si_total += float(si.amount)
-            si_alloc += float(PaymentAllocation.objects.filter(
+            si_alloc = PaymentAllocation.objects.filter(
                 settlement_invoice=si
-            ).aggregate(total=Sum('allocated_amount'))['total'] or 0)
-        si_net = si_total - si_alloc
+            ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+            si_bal = float(si.amount) - float(si_alloc)
+            if si_bal > 0:
+                si_net += si_bal
 
         # Unallocated payment receipts (payments + adjustments not yet applied)
         unalloc_payments = 0
