@@ -31,6 +31,13 @@
     margin-bottom: 2px;
 }
 
+#ti-filter-year,
+#ti-filter-month {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+}
+
 .btn-3d-yellow {
   background: linear-gradient(to bottom, #ffeb3b, #f9c60a) !important;
   color: #212529 !important;
@@ -62,7 +69,15 @@
     <h2 class="mb-4">Twine Inventory</h2>
 
     <div class="card shadow-sm p-3 mb-4" id="inventory-summary-banner">
-      <h6 class="mb-2">Monthly Summary — {{ summary_year }}-{{ summary_month|stringformat:"02d" }}</h6>
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <h6 class="mb-0" id="inventory-summary-heading">Monthly Summary — {{ summary_year }}-{{ summary_month|stringformat:"02d" }}</h6>
+        <label for="summary-period-select" class="form-label mb-0 ms-2" style="font-size:0.75rem;">Period:</label>
+        <select id="summary-period-select" class="form-control form-control-sm" style="width:auto;" onchange="onSummaryPeriodChange()">
+          {% for p in available_periods %}
+            <option value="{{ p }}" {% if p == selected_summary %}selected{% endif %}>{{ p }}</option>
+          {% endfor %}
+        </select>
+      </div>
       {% if inventory_summary %}
       <div class="table-responsive">
         <table class="table table-sm table-bordered align-middle mb-0" id="inventory-summary-table">
@@ -74,7 +89,7 @@
               <th class="text-end">Days Left</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="inventory-summary-body">
             {% for s in inventory_summary %}
             <tr>
               <td>{{ s.twine_code }}</td>
@@ -86,8 +101,22 @@
           </tbody>
         </table>
       </div>
+      <p class="text-muted mb-0" id="inventory-summary-empty" style="display:none;">No inventory records for the selected month.</p>
       {% else %}
-      <p class="text-muted mb-0">No inventory records for the current month.</p>
+      <p class="text-muted mb-0" id="inventory-summary-empty">No inventory records for the selected month.</p>
+      <div class="table-responsive" style="display:none;">
+        <table class="table table-sm table-bordered align-middle mb-0" id="inventory-summary-table">
+          <thead class="table-light">
+            <tr>
+              <th>Twine Code</th>
+              <th class="text-end">Outstanding Balance (KG)</th>
+              <th class="text-end">Daily Usage (KG)</th>
+              <th class="text-end">Days Left</th>
+            </tr>
+          </thead>
+          <tbody id="inventory-summary-body"></tbody>
+        </table>
+      </div>
       {% endif %}
     </div>
 
@@ -192,7 +221,7 @@
             <tr>
               <th style="width:40px;"><input type="checkbox" id="select-all-ti" onchange="toggleSelectAllTI()"></th>
               <th style="width:140px;">Actions</th>
-              <th style="width:80px;">Year-Month</th>
+              <th style="width:150px;">Year-Month</th>
               <th style="width:250px;">Twine</th>
               <th style="width:130px;">Opening Stock(KG)</th>
               <th style="width:100px;">Stock In(KG)</th>
@@ -211,7 +240,14 @@
                 <button type="button" class="btn-3d-yellow btn-sm" onclick="clearFilters()" style="font-size:0.75rem;">Clear</button>
                 <button type="button" class="btn btn-success btn-sm ms-1" onclick="carryForwardSelected()" id="carry-forward-btn" disabled style="font-size:0.75rem;">Carry Fwd</button>
               </th>
-              <th><input class="filter-input" placeholder="Year-Month"></th>
+              <th>
+                <select class="filter-select" id="ti-filter-year" title="Year">
+                  <option value="">All Years</option>
+                </select>
+                <select class="filter-select mt-1" id="ti-filter-month" title="Month">
+                  <option value="">All Months</option>
+                </select>
+              </th>
               <th><input class="filter-input" placeholder="Twine"></th>
               <th><input class="filter-input" placeholder="Opening Stock"></th>
               <th><input class="filter-input" placeholder="Stock In"></th>
@@ -266,8 +302,10 @@
 
 <script>
 const tiData = JSON.parse('{{ ti_json|escapejs }}' || '[]');
+const tiAllData = JSON.parse('{{ ti_all_json|escapejs }}' || '[]');
 var editingTIKey = '';
 
+populateYearMonthFilters();
 populateTable();
 
 // Set default month-year to current month
@@ -545,7 +583,87 @@ function clearFilters() {
     filterInputs.forEach(function(input) {
         input.value = '';
     });
+    var filterSelects = document.querySelectorAll('#ti-filter-row .filter-select');
+    filterSelects.forEach(function(sel) {
+        sel.selectedIndex = 0;
+    });
     filterTable();
+}
+
+function populateYearMonthFilters() {
+    var years = {};
+    var months = {};
+    (tiAllData.length ? tiAllData : tiData).forEach(function(ti) {
+        if (ti.year) years[ti.year] = true;
+        if (ti.month) months[ti.month] = true;
+    });
+    var yearSel = document.getElementById('ti-filter-year');
+    if (yearSel) {
+        Object.keys(years).sort().forEach(function(y) {
+            var opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            yearSel.appendChild(opt);
+        });
+    }
+    var monthSel = document.getElementById('ti-filter-month');
+    if (monthSel) {
+        Object.keys(months).sort(function(a, b) { return a - b; }).forEach(function(m) {
+            var opt = document.createElement('option');
+            opt.value = String(parseInt(m, 10));
+            opt.textContent = String(m).padStart(2, '0');
+            monthSel.appendChild(opt);
+        });
+    }
+}
+
+function onSummaryPeriodChange() {
+    var sel = document.getElementById('summary-period-select');
+    if (!sel || !sel.value) return;
+    renderSummaryBanner(sel.value);
+    // Persist selection across reloads via URL without full navigation state loss
+    var url = new URL(window.location.href);
+    url.searchParams.set('summary', sel.value);
+    window.history.replaceState(null, '', url.toString());
+}
+
+function renderSummaryBanner(period) {
+    var heading = document.getElementById('inventory-summary-heading');
+    var tbody = document.getElementById('inventory-summary-body');
+    var emptyMsg = document.getElementById('inventory-summary-empty');
+    var tableWrap = document.querySelector('#inventory-summary-banner .table-responsive');
+    if (!tbody) return;
+    if (heading) heading.textContent = 'Monthly Summary — ' + period;
+    tbody.innerHTML = '';
+    var rows = (tiAllData.length ? tiAllData : tiData).filter(function(ti) {
+        return (ti.month_year || '') === period;
+    });
+    rows.sort(function(a, b) { return (a.twine || '').localeCompare(b.twine || ''); });
+    if (!rows.length) {
+        if (tableWrap) tableWrap.style.display = 'none';
+        if (emptyMsg) emptyMsg.style.display = '';
+        return;
+    }
+    rows.forEach(function(ti) {
+        var full = (ti.twine || '').trim();
+        var code = full.indexOf('-') > -1 ? full.split('-')[0].trim() : full;
+        var bal = parseFloat(ti.balance) || 0;
+        var daily = parseFloat(ti.daily_usage) || 0;
+        var days = ti.days_left;
+        if ((days === null || days === undefined || days === '') && daily > 0 && bal > 0) {
+            days = Math.ceil(bal / daily);
+        }
+        if (days === null || days === undefined || days === '') days = '—';
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td></td><td class="text-end"></td><td class="text-end"></td><td class="text-end"></td>';
+        tr.cells[0].textContent = code;
+        tr.cells[1].textContent = bal.toFixed(2);
+        tr.cells[2].textContent = daily.toFixed(2);
+        tr.cells[3].textContent = days;
+        tbody.appendChild(tr);
+    });
+    if (tableWrap) tableWrap.style.display = '';
+    if (emptyMsg) emptyMsg.style.display = 'none';
 }
 
 function toggleSelectAllTI() {
@@ -644,7 +762,7 @@ function getCookie(name) {
 }
 
 function filterTable() {
-    var filterInputs = document.querySelectorAll('#ti-filter-row .filter-input');
+    var filterThs = document.querySelectorAll('#ti-filter-row th');
     var tbody = document.getElementById('ti-table-body');
     var rows = tbody.getElementsByTagName('tr');
 
@@ -652,20 +770,35 @@ function filterTable() {
         var row = rows[i];
         var showRow = true;
 
-        for (var j = 0; j < filterInputs.length; j++) {
-            var filterInput = filterInputs[j];
-            var filterValue = filterInput.value.toLowerCase();
-            var cellIndex = j + 1; // Skip Actions column (index 0)
-            var cell = row.getElementsByTagName('td')[cellIndex];
+        filterThs.forEach(function(th, index) {
+            if (!showRow) return;
+            var controls = th.querySelectorAll('input.filter-input, select.filter-select');
+            if (!controls.length) return;
+            var cells = row.getElementsByTagName('td');
+            var cell = cells[index];
+            if (!cell) return;
+            var cellText = (cell.textContent || cell.innerText || '').toLowerCase();
 
-            if (cell) {
-                var cellText = cell.textContent || cell.innerText;
-                if (filterValue && cellText.toLowerCase().indexOf(filterValue) === -1) {
-                    showRow = false;
-                    break;
-                }
+            // Year-Month column holds two selects: year matches YYYY part, month matches MM part
+            if (controls.length === 2 && controls[0].id === 'ti-filter-year') {
+                var yv = controls[0].value;
+                var mv = controls[1].value;
+                var parts = cellText.trim().split('-');
+                var cy = (parts[0] || '').trim();
+                var cm = (parts[1] || '').trim();
+                if (yv && cy !== yv) { showRow = false; return; }
+                if (mv && parseInt(cm, 10) !== parseInt(mv, 10)) { showRow = false; return; }
+                return;
             }
-        }
+
+            controls.forEach(function(ctrl) {
+                if (!showRow) return;
+                var filterValue = (ctrl.value || '').toLowerCase();
+                if (filterValue && cellText.indexOf(filterValue) === -1) {
+                    showRow = false;
+                }
+            });
+        });
 
         row.style.display = showRow ? '' : 'none';
     }
@@ -673,9 +806,10 @@ function filterTable() {
 
 // Add event listeners to filter inputs
 document.addEventListener('DOMContentLoaded', function() {
-    var filterInputs = document.querySelectorAll('#ti-filter-row .filter-input');
+    var filterInputs = document.querySelectorAll('#ti-filter-row .filter-input, #ti-filter-row .filter-select');
     filterInputs.forEach(function(input) {
         input.addEventListener('input', filterTable);
+        input.addEventListener('change', filterTable);
     });
 });
 </script>

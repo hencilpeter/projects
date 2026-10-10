@@ -4745,6 +4745,52 @@ def twine_inventory_entry(request):
     twine_inventories = TwineInventory.objects.all()
     materials = Materials.objects.all()
 
+    # Distinct available periods / years (for filters + summary selector)
+    _period_pairs = sorted(
+        {(t.year, t.month) for t in TwineInventory.objects.all() if t.year and t.month}
+    )
+    available_periods = [f"{y}-{m:02d}" for (y, m) in _period_pairs]
+    available_years = sorted({str(y) for (y, m) in _period_pairs})
+
+    # Table period filter (GET): exact year/month, range from->to, or all.
+    # ?year=YYYY &month=M[&...], ?from=YYYY-MM &to=YYYY-MM
+    _f_year = request.GET.get("year", "").strip()
+    _f_month = request.GET.get("month", "").strip()
+    _f_from = request.GET.get("from", "").strip()
+    _f_to = request.GET.get("to", "").strip()
+    try:
+        if _f_from and _f_to:
+            _fp = _f_from.split("-"); _tp = _f_to.split("-")
+            _fy, _fm, _ty, _tm = int(_fp[0]), int(_fp[1]), int(_tp[0]), int(_tp[1])
+            if (_fy, _fm) <= (_ty, _tm):
+                twine_inventories = [
+                    t for t in twine_inventories
+                    if t.year and t.month and (_fy, _fm) <= (t.year, t.month) <= (_ty, _tm)
+                ]
+        elif _f_from:
+            _fp = _f_from.split("-"); _fy, _fm = int(_fp[0]), int(_fp[1])
+            twine_inventories = [
+                t for t in twine_inventories
+                if t.year and t.month and (t.year, t.month) >= (_fy, _fm)
+            ]
+        elif _f_to:
+            _tp = _f_to.split("-"); _ty, _tm = int(_tp[0]), int(_tp[1])
+            twine_inventories = [
+                t for t in twine_inventories
+                if t.year and t.month and (t.year, t.month) <= (_ty, _tm)
+            ]
+        elif _f_year and _f_month:
+            twine_inventories = [
+                t for t in twine_inventories
+                if t.year == int(_f_year) and t.month == int(_f_month)
+            ]
+        elif _f_year:
+            twine_inventories = [t for t in twine_inventories if t.year == int(_f_year)]
+        elif _f_month:
+            twine_inventories = [t for t in twine_inventories if t.month == int(_f_month)]
+    except (ValueError, IndexError, TypeError):
+        pass
+
     if request.method == "POST":
         action = request.POST.get("action")
 
@@ -4978,12 +5024,48 @@ def twine_inventory_entry(request):
 
     ti_json = json.dumps(ti_data)
 
-    # Monthly summary banner: current month's inventory status per twine type
+    # Full unfiltered dataset for client-side dynamic summary banner updates
+    ti_all_data = []
+    for ti in TwineInventory.objects.all():
+        ti_all_data.append({
+            "ti_key": ti.ti_key,
+            "month": ti.month,
+            "year": ti.year,
+            "month_year": f"{ti.year}-{ti.month:02d}" if (ti.year and ti.month) else "",
+            "twine": ti.twine or "",
+            "opening_stock": str(ti.opening_stock),
+            "stock_in": str(ti.stock_in),
+            "sales_out": str(ti.sales_out),
+            "waste_used": str(ti.waste_used),
+            "balance": str(ti.balance),
+            "daily_usage": str(ti.daily_usage),
+            "usage_basis": ti.usage_basis,
+            "days_left": ti.days_left,
+            "est_stock_out_date": ti.est_stock_out_date.strftime("%Y-%m-%d") if ti.est_stock_out_date else "",
+            "remark": ti.remark or "",
+        })
+    ti_all_json = json.dumps(ti_all_data)
+
+    # Monthly summary banner: default to latest available period (not wall-clock
+    # month, which may have no records); honor ?summary=YYYY-MM override.
     import math as _math
-    from datetime import date as _date
-    _today = _date.today()
-    summary_month = _today.month
-    summary_year = _today.year
+    _sel_summary = request.GET.get("summary", "").strip()
+    if _period_pairs:
+        _latest_y, _latest_m = _period_pairs[-1]
+    else:
+        from datetime import date as _date
+        _today = _date.today()
+        _latest_y, _latest_m = _today.year, _today.month
+    summary_year, summary_month = _latest_y, _latest_m
+    if _sel_summary:
+        try:
+            _sp = _sel_summary.split("-")
+            _sy, _sm = int(_sp[0]), int(_sp[1])
+            if 1 <= _sm <= 12:
+                summary_year, summary_month = _sy, _sm
+        except (ValueError, IndexError, TypeError):
+            pass
+    selected_summary = f"{summary_year}-{summary_month:02d}"
     inventory_summary = []
     for e in TwineInventory.objects.filter(month=summary_month, year=summary_year).order_by('twine'):
         twine_full = (e.twine or '').strip()
@@ -5011,6 +5093,14 @@ def twine_inventory_entry(request):
         "inventory_summary": inventory_summary,
         "summary_month": summary_month,
         "summary_year": summary_year,
+        "available_periods": available_periods,
+        "available_years": available_years,
+        "selected_summary": selected_summary,
+        "filter_year": _f_year,
+        "filter_month": _f_month,
+        "filter_from": _f_from,
+        "filter_to": _f_to,
+        "ti_all_json": ti_all_json,
     })
 
 
