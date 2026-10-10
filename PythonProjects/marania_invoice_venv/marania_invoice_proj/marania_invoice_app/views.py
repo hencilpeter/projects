@@ -4978,10 +4978,39 @@ def twine_inventory_entry(request):
 
     ti_json = json.dumps(ti_data)
 
+    # Monthly summary banner: current month's inventory status per twine type
+    import math as _math
+    from datetime import date as _date
+    _today = _date.today()
+    summary_month = _today.month
+    summary_year = _today.year
+    inventory_summary = []
+    for e in TwineInventory.objects.filter(month=summary_month, year=summary_year).order_by('twine'):
+        twine_full = (e.twine or '').strip()
+        twine_code = twine_full.split('-')[0].strip() if '-' in twine_full else twine_full
+        balance_val = float(e.balance or 0)
+        daily_val = float(e.daily_usage or 0)
+        if e.days_left is not None:
+            days_val = e.days_left
+        elif daily_val > 0 and balance_val > 0:
+            days_val = _math.ceil(balance_val / daily_val)
+        else:
+            days_val = None
+        inventory_summary.append({
+            'twine_code': twine_code,
+            'twine': twine_full,
+            'balance': balance_val,
+            'daily_usage': daily_val,
+            'days_left': days_val,
+        })
+
     return render(request, "marania_invoice_app/twine_inventory_entry.html", {
         "twine_inventories": twine_inventories,
         "ti_json": ti_json,
         "materials": materials,
+        "inventory_summary": inventory_summary,
+        "summary_month": summary_month,
+        "summary_year": summary_year,
     })
 
 

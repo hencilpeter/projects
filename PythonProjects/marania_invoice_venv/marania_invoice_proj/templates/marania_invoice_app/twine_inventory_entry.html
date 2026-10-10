@@ -61,6 +61,36 @@
 
     <h2 class="mb-4">Twine Inventory</h2>
 
+    <div class="card shadow-sm p-3 mb-4" id="inventory-summary-banner">
+      <h6 class="mb-2">Monthly Summary — {{ summary_year }}-{{ summary_month|stringformat:"02d" }}</h6>
+      {% if inventory_summary %}
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle mb-0" id="inventory-summary-table">
+          <thead class="table-light">
+            <tr>
+              <th>Twine Code</th>
+              <th class="text-end">Outstanding Balance (KG)</th>
+              <th class="text-end">Daily Usage (KG)</th>
+              <th class="text-end">Days Left</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in inventory_summary %}
+            <tr>
+              <td>{{ s.twine_code }}</td>
+              <td class="text-end">{{ s.balance|floatformat:2 }}</td>
+              <td class="text-end">{{ s.daily_usage|floatformat:2 }}</td>
+              <td class="text-end">{{ s.days_left|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted mb-0">No inventory records for the current month.</p>
+      {% endif %}
+    </div>
+
     <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#twineForm" aria-expanded="false" aria-controls="twineForm">
       New Twine Inventory Entry
     </button>
