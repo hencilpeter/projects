@@ -31,4 +31,4 @@ admin.site.register(ApplicationModule)
 admin.site.register(UserCategory)
 admin.site.register(UserProfile)
 admin.site.register(AuditLog)
-
+admin.site.register(ProductionTracker)

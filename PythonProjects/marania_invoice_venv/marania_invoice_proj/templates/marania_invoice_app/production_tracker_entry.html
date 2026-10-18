@@ -29,7 +29,7 @@
         <input type="hidden" name="entries_data" id="entries-data">
         <div class="card p-4 mb-4 shadow-sm">
 
-          <!-- Row 1: Product, Machine, Knot Cap, Total Meshes, Total Twine, Reference#, Extra Mesh, +Net/+Sel -->
+          <!-- Row 1: Product, Machine, Knot Cap, Total Meshes, Total Twine, User Spec, Extra Mesh, +Net/+Sel -->
           <div class="row mb-2 align-items-end g-2">
             <div class="col-md-1">
               <label class="form-label small mb-0">Product</label>
@@ -66,8 +66,8 @@
               <input type="text" id="tracker-total-twine" class="form-control form-control-sm bg-light fw-bold" placeholder="Total Twine" readonly>
             </div>
             <div class="col-md-3">
-              <label class="form-label small mb-0 fw-bold text-primary">Reference #</label>
-              <input type="text" id="tracker-reference" class="form-control form-control-sm bg-light fw-bold" placeholder="Reference #">
+              <label class="form-label small mb-0 fw-bold text-primary">User Spec</label>
+              <input type="text" id="tracker-reference" class="form-control form-control-sm bg-light fw-bold" placeholder="User Spec" required>
             </div>
             <div class="col-md-1">
               <label class="form-label small mb-0 fw-bold text-primary">Extra Mesh</label>
@@ -162,9 +162,9 @@
         <thead class="table-light">
           <tr>
             <th style="width:55px;"></th>
-            <th style="width:120px;">Code</th>
             <th style="width:85px;">Product</th>
-            <th style="width:135px;">Specification</th>
+            <th style="width:70px;">MM</th>
+            <th style="width:150px;">User Spec</th>
             <th class="text-end" style="width:95px;">Daily Output</th>
             <th class="text-end" style="width:80px;">Req.Days</th>
             <th class="text-end" style="width:80px;">Weight</th>
@@ -172,7 +172,7 @@
             <th class="text-end" style="width:95px;">Total Twine</th>
             <th style="width:170px;">Twine Detail</th>
             <th style="width:170px;">Twine Weight</th>
-            <th style="width:150px;">Reference #</th>
+            <th style="width:135px;">System Spec</th>
             <th style="width:80px;">Machine</th>
             <th class="text-end" style="width:95px;">Knot Cap/Day</th>
             <th class="text-end" style="width:95px;">Addl.NET Twine</th>
@@ -183,27 +183,32 @@
                 Clear
               </button>
             </th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
             <th><select class="form-select form-select-sm saved-filter">
               <option value="">All</option>
               {% for p in products %}
               <option value="{{ p.code }}">{{ p.code }}</option>
               {% endfor %}
             </select></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
             <th><select class="form-select form-select-sm saved-filter">
               <option value="">All</option>
-              {% for r in reference_options %}
+              {% for mm in mm_options %}
+              <option value="{{ mm }}">{{ mm }}</option>
+              {% endfor %}
+            </select></th>
+            <th><select class="form-select form-select-sm saved-filter">
+              <option value="">All</option>
+              {% for r in user_spec_options %}
               <option value="{{ r }}">{{ r }}</option>
               {% endfor %}
             </select></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
             <th><select class="form-select form-select-sm saved-filter">
               <option value="">All</option>
               {% for m in machines %}
@@ -224,9 +229,9 @@
                 <button type="submit" name="action" value="delete" class="btn btn-outline-danger btn-sm">&times;</button>
               </form>
             </td>
-            <td class="fw-bold">{{ t.code }}</td>
             <td>{{ t.product }}</td>
-            <td>{{ t.specification }}</td>
+            <td>{{ t.mm }}</td>
+            <td>{{ t.user_spec }}</td>
             <td class="text-end">{{ t.daily_output }}</td>
             <td class="text-end">{{ t.required_days }}</td>
             <td class="text-end">{{ t.weight }}</td>
@@ -242,7 +247,7 @@
               <span class="badge bg-info text-dark">{{ k }}: {{ v }}</span>
               {% endfor %}
             </td>
-            <td>{{ t.reference }}</td>
+            <td>{{ t.system_spec }}</td>
             <td>{{ t.machine }}</td>
             <td class="text-end">{{ t.knots_capacity_per_day }}</td>
             <td class="text-end">{{ t.addl_net_twine|default:"—" }}</td>
@@ -551,6 +556,14 @@ document.getElementById("clear-list-btn").addEventListener("click", function() {
 
 /* ---------- Save List ---------- */
 document.getElementById("save-list-btn").addEventListener("click", function() {
+  /* User Spec (user_spec) is mandatory */
+  const userSpec = document.getElementById("tracker-reference").value.trim();
+  if (!userSpec) {
+    alert("Please enter User Spec.");
+    document.getElementById("tracker-reference").focus();
+    return;
+  }
+
   const rows = document.querySelectorAll("#generated-list-body tr");
   if (!rows.length) { alert("Please generate the list first."); return; }
 
@@ -580,9 +593,8 @@ document.getElementById("save-list-btn").addEventListener("click", function() {
       weights[parts[0].trim()] = parts[1].trim();
     });
     entries.push({
-      code: tr.dataset.code,
       product: tr.children[1].textContent,
-      specification: tr.children[2].textContent,
+      system_spec: tr.children[2].textContent,
       daily_output: tr.children[3].textContent,
       required_days: tr.querySelector(".req-days").textContent,
       weight: tr.querySelector(".gen-weight").value,
@@ -594,7 +606,7 @@ document.getElementById("save-list-btn").addEventListener("click", function() {
       machine: tr.children[10].textContent,
       knots_capacity_per_day: tr.children[11].textContent,
       total_meshes: tr.children[12].textContent,
-      reference: document.getElementById("tracker-reference").value,
+      user_spec: document.getElementById("tracker-reference").value,
       extra_mesh: document.getElementById("tracker-extra-mesh").value,
       addl_net_twine: document.getElementById("tracker-addl-net-twine").value,
       mm: tr.dataset.mm || "",

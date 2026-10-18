@@ -6713,13 +6713,15 @@ def production_tracker_entry(request):
             entries_raw = request.POST.get("entries_data")
             if entries_raw:
                 entries = json.loads(entries_raw) if isinstance(entries_raw, str) else entries_raw
+                if any(not str(e.get("user_spec") or "").strip() for e in entries):
+                    messages.error(request, "User Spec is required and cannot be empty.")
+                    return redirect("production_tracker")
                 saved = 0
                 for e in entries:
                     ProductionTracker.objects.create(
                         entry_date=_date.today(),
-                        code=e.get("code") or None,
                         product=e.get("product") or None,
-                        specification=e.get("specification") or None,
+                        system_spec=e.get("system_spec") or None,
                         mm=e.get("mm") or None,
                         machine=e.get("machine") or None,
                         knots_capacity_per_day=e.get("knots_capacity_per_day") or None,
@@ -6736,7 +6738,7 @@ def production_tracker_entry(request):
                         start_size=e.get("start_size") or None,
                         increment_by=e.get("increment_by") or None,
                         size_count=e.get("size_count") or None,
-                        reference=e.get("reference") or None,
+                        user_spec=e.get("user_spec") or None,
                         extra_mesh=e.get("extra_mesh") or None,
                     )
                     saved += 1
@@ -6767,9 +6769,8 @@ def production_tracker_entry(request):
         trackers_data.append({
             "pt_key": t.pt_key,
             "entry_date": t.entry_date.strftime("%Y-%m-%d") if t.entry_date else "",
-            "code": t.code or "",
             "product": t.product or "",
-            "specification": t.specification or "",
+            "system_spec": t.system_spec or "",
             "mm": t.mm or "",
             "machine": t.machine or "",
             "knots_capacity_per_day": str(t.knots_capacity_per_day) if t.knots_capacity_per_day else "",
@@ -6786,7 +6787,7 @@ def production_tracker_entry(request):
             "start_size": str(t.start_size) if t.start_size else "",
             "increment_by": str(t.increment_by) if t.increment_by else "",
             "size_count": t.size_count if t.size_count else "",
-            "reference": t.reference or "",
+            "user_spec": t.user_spec or "",
             "extra_mesh": str(t.extra_mesh) if t.extra_mesh else "",
         })
 
@@ -6796,7 +6797,8 @@ def production_tracker_entry(request):
         "machines_json": machines_json,
         "twine_options_json": twine_options,
         "trackers": trackers_data,
-        "reference_options": sorted({t["reference"] for t in trackers_data if t["reference"]}),
+        "user_spec_options": sorted({t["user_spec"] for t in trackers_data if t["user_spec"]}),
+        "mm_options": sorted({t["mm"] for t in trackers_data if t["mm"]}, key=lambda v: float(v) if str(v).replace(".", "", 1).isdigit() else str(v)),
     }
     return render(request, "marania_invoice_app/production_tracker_entry.html", context)
 
