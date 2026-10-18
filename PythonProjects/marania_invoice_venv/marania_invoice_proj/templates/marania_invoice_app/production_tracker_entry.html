@@ -1,0 +1,542 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container my-4">
+    <h3>Production Tracker</h3>
+
+    <button class="btn btn-primary mb-3" type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#trackerForm">
+      New Production Tracker
+    </button>
+
+    <div class="collapse" id="trackerForm">
+      <form method="POST" id="tracker-form">
+        {% csrf_token %}
+        <input type="hidden" name="entries_data" id="entries-data">
+        <div class="card p-4 mb-4 shadow-sm">
+
+          <!-- Row 1: Product, Machine, Knot Cap, Total Meshes, Total Twine, Reference#, Extra Mesh, +Net/+Sel -->
+          <div class="row mb-2 align-items-end g-2">
+            <div class="col-md-1">
+              <label class="form-label small mb-0">Product</label>
+              <select id="tracker-product" class="form-select form-select-sm">
+                <option value="">-- Product --</option>
+                {% for p in products %}
+                <option value="{{ p.code }}">{{ p.code }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small mb-0">Machine</label>
+              <select id="tracker-machine" class="form-select form-select-sm">
+                <option value="">-- Machine --</option>
+                {% for m in machines %}
+                <option value="{{ m.machine_number }}" data-shuttles="{{ m.number_of_shuttles }}" data-knots="{{ m.knots_capacity_per_day|default:'' }}">{{ m.machine_number }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small mb-0">Knot Cap/Day</label>
+              <input type="text" id="tracker-knot-cap" class="form-control form-control-sm bg-light" placeholder="Knots/Day" readonly>
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small mb-0">Total Meshes</label>
+              <input type="text" id="tracker-total-meshes" class="form-control form-control-sm bg-light" placeholder="Meshes" readonly>
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small mb-0">Addl.NET Twine</label>
+              <input type="number" step="0.1" id="tracker-addl-net-twine" class="form-control form-control-sm" placeholder="Addl Twine">
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small mb-0 fw-bold text-primary">Total Twine</label>
+              <input type="text" id="tracker-total-twine" class="form-control form-control-sm bg-light fw-bold" placeholder="Total Twine" readonly>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small mb-0 fw-bold text-primary">Reference #</label>
+              <input type="text" id="tracker-reference" class="form-control form-control-sm bg-light fw-bold" placeholder="Reference #">
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small mb-0 fw-bold text-primary">Extra Mesh</label>
+              <input type="number" step="0.1" id="tracker-extra-mesh" class="form-control form-control-sm" placeholder="Extra Mesh">
+            </div>
+            <div class="col-md-2 d-flex align-items-end gap-1">
+              <button type="button" class="btn btn-sm btn-success add-net-row">+ Net</button>
+              <button type="button" class="btn btn-sm btn-warning add-sel-row">+ Sel</button>
+            </div>
+          </div>
+
+          <div class="twine-rows-container mb-2"></div>
+
+          <hr>
+
+          <!-- Size series + weight + generate/save -->
+          <div class="row mb-3 align-items-end g-2">
+            <div class="col-md-2">
+              <label class="form-label small mb-0">Start Size</label>
+              <input type="number" step="0.1" id="start-size" class="form-control form-control-sm" placeholder="Start Size">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small mb-0">Increment By</label>
+              <input type="number" step="0.1" id="increment-by" class="form-control form-control-sm" placeholder="Increment By">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small mb-0">Total Sizes</label>
+              <input type="number" step="1" min="1" id="total-sizes" class="form-control form-control-sm" placeholder="Total Sizes">
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small mb-0">Weight</label>
+              <input type="number" step="0.01" id="default-weight" class="form-control form-control-sm" value="55">
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small mb-0">Unit</label>
+              <select id="default-unit" class="form-select form-select-sm">
+                <option value="KG" selected>KG</option>
+                <option value="Bag">Bag</option>
+              </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end gap-1">
+              <button type="button" id="generate-list-btn" class="btn btn-primary btn-sm">Generate List</button>
+              <button type="button" id="save-list-btn" class="btn btn-success btn-sm">Save List</button>
+            </div>
+          </div>
+
+          <!-- Generated temp list -->
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered table-striped align-middle" id="generated-list-table">
+              <thead class="table-light">
+                <tr>
+                  <th>Code</th>
+                  <th>Product</th>
+                  <th>Specification</th>
+                  <th class="text-end">Daily Output</th>
+                  <th class="text-end">Req.Days</th>
+                  <th>Weight</th>
+                  <th>Unit</th>
+                  <th class="text-end">Total Twine</th>
+                  <th>Twine Detail</th>
+                  <th>Twine Weight</th>
+                  <th>Machine</th>
+                  <th class="text-end">Knot Cap/Day</th>
+                  <th class="text-end">Total Meshes</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="generated-list-body">
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <!-- Saved list -->
+    <h5 class="mt-4">Saved Entries</h5>
+    <div class="table-responsive">
+      <table class="table table-sm table-striped table-bordered align-middle" id="saved-list-table">
+        <thead class="table-light">
+          <tr>
+            <th>Date</th>
+            <th>Code</th>
+            <th>Product</th>
+            <th>Specification</th>
+            <th class="text-end">Daily Output</th>
+            <th class="text-end">Req.Days</th>
+            <th class="text-end">Weight</th>
+            <th>Unit</th>
+            <th class="text-end">Total Twine</th>
+            <th>Twine Detail</th>
+            <th>Twine Weight</th>
+            <th>Machine</th>
+            <th class="text-end">Knot Cap/Day</th>
+            <th class="text-end">Total Meshes</th>
+            <th class="text-end">Addl.NET Twine</th>
+            <th>Reference #</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in trackers %}
+          <tr>
+            <td>{{ t.entry_date }}</td>
+            <td class="fw-bold">{{ t.code }}</td>
+            <td>{{ t.product }}</td>
+            <td>{{ t.specification }}</td>
+            <td class="text-end">{{ t.daily_output }}</td>
+            <td class="text-end">{{ t.required_days }}</td>
+            <td class="text-end">{{ t.weight }}</td>
+            <td>{{ t.quantity_unit }}</td>
+            <td class="text-end">{{ t.total_twine }}</td>
+            <td>
+              {% for k, v in t.twine_detail.items %}
+              <span class="badge bg-secondary">{{ k }}: {{ v }}</span>
+              {% endfor %}
+            </td>
+            <td>
+              {% for k, v in t.twine_weight.items %}
+              <span class="badge bg-info text-dark">{{ k }}: {{ v }}</span>
+              {% endfor %}
+            </td>
+            <td>{{ t.machine }}</td>
+            <td class="text-end">{{ t.knots_capacity_per_day }}</td>
+            <td class="text-end">{{ t.total_meshes }}</td>
+            <td class="text-end">{{ t.addl_net_twine|default:"—" }}</td>
+            <td>{{ t.reference }}</td>
+            <td>
+              <form method="POST" class="d-inline" onsubmit="return confirm('Delete this entry?');">
+                {% csrf_token %}
+                <input type="hidden" name="pt_key" value="{{ t.pt_key }}">
+                <button type="submit" name="action" value="delete" class="btn btn-outline-danger btn-sm">&times;</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="17" class="text-center text-muted">No production tracker entries yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</main>
+
+{{ machines_json|json_script:"machines-data" }}
+{{ twine_options_json|json_script:"twine-options-data" }}
+<script>
+const machinesData = JSON.parse(document.getElementById("machines-data").textContent);
+const twineOptions = JSON.parse(document.getElementById("twine-options-data").textContent);
+
+function buildTwineOptionsHTML(selectedCode) {
+  let opts = '<option value="">-- Select Twine --</option>';
+  twineOptions.forEach(t => {
+    const sel = (selectedCode && t.code === selectedCode) ? 'selected' : '';
+    opts += `<option value="${t.code}" data-ratio="${t.ratio}" ${sel}>${t.label}</option>`;
+  });
+  return opts;
+}
+
+function addTwineRow(container, type) {
+  const startSize = document.getElementById("start-size").value;
+  const extraMesh = parseFloat(document.getElementById("tracker-extra-mesh").value) || 0;
+  const adjustedMM = startSize ? ((parseFloat(startSize) || 0) + extraMesh) : "";
+  const productCode = document.getElementById("tracker-product").value;
+  const div = document.createElement("div");
+  div.className = "row mb-2 align-items-end g-1 twine-row";
+  div.dataset.type = type;
+  div.innerHTML = `
+    <div class="col-md-1"><span class="badge bg-${type === 'NET' ? 'success' : 'warning'} twine-label">${type}</span></div>
+    <div class="col-md-1"><input type="number" step="0.1" class="form-control form-control-sm twine-mm" placeholder="MM" value="${adjustedMM !== '' ? adjustedMM : ''}"></div>
+    <div class="col-md-1"><input type="number" step="0.1" class="form-control form-control-sm twine-md" placeholder="MD"></div>
+    <div class="col-md-1"><input type="number" class="form-control form-control-sm twine-pcs" placeholder="Pcs"></div>
+    <div class="col-md-1"><input type="text" class="form-control form-control-sm twine-count bg-light" placeholder="Twine Count" readonly></div>
+    <div class="col-md-2"><select class="form-select form-select-sm twine-select">${buildTwineOptionsHTML(type === 'NET' ? productCode : '')}</select></div>
+    <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-conv bg-light" placeholder="Conversion Factor" readonly></div>
+    <div class="col-md-1"><button type="button" class="btn btn-outline-danger btn-sm remove-twine-row">&times;</button></div>
+  `;
+  container.appendChild(div);
+  if (type === 'NET' && productCode) {
+    const ratio = twineOptions.find(t => t.code === productCode);
+    if (ratio) {
+      div.querySelector(".twine-conv").value = ratio.ratio;
+    }
+  }
+}
+
+const container = document.querySelector(".twine-rows-container");
+document.querySelector(".add-net-row").addEventListener("click", () => addTwineRow(container, "NET"));
+document.querySelector(".add-sel-row").addEventListener("click", () => addTwineRow(container, "SEL"));
+
+/* Twine select change -> populate conversion factor */
+container.addEventListener("change", e => {
+  if (!e.target.classList.contains("twine-select")) return;
+  const twineRow = e.target.closest(".twine-row");
+  const selectedOption = e.target.selectedOptions[0];
+  const ratio = selectedOption ? selectedOption.dataset.ratio : "";
+  twineRow.querySelector(".twine-conv").value = ratio || "";
+});
+
+/* Remove twine row */
+container.addEventListener("click", e => {
+  if (!e.target.classList.contains("remove-twine-row")) return;
+  e.target.closest(".twine-row").remove();
+  updateTotalTwine();
+});
+
+/* Twine Count = MD x Pcs */
+container.addEventListener("input", e => {
+  if (e.target.classList.contains("twine-md") || e.target.classList.contains("twine-pcs")) {
+    const twineRow = e.target.closest(".twine-row");
+    const md = parseFloat(twineRow.querySelector(".twine-md").value) || 0;
+    const pcs = parseFloat(twineRow.querySelector(".twine-pcs").value) || 0;
+    twineRow.querySelector(".twine-count").value = (md * pcs) ? (md * pcs).toFixed(1) : "";
+    updateTotalTwine();
+  }
+});
+
+function updateTotalTwine() {
+  let total = 0;
+  container.querySelectorAll(".twine-row").forEach(tr => {
+    total += parseFloat(tr.querySelector(".twine-count").value) || 0;
+  });
+  const addlTwine = parseFloat(document.getElementById("tracker-addl-net-twine").value) || 0;
+  total += addlTwine;
+  document.getElementById("tracker-total-twine").value = total ? total.toFixed(1) : "0";
+}
+
+/* Addl.NET Twine change -> update Total Twine */
+document.getElementById("tracker-addl-net-twine").addEventListener("input", updateTotalTwine);
+
+/* Machine change -> Knot Cap/Day + Total Meshes */
+document.getElementById("tracker-machine").addEventListener("change", function() {
+  const m = machinesData.find(x => x.machine_number === this.value);
+  document.getElementById("tracker-knot-cap").value = m ? m.knots_capacity_per_day : "";
+  document.getElementById("tracker-total-meshes").value = m ? m.number_of_shuttles : "";
+});
+
+/* Start Size / Extra Mesh change -> refresh MM on twine rows */
+["start-size", "tracker-extra-mesh"].forEach(id => {
+  document.getElementById(id).addEventListener("input", () => {
+    const startSize = document.getElementById("start-size").value;
+    const extraMesh = parseFloat(document.getElementById("tracker-extra-mesh").value) || 0;
+    if (!startSize) return;
+    container.querySelectorAll(".twine-row").forEach(tr => {
+      tr.querySelector(".twine-mm").value = ((parseFloat(startSize) || 0) + extraMesh).toFixed(2).replace(/\.00$/, "");
+    });
+  });
+});
+
+/* Product change -> auto-select mapped machine + preselect NET twine like existing module */
+document.getElementById("tracker-product").addEventListener("change", function() {
+  const productCode = (this.value || "").trim();
+
+  /* Auto-select machine mapped to this product (running_product_code) */
+  const machineSel = document.getElementById("tracker-machine");
+  if (productCode) {
+    const match = machinesData.find(m => (m.running_product_code || "").trim().toLowerCase() === productCode.toLowerCase());
+    if (match) {
+      machineSel.value = match.machine_number;
+      document.getElementById("tracker-knot-cap").value = match.knots_capacity_per_day || "";
+      document.getElementById("tracker-total-meshes").value = match.number_of_shuttles || "";
+    }
+  } else {
+    machineSel.value = "";
+    document.getElementById("tracker-knot-cap").value = "";
+    document.getElementById("tracker-total-meshes").value = "";
+  }
+
+  container.querySelectorAll('.twine-row[data-type="NET"] .twine-select').forEach(sel => {
+    sel.value = productCode;
+    const opt = sel.selectedOptions[0];
+    const twineRow = sel.closest(".twine-row");
+    twineRow.querySelector(".twine-conv").value = (opt && opt.dataset.ratio) ? opt.dataset.ratio : "";
+  });
+});
+
+/* ---------- Generate List ---------- */
+document.getElementById("generate-list-btn").addEventListener("click", function() {
+  const product = document.getElementById("tracker-product").value;
+  const machine = document.getElementById("tracker-machine").value;
+  const knotCap = parseFloat(document.getElementById("tracker-knot-cap").value) || 0;
+  const totalMeshes = document.getElementById("tracker-total-meshes").value;
+  const totalTwine = document.getElementById("tracker-total-twine").value;
+  const reference = document.getElementById("tracker-reference").value;
+  const extraMesh = parseFloat(document.getElementById("tracker-extra-mesh").value) || 0;
+  const startSize = parseFloat(document.getElementById("start-size").value);
+  const incrementBy = parseFloat(document.getElementById("increment-by").value);
+  const totalSizes = parseInt(document.getElementById("total-sizes").value, 10);
+  const weight = parseFloat(document.getElementById("default-weight").value) || 0;
+  const unit = document.getElementById("default-unit").value;
+
+  if (!product) { alert("Please select a Product."); return; }
+  if (!machine || !knotCap) { alert("Please select a Machine (Knot Cap/Day is required)."); return; }
+  if (!startSize && startSize !== 0) { alert("Please enter Start Size."); return; }
+  if (!incrementBy) { alert("Please enter Increment By."); return; }
+  if (!totalSizes || totalSizes < 1) { alert("Please enter Total Sizes."); return; }
+  if (!weight) { alert("Please enter Weight."); return; }
+
+  /* Collect twine rows: counts + per-twine weights */
+  const twineRows = [];
+  let hasTwine = false;
+  container.querySelectorAll(".twine-row").forEach(tr => {
+    const twine = tr.querySelector(".twine-select").value;
+    const md = parseFloat(tr.querySelector(".twine-md").value) || 0;
+    const pcs = parseFloat(tr.querySelector(".twine-pcs").value) || 0;
+    const twineCount = parseFloat(tr.querySelector(".twine-count").value) || 0;
+    const conv = parseFloat(tr.querySelector(".twine-conv").value) || 0;
+    if (twine && twineCount) hasTwine = true;
+    twineRows.push({ type: tr.dataset.type, twine, md, pcs, twineCount, conv });
+  });
+  if (!hasTwine) { alert("Please add at least one NET/SEL twine row with Twine and MD x Pcs."); return; }
+
+  /* MD/SEL from twine rows for the specification */
+  const netMd = (twineRows.find(r => r.type === 'NET' && r.md) || {}).md || "";
+  const selMd = (twineRows.find(r => r.type === 'SEL' && r.md) || {}).md || "";
+
+  /* Addl.NET Twine uses the NET row's conversion factor (like Production Analytics) */
+  const addlTwine = parseFloat(document.getElementById("tracker-addl-net-twine").value) || 0;
+  const netRow = twineRows.find(r => r.type === 'NET' && r.twine) || {};
+  const netTwineCode = netRow.twine || "";
+  const netConv = netRow.conv || 0;
+  if (addlTwine > 0 && (!netTwineCode || !netConv)) {
+    alert("Addl.NET Twine requires a NET twine row with a selected Twine (and conversion factor).");
+    return;
+  }
+
+  const tbody = document.getElementById("generated-list-body");
+  tbody.innerHTML = "";
+
+  for (let i = 0; i < totalSizes; i++) {
+    const size = +(startSize + i * incrementBy).toFixed(2);
+    const effMM = size + extraMesh;
+
+    /* Per-twine counts and weights (weight derived from the daily output formula
+       per twine: conv x MM x twineCount x knotCap / 1000) */
+    const detail = {};
+    const twWeights = {};
+    let dailyOutput = 0;
+    twineRows.forEach(r => {
+      if (!r.twine || !r.twineCount) return;
+      const outKG = (r.conv * effMM * r.twineCount * knotCap) / 1000;
+      dailyOutput += outKG;
+      detail[r.twine] = ((parseFloat(detail[r.twine]) || 0) + r.twineCount).toFixed(1).replace(/\.0$/, "");
+      twWeights[r.twine] = (((parseFloat(twWeights[r.twine]) || 0) + outKG)).toFixed(2);
+    });
+
+    /* Addl.NET Twine: adds to NET twine's count, weight and daily output */
+    if (addlTwine > 0) {
+      const addlOutKG = (netConv * effMM * addlTwine * knotCap) / 1000;
+      dailyOutput += addlOutKG;
+      detail[netTwineCode] = ((parseFloat(detail[netTwineCode]) || 0) + addlTwine).toFixed(1).replace(/\.0$/, "");
+      twWeights[netTwineCode] = (((parseFloat(twWeights[netTwineCode]) || 0) + addlOutKG)).toFixed(2);
+    }
+
+    const reqDays = dailyOutput > 0 ? (weight / dailyOutput).toFixed(3) : "";
+    const specParts = [size + "MM"];
+    if (netMd) specParts.push(netMd + "MD");
+    if (selMd) specParts.push(selMd + "SEL");
+    const specification = specParts.join("-");
+    const code = `${product}_${size}_${i + 1}`;
+
+    const tr = document.createElement("tr");
+    tr.dataset.code = code;
+    tr.innerHTML = `
+      <td class="fw-bold">${code}</td>
+      <td>${product}</td>
+      <td>${specification}</td>
+      <td class="text-end">${dailyOutput.toFixed(2)}</td>
+      <td class="text-end req-days">${reqDays}</td>
+      <td><input type="number" step="0.01" class="form-control form-control-sm gen-weight" value="${weight}"></td>
+      <td>
+        <select class="form-select form-select-sm gen-unit">
+          <option value="KG" ${unit === 'KG' ? 'selected' : ''}>KG</option>
+          <option value="Bag" ${unit === 'Bag' ? 'selected' : ''}>Bag</option>
+        </select>
+      </td>
+      <td class="text-end">${totalTwine}</td>
+      <td class="twine-detail-cell"></td>
+      <td class="twine-weight-cell"></td>
+      <td>${machine}</td>
+      <td class="text-end">${knotCap}</td>
+      <td class="text-end">${totalMeshes}</td>
+      <td><button type="button" class="btn btn-outline-danger btn-sm remove-gen-row">&times;</button></td>
+    `;
+    const dCell = tr.querySelector(".twine-detail-cell");
+    Object.keys(detail).forEach(k => {
+      const b = document.createElement("span");
+      b.className = "badge bg-secondary me-1";
+      b.textContent = `${k}: ${detail[k]}`;
+      dCell.appendChild(b);
+    });
+    const wCell = tr.querySelector(".twine-weight-cell");
+    Object.keys(twWeights).forEach(k => {
+      const b = document.createElement("span");
+      b.className = "badge bg-info text-dark me-1";
+      b.textContent = `${k}: ${twWeights[k]}`;
+      wCell.appendChild(b);
+    });
+    tr._dailyOutput = dailyOutput;
+    tr.dataset.size = size;
+    tr.dataset.mm = effMM;
+    tbody.appendChild(tr);
+  }
+});
+
+/* Weight edit -> recalc Req.Days */
+document.getElementById("generated-list-body").addEventListener("input", e => {
+  if (!e.target.classList.contains("gen-weight")) return;
+  const tr = e.target.closest("tr");
+  const w = parseFloat(e.target.value) || 0;
+  const daily = tr._dailyOutput || 0;
+  tr.querySelector(".req-days").textContent = (daily > 0 && w > 0) ? (w / daily).toFixed(3) : "";
+});
+
+/* Remove generated row */
+document.getElementById("generated-list-body").addEventListener("click", e => {
+  if (!e.target.classList.contains("remove-gen-row")) return;
+  e.target.closest("tr").remove();
+});
+
+/* ---------- Save List ---------- */
+document.getElementById("save-list-btn").addEventListener("click", function() {
+  const rows = document.querySelectorAll("#generated-list-body tr");
+  if (!rows.length) { alert("Please generate the list first."); return; }
+
+  const twineRowsOut = [];
+  container.querySelectorAll(".twine-row").forEach(tr => {
+    twineRowsOut.push({
+      type: tr.dataset.type,
+      mm: tr.querySelector(".twine-mm").value,
+      md: tr.querySelector(".twine-md").value,
+      pcs: tr.querySelector(".twine-pcs").value,
+      twine_count: tr.querySelector(".twine-count").value,
+      twine: tr.querySelector(".twine-select").value,
+      conversion_factor: tr.querySelector(".twine-conv").value,
+    });
+  });
+
+  const entries = [];
+  rows.forEach(tr => {
+    const detail = {};
+    tr.querySelectorAll(".twine-detail-cell .badge").forEach(b => {
+      const parts = b.textContent.split(":");
+      detail[parts[0].trim()] = parts[1].trim();
+    });
+    const weights = {};
+    tr.querySelectorAll(".twine-weight-cell .badge").forEach(b => {
+      const parts = b.textContent.split(":");
+      weights[parts[0].trim()] = parts[1].trim();
+    });
+    entries.push({
+      code: tr.dataset.code,
+      product: tr.children[1].textContent,
+      specification: tr.children[2].textContent,
+      daily_output: tr.children[3].textContent,
+      required_days: tr.querySelector(".req-days").textContent,
+      weight: tr.querySelector(".gen-weight").value,
+      quantity_unit: tr.querySelector(".gen-unit").value,
+      total_twine: tr.children[7].textContent,
+      twine_detail: JSON.stringify(detail),
+      twine_weight: JSON.stringify(weights),
+      twine_rows: JSON.stringify(twineRowsOut),
+      machine: tr.children[10].textContent,
+      knots_capacity_per_day: tr.children[11].textContent,
+      total_meshes: tr.children[12].textContent,
+      reference: document.getElementById("tracker-reference").value,
+      extra_mesh: document.getElementById("tracker-extra-mesh").value,
+      addl_net_twine: document.getElementById("tracker-addl-net-twine").value,
+      mm: tr.dataset.mm || "",
+      start_size: document.getElementById("start-size").value,
+      increment_by: document.getElementById("increment-by").value,
+      size_count: document.getElementById("total-sizes").value,
+    });
+  });
+
+  document.getElementById("entries-data").value = JSON.stringify(entries);
+  document.getElementById("tracker-form").submit();
+});
+</script>
+
+{% endblock %}

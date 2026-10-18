@@ -6701,6 +6701,106 @@ def production_detail_view(request):
 
 
 @login_required
+def production_tracker_entry(request):
+    from .models import ProductionTracker, Product, MachineOperationalCost, MaterialConversionRatio
+    import json
+    from datetime import date as _date
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "save":
+            entries_raw = request.POST.get("entries_data")
+            if entries_raw:
+                entries = json.loads(entries_raw) if isinstance(entries_raw, str) else entries_raw
+                saved = 0
+                for e in entries:
+                    ProductionTracker.objects.create(
+                        entry_date=_date.today(),
+                        code=e.get("code") or None,
+                        product=e.get("product") or None,
+                        specification=e.get("specification") or None,
+                        mm=e.get("mm") or None,
+                        machine=e.get("machine") or None,
+                        knots_capacity_per_day=e.get("knots_capacity_per_day") or None,
+                        total_meshes=int(e["total_meshes"]) if str(e.get("total_meshes") or "").strip() else None,
+                        addl_net_twine=e.get("addl_net_twine") or None,
+                        total_twine=e.get("total_twine") or None,
+                        weight=e.get("weight") or None,
+                        quantity_unit=e.get("quantity_unit") or "KG",
+                        daily_output=e.get("daily_output") or None,
+                        required_days=e.get("required_days") or None,
+                        twine_detail=e.get("twine_detail") or None,
+                        twine_weight=e.get("twine_weight") or None,
+                        twine_rows=e.get("twine_rows") or None,
+                        start_size=e.get("start_size") or None,
+                        increment_by=e.get("increment_by") or None,
+                        size_count=e.get("size_count") or None,
+                        reference=e.get("reference") or None,
+                        extra_mesh=e.get("extra_mesh") or None,
+                    )
+                    saved += 1
+                messages.success(request, f"{saved} production tracker rows saved.")
+
+        elif action == "delete":
+            pk = request.POST.get("pt_key")
+            if pk:
+                ProductionTracker.objects.filter(pk=pk).delete()
+                messages.success(request, "Production Tracker entry deleted.")
+
+        return redirect("production_tracker")
+
+    products = Product.objects.all().order_by("code")
+    machines = MachineOperationalCost.objects.all().order_by("machine_number")
+    machines_json = [{"machine_number": m.machine_number, "number_of_shuttles": m.number_of_shuttles or 0, "knots_capacity_per_day": str(m.knots_capacity_per_day) if m.knots_capacity_per_day else "", "running_product_code": m.running_product_code or ""} for m in machines]
+    conversion_ratios = MaterialConversionRatio.objects.all().order_by("material_code")
+    twine_options = [{"code": r.material_code, "ratio": str(r.conversion_ratio), "label": f"{r.material_code}-{r.conversion_ratio}"} for r in conversion_ratios]
+
+    trackers = ProductionTracker.objects.all().order_by("-entry_date", "-pt_key")
+    trackers_data = []
+    for t in trackers:
+        def _jload(val):
+            try:
+                return json.loads(val) if val else {}
+            except Exception:
+                return {}
+        trackers_data.append({
+            "pt_key": t.pt_key,
+            "entry_date": t.entry_date.strftime("%Y-%m-%d") if t.entry_date else "",
+            "code": t.code or "",
+            "product": t.product or "",
+            "specification": t.specification or "",
+            "mm": t.mm or "",
+            "machine": t.machine or "",
+            "knots_capacity_per_day": str(t.knots_capacity_per_day) if t.knots_capacity_per_day else "",
+            "total_meshes": t.total_meshes if t.total_meshes else "",
+            "addl_net_twine": str(t.addl_net_twine) if t.addl_net_twine else "",
+            "total_twine": str(t.total_twine) if t.total_twine else "",
+            "weight": str(t.weight) if t.weight else "",
+            "quantity_unit": t.quantity_unit or "KG",
+            "daily_output": str(t.daily_output) if t.daily_output else "",
+            "required_days": str(t.required_days) if t.required_days else "",
+            "twine_detail": _jload(t.twine_detail),
+            "twine_weight": _jload(t.twine_weight),
+            "twine_rows": t.twine_rows or "[]",
+            "start_size": str(t.start_size) if t.start_size else "",
+            "increment_by": str(t.increment_by) if t.increment_by else "",
+            "size_count": t.size_count if t.size_count else "",
+            "reference": t.reference or "",
+            "extra_mesh": str(t.extra_mesh) if t.extra_mesh else "",
+        })
+
+    context = {
+        "products": products,
+        "machines": machines,
+        "machines_json": machines_json,
+        "twine_options_json": twine_options,
+        "trackers": trackers_data,
+    }
+    return render(request, "marania_invoice_app/production_tracker_entry.html", context)
+
+
+@login_required
 def profit_analytics_view(request):
     from .models import ProfitAnalytics, Production, MachineOperationalCost, ProcessingCost, AdditionalCost, Product, Parties
 

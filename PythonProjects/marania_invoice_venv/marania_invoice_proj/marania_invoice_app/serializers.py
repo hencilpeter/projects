@@ -31,6 +31,7 @@ MODEL_REGISTRY = {
     "ExtraMeshConfig": ExtraMeshConfig,
     "PriceListColourConfiguration": PriceListColourConfiguration,
     "Production": Production,
+    "ProductionTracker": ProductionTracker,
     "ProfitAnalytics": ProfitAnalytics,
     "PieceWeightAnalyser": PieceWeightAnalyser,
     "SettlementInvoice": SettlementInvoice,
@@ -71,6 +72,7 @@ UNIQUE_KEY_MODEL = {
     "ExtraMeshConfig": "",
     "PriceListColourConfiguration": "",
     "Production": "",
+    "ProductionTracker": "",
     "ProfitAnalytics": "",
     "PieceWeightAnalyser": "",
     "SettlementInvoice": "settlement_invoice_number",
@@ -120,6 +122,7 @@ IMPORT_ORDER = [
     # Level 7: Depends on Order
     "OrderSpecification",
     "Production",
+    "ProductionTracker",
 
     # Level 8: Depends on Production
     "ProfitAnalytics",

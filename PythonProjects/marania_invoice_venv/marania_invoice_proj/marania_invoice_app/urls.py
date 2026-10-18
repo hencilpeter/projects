@@ -176,6 +176,7 @@ path('configuration/get-product-colour', views.get_product_colour, name='get_pro
 path('production/entry', views.production_entry_view, name='production_entry'),
 path('production/load/<int:pk>/', views.load_production_view, name='load_production'),
 path('production/detail', views.production_detail_view, name='production_detail'),
+path('production/tracker', views.production_tracker_entry, name='production_tracker'),
 path('analytics/profit-analytics', views.profit_analytics_view, name='profit_analytics'),
 path('analytics/piece-weight-analyser', views.piece_weight_analyser_view, name='piece_weight_analyser'),
 path('analytics/pwa/load/<int:pk>/', views.load_pwa_view, name='load_pwa'),

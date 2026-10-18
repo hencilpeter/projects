@@ -932,6 +932,40 @@ class Production(models.Model):
         ordering = ['-production_date', '-production_key']
 
 
+class ProductionTracker(models.Model):
+    pt_key = models.AutoField(primary_key=True)
+    entry_date = models.DateField(default='today')
+    code = models.CharField(max_length=100, blank=True, null=True)  # e.g. DK16_33_1 (product_meshsize_sequence)
+    product = models.CharField(max_length=100, blank=True, null=True)
+    specification = models.CharField(max_length=255, blank=True, null=True)
+    mm = models.CharField(max_length=50, blank=True, null=True)
+    machine = models.CharField(max_length=50, blank=True, null=True)
+    knots_capacity_per_day = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    total_meshes = models.IntegerField(blank=True, null=True)
+    addl_net_twine = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    total_twine = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    quantity_unit = models.CharField(max_length=20, default='KG')
+    daily_output = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    required_days = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
+    twine_detail = models.TextField(blank=True, null=True)   # JSON e.g. {"16Fida": "600", "N6": "10"}
+    twine_weight = models.TextField(blank=True, null=True)   # JSON e.g. {"16Fida": "50", "N6": "5"}
+    twine_rows = models.TextField(blank=True, null=True)     # raw NET/SEL twine rows (JSON) for reload
+    start_size = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    increment_by = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    size_count = models.IntegerField(blank=True, null=True)
+    reference = models.CharField(max_length=100, blank=True, null=True)
+    extra_mesh = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"PT #{self.pt_key} - {self.code}"
+
+    class Meta:
+        ordering = ['-entry_date', '-pt_key']
+
+
 class ProfitAnalytics(models.Model):
     profit_key = models.AutoField(primary_key=True)
     production = models.ForeignKey(Production, to_field='production_key', on_delete=models.SET_NULL, null=True, blank=True, related_name='profit_analytics')
