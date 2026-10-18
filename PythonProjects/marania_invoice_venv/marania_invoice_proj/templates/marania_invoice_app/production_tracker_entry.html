@@ -146,11 +146,22 @@
     </div>
 
     <!-- Saved list -->
-    <h5 class="mt-4">Saved Entries</h5>
+    <div class="d-flex justify-content-between align-items-center mt-4">
+      <h5 class="mb-0">Saved Entries</h5>
+      <div class="btn-group">
+        <button type="button" id="export-csv-btn" class="btn btn-outline-success btn-sm">
+          <i class="bi bi-file-earmark-csv"></i> CSV
+        </button>
+        <button type="button" id="export-pdf-btn" class="btn btn-outline-danger btn-sm">
+          <i class="bi bi-file-earmark-pdf"></i> PDF
+        </button>
+      </div>
+    </div>
     <div class="table-responsive">
       <table class="table table-sm table-striped table-bordered align-middle" id="saved-list-table">
         <thead class="table-light">
           <tr>
+            <th style="width:55px;"></th>
             <th style="width:120px;">Code</th>
             <th style="width:85px;">Product</th>
             <th style="width:135px;">Specification</th>
@@ -161,14 +172,24 @@
             <th class="text-end" style="width:95px;">Total Twine</th>
             <th style="width:170px;">Twine Detail</th>
             <th style="width:170px;">Twine Weight</th>
+            <th style="width:150px;">Reference #</th>
             <th style="width:80px;">Machine</th>
             <th class="text-end" style="width:95px;">Knot Cap/Day</th>
-            <th class="text-end" style="width:95px;">Total Meshes</th>
             <th class="text-end" style="width:95px;">Addl.NET Twine</th>
-            <th style="width:150px;">Reference #</th>
-            <th style="width:55px;"></th>
           </tr>
           <tr id="saved-filter-row">
+            <th>
+              <button type="button" id="clear-filters" class="btn btn-warning btn-sm">
+                Clear
+              </button>
+            </th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><select class="form-select form-select-sm saved-filter">
+              <option value="">All</option>
+              {% for p in products %}
+              <option value="{{ p.code }}">{{ p.code }}</option>
+              {% endfor %}
+            </select></th>
             <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
             <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
             <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
@@ -177,19 +198,32 @@
             <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
             <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
             <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><select class="form-select form-select-sm saved-filter">
+              <option value="">All</option>
+              {% for r in reference_options %}
+              <option value="{{ r }}">{{ r }}</option>
+              {% endfor %}
+            </select></th>
+            <th><select class="form-select form-select-sm saved-filter">
+              <option value="">All</option>
+              {% for m in machines %}
+              <option value="{{ m.machine_number }}">{{ m.machine_number }}</option>
+              {% endfor %}
+            </select></th>
             <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
             <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th></th>
           </tr>
         </thead>
         <tbody>
           {% for t in trackers %}
           <tr>
+            <td>
+              <form method="POST" class="d-inline" onsubmit="return confirm('Delete this entry?');">
+                {% csrf_token %}
+                <input type="hidden" name="pt_key" value="{{ t.pt_key }}">
+                <button type="submit" name="action" value="delete" class="btn btn-outline-danger btn-sm">&times;</button>
+              </form>
+            </td>
             <td class="fw-bold">{{ t.code }}</td>
             <td>{{ t.product }}</td>
             <td>{{ t.specification }}</td>
@@ -208,21 +242,13 @@
               <span class="badge bg-info text-dark">{{ k }}: {{ v }}</span>
               {% endfor %}
             </td>
+            <td>{{ t.reference }}</td>
             <td>{{ t.machine }}</td>
             <td class="text-end">{{ t.knots_capacity_per_day }}</td>
-            <td class="text-end">{{ t.total_meshes }}</td>
             <td class="text-end">{{ t.addl_net_twine|default:"—" }}</td>
-            <td>{{ t.reference }}</td>
-            <td>
-              <form method="POST" class="d-inline" onsubmit="return confirm('Delete this entry?');">
-                {% csrf_token %}
-                <input type="hidden" name="pt_key" value="{{ t.pt_key }}">
-                <button type="submit" name="action" value="delete" class="btn btn-outline-danger btn-sm">&times;</button>
-              </form>
-            </td>
           </tr>
           {% empty %}
-          <tr class="saved-empty-row"><td colspan="16" class="text-center text-muted">No production tracker entries yet.</td></tr>
+          <tr class="saved-empty-row"><td colspan="15" class="text-center text-muted">No production tracker entries yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -233,6 +259,8 @@
 
 {{ machines_json|json_script:"machines-data" }}
 {{ twine_options_json|json_script:"twine-options-data" }}
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js" crossorigin="anonymous"></script>
 <script>
 const machinesData = JSON.parse(document.getElementById("machines-data").textContent);
 const twineOptions = JSON.parse(document.getElementById("twine-options-data").textContent);
@@ -418,14 +446,14 @@ document.getElementById("generate-list-btn").addEventListener("click", function(
     /* Per-twine counts and weights (weight derived from the daily output formula
        per twine: conv x MM x twineCount x knotCap / 1000) */
     const detail = {};
-    const twWeights = {};
+    const twWeights = {};   /* raw per-day KG per twine */
     let dailyOutput = 0;
     twineRows.forEach(r => {
       if (!r.twine || !r.twineCount) return;
       const outKG = (r.conv * effMM * r.twineCount * knotCap) / 1000;
       dailyOutput += outKG;
       detail[r.twine] = ((parseFloat(detail[r.twine]) || 0) + r.twineCount).toFixed(1).replace(/\.0$/, "");
-      twWeights[r.twine] = (((parseFloat(twWeights[r.twine]) || 0) + outKG)).toFixed(2);
+      twWeights[r.twine] = (parseFloat(twWeights[r.twine]) || 0) + outKG;
     });
 
     /* Addl.NET Twine: adds to NET twine's count, weight and daily output */
@@ -433,10 +461,11 @@ document.getElementById("generate-list-btn").addEventListener("click", function(
       const addlOutKG = (netConv * effMM * addlTwine * knotCap) / 1000;
       dailyOutput += addlOutKG;
       detail[netTwineCode] = ((parseFloat(detail[netTwineCode]) || 0) + addlTwine).toFixed(1).replace(/\.0$/, "");
-      twWeights[netTwineCode] = (((parseFloat(twWeights[netTwineCode]) || 0) + addlOutKG)).toFixed(2);
+      twWeights[netTwineCode] = (parseFloat(twWeights[netTwineCode]) || 0) + addlOutKG;
     }
 
-    const reqDays = dailyOutput > 0 ? (weight / dailyOutput).toFixed(3) : "";
+    const reqDaysNum = dailyOutput > 0 ? (weight / dailyOutput) : 0;
+    const reqDays = reqDaysNum > 0 ? reqDaysNum.toFixed(3) : "";
     const specParts = [size + "MM"];
     if (netMd) specParts.push(netMd + "MD");
     if (selTwineCode) specParts.push(selTwineCode + "SEL");
@@ -476,25 +505,37 @@ document.getElementById("generate-list-btn").addEventListener("click", function(
     });
     const wCell = tr.querySelector(".twine-weight-cell");
     Object.keys(twWeights).forEach(k => {
+      const perDay = twWeights[k];
       const b = document.createElement("span");
       b.className = "badge bg-info text-dark me-1";
-      b.textContent = `${k}: ${twWeights[k]}`;
+      b.textContent = `${k}: ${perDay.toFixed(2)}|${(perDay * reqDaysNum).toFixed(2)}`;
       wCell.appendChild(b);
     });
     tr._dailyOutput = dailyOutput;
+    tr._twineDaily = twWeights;
     tr.dataset.size = size;
     tr.dataset.mm = effMM;
     tbody.appendChild(tr);
   }
 });
 
-/* Weight edit -> recalc Req.Days */
+/* Weight edit -> recalc Req.Days and twine weight totals */
 document.getElementById("generated-list-body").addEventListener("input", e => {
   if (!e.target.classList.contains("gen-weight")) return;
   const tr = e.target.closest("tr");
   const w = parseFloat(e.target.value) || 0;
   const daily = tr._dailyOutput || 0;
-  tr.querySelector(".req-days").textContent = (daily > 0 && w > 0) ? (w / daily).toFixed(3) : "";
+  const days = (daily > 0 && w > 0) ? w / daily : 0;
+  tr.querySelector(".req-days").textContent = days > 0 ? days.toFixed(3) : "";
+  const td = tr._twineDaily || {};
+  const wCell = tr.querySelector(".twine-weight-cell");
+  wCell.innerHTML = "";
+  Object.keys(td).forEach(k => {
+    const b = document.createElement("span");
+    b.className = "badge bg-info text-dark me-1";
+    b.textContent = `${k}: ${td[k].toFixed(2)}|${(td[k] * days).toFixed(2)}`;
+    wCell.appendChild(b);
+  });
 });
 
 /* Remove generated row */
@@ -576,9 +617,12 @@ function filterSavedTable() {
     filters.forEach((f, idx) => {
       const v = (f.value || "").trim().toLowerCase();
       if (!v || !show) return;
-      const cell = row.cells[idx];
-      const text = cell ? (cell.textContent || "").toLowerCase() : "";
-      if (text.indexOf(v) === -1) show = false;
+      /* filter controls map to columns starting at 1 (column 0 is Actions) */
+      const cell = row.cells[idx + 1];
+      const text = cell ? (cell.textContent || "").trim().toLowerCase() : "";
+      /* selects (combo boxes) match exactly; text inputs match substring */
+      if (f.tagName === "SELECT") { if (text !== v) show = false; }
+      else if (text.indexOf(v) === -1) show = false;
     });
     row.style.display = show ? "" : "none";
   });
@@ -586,6 +630,57 @@ function filterSavedTable() {
 document.querySelectorAll("#saved-filter-row .saved-filter").forEach(f => {
   f.addEventListener("input", filterSavedTable);
   f.addEventListener("change", filterSavedTable);
+});
+document.getElementById("clear-filters").addEventListener("click", () => {
+  document.querySelectorAll("#saved-filter-row .saved-filter").forEach(f => f.value = "");
+  filterSavedTable();
+});
+
+/* ---------- Export filtered/visible saved entries ---------- */
+function getVisibleSavedData() {
+  /* headers from the first header row, excluding the Actions column (first) */
+  const headers = Array.from(document.querySelectorAll("#saved-list-table thead tr:first-child th"))
+    .slice(1)
+    .map(th => th.textContent.trim());
+  const rows = Array.from(document.querySelectorAll("#saved-list-table tbody tr"))
+    .filter(tr => !tr.classList.contains("saved-empty-row") && tr.style.display !== "none")
+    .map(tr => Array.from(tr.cells).slice(1).map(td => td.textContent.trim()));
+  return { headers, rows };
+}
+
+document.getElementById("export-csv-btn").addEventListener("click", function() {
+  const { headers, rows } = getVisibleSavedData();
+  if (!rows.length) { alert("No visible rows to export."); return; }
+  const esc = v => /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  /* BOM so Excel reads UTF-8 correctly */
+  const csv = "\uFEFF" + [headers, ...rows].map(r => r.map(esc).join(",")).join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "production_tracker_entries.csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+});
+
+document.getElementById("export-pdf-btn").addEventListener("click", function() {
+  const { headers, rows } = getVisibleSavedData();
+  if (!rows.length) { alert("No visible rows to export."); return; }
+  if (!window.jspdf || !window.jspdf.jsPDF) { alert("PDF library failed to load. Please check your connection and refresh."); return; }
+  const doc = new window.jspdf.jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+  doc.setFontSize(12);
+  doc.text("Production Tracker - Saved Entries", 20, 22);
+  doc.autoTable({
+    head: [headers],
+    body: rows,
+    startY: 32,
+    margin: { left: 10, right: 10 },
+    styles: { fontSize: 6.5, cellPadding: 2, overflow: "linebreak", valign: "middle" },
+    headStyles: { fillColor: [230, 230, 230], textColor: 0, fontSize: 7 },
+    alternateRowStyles: { fillColor: [248, 248, 248] },
+  });
+  doc.save("production_tracker_entries.pdf");
 });
 </script>
 

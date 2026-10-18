@@ -6796,6 +6796,7 @@ def production_tracker_entry(request):
         "machines_json": machines_json,
         "twine_options_json": twine_options,
         "trackers": trackers_data,
+        "reference_options": sorted({t["reference"] for t in trackers_data if t["reference"]}),
     }
     return render(request, "marania_invoice_app/production_tracker_entry.html", context)
 
