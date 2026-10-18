@@ -1,6 +1,16 @@
 {% extends 'partials/base.html' %}
 {% load static %}
 
+{% block css %}
+<style>
+  #saved-list-table { font-size: 0.78rem; min-width: 1400px; }
+  #saved-list-table th, #saved-list-table td { padding: 3px 5px; white-space: nowrap; vertical-align: middle; }
+  #saved-list-table th input.saved-filter { width: 100%; padding: 1px 3px; font-size: 0.75rem; }
+  #saved-list-table td.saved-twine { white-space: normal; min-width: 150px; }
+  #saved-list-table td.saved-twine .badge { margin: 1px 1px; font-weight: normal; }
+</style>
+{% endblock %}
+
 {% block main %}
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
   <div class="container my-4">
@@ -15,6 +25,7 @@
     <div class="collapse" id="trackerForm">
       <form method="POST" id="tracker-form">
         {% csrf_token %}
+        <input type="hidden" name="action" value="save">
         <input type="hidden" name="entries_data" id="entries-data">
         <div class="card p-4 mb-4 shadow-sm">
 
@@ -99,6 +110,7 @@
             </div>
             <div class="col-md-4 d-flex align-items-end gap-1">
               <button type="button" id="generate-list-btn" class="btn btn-primary btn-sm">Generate List</button>
+              <button type="button" id="clear-list-btn" class="btn btn-outline-secondary btn-sm">Clear List</button>
               <button type="button" id="save-list-btn" class="btn btn-success btn-sm">Save List</button>
             </div>
           </div>
@@ -139,29 +151,45 @@
       <table class="table table-sm table-striped table-bordered align-middle" id="saved-list-table">
         <thead class="table-light">
           <tr>
-            <th>Date</th>
-            <th>Code</th>
-            <th>Product</th>
-            <th>Specification</th>
-            <th class="text-end">Daily Output</th>
-            <th class="text-end">Req.Days</th>
-            <th class="text-end">Weight</th>
-            <th>Unit</th>
-            <th class="text-end">Total Twine</th>
-            <th>Twine Detail</th>
-            <th>Twine Weight</th>
-            <th>Machine</th>
-            <th class="text-end">Knot Cap/Day</th>
-            <th class="text-end">Total Meshes</th>
-            <th class="text-end">Addl.NET Twine</th>
-            <th>Reference #</th>
-            <th>Actions</th>
+            <th style="width:120px;">Code</th>
+            <th style="width:85px;">Product</th>
+            <th style="width:135px;">Specification</th>
+            <th class="text-end" style="width:95px;">Daily Output</th>
+            <th class="text-end" style="width:80px;">Req.Days</th>
+            <th class="text-end" style="width:80px;">Weight</th>
+            <th style="width:60px;">Unit</th>
+            <th class="text-end" style="width:95px;">Total Twine</th>
+            <th style="width:170px;">Twine Detail</th>
+            <th style="width:170px;">Twine Weight</th>
+            <th style="width:80px;">Machine</th>
+            <th class="text-end" style="width:95px;">Knot Cap/Day</th>
+            <th class="text-end" style="width:95px;">Total Meshes</th>
+            <th class="text-end" style="width:95px;">Addl.NET Twine</th>
+            <th style="width:150px;">Reference #</th>
+            <th style="width:55px;"></th>
+          </tr>
+          <tr id="saved-filter-row">
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
           {% for t in trackers %}
           <tr>
-            <td>{{ t.entry_date }}</td>
             <td class="fw-bold">{{ t.code }}</td>
             <td>{{ t.product }}</td>
             <td>{{ t.specification }}</td>
@@ -170,12 +198,12 @@
             <td class="text-end">{{ t.weight }}</td>
             <td>{{ t.quantity_unit }}</td>
             <td class="text-end">{{ t.total_twine }}</td>
-            <td>
+            <td class="saved-twine">
               {% for k, v in t.twine_detail.items %}
               <span class="badge bg-secondary">{{ k }}: {{ v }}</span>
               {% endfor %}
             </td>
-            <td>
+            <td class="saved-twine">
               {% for k, v in t.twine_weight.items %}
               <span class="badge bg-info text-dark">{{ k }}: {{ v }}</span>
               {% endfor %}
@@ -194,7 +222,7 @@
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="17" class="text-center text-muted">No production tracker entries yet.</td></tr>
+          <tr class="saved-empty-row"><td colspan="16" class="text-center text-muted">No production tracker entries yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -219,26 +247,31 @@ function buildTwineOptionsHTML(selectedCode) {
 }
 
 function addTwineRow(container, type) {
-  const startSize = document.getElementById("start-size").value;
-  const extraMesh = parseFloat(document.getElementById("tracker-extra-mesh").value) || 0;
-  const adjustedMM = startSize ? ((parseFloat(startSize) || 0) + extraMesh) : "";
   const productCode = document.getElementById("tracker-product").value;
+  /* NET default: selected machine's material code, falling back to product code */
+  let defaultCode = "";
+  if (type === 'NET') {
+    const machine = machinesData.find(m => m.machine_number === document.getElementById("tracker-machine").value);
+    const machineCode = ((machine && machine.running_product_code) || "").trim();
+    const prodCode = (productCode || "").trim();
+    const hasCode = c => c && twineOptions.some(t => t.code === c);
+    defaultCode = hasCode(machineCode) ? machineCode : (hasCode(prodCode) ? prodCode : "");
+  }
   const div = document.createElement("div");
   div.className = "row mb-2 align-items-end g-1 twine-row";
   div.dataset.type = type;
   div.innerHTML = `
     <div class="col-md-1"><span class="badge bg-${type === 'NET' ? 'success' : 'warning'} twine-label">${type}</span></div>
-    <div class="col-md-1"><input type="number" step="0.1" class="form-control form-control-sm twine-mm" placeholder="MM" value="${adjustedMM !== '' ? adjustedMM : ''}"></div>
     <div class="col-md-1"><input type="number" step="0.1" class="form-control form-control-sm twine-md" placeholder="MD"></div>
     <div class="col-md-1"><input type="number" class="form-control form-control-sm twine-pcs" placeholder="Pcs"></div>
     <div class="col-md-1"><input type="text" class="form-control form-control-sm twine-count bg-light" placeholder="Twine Count" readonly></div>
-    <div class="col-md-2"><select class="form-select form-select-sm twine-select">${buildTwineOptionsHTML(type === 'NET' ? productCode : '')}</select></div>
+    <div class="col-md-3"><select class="form-select form-select-sm twine-select">${buildTwineOptionsHTML(defaultCode)}</select></div>
     <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-conv bg-light" placeholder="Conversion Factor" readonly></div>
     <div class="col-md-1"><button type="button" class="btn btn-outline-danger btn-sm remove-twine-row">&times;</button></div>
   `;
   container.appendChild(div);
-  if (type === 'NET' && productCode) {
-    const ratio = twineOptions.find(t => t.code === productCode);
+  if (type === 'NET' && defaultCode) {
+    const ratio = twineOptions.find(t => t.code === defaultCode);
     if (ratio) {
       div.querySelector(".twine-conv").value = ratio.ratio;
     }
@@ -294,18 +327,6 @@ document.getElementById("tracker-machine").addEventListener("change", function()
   const m = machinesData.find(x => x.machine_number === this.value);
   document.getElementById("tracker-knot-cap").value = m ? m.knots_capacity_per_day : "";
   document.getElementById("tracker-total-meshes").value = m ? m.number_of_shuttles : "";
-});
-
-/* Start Size / Extra Mesh change -> refresh MM on twine rows */
-["start-size", "tracker-extra-mesh"].forEach(id => {
-  document.getElementById(id).addEventListener("input", () => {
-    const startSize = document.getElementById("start-size").value;
-    const extraMesh = parseFloat(document.getElementById("tracker-extra-mesh").value) || 0;
-    if (!startSize) return;
-    container.querySelectorAll(".twine-row").forEach(tr => {
-      tr.querySelector(".twine-mm").value = ((parseFloat(startSize) || 0) + extraMesh).toFixed(2).replace(/\.00$/, "");
-    });
-  });
 });
 
 /* Product change -> auto-select mapped machine + preselect NET twine like existing module */
@@ -374,6 +395,8 @@ document.getElementById("generate-list-btn").addEventListener("click", function(
   /* MD/SEL from twine rows for the specification */
   const netMd = (twineRows.find(r => r.type === 'NET' && r.md) || {}).md || "";
   const selMd = (twineRows.find(r => r.type === 'SEL' && r.md) || {}).md || "";
+  /* SEL part of the spec uses the SEL twine's code (e.g. N6SEL), not the MD value */
+  const selTwineCode = (twineRows.find(r => r.type === 'SEL' && r.twine) || {}).twine || "";
 
   /* Addl.NET Twine uses the NET row's conversion factor (like Production Analytics) */
   const addlTwine = parseFloat(document.getElementById("tracker-addl-net-twine").value) || 0;
@@ -416,7 +439,8 @@ document.getElementById("generate-list-btn").addEventListener("click", function(
     const reqDays = dailyOutput > 0 ? (weight / dailyOutput).toFixed(3) : "";
     const specParts = [size + "MM"];
     if (netMd) specParts.push(netMd + "MD");
-    if (selMd) specParts.push(selMd + "SEL");
+    if (selTwineCode) specParts.push(selTwineCode + "SEL");
+    else if (selMd) specParts.push(selMd + "SEL");
     const specification = specParts.join("-");
     const code = `${product}_${size}_${i + 1}`;
 
@@ -479,6 +503,11 @@ document.getElementById("generated-list-body").addEventListener("click", e => {
   e.target.closest("tr").remove();
 });
 
+/* ---------- Clear List ---------- */
+document.getElementById("clear-list-btn").addEventListener("click", function() {
+  document.getElementById("generated-list-body").innerHTML = "";
+});
+
 /* ---------- Save List ---------- */
 document.getElementById("save-list-btn").addEventListener("click", function() {
   const rows = document.querySelectorAll("#generated-list-body tr");
@@ -488,7 +517,7 @@ document.getElementById("save-list-btn").addEventListener("click", function() {
   container.querySelectorAll(".twine-row").forEach(tr => {
     twineRowsOut.push({
       type: tr.dataset.type,
-      mm: tr.querySelector(".twine-mm").value,
+      mm: "",
       md: tr.querySelector(".twine-md").value,
       pcs: tr.querySelector(".twine-pcs").value,
       twine_count: tr.querySelector(".twine-count").value,
@@ -536,6 +565,27 @@ document.getElementById("save-list-btn").addEventListener("click", function() {
 
   document.getElementById("entries-data").value = JSON.stringify(entries);
   document.getElementById("tracker-form").submit();
+});
+
+/* ---------- Saved entries table filter ---------- */
+function filterSavedTable() {
+  const filters = document.querySelectorAll("#saved-filter-row .saved-filter");
+  const rows = document.querySelectorAll("#saved-list-table tbody tr:not(.saved-empty-row)");
+  rows.forEach(row => {
+    let show = true;
+    filters.forEach((f, idx) => {
+      const v = (f.value || "").trim().toLowerCase();
+      if (!v || !show) return;
+      const cell = row.cells[idx];
+      const text = cell ? (cell.textContent || "").toLowerCase() : "";
+      if (text.indexOf(v) === -1) show = false;
+    });
+    row.style.display = show ? "" : "none";
+  });
+}
+document.querySelectorAll("#saved-filter-row .saved-filter").forEach(f => {
+  f.addEventListener("input", filterSavedTable);
+  f.addEventListener("change", filterSavedTable);
 });
 </script>
 
