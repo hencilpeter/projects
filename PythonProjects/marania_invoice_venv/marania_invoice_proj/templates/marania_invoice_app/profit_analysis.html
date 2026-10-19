@@ -108,6 +108,12 @@
         <div class="card p-4 mb-4 shadow-sm">
           <div class="analysis-row" id="analysis-row">
 
+            <!-- ============ Section-level actions ============ -->
+            <div class="d-flex justify-content-end gap-2 mb-2" id="section-actions">
+              <button type="button" class="btn btn-success btn-sm" id="expand-all-sections">Expand All</button>
+              <button type="button" class="btn btn-danger btn-sm" id="collapse-all-sections">Collapse All</button>
+            </div>
+
             <!-- ============ Section 1: Twine material (collapsible) ============ -->
             <div class="analysis-section">
               <div class="d-flex justify-content-between align-items-center">
@@ -268,61 +274,61 @@
 
             <div class="collapse show mt-2" id="costInputsBody">
             <div class="row mb-2 align-items-end g-1">
-              <div class="col-md-3">
+              <div class="col-md-2">
                 <label class="form-label small mb-0">Machine Cost/Day</label>
                 <input type="number" step="0.01" class="form-control form-control-sm an-machine-cost-day" placeholder="Machine Cost/Day">
               </div>
-              <div class="col-md-3">
+              <div class="col-md-2">
                 <label class="form-label small mb-0">Machine Total (Cost/Day x Days)</label>
                 <input type="text" class="form-control form-control-sm an-machine-total bg-light" placeholder="Machine Total" readonly>
               </div>
-              <div class="col-md-3">
+              <div class="col-md-2">
                 <label class="form-label small mb-0">Processing Cost/KG</label>
                 <input type="number" step="0.01" class="form-control form-control-sm an-proc-cost" placeholder="Processing/KG">
               </div>
-              <div class="col-md-3">
+              <div class="col-md-2">
                 <label class="form-label small mb-0">Processing Total</label>
                 <input type="text" class="form-control form-control-sm an-proc-total bg-light" placeholder="Processing Total" readonly>
               </div>
-            </div>
-
-            <div class="row mb-2 align-items-end g-1">
-              <div class="col-md-3">
+              <div class="col-md-2">
                 <label class="form-label small mb-0">Color Cost/KG</label>
                 <input type="number" step="0.01" class="form-control form-control-sm an-color-cost" placeholder="Color/KG">
               </div>
-              <div class="col-md-3">
+              <div class="col-md-2">
                 <label class="form-label small mb-0">Color Total</label>
                 <input type="text" class="form-control form-control-sm an-color-total bg-light" placeholder="Color Total" readonly>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label small mb-0">Small Size Cost/KG <small class="text-muted">(Per Processing Cost Config)</small></label>
-                <input type="number" step="0.01" class="form-control form-control-sm an-small-size-cost" placeholder="Small Size/KG">
-              </div>
-              <div class="col-md-3">
-                <label class="form-label small mb-0">Small Size Total</label>
-                <input type="text" class="form-control form-control-sm an-small-size-total bg-light" placeholder="Small Size Total" readonly>
               </div>
             </div>
 
             <div class="row mb-2 align-items-end g-1">
-              <div class="col-md-3">
+              <div class="col-md-2">
+                <label class="form-label small mb-0">Small Size Cost/KG</label>
+                <input type="number" step="0.01" class="form-control form-control-sm an-small-size-cost" placeholder="Small Size/KG">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small mb-0">Small Size Total</label>
+                <input type="text" class="form-control form-control-sm an-small-size-total bg-light" placeholder="Small Size Total" readonly>
+              </div>
+
+              <div class="col-md-2">
                 <label class="form-label small mb-0">Additional Cost/KG</label>
                 <input type="number" step="0.01" class="form-control form-control-sm an-addl-cost" placeholder="Additional/KG">
               </div>
-              <div class="col-md-3">
+              <div class="col-md-2">
                 <label class="form-label small mb-0">Additional Total</label>
                 <input type="text" class="form-control form-control-sm an-addl-total bg-light" placeholder="Additional Total" readonly>
               </div>
-              <div class="col-md-3">
+              <div class="col-md-2">
                 <label class="form-label small mb-0 text-success fw-bold">TOTAL COST</label>
                 <input type="text" class="form-control form-control-sm an-total-cost bg-light fw-bold" placeholder="Total Cost" readonly>
               </div>
-              <div class="col-md-3">
+              <div class="col-md-2">
                 <label class="form-label small mb-0 text-primary fw-bold">TOTAL RAW COST</label>
                 <input type="text" class="form-control form-control-sm an-total-raw bg-light fw-bold" placeholder="Total Raw Cost" readonly>
               </div>
+
             </div>
+
             </div>
 
             <hr>
@@ -642,6 +648,18 @@ function wireSectionToggle(btn) {
   target.addEventListener("hidden.bs.collapse", () => setState(false));
 }
 document.querySelectorAll(".section-toggle").forEach(wireSectionToggle);
+
+/* ================= Expand All / Collapse All ================= */
+function setAllSections(open) {
+  document.querySelectorAll(".section-toggle").forEach(btn => {
+    const target = document.querySelector(btn.getAttribute("data-bs-target") || "");
+    if (!target) return;
+    const isOpen = target.classList.contains("show");
+    if (open !== isOpen) btn.click();   /* clicking drives Bootstrap's collapse + our +/- state */
+  });
+}
+document.getElementById("expand-all-sections").addEventListener("click", () => setAllSections(true));
+document.getElementById("collapse-all-sections").addEventListener("click", () => setAllSections(false));
 
 /* ================= Section 2: product tracker selection ================= */
 const productFilter = document.getElementById("filter-product");
