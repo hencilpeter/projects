@@ -44,6 +44,48 @@
     background-color: #eef5ff;
     font-weight: 600;
 }
+
+/* Section minimize (-) / expand (+) toggles */
+.section-toggle {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    line-height: 1;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* section is open -> shows "-" (red) */
+.section-toggle.is-open {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: #fff;
+}
+
+.section-toggle.is-open:hover,
+.section-toggle.is-open:focus {
+    background-color: #bb2d3b;
+    border-color: #bb2d3b;
+    color: #fff;
+}
+
+/* section is minimized -> shows "+" (green) */
+.section-toggle.is-closed {
+    background-color: #198754;
+    border-color: #198754;
+    color: #fff;
+}
+
+.section-toggle.is-closed:hover,
+.section-toggle.is-closed:focus {
+    background-color: #157347;
+    border-color: #157347;
+    color: #fff;
+}
 </style>
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
   <div class="container my-4">
@@ -72,12 +114,13 @@
                 <h6 class="section-title text-primary mb-0">1. Twine Material &amp; Latest Price</h6>
                 <div class="d-flex align-items-center gap-2">
                   <span id="twine-summary" class="text-muted small"></span>
-                  <button type="button" class="btn btn-outline-secondary btn-sm" id="twine-toggle"
+                  <button type="button" class="btn btn-sm section-toggle is-open" id="twine-toggle"
                           data-bs-toggle="collapse"
                           data-bs-target="#twineMaterialBody"
                           aria-expanded="true"
-                          aria-controls="twineMaterialBody">
-                    <span class="twine-toggle-label">Minimize</span>
+                          aria-controls="twineMaterialBody"
+                          title="Minimize section">
+                    <span class="section-toggle-symbol">&minus;</span>
                   </button>
                 </div>
               </div>
@@ -108,7 +151,18 @@
 
             <!-- ============ Section 2: Product tracker selection ============ -->
             <div class="analysis-section">
-              <h6 class="section-title text-success">2. Select Product Tracker</h6>
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="section-title text-success mb-0">2. Select Product Tracker</h6>
+                <button type="button" class="btn btn-sm section-toggle is-open"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#trackerSectionBody"
+                        aria-expanded="true"
+                        aria-controls="trackerSectionBody"
+                        title="Minimize section">
+                  <span class="section-toggle-symbol">&minus;</span>
+                </button>
+              </div>
+              <div class="collapse show mt-2" id="trackerSectionBody">
               <div class="row mb-2 align-items-end g-2">
                 <div class="col-md-3">
                   <label class="form-label small mb-0">Product Code</label>
@@ -176,19 +230,43 @@
                   <input type="text" class="form-control form-control-sm an-req-days bg-light" readonly placeholder="Days">
                 </div>
               </div>
+              </div>
             </div>
 
             <!-- ============ Section 3: Raw material details ============ -->
             <div class="analysis-section">
-              <h6 class="section-title" style="color:#fd7e14;">3. Raw Material Details</h6>
-              <div id="raw-twine-rows" class="mb-2">
-                <div class="text-muted small">Select a product tracker entry to see raw material details</div>
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="section-title mb-0" style="color:#fd7e14;">3. Raw Material Details</h6>
+                <button type="button" class="btn btn-sm section-toggle is-open"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#rawMaterialBody"
+                        aria-expanded="true"
+                        aria-controls="rawMaterialBody"
+                        title="Minimize section">
+                  <span class="section-toggle-symbol">&minus;</span>
+                </button>
+              </div>
+              <div class="collapse show mt-2" id="rawMaterialBody">
+                <div id="raw-twine-rows" class="mb-2">
+                  <div class="text-muted small">Select a product tracker entry to see raw material details</div>
+                </div>
               </div>
             </div>
 
             <hr>
-            <h6 class="fw-bold" style="color: #6f42c1;">Cost &amp; Revenue Inputs</h6>
+            <div class="d-flex justify-content-between align-items-center">
+              <h6 class="fw-bold mb-0" style="color: #6f42c1;">Cost &amp; Revenue Inputs</h6>
+              <button type="button" class="btn btn-sm section-toggle is-open"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#costInputsBody"
+                      aria-expanded="true"
+                      aria-controls="costInputsBody"
+                      title="Minimize section">
+                <span class="section-toggle-symbol">&minus;</span>
+              </button>
+            </div>
 
+            <div class="collapse show mt-2" id="costInputsBody">
             <div class="row mb-2 align-items-end g-1">
               <div class="col-md-3">
                 <label class="form-label small mb-0">Machine Cost/Day</label>
@@ -245,10 +323,22 @@
                 <input type="text" class="form-control form-control-sm an-total-raw bg-light fw-bold" placeholder="Total Raw Cost" readonly>
               </div>
             </div>
+            </div>
 
             <hr>
-            <h6 class="text-success fw-bold">Revenue &amp; Profit</h6>
+            <div class="d-flex justify-content-between align-items-center">
+              <h6 class="fw-bold text-success mb-0">Revenue &amp; Profit</h6>
+              <button type="button" class="btn btn-sm section-toggle is-open"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#revenueProfitBody"
+                      aria-expanded="true"
+                      aria-controls="revenueProfitBody"
+                      title="Minimize section">
+                <span class="section-toggle-symbol">&minus;</span>
+              </button>
+            </div>
 
+            <div class="collapse show mt-2" id="revenueProfitBody">
             <div class="row mb-2 align-items-end g-1">
               <div class="col-md-2">
                 <label class="form-label small mb-0">Sale Price/KG</label>
@@ -289,6 +379,8 @@
             <div id="analysis-breakdown" class="border rounded p-2 mt-2" style="display:none;">
               <h6 class="fw-bold text-primary mb-1">Calculation Breakdown</h6>
               <div id="breakdown-content" class="small"></div>
+            </div>
+
             </div>
 
           </div>
@@ -440,8 +532,6 @@ function getMaterialName(code) {
 const twinePriceBody = document.getElementById("twine-price-body");
 const twineEmpty = document.getElementById("twine-empty");
 const twineSummary = document.getElementById("twine-summary");
-const twineMaterialBody = document.getElementById("twineMaterialBody");
-const twineToggle = document.getElementById("twine-toggle");
 
 function markAmended(tr) {
   const input = tr.querySelector(".twine-price-input");
@@ -533,14 +623,25 @@ twinePriceBody.addEventListener("input", e => {
   recalcAnalysis();
 });
 
-/* Minimize / expand */
-twineMaterialBody.addEventListener("hidden.bs.collapse", () => {
-  twineToggle.querySelector(".twine-toggle-label").textContent = "Expand";
-});
-twineMaterialBody.addEventListener("shown.bs.collapse", () => {
-  twineToggle.querySelector(".twine-toggle-label").textContent = "Minimize";
-});
 updateTwineSummary();
+
+/* ================= Section minimize (-) / expand (+) toggles ================= */
+function wireSectionToggle(btn) {
+  const target = document.querySelector(btn.getAttribute("data-bs-target") || "");
+  if (!target) return;
+  const symbol = btn.querySelector(".section-toggle-symbol");
+  const setState = open => {
+    symbol.textContent = open ? "\u2212" : "+";
+    btn.classList.toggle("is-open", open);
+    btn.classList.toggle("is-closed", !open);
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.title = open ? "Minimize section" : "Expand section";
+  };
+  setState(target.classList.contains("show"));
+  target.addEventListener("shown.bs.collapse", () => setState(true));
+  target.addEventListener("hidden.bs.collapse", () => setState(false));
+}
+document.querySelectorAll(".section-toggle").forEach(wireSectionToggle);
 
 /* ================= Section 2: product tracker selection ================= */
 const productFilter = document.getElementById("filter-product");
