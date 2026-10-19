@@ -127,7 +127,7 @@
                   <th class="text-end">Req.Days</th>
                   <th>Weight</th>
                   <th>Unit</th>
-                  <th class="text-end">Total Twine</th>
+                  <th class="text-end">Tot. Twine</th>
                   <th>Twine Detail</th>
                   <th>Twine Weight</th>
                   <th>Machine</th>
@@ -161,7 +161,8 @@
       <table class="table table-sm table-striped table-bordered align-middle" id="saved-list-table">
         <thead class="table-light">
           <tr>
-            <th style="width:55px;"></th>
+            <th scope="col" style="width:40px;"><input type="checkbox" id="select-all-saved" onchange="toggleAllSavedCheckboxes(this)"></th>
+            <th style="width:55px;">Actions</th>
             <th style="width:150px;">Product</th>
             <th style="width:150px;">MM</th>
             <th style="width:150px;">User Spec</th>
@@ -178,10 +179,17 @@
             <th class="text-end" style="width:95px;">Addl.NET Twine</th>
           </tr>
           <tr id="saved-filter-row">
+            <th></th>
             <th>
               <button type="button" id="clear-filters" class="btn btn-warning btn-sm">
                 Clear
               </button>
+              <form method="POST" action="{% url 'production_tracker' %}" id="bulk-delete-form" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_bulk">
+                <input type="hidden" name="pt_keys" id="bulk-delete-keys">
+                <button type="submit" id="bulk-delete-btn" class="btn btn-danger btn-sm ms-1" disabled>Del</button>
+              </form>
             </th>
             <th><select class="form-select form-select-sm saved-filter">
               <option value="">All</option>
@@ -222,6 +230,7 @@
         <tbody>
           {% for t in trackers %}
           <tr>
+            <td><input type="checkbox" class="saved-row-check" value="{{ t.pt_key }}"></td>
             <td>
               <form method="POST" class="d-inline" onsubmit="return confirm('Delete this entry?');">
                 {% csrf_token %}
@@ -253,7 +262,7 @@
             <td class="text-end">{{ t.addl_net_twine|default:"—" }}</td>
           </tr>
           {% empty %}
-          <tr class="saved-empty-row"><td colspan="15" class="text-center text-muted">No production tracker entries yet.</td></tr>
+          <tr class="saved-empty-row"><td colspan="16" class="text-center text-muted">No production tracker entries yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -629,8 +638,8 @@ function filterSavedTable() {
     filters.forEach((f, idx) => {
       const v = (f.value || "").trim().toLowerCase();
       if (!v || !show) return;
-      /* filter controls map to columns starting at 1 (column 0 is Actions) */
-      const cell = row.cells[idx + 1];
+      /* filter controls map to columns starting at 2 (col 0 = checkbox, col 1 = Actions) */
+      const cell = row.cells[idx + 2];
       const text = cell ? (cell.textContent || "").trim().toLowerCase() : "";
       /* selects (combo boxes) match exactly; text inputs match substring */
       if (f.tagName === "SELECT") { if (text !== v) show = false; }
@@ -648,15 +657,46 @@ document.getElementById("clear-filters").addEventListener("click", () => {
   filterSavedTable();
 });
 
+/* ---------- Row selection (checkboxes) + bulk delete - mimics sales/profit modules ---------- */
+const savedCheckboxes = document.querySelectorAll(".saved-row-check");
+
+function updateBulkDeleteBtn() {
+  const checked = document.querySelectorAll(".saved-row-check:checked").length;
+  const btn = document.getElementById("bulk-delete-btn");
+  if (btn) btn.disabled = checked === 0;
+}
+
+function toggleAllSavedCheckboxes(master) {
+  /* filter-aware: when filters are active, select only the visible rows */
+  let hasFilters = false;
+  document.querySelectorAll("#saved-filter-row .saved-filter").forEach(f => {
+    if (f.value && f.value.trim() !== "") hasFilters = true;
+  });
+  savedCheckboxes.forEach(cb => {
+    const row = cb.closest("tr");
+    cb.checked = (hasFilters && master.checked) ? !!(row && row.style.display !== "none") : master.checked;
+  });
+  updateBulkDeleteBtn();
+}
+
+savedCheckboxes.forEach(cb => cb.addEventListener("change", updateBulkDeleteBtn));
+
+document.getElementById("bulk-delete-form").addEventListener("submit", e => {
+  const checked = document.querySelectorAll(".saved-row-check:checked");
+  if (!checked.length) { e.preventDefault(); return; }
+  if (!confirm(`Delete ${checked.length} selected entries?`)) { e.preventDefault(); return; }
+  document.getElementById("bulk-delete-keys").value = JSON.stringify([...checked].map(cb => cb.value));
+});
+
 /* ---------- Export filtered/visible saved entries ---------- */
 function getVisibleSavedData() {
-  /* headers from the first header row, excluding the Actions column (first) */
+  /* headers from the first header row, excluding the checkbox and Actions columns */
   const headers = Array.from(document.querySelectorAll("#saved-list-table thead tr:first-child th"))
-    .slice(1)
+    .slice(2)
     .map(th => th.textContent.trim());
   const rows = Array.from(document.querySelectorAll("#saved-list-table tbody tr"))
     .filter(tr => !tr.classList.contains("saved-empty-row") && tr.style.display !== "none")
-    .map(tr => Array.from(tr.cells).slice(1).map(td => td.textContent.trim()));
+    .map(tr => Array.from(tr.cells).slice(2).map(td => td.textContent.trim()));
   return { headers, rows };
 }
 

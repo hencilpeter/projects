@@ -6750,6 +6750,13 @@ def production_tracker_entry(request):
                 ProductionTracker.objects.filter(pk=pk).delete()
                 messages.success(request, "Production Tracker entry deleted.")
 
+        elif action == "delete_bulk":
+            keys_raw = request.POST.get("pt_keys")
+            if keys_raw:
+                keys = json.loads(keys_raw)
+                ProductionTracker.objects.filter(pt_key__in=keys).delete()
+                messages.success(request, "Selected entries deleted.")
+
         return redirect("production_tracker")
 
     products = Product.objects.all().order_by("code")
