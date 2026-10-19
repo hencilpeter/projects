@@ -16,6 +16,34 @@
     font-weight: 700;
 }
 
+/* Section title (and its controls) sit on the top border of the rounded box,
+   legend style, so no separate header line is needed inside the box. */
+.legend-section {
+    position: relative;
+    margin-top: 24px;
+    padding-top: 18px;
+}
+
+.analysis-section.legend-section > .section-legend {
+    position: absolute;
+    top: 0;
+    left: 12px;
+    transform: translateY(-50%);
+    margin: 0;
+    padding: 0 8px;
+    background: #fbfbfd;
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+
+.analysis-section.legend-section > .section-legend-actions {
+    left: auto;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .analysis-table-wrapper {
     max-height: 820px;
     overflow: auto;
@@ -115,23 +143,21 @@
             </div>
 
             <!-- ============ Section 1: Twine material (collapsible) ============ -->
-            <div class="analysis-section">
-              <div class="d-flex justify-content-between align-items-center">
-                <h6 class="section-title text-primary mb-0">1. Twine Material &amp; Latest Price</h6>
-                <div class="d-flex align-items-center gap-2">
-                  <span id="twine-summary" class="text-muted small"></span>
-                  <button type="button" class="btn btn-sm section-toggle is-open" id="twine-toggle"
-                          data-bs-toggle="collapse"
-                          data-bs-target="#twineMaterialBody"
-                          aria-expanded="true"
-                          aria-controls="twineMaterialBody"
-                          title="Minimize section">
-                    <span class="section-toggle-symbol">&minus;</span>
-                  </button>
-                </div>
+            <div class="analysis-section legend-section">
+              <h6 class="section-title text-primary section-legend">1. Twine Material &amp; Latest Price</h6>
+              <div class="section-legend section-legend-actions">
+                <span id="twine-summary" class="text-muted small"></span>
+                <button type="button" class="btn btn-sm section-toggle is-open" id="twine-toggle"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#twineMaterialBody"
+                        aria-expanded="true"
+                        aria-controls="twineMaterialBody"
+                        title="Minimize section">
+                  <span class="section-toggle-symbol">&minus;</span>
+                </button>
               </div>
 
-              <div class="collapse show mt-2" id="twineMaterialBody">
+              <div class="collapse show" id="twineMaterialBody">
                 <small class="text-muted d-block mb-2">
                   All configured twine material codes are listed below with their latest price.
                   Amend any price you need - the amended prices are used in the raw material and
