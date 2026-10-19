@@ -1011,6 +1011,64 @@ class ProfitAnalytics(models.Model):
         ordering = ['-profit_date', '-profit_key']
 
 
+class ProfitAnalysis(models.Model):
+    """Enhanced Profit Analytics - analysis driven by a Production Tracker entry,
+    starting from a collapsible twine material price sheet (editable prices that
+    feed the raw material / profit calculation below)."""
+    analysis_key = models.AutoField(primary_key=True)
+    tracker = models.ForeignKey(ProductionTracker, to_field='pt_key', on_delete=models.SET_NULL, null=True, blank=True, related_name='profit_analyses')
+    analysis_date = models.DateField(default='today')
+
+    # Section 1 - Twine material prices used for the analysis
+    # JSON map: {"<material code>": "<price per kg>"} (amended prices, fall back to configured latest)
+    twine_prices = models.TextField(blank=True, null=True)
+
+    # Section 2 - Product tracker detail
+    user_spec = models.CharField(max_length=100, blank=True, null=True)
+    product = models.CharField(max_length=100, blank=True, null=True)
+    mm = models.CharField(max_length=50, blank=True, null=True)
+    system_spec = models.CharField(max_length=255, blank=True, null=True)
+    machine = models.CharField(max_length=50, blank=True, null=True)
+    est_weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    total_daily_output = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    required_days = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
+
+    # Section 3 - Raw material
+    raw_material_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    raw_twine_data = models.TextField(blank=True, null=True)
+
+    # Cost components
+    machine_operational_cost_per_day = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    machine_operational_total = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    processing_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    processing_total = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    color_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    color_total = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    small_depth_size_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    small_size_total = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    additional_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    additional_total = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    total_cost = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+
+    # Revenue & Profit
+    sale_price_per_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    total_revenue = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    total_profit = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    profit_per_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    profit_per_day = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    profit_margin_pct = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+
+    remarks = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Analysis #{self.analysis_key} - {self.user_spec} - {self.product}"
+
+    class Meta:
+        ordering = ['-analysis_date', '-analysis_key']
+
+
 class PieceWeightAnalyser(models.Model):
     pwa_key = models.AutoField(primary_key=True)
     product = models.CharField(max_length=100, blank=True, null=True)

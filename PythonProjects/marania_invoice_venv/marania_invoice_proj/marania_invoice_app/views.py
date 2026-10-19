@@ -7016,6 +7016,269 @@ def profit_analytics_view(request):
 
 
 @login_required
+def profit_analysis_view(request):
+    """Profit Analysis - enhanced Profit Analytics.
+
+    Section 1: twine material code + its latest (editable) price.
+    Section 2: product tracker selection by product code / MM / user spec.
+    Section 3: raw material (twine) details of the selected tracker entry.
+    Then the Cost & Revenue Inputs / Revenue & Profit / Calculation Breakdown
+    blocks and a saved-results table.
+    """
+    from .models import (
+        ProfitAnalysis, ProductionTracker, MachineOperationalCost, ProcessingCost,
+        AdditionalCost, Product, Materials, MaterialConversionRatio, Purchase,
+    )
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "save":
+            entries_raw = request.POST.get("entries_data")
+            if entries_raw:
+                entries = json.loads(entries_raw) if isinstance(entries_raw, str) else entries_raw
+                saved = 0
+                for entry in entries:
+                    tracker_key = entry.get("tracker_key") or None
+                    tracker_obj = None
+                    if tracker_key:
+                        try:
+                            tracker_obj = ProductionTracker.objects.get(pk=tracker_key)
+                        except ProductionTracker.DoesNotExist:
+                            tracker_obj = None
+                    analysis_key = entry.get("analysis_key") or None
+                    defaults = {
+                        "tracker": tracker_obj,
+                        "twine_prices": entry.get("twine_prices", "") or "",
+                        "user_spec": (entry.get("user_spec") or "").strip(),
+                        "product": (entry.get("product") or "").strip(),
+                        "mm": (entry.get("mm") or "").strip(),
+                        "system_spec": (entry.get("system_spec") or "").strip(),
+                        "machine": (entry.get("machine") or "").strip(),
+                        "est_weight": float(entry.get("est_weight") or 0) or None,
+                        "total_daily_output": float(entry.get("total_daily_output") or 0) or None,
+                        "required_days": float(entry.get("required_days") or 0) or None,
+                        "raw_material_cost": float(entry.get("raw_material_cost") or 0) or None,
+                        "raw_twine_data": entry.get("raw_twine_data", ""),
+                        "machine_operational_cost_per_day": float(entry.get("machine_operational_cost_per_day") or 0) or None,
+                        "machine_operational_total": float(entry.get("machine_operational_total") or 0) or None,
+                        "processing_cost_per_kg": float(entry.get("processing_cost_per_kg") or 0) or None,
+                        "processing_total": float(entry.get("processing_total") or 0) or None,
+                        "color_cost_per_kg": float(entry.get("color_cost_per_kg") or 0) or None,
+                        "color_total": float(entry.get("color_total") or 0) or None,
+                        "small_depth_size_cost_per_kg": float(entry.get("small_size_cost_per_kg") or 0) or None,
+                        "small_size_total": float(entry.get("small_size_total") or 0) or None,
+                        "additional_cost_per_kg": float(entry.get("additional_cost_per_kg") or 0) or None,
+                        "additional_total": float(entry.get("additional_total") or 0) or None,
+                        "total_cost": float(entry.get("total_cost") or 0) or None,
+                        "sale_price_per_kg": float(entry.get("sale_price_per_kg") or 0) or None,
+                        "total_revenue": float(entry.get("total_revenue") or 0) or None,
+                        "total_profit": float(entry.get("total_profit") or 0) or None,
+                        "profit_per_kg": float(entry.get("profit_per_kg") or 0) or None,
+                        "profit_per_day": float(entry.get("profit_per_day") or 0) or None,
+                        "profit_margin_pct": float(entry.get("profit_margin_pct") or 0) or None,
+                        "remarks": (entry.get("remarks") or "").strip(),
+                    }
+                    if analysis_key:
+                        ProfitAnalysis.objects.filter(pk=analysis_key).update(**defaults)
+                    else:
+                        # Analysis date is no longer user supplied - stamp it on creation
+                        defaults["analysis_date"] = datetime.now().date()
+                        ProfitAnalysis.objects.create(**defaults)
+                    saved += 1
+                # Remember the amended twine prices for the next entries
+                for entry in entries:
+                    prices_raw = entry.get("twine_prices")
+                    if not prices_raw:
+                        continue
+                    try:
+                        prices = json.loads(prices_raw)
+                        if isinstance(prices, dict):
+                            request.session["profit_analysis_twine_prices"] = prices
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                messages.success(request, f"{saved} profit analysis saved.")
+
+        elif action == "delete":
+            pk = request.POST.get("analysis_key")
+            if pk:
+                ProfitAnalysis.objects.filter(pk=pk).delete()
+                messages.success(request, "Profit analysis deleted.")
+
+        elif action == "delete_bulk":
+            keys_raw = request.POST.get("analysis_keys")
+            if keys_raw:
+                keys = json.loads(keys_raw)
+                ProfitAnalysis.objects.filter(analysis_key__in=keys).delete()
+                messages.success(request, "Selected entries deleted.")
+
+        return redirect("profit_analysis")
+
+    # ---- Section 1: twine material codes with their latest price ----
+    def _latest_twine_price(code):
+        latest = Purchase.objects.filter(
+            material_code=code, is_twine=True
+        ).order_by("-delivery_date", "-purchase_key").first()
+        if latest and latest.unit_price is not None:
+            gst_percent = latest.gst_percent or 0
+            return (latest.unit_price * (Decimal("1") + gst_percent / Decimal("100"))).quantize(Decimal("0.01"))
+        material = Materials.objects.filter(code=code).first()
+        if material:
+            price = material.price or Decimal("0")
+            gst_percent = material.gst or 0
+            return (price * (Decimal("1") + gst_percent / Decimal("100"))).quantize(Decimal("0.01"))
+        return None
+
+    twine_codes = set()
+    for ratio_code in MaterialConversionRatio.objects.values_list("material_code", flat=True):
+        if ratio_code:
+            twine_codes.add(ratio_code)
+    for purchase_code in Purchase.objects.filter(is_twine=True).exclude(material_code="").exclude(material_code=None).values_list("material_code", flat=True):
+        twine_codes.add(purchase_code)
+    material_names = {m.code: (m.name or "") for m in Materials.objects.all()}
+    # Previously amended prices (kept in the session) win over the configured latest price
+    amended_prices = request.session.get("profit_analysis_twine_prices") or {}
+    for code in amended_prices:
+        if code:
+            twine_codes.add(code)
+    twine_materials = []
+    for code in sorted(twine_codes):
+        latest = _latest_twine_price(code)
+        latest_str = str(latest) if latest is not None else ""
+        amended = str(amended_prices.get(code) or "").strip()
+        twine_materials.append({
+            "code": code,
+            "name": material_names.get(code, ""),
+            "latest_price": latest_str,
+            "price": amended or latest_str,
+            "amended": bool(amended),
+        })
+
+    # ---- Section 2: product tracker entries ----
+    trackers = ProductionTracker.objects.all().order_by("-entry_date", "-pt_key")
+    trackers_data = []
+    for t in trackers:
+        try:
+            twine_rows = json.loads(t.twine_rows) if t.twine_rows else []
+        except (json.JSONDecodeError, TypeError):
+            twine_rows = []
+        trackers_data.append({
+            "pt_key": t.pt_key,
+            "entry_date": t.entry_date.strftime("%Y-%m-%d") if t.entry_date else "",
+            "product": t.product or "",
+            "system_spec": t.system_spec or "",
+            "mm": t.mm or "",
+            "machine": t.machine or "",
+            "knots_capacity_per_day": str(t.knots_capacity_per_day) if t.knots_capacity_per_day else "",
+            "addl_net_twine": str(t.addl_net_twine) if t.addl_net_twine else "",
+            "total_twine": str(t.total_twine) if t.total_twine else "",
+            "weight": str(t.weight) if t.weight else "",
+            "quantity_unit": t.quantity_unit or "KG",
+            "daily_output": str(t.daily_output) if t.daily_output else "",
+            "required_days": str(t.required_days) if t.required_days else "",
+            "twine_rows": twine_rows,
+            "user_spec": t.user_spec or "",
+            "extra_mesh": str(t.extra_mesh) if t.extra_mesh else "",
+        })
+
+    # ---- Machine operational costs ----
+    machines = MachineOperationalCost.objects.all().order_by("machine_number")
+    machines_data = []
+    for m in machines:
+        total_cost_per_day = sum(filter(None, [
+            m.operator_cost_per_day or 0,
+            m.bobbin_winder_cost_per_day or 0,
+            m.mending_cost_per_day or 0,
+            m.mechanic_cost_per_day or 0,
+            m.electricity_cost_per_day or 0,
+            m.maintenance_cost_per_day or 0,
+            m.miscellaneous_cost_per_day or 0,
+        ]))
+        machines_data.append({
+            "machine_number": m.machine_number,
+            "total_cost_per_day": str(total_cost_per_day),
+        })
+
+    # ---- Processing costs ----
+    processing_costs = ProcessingCost.objects.all().order_by("material_code")
+    processing_data = [{"code": pc.material_code, "cost_per_kg": str(pc.processing_cost_per_kg), "color_cost": str(pc.color_cost_per_kg), "small_size_cost": str(pc.small_depth_size_cost_per_kg), "small_depth_starting_depth": str(pc.small_depth_starting_depth)} for pc in processing_costs]
+
+    # ---- Materials for twine name lookup ----
+    materials_data = [{"code": m.code, "name": m.name or ""} for m in Materials.objects.all()]
+
+    # ---- Additional costs ----
+    additional = AdditionalCost.objects.first()
+    additional_data = {
+        "transportation": str(additional.transportation_cost_per_kg) if additional else "",
+        "packing": str(additional.packing_cost_per_kg) if additional else "",
+        "waste": str(additional.waste_percentage) if additional else "",
+    }
+
+    # ---- Company settings GST ----
+    company_settings = CompanySettings.objects.first()
+    gst_data = {
+        "igst": str(company_settings.igst) if company_settings else "0",
+        "cgst": str(company_settings.cgst) if company_settings else "0",
+        "sgst": str(company_settings.sgst) if company_settings else "0",
+    }
+
+    # ---- Saved analyses ----
+    analyses = ProfitAnalysis.objects.all()
+    analyses_data = []
+    for a in analyses:
+        analyses_data.append({
+            "analysis_key": a.analysis_key,
+            "twine_prices": a.twine_prices or "",
+            "tracker_key": a.tracker_id or "",
+            "user_spec": a.user_spec or "",
+            "product": a.product or "",
+            "mm": a.mm or "",
+            "system_spec": a.system_spec or "",
+            "machine": a.machine or "",
+            "est_weight": str(a.est_weight) if a.est_weight else "",
+            "total_daily_output": str(a.total_daily_output) if a.total_daily_output else "",
+            "required_days": str(a.required_days) if a.required_days else "",
+            "machine_operational_cost_per_day": str(a.machine_operational_cost_per_day) if a.machine_operational_cost_per_day else "",
+            "machine_operational_total": str(a.machine_operational_total) if a.machine_operational_total else "",
+            "processing_cost_per_kg": str(a.processing_cost_per_kg) if a.processing_cost_per_kg else "",
+            "processing_total": str(a.processing_total) if a.processing_total else "",
+            "color_cost_per_kg": str(a.color_cost_per_kg) if a.color_cost_per_kg else "",
+            "color_total": str(a.color_total) if a.color_total else "",
+            "small_size_cost_per_kg": str(a.small_depth_size_cost_per_kg) if a.small_depth_size_cost_per_kg else "",
+            "small_size_total": str(a.small_size_total) if a.small_size_total else "",
+            "additional_cost_per_kg": str(a.additional_cost_per_kg) if a.additional_cost_per_kg else "",
+            "additional_total": str(a.additional_total) if a.additional_total else "",
+            "raw_material_cost": str(a.raw_material_cost) if a.raw_material_cost else "",
+            "raw_twine_data": a.raw_twine_data or "",
+            "total_cost": str(a.total_cost) if a.total_cost else "",
+            "sale_price_per_kg": str(a.sale_price_per_kg) if a.sale_price_per_kg else "",
+            "total_revenue": str(a.total_revenue) if a.total_revenue else "",
+            "total_profit": str(a.total_profit) if a.total_profit else "",
+            "profit_per_kg": str(a.profit_per_kg) if a.profit_per_kg else "",
+            "profit_per_day": str(a.profit_per_day) if a.profit_per_day else "",
+            "profit_margin_pct": str(a.profit_margin_pct) if a.profit_margin_pct else "",
+            "remarks": a.remarks or "",
+        })
+
+    context = {
+        "twine_materials_json": twine_materials,
+        "trackers_json": trackers_data,
+        "product_options": sorted({t["product"] for t in trackers_data if t["product"]}),
+        "mm_options": sorted({t["mm"] for t in trackers_data if t["mm"]}, key=lambda v: float(v) if str(v).replace(".", "", 1).isdigit() else str(v)),
+        "user_spec_options": sorted({t["user_spec"] for t in trackers_data if t["user_spec"]}),
+        "machines_json": machines_data,
+        "processing_json": processing_data,
+        "additional_json": additional_data,
+        "gst_json": gst_data,
+        "materials_json": materials_data,
+        "analyses": analyses_data,
+        "products": Product.objects.all().order_by("code"),
+        "machines": machines,
+    }
+    return render(request, "marania_invoice_app/profit_analysis.html", context)
+
+
+@login_required
 def piece_weight_analyser_view(request):
     from .models import Order, OrderSpecification, Product, MaterialConversionRatio, PieceWeightAnalyser
     import json

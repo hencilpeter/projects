@@ -1,0 +1,1085 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% block main %}
+
+<style>
+.analysis-section {
+    border: 1px solid #e3e3e3;
+    border-radius: 6px;
+    background: #fbfbfd;
+    padding: 12px;
+    margin-bottom: 14px;
+}
+
+.analysis-section .section-title {
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+.analysis-table-wrapper {
+    max-height: 820px;
+    overflow: auto;
+    border: 1px solid #ddd;
+}
+
+#analysis-table {
+    table-layout: fixed;
+    font-size: 0.8rem;
+}
+
+#analysis-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    white-space: nowrap;
+}
+
+#twine-price-table td {
+    vertical-align: middle;
+}
+
+/* Highlighted once the user amends a price */
+.twine-price-amended {
+    border-color: #0d6efd;
+    background-color: #eef5ff;
+    font-weight: 600;
+}
+</style>
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="container my-4">
+    <h3>Profit Analysis</h3>
+    <p class="text-muted small mb-3">
+      Enhanced Profit Analytics - start with the twine material price, pick a product tracker entry
+      (Product Code / MM / User Spec) and analyse the raw material, cost and revenue.
+    </p>
+
+    <button class="btn btn-primary mb-3" type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#analysisForm">
+      New Profit Analysis
+    </button>
+
+    <div class="collapse" id="analysisForm">
+      <form method="POST" id="analysis-form">
+        {% csrf_token %}
+        <input type="hidden" name="entries_data" id="entries-data">
+        <div class="card p-4 mb-4 shadow-sm">
+          <div class="analysis-row" id="analysis-row">
+
+            <!-- ============ Section 1: Twine material (collapsible) ============ -->
+            <div class="analysis-section">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="section-title text-primary mb-0">1. Twine Material &amp; Latest Price</h6>
+                <div class="d-flex align-items-center gap-2">
+                  <span id="twine-summary" class="text-muted small"></span>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" id="twine-toggle"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#twineMaterialBody"
+                          aria-expanded="true"
+                          aria-controls="twineMaterialBody">
+                    <span class="twine-toggle-label">Minimize</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="collapse show mt-2" id="twineMaterialBody">
+                <small class="text-muted d-block mb-2">
+                  All configured twine material codes are listed below with their latest price.
+                  Amend any price you need - the amended prices are used in the raw material and
+                  profit calculation further down and are remembered for your next entries.
+                  Once amended you can minimize this section and continue with the rest of the analysis.
+                </small>
+                <div class="table-responsive">
+                  <table class="table table-sm table-bordered align-middle mb-0" id="twine-price-table">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width: 170px;">Material Code</th>
+                        <th>Material Name</th>
+                        <th style="width: 140px;">Latest Price/KG</th>
+                        <th style="width: 170px;">Price to Use/KG</th>
+                      </tr>
+                    </thead>
+                    <tbody id="twine-price-body"></tbody>
+                  </table>
+                </div>
+                <div id="twine-empty" class="text-muted small mt-1" style="display:none;">No twine material configured.</div>
+              </div>
+            </div>
+
+            <!-- ============ Section 2: Product tracker selection ============ -->
+            <div class="analysis-section">
+              <h6 class="section-title text-success">2. Select Product Tracker</h6>
+              <div class="row mb-2 align-items-end g-2">
+                <div class="col-md-3">
+                  <label class="form-label small mb-0">Product Code</label>
+                  <input type="text" id="filter-product" class="form-control form-control-sm"
+                         list="product-options" placeholder="Product Code">
+                  <datalist id="product-options">
+                    {% for po in product_options %}<option value="{{ po }}">{% endfor %}
+                  </datalist>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">MM</label>
+                  <input type="text" id="filter-mm" class="form-control form-control-sm"
+                         list="mm-options" placeholder="MM">
+                  <datalist id="mm-options">
+                    {% for mo in mm_options %}<option value="{{ mo }}">{% endfor %}
+                  </datalist>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-0">User Spec</label>
+                  <input type="text" id="filter-user-spec" class="form-control form-control-sm"
+                         list="user-spec-options" placeholder="User Spec">
+                  <datalist id="user-spec-options">
+                    {% for uo in user_spec_options %}<option value="{{ uo }}">{% endfor %}
+                  </datalist>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small mb-0">Product Tracker Entry</label>
+                  <select id="select-tracker" class="form-select form-select-sm">
+                    <option value="">-- Select Product Tracker --</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row mb-1 align-items-end g-1">
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">User Specification</label>
+                  <input type="text" class="form-control form-control-sm an-user-spec bg-light" readonly placeholder="User Spec">
+                </div>
+                <div class="col-md-1">
+                  <label class="form-label small mb-0">Product</label>
+                  <input type="text" class="form-control form-control-sm an-product bg-light" readonly placeholder="Product">
+                </div>
+                <div class="col-md-1">
+                  <label class="form-label small mb-0">MM</label>
+                  <input type="text" class="form-control form-control-sm an-mm bg-light" readonly placeholder="MM">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">System Spec</label>
+                  <input type="text" class="form-control form-control-sm an-system-spec bg-light" readonly placeholder="System Spec">
+                </div>
+                <div class="col-md-1">
+                  <label class="form-label small mb-0">Machine</label>
+                  <input type="text" class="form-control form-control-sm an-machine bg-light" readonly placeholder="Machine">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Est. Weight (KG)</label>
+                  <input type="text" class="form-control form-control-sm an-est-wt bg-light" readonly placeholder="Est Wt">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small mb-0">Daily Output (KG)</label>
+                  <input type="text" class="form-control form-control-sm an-daily-output bg-light" readonly placeholder="Daily Output">
+                </div>
+                <div class="col-md-1">
+                  <label class="form-label small mb-0">Req Days</label>
+                  <input type="text" class="form-control form-control-sm an-req-days bg-light" readonly placeholder="Days">
+                </div>
+              </div>
+            </div>
+
+            <!-- ============ Section 3: Raw material details ============ -->
+            <div class="analysis-section">
+              <h6 class="section-title" style="color:#fd7e14;">3. Raw Material Details</h6>
+              <div id="raw-twine-rows" class="mb-2">
+                <div class="text-muted small">Select a product tracker entry to see raw material details</div>
+              </div>
+            </div>
+
+            <hr>
+            <h6 class="fw-bold" style="color: #6f42c1;">Cost &amp; Revenue Inputs</h6>
+
+            <div class="row mb-2 align-items-end g-1">
+              <div class="col-md-3">
+                <label class="form-label small mb-0">Machine Cost/Day</label>
+                <input type="number" step="0.01" class="form-control form-control-sm an-machine-cost-day" placeholder="Machine Cost/Day">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small mb-0">Machine Total (Cost/Day x Days)</label>
+                <input type="text" class="form-control form-control-sm an-machine-total bg-light" placeholder="Machine Total" readonly>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small mb-0">Processing Cost/KG</label>
+                <input type="number" step="0.01" class="form-control form-control-sm an-proc-cost" placeholder="Processing/KG">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small mb-0">Processing Total</label>
+                <input type="text" class="form-control form-control-sm an-proc-total bg-light" placeholder="Processing Total" readonly>
+              </div>
+            </div>
+
+            <div class="row mb-2 align-items-end g-1">
+              <div class="col-md-3">
+                <label class="form-label small mb-0">Color Cost/KG</label>
+                <input type="number" step="0.01" class="form-control form-control-sm an-color-cost" placeholder="Color/KG">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small mb-0">Color Total</label>
+                <input type="text" class="form-control form-control-sm an-color-total bg-light" placeholder="Color Total" readonly>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small mb-0">Small Size Cost/KG <small class="text-muted">(Per Processing Cost Config)</small></label>
+                <input type="number" step="0.01" class="form-control form-control-sm an-small-size-cost" placeholder="Small Size/KG">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small mb-0">Small Size Total</label>
+                <input type="text" class="form-control form-control-sm an-small-size-total bg-light" placeholder="Small Size Total" readonly>
+              </div>
+            </div>
+
+            <div class="row mb-2 align-items-end g-1">
+              <div class="col-md-3">
+                <label class="form-label small mb-0">Additional Cost/KG</label>
+                <input type="number" step="0.01" class="form-control form-control-sm an-addl-cost" placeholder="Additional/KG">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small mb-0">Additional Total</label>
+                <input type="text" class="form-control form-control-sm an-addl-total bg-light" placeholder="Additional Total" readonly>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small mb-0 text-success fw-bold">TOTAL COST</label>
+                <input type="text" class="form-control form-control-sm an-total-cost bg-light fw-bold" placeholder="Total Cost" readonly>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small mb-0 text-primary fw-bold">TOTAL RAW COST</label>
+                <input type="text" class="form-control form-control-sm an-total-raw bg-light fw-bold" placeholder="Total Raw Cost" readonly>
+              </div>
+            </div>
+
+            <hr>
+            <h6 class="text-success fw-bold">Revenue &amp; Profit</h6>
+
+            <div class="row mb-2 align-items-end g-1">
+              <div class="col-md-2">
+                <label class="form-label small mb-0">Sale Price/KG</label>
+                <input type="number" step="0.01" class="form-control form-control-sm an-sale-price" placeholder="Sale Price/KG">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small mb-0">Total Revenue</label>
+                <input type="text" class="form-control form-control-sm an-total-revenue bg-light" placeholder="Revenue" readonly>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small mb-0 text-success fw-bold">TOTAL PROFIT</label>
+                <input type="text" class="form-control form-control-sm an-total-profit bg-light fw-bold text-success" placeholder="Profit" readonly>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small mb-0">Profit/KG</label>
+                <input type="text" class="form-control form-control-sm an-profit-kg bg-light" placeholder="Profit/KG" readonly>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small mb-0">Profit/Day</label>
+                <input type="text" class="form-control form-control-sm an-profit-day bg-light" placeholder="Profit/Day" readonly>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small mb-0">Margin %</label>
+                <input type="text" class="form-control form-control-sm an-margin bg-light" placeholder="Margin %" readonly>
+              </div>
+            </div>
+
+            <div class="row mb-2 g-1">
+              <div class="col-md-6">
+                <label class="form-label small mb-0">Remarks</label>
+                <input type="text" class="form-control form-control-sm an-remarks" placeholder="Remarks">
+              </div>
+              <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-info btn-sm calc-analysis">Calculate</button>
+              </div>
+            </div>
+
+            <div id="analysis-breakdown" class="border rounded p-2 mt-2" style="display:none;">
+              <h6 class="fw-bold text-primary mb-1">Calculation Breakdown</h6>
+              <div id="breakdown-content" class="small"></div>
+            </div>
+
+          </div>
+
+          <div class="text-center">
+            <button type="submit" name="action" value="save" class="btn btn-success">Save Profit Analysis</button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <hr>
+
+    {% if analyses %}
+    <div class="mb-2">
+      <h5 class="fw-bold mb-0">Analysed Results</h5>
+      <small class="text-muted">Saved profit analysis results</small>
+    </div>
+
+    <form method="POST" action="{% url 'profit_analysis' %}" id="bulk-delete-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete_bulk">
+      <input type="hidden" name="analysis_keys" id="bulk-keys">
+
+      <div class="mb-2">
+        <button type="submit" class="btn btn-danger btn-sm" id="bulk-delete-btn" style="display:none;">Delete Selected</button>
+      </div>
+
+      <div class="analysis-table-wrapper">
+        <table class="table table-bordered table-hover table-sm align-middle" id="analysis-table">
+          <thead class="table-dark">
+            <tr>
+              <th><input type="checkbox" id="select-all-analysis"></th>
+              <th>Action</th>
+              <th>User Specification</th>
+              <th>Product</th>
+              <th>MM</th>
+              <th>Sale Price/KG</th>
+              <th>Profit/KG</th>
+              <th>Profit/Day</th>
+              <th>Total Profit</th>
+              <th>Margin %</th>
+              <th>Est Weight</th>
+              <th>Daily Output</th>
+              <th>Req Days</th>
+              <th>Machine</th>
+              <th>Machine Cost</th>
+              <th>Processing</th>
+              <th>Additional</th>
+              <th>Raw Material</th>
+              <th>Total Cost</th>
+              <th>Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in analyses %}
+            <tr data-analysis-key="{{ a.analysis_key }}"
+                data-twine-prices="{{ a.twine_prices }}"
+                data-tracker-key="{{ a.tracker_key }}"
+                data-user-spec="{{ a.user_spec }}"
+                data-product="{{ a.product }}"
+                data-mm="{{ a.mm }}"
+                data-system-spec="{{ a.system_spec }}"
+                data-machine="{{ a.machine }}"
+                data-est-weight="{{ a.est_weight }}"
+                data-daily-output="{{ a.total_daily_output }}"
+                data-req-days="{{ a.required_days }}"
+                data-machine-cost-day="{{ a.machine_operational_cost_per_day }}"
+                data-machine-total="{{ a.machine_operational_total }}"
+                data-proc-cost="{{ a.processing_cost_per_kg }}"
+                data-proc-total="{{ a.processing_total }}"
+                data-color-cost="{{ a.color_cost_per_kg }}"
+                data-color-total="{{ a.color_total }}"
+                data-small-size-cost="{{ a.small_size_cost_per_kg }}"
+                data-small-size-total="{{ a.small_size_total }}"
+                data-addl-cost="{{ a.additional_cost_per_kg }}"
+                data-addl-total="{{ a.additional_total }}"
+                data-raw-cost="{{ a.raw_material_cost }}"
+                data-total-cost="{{ a.total_cost }}"
+                data-sale-price="{{ a.sale_price_per_kg }}"
+                data-total-revenue="{{ a.total_revenue }}"
+                data-total-profit="{{ a.total_profit }}"
+                data-profit-kg="{{ a.profit_per_kg }}"
+                data-profit-day="{{ a.profit_per_day }}"
+                data-margin="{{ a.profit_margin_pct }}"
+                data-remarks="{{ a.remarks }}"
+                data-raw-twine="{{ a.raw_twine_data }}">
+              <td><input type="checkbox" class="analysis-row-check" value="{{ a.analysis_key }}"></td>
+              <td>
+                <button type="button" class="btn btn-primary btn-sm edit-analysis" data-key="{{ a.analysis_key }}">&#9998;</button>
+                <button type="button" class="btn btn-danger btn-sm delete-analysis" data-key="{{ a.analysis_key }}">&times;</button>
+              </td>
+              <td>{{ a.user_spec }}</td>
+              <td>{{ a.product }}</td>
+              <td>{{ a.mm }}</td>
+              <td>{{ a.sale_price_per_kg }}</td>
+              <td>{{ a.profit_per_kg }}</td>
+              <td>{{ a.profit_per_day }}</td>
+              <td class="fw-bold text-success">{{ a.total_profit }}</td>
+              <td>{{ a.profit_margin_pct }}</td>
+              <td>{{ a.est_weight }}</td>
+              <td>{{ a.total_daily_output }}</td>
+              <td>{{ a.required_days }}</td>
+              <td>{{ a.machine }}</td>
+              <td>{{ a.machine_operational_total }}</td>
+              <td>{{ a.processing_total }}</td>
+              <td>{{ a.additional_total }}</td>
+              <td>{{ a.raw_material_cost }}</td>
+              <td>{{ a.total_cost }}</td>
+              <td>{{ a.total_revenue }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </form>
+    {% else %}
+    <div class="alert alert-info">No profit analysis found. Create one above.</div>
+    {% endif %}
+
+  </div>
+</main>
+
+{{ trackers_json|json_script:"trackers-data" }}
+{{ twine_materials_json|json_script:"twine-materials-data" }}
+{{ machines_json|json_script:"machines-data" }}
+{{ processing_json|json_script:"processing-data" }}
+{{ additional_json|json_script:"additional-data" }}
+{{ gst_json|json_script:"gst-data" }}
+{{ materials_json|json_script:"materials-data" }}
+<script>
+const trackersData = JSON.parse(document.getElementById("trackers-data").textContent);
+const twineMaterialsData = JSON.parse(document.getElementById("twine-materials-data").textContent);
+const machinesData = JSON.parse(document.getElementById("machines-data").textContent);
+const processingData = JSON.parse(document.getElementById("processing-data").textContent);
+const additionalData = JSON.parse(document.getElementById("additional-data").textContent);
+const gstData = JSON.parse(document.getElementById("gst-data").textContent);
+const materialsData = JSON.parse(document.getElementById("materials-data").textContent);
+const analysisRow = document.getElementById("analysis-row");
+const twineCostUrl = "{% url 'get_twine_cost_per_kg' %}";
+
+function getMaterialName(code) {
+  const m = materialsData.find(x => x.code === code);
+  return m ? m.name : "";
+}
+
+/* ================= Section 1: twine material price sheet (collapsible) ================= */
+const twinePriceBody = document.getElementById("twine-price-body");
+const twineEmpty = document.getElementById("twine-empty");
+const twineSummary = document.getElementById("twine-summary");
+const twineMaterialBody = document.getElementById("twineMaterialBody");
+const twineToggle = document.getElementById("twine-toggle");
+
+function markAmended(tr) {
+  const input = tr.querySelector(".twine-price-input");
+  const latest = tr.dataset.latestPrice || "";
+  const val = input.value.trim();
+  input.classList.toggle("twine-price-amended", !!val && val !== latest);
+}
+
+function addTwinePriceRow(code, name, latestPrice, price) {
+  const tr = document.createElement("tr");
+  tr.dataset.twineCode = code;
+  tr.dataset.latestPrice = latestPrice || "";
+  tr.innerHTML = `
+    <td class="fw-semibold">${code}</td>
+    <td>${name || ""}</td>
+    <td class="twine-latest-price text-muted">${latestPrice || "-"}</td>
+    <td><input type="number" step="0.01" min="0"
+               class="form-control form-control-sm twine-price-input"
+               value="${price || ""}" placeholder="Price/KG"></td>`;
+  twinePriceBody.appendChild(tr);
+  markAmended(tr);
+  return tr;
+}
+
+twineMaterialsData.forEach(m => {
+  addTwinePriceRow(m.code, m.name, m.latest_price !== undefined ? m.latest_price : m.price, m.price);
+});
+
+function findTwinePriceRow(code) {
+  let found = null;
+  twinePriceBody.querySelectorAll("tr").forEach(tr => {
+    if (tr.dataset.twineCode === code) found = tr;
+  });
+  return found;
+}
+
+function twinePriceFor(code) {
+  const tr = findTwinePriceRow(code);
+  if (!tr) return null;
+  const val = tr.querySelector(".twine-price-input").value.trim();
+  return val === "" ? null : val;
+}
+
+function collectTwinePrices() {
+  const prices = {};
+  twinePriceBody.querySelectorAll("tr").forEach(tr => {
+    const val = tr.querySelector(".twine-price-input").value.trim();
+    if (val !== "") prices[tr.dataset.twineCode] = val;
+  });
+  return prices;
+}
+
+function restoreTwinePrices(prices) {
+  Object.keys(prices || {}).forEach(code => {
+    let tr = findTwinePriceRow(code);
+    if (!tr) tr = addTwinePriceRow(code, getMaterialName(code), "", "");
+    tr.querySelector(".twine-price-input").value = prices[code];
+    markAmended(tr);
+  });
+  updateTwineSummary();
+}
+
+function updateTwineSummary() {
+  const rows = twinePriceBody.querySelectorAll("tr");
+  let amended = 0;
+  rows.forEach(tr => {
+    if (tr.querySelector(".twine-price-input").classList.contains("twine-price-amended")) amended++;
+  });
+  twineSummary.textContent = rows.length
+    ? `${rows.length} material${rows.length > 1 ? "s" : ""}${amended ? ` \u2022 ${amended} amended` : ""}`
+    : "";
+  twineEmpty.style.display = rows.length ? "none" : "";
+}
+
+/* Amended prices feed the raw material rows and the profit calculation */
+function applyTwinePricesToRawRows() {
+  document.querySelectorAll("#raw-twine-rows .twine-cost-row").forEach(div => {
+    const nameInput = div.querySelector(".twine-name");
+    const price = twinePriceFor(nameInput.dataset.twineCode || "");
+    if (price !== null) div.querySelector(".twine-cost-kg").value = price;
+  });
+}
+
+twinePriceBody.addEventListener("input", e => {
+  if (!e.target.classList || !e.target.classList.contains("twine-price-input")) return;
+  markAmended(e.target.closest("tr"));
+  applyTwinePricesToRawRows();
+  updateTwineSummary();
+  recalcAnalysis();
+});
+
+/* Minimize / expand */
+twineMaterialBody.addEventListener("hidden.bs.collapse", () => {
+  twineToggle.querySelector(".twine-toggle-label").textContent = "Expand";
+});
+twineMaterialBody.addEventListener("shown.bs.collapse", () => {
+  twineToggle.querySelector(".twine-toggle-label").textContent = "Minimize";
+});
+updateTwineSummary();
+
+/* ================= Section 2: product tracker selection ================= */
+const productFilter = document.getElementById("filter-product");
+const mmFilter = document.getElementById("filter-mm");
+const userSpecFilter = document.getElementById("filter-user-spec");
+const trackerSelect = document.getElementById("select-tracker");
+
+function trackerMatches(t) {
+  const p = productFilter.value.trim().toLowerCase();
+  const m = mmFilter.value.trim().toLowerCase();
+  const u = userSpecFilter.value.trim().toLowerCase();
+  if (p && !(t.product || "").toLowerCase().includes(p)) return false;
+  if (m && !(t.mm || "").toLowerCase().includes(m)) return false;
+  if (u && !(t.user_spec || "").toLowerCase().includes(u)) return false;
+  return true;
+}
+
+function rebuildTrackerOptions(keepValue) {
+  const prev = keepValue !== undefined ? String(keepValue) : trackerSelect.value;
+  trackerSelect.innerHTML = '<option value="">-- Select Product Tracker --</option>';
+  trackersData.filter(trackerMatches).forEach(t => {
+    const opt = document.createElement("option");
+    opt.value = t.pt_key;
+    opt.textContent = `#${t.pt_key} - ${t.entry_date} - ${t.product || ''}${t.mm ? ' / ' + t.mm : ''}${t.user_spec ? ' / ' + t.user_spec : ''}`;
+    opt.dataset.tracker = JSON.stringify(t);
+    trackerSelect.appendChild(opt);
+  });
+  if (prev) trackerSelect.value = prev;
+  if (prev && trackerSelect.value !== prev) trackerSelect.value = "";
+}
+
+[productFilter, mmFilter, userSpecFilter].forEach(el => {
+  el.addEventListener("input", () => rebuildTrackerOptions());
+});
+
+trackerSelect.addEventListener("change", () => {
+  const opt = trackerSelect.selectedOptions[0];
+  if (!opt || !opt.dataset.tracker) return;
+  loadTracker(JSON.parse(opt.dataset.tracker));
+});
+
+function loadTracker(t) {
+  analysisRow.dataset.trackerKey = t.pt_key;
+  analysisRow.querySelector(".an-user-spec").value = t.user_spec || "";
+  analysisRow.querySelector(".an-product").value = t.product || "";
+  analysisRow.querySelector(".an-mm").value = t.mm || "";
+  analysisRow.querySelector(".an-system-spec").value = t.system_spec || "";
+  analysisRow.querySelector(".an-machine").value = t.machine || "";
+  analysisRow.querySelector(".an-est-wt").value = t.weight || "";
+  analysisRow.querySelector(".an-daily-output").value = t.daily_output || "";
+  analysisRow.querySelector(".an-req-days").value = t.required_days || "";
+
+  /* Machine operational cost */
+  const machine = machinesData.find(m => m.machine_number === t.machine);
+  const machineCostDay = machine ? machine.total_cost_per_day : "";
+  analysisRow.querySelector(".an-machine-cost-day").value = machineCostDay;
+  analysisRow.dataset.machineCostDay = machineCostDay;
+
+  /* Processing / colour / small size cost from processing config (first twine code) */
+  const twineRows = t.twine_rows || [];
+  const firstTwineCode = twineRows.length > 0 ? (twineRows[0].twine || "") : "";
+  const proc = processingData.find(p => p.code === firstTwineCode);
+  const procCost = proc ? proc.cost_per_kg : "";
+  analysisRow.querySelector(".an-proc-cost").value = procCost;
+  analysisRow.dataset.procCost = procCost;
+
+  /* Colour is not known for tracker entries - colour cost stays user editable */
+  analysisRow.querySelector(".an-color-cost").value = "";
+  analysisRow.dataset.colorCost = "";
+
+  /* Small size cost applies when MD <= small depth starting depth */
+  const firstMd = parseFloat((twineRows.find(r => r.md) || {}).md) || 0;
+  const smallDepthStartingDepth = proc ? (parseFloat(proc.small_depth_starting_depth) || 0) : 0;
+  if (firstMd > 0 && smallDepthStartingDepth > 0 && firstMd <= smallDepthStartingDepth) {
+    analysisRow.querySelector(".an-small-size-cost").value = proc ? proc.small_size_cost : "";
+    analysisRow.dataset.smallSizeCost = proc ? proc.small_size_cost : "";
+  } else {
+    analysisRow.querySelector(".an-small-size-cost").value = "";
+    analysisRow.dataset.smallSizeCost = "";
+  }
+
+  /* Additional cost (Transportation + Packing) */
+  let addlCost = 0;
+  if (additionalData.transportation) addlCost += parseFloat(additionalData.transportation);
+  if (additionalData.packing) addlCost += parseFloat(additionalData.packing);
+  analysisRow.querySelector(".an-addl-cost").value = addlCost ? addlCost.toFixed(2) : "";
+  analysisRow.dataset.addlCost = addlCost;
+
+  renderRawRows(t);
+}
+
+/* ============ Section 3: raw material details of the selected tracker ============ */
+function renderRawRows(t) {
+  const twineContainer = document.getElementById("raw-twine-rows");
+  twineContainer.innerHTML = "";
+  const twineRows = t.twine_rows || [];
+  if (twineRows.length === 0) {
+    twineContainer.innerHTML = '<div class="text-muted small">No raw material data for this tracker entry</div>';
+    recalcAnalysis();
+    return;
+  }
+
+  const wastePercentage = parseFloat(additionalData.waste) || 0;
+  const reqDays = parseFloat(t.required_days) || 0;
+  const knotCap = parseFloat(t.knots_capacity_per_day) || 0;
+  const addlNetTwine = parseFloat(t.addl_net_twine) || 0;
+  const topMM = parseFloat(t.mm) || 0;
+
+  /* Calculate daily_output for twine rows that don't have it */
+  let netConv = 0;
+  let needsAddlNet = false;
+  twineRows.forEach(tr => {
+    if (tr.daily_output === undefined || tr.daily_output === null || tr.daily_output === "") {
+      const mm = parseFloat(tr.mm) || topMM;
+      const twineCount = parseFloat(tr.twine_count) || 0;
+      const conv = parseFloat(tr.conversion_factor) || 0;
+      tr.daily_output = ((conv * mm * twineCount * knotCap) / 1000).toFixed(2);
+      needsAddlNet = true;
+    }
+    if (tr.type === "NET") netConv = parseFloat(tr.conversion_factor) || 0;
+  });
+  /* Addl.NET twine daily output for the NET row */
+  if (needsAddlNet && addlNetTwine > 0 && topMM > 0 && netConv > 0) {
+    const netRow = twineRows.find(r => r.type === "NET");
+    if (netRow) {
+      const addlDailyOutput = (netConv * topMM * addlNetTwine * knotCap) / 1000;
+      netRow.daily_output = (parseFloat(netRow.daily_output) + addlDailyOutput).toFixed(2);
+    }
+  }
+
+  twineRows.forEach((tr, idx) => {
+    const twineWeight = (parseFloat(tr.daily_output) || 0) * reqDays;
+    const wasteTwine = twineWeight * wastePercentage / 100;
+    const code = tr.twine || "";
+    const label = `${code}${getMaterialName(code) ? '-' + getMaterialName(code) : ''}`;
+    const div = document.createElement("div");
+    div.className = "row mb-1 align-items-end g-1 twine-cost-row";
+    if (idx === 0) {
+      div.innerHTML = `
+        <div class="col-md-1"><label class="form-label small mb-0"></label><span class="badge bg-${tr.type === 'NET' ? 'success' : 'warning'} twine-type-badge">${tr.type}</span></div>
+        <div class="col-md-2"><label class="form-label small mb-0">Twine & Material</label><input type="text" class="form-control form-control-sm twine-name" data-twine-code="${code}" value="${label}" placeholder="Twine/Material"></div>
+        <div class="col-md-2"><label class="form-label small mb-0">Weight (KG) <small class="text-muted">[Daily Output × Req Days]</small></label><input type="text" class="form-control form-control-sm twine-weight bg-light" value="${twineWeight.toFixed(2)}" placeholder="Weight(KG)" readonly></div>
+        <div class="col-md-2"><label class="form-label small mb-0">Waste Twine(${wastePercentage}%)</label><input type="text" class="form-control form-control-sm twine-weight-pct bg-light" value="${wasteTwine.toFixed(2)}" placeholder="Waste Twine(%)" readonly></div>
+        <div class="col-md-2"><label class="form-label small mb-0">Cost/KG</label><input type="number" step="0.01" class="form-control form-control-sm twine-cost-kg" placeholder="Cost/KG" value=""></div>
+        <div class="col-md-2"><label class="form-label small mb-0">Total <small class="text-muted">[(Weight+Waste)×Cost]</small></label><input type="text" class="form-control form-control-sm twine-cost-total bg-light" placeholder="Total" readonly></div>
+      `;
+    } else {
+      div.innerHTML = `
+        <div class="col-md-1"><span class="badge bg-${tr.type === 'NET' ? 'success' : 'warning'} twine-type-badge">${tr.type}</span></div>
+        <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-name" data-twine-code="${code}" value="${label}" placeholder="Twine/Material"></div>
+        <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-weight bg-light" value="${twineWeight.toFixed(2)}" placeholder="Weight(KG)" readonly></div>
+        <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-weight-pct bg-light" value="${wasteTwine.toFixed(2)}" placeholder="Waste Twine(%)" readonly></div>
+        <div class="col-md-2"><input type="number" step="0.01" class="form-control form-control-sm twine-cost-kg" placeholder="Cost/KG" value=""></div>
+        <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-cost-total bg-light" placeholder="Total" readonly></div>
+      `;
+    }
+    twineContainer.appendChild(div);
+  });
+
+  /* Apply the section-1 prices first, then fetch latest prices for codes without one */
+  applyTwinePricesToRawRows();
+
+  const priceMap = collectTwinePrices();
+  const costKgPromises = [];
+  twineContainer.querySelectorAll(".twine-cost-row").forEach(div => {
+    const twineCode = div.querySelector(".twine-name").dataset.twineCode || "";
+    if (!twineCode) return;
+    if (priceMap[twineCode] !== undefined) return;   /* price already applied from section 1 */
+    const promise = fetch(`${twineCostUrl}?material_code=${encodeURIComponent(twineCode)}`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.cost_per_kg) {
+        div.querySelector(".twine-cost-kg").value = data.cost_per_kg;
+      }
+    })
+    .catch(() => {});
+    costKgPromises.push(promise);
+  });
+  Promise.all(costKgPromises).then(() => recalcAnalysis());
+}
+
+/* ================= Calculate ================= */
+function recalcAnalysis() {
+  const row = analysisRow;
+  const estWt = parseFloat(row.querySelector(".an-est-wt").value) || 0;
+  const reqDays = parseFloat(row.querySelector(".an-req-days").value) || 0;
+  const machineCostDay = parseFloat(row.querySelector(".an-machine-cost-day").value) || 0;
+  const procCost = parseFloat(row.querySelector(".an-proc-cost").value) || 0;
+  const colorCost = parseFloat(row.querySelector(".an-color-cost").value) || 0;
+  const smallSizeCost = parseFloat(row.querySelector(".an-small-size-cost").value) || 0;
+  const addlCost = parseFloat(row.querySelector(".an-addl-cost").value) || 0;
+  const salePrice = parseFloat(row.querySelector(".an-sale-price").value) || 0;
+
+  /* Raw material cost from twine rows */
+  let rawCost = 0;
+  const twineCostData = [];
+  document.querySelectorAll("#raw-twine-rows .twine-cost-row").forEach(div => {
+    const weight = parseFloat(div.querySelector(".twine-weight").value) || 0;
+    const wasteTwine = parseFloat(div.querySelector(".twine-weight-pct").value) || 0;
+    const costKg = parseFloat(div.querySelector(".twine-cost-kg").value) || 0;
+    const total = (weight + wasteTwine) * costKg;
+    div.querySelector(".twine-cost-total").value = total ? total.toFixed(2) : "";
+    rawCost += total;
+    twineCostData.push({
+      type: div.querySelector(".twine-type-badge").textContent,
+      code: div.querySelector(".twine-name").dataset.twineCode || "",
+      name: div.querySelector(".twine-name").value,
+      weight: div.querySelector(".twine-weight").value,
+      waste: div.querySelector(".twine-weight-pct").value,
+      costKg: div.querySelector(".twine-cost-kg").value,
+      total: div.querySelector(".twine-cost-total").value,
+    });
+  });
+  row.dataset.twineCostData = JSON.stringify(twineCostData);
+  row.dataset.rawCost = rawCost;
+
+  const machineTotal = machineCostDay * reqDays;
+  const procTotal = procCost * estWt;
+  const colorTotal = colorCost * estWt;
+  const smallSizeTotal = smallSizeCost * estWt;
+  const addlTotal = addlCost * estWt;
+  const totalCost = machineTotal + procTotal + colorTotal + smallSizeTotal + addlTotal + rawCost;
+  const revenue = salePrice * estWt;
+  const profit = revenue - totalCost;
+  const profitKg = estWt > 0 ? profit / estWt : 0;
+  const profitDay = reqDays > 0 ? profit / reqDays : 0;
+  const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+
+  row.querySelector(".an-machine-total").value = machineTotal ? machineTotal.toFixed(2) : "";
+  row.querySelector(".an-proc-total").value = procTotal ? procTotal.toFixed(2) : "";
+  row.querySelector(".an-color-total").value = colorTotal ? colorTotal.toFixed(2) : "";
+  row.querySelector(".an-small-size-total").value = smallSizeTotal ? smallSizeTotal.toFixed(2) : "";
+  row.querySelector(".an-addl-total").value = addlTotal ? addlTotal.toFixed(2) : "";
+  row.querySelector(".an-total-raw").value = rawCost ? rawCost.toFixed(2) : "";
+  row.querySelector(".an-total-cost").value = totalCost ? totalCost.toFixed(2) : "";
+  row.querySelector(".an-total-revenue").value = revenue ? revenue.toFixed(2) : "";
+  row.querySelector(".an-total-profit").value = profit ? profit.toFixed(2) : "";
+  row.querySelector(".an-profit-kg").value = profitKg ? profitKg.toFixed(2) : "";
+  row.querySelector(".an-profit-day").value = profitDay ? profitDay.toFixed(2) : "";
+  row.querySelector(".an-margin").value = margin ? margin.toFixed(2) : "";
+
+  row.dataset.machineTotal = machineTotal;
+  row.dataset.procTotal = procTotal;
+  row.dataset.colorTotal = colorTotal;
+  row.dataset.smallSizeTotal = smallSizeTotal;
+  row.dataset.addlTotal = addlTotal;
+  row.dataset.totalCost = totalCost;
+  row.dataset.revenue = revenue;
+  row.dataset.profit = profit;
+  row.dataset.profitKg = profitKg;
+  row.dataset.profitDay = profitDay;
+  row.dataset.margin = margin;
+  row.dataset.machineCostDay = machineCostDay;
+  row.dataset.procCost = procCost;
+  row.dataset.colorCost = colorCost;
+  row.dataset.smallSizeCost = smallSizeCost;
+  row.dataset.addlCost = addlCost;
+
+  /* Calculation breakdown */
+  const breakdown = document.getElementById("analysis-breakdown");
+  const content = document.getElementById("breakdown-content");
+  if (totalCost > 0 || revenue > 0) {
+    let twineBreakdown = "";
+    twineCostData.forEach(tw => {
+      if (parseFloat(tw.total) > 0) {
+        twineBreakdown += `<tr><td>&bull; ${tw.type} ${tw.name}: ${tw.weight} KG x ${tw.costKg || "0"}/KG =</td><td class="text-end">${tw.total}</td></tr>`;
+      }
+    });
+    content.innerHTML = `
+      <table class="table table-sm table-borderless mb-0">
+        <tr><td>Machine Cost: ${machineCostDay.toFixed(2)}/Day x ${reqDays} Days =</td><td class="text-end fw-bold">${machineTotal.toFixed(2)}</td></tr>
+        <tr><td>Processing Cost: ${procCost.toFixed(2)}/KG x ${estWt} KG =</td><td class="text-end fw-bold">${procTotal.toFixed(2)}</td></tr>
+        <tr><td>Color Cost: ${colorCost.toFixed(2)}/KG x ${estWt} KG =</td><td class="text-end fw-bold">${colorTotal.toFixed(2)}</td></tr>
+        <tr><td>Small Size Cost: ${smallSizeCost.toFixed(2)}/KG x ${estWt} KG =</td><td class="text-end fw-bold">${smallSizeTotal.toFixed(2)}</td></tr>
+        <tr><td>Additional Cost: ${addlCost.toFixed(2)}/KG x ${estWt} KG =</td><td class="text-end fw-bold">${addlTotal.toFixed(2)}</td></tr>
+        <tr><td>Raw Material Cost:</td><td class="text-end fw-bold">${rawCost.toFixed(2)}</td></tr>
+        ${twineBreakdown}
+        <tr class="border-top"><td><b>TOTAL COST:</b></td><td class="text-end fw-bold text-danger">${totalCost.toFixed(2)}</td></tr>
+        <tr><td>Revenue: ${salePrice.toFixed(2)}/KG x ${estWt} KG =</td><td class="text-end fw-bold text-success">${revenue.toFixed(2)}</td></tr>
+        <tr class="border-top border-success"><td><b>PROFIT:</b></td><td class="text-end fw-bold text-success">${profit.toFixed(2)}</td></tr>
+        <tr><td>Profit/KG:</td><td class="text-end">${profitKg.toFixed(2)}</td></tr>
+        <tr><td>Profit/Day:</td><td class="text-end">${profitDay.toFixed(2)}</td></tr>
+        <tr><td>Margin:</td><td class="text-end">${margin.toFixed(2)}%</td></tr>
+      </table>`;
+    breakdown.style.display = "";
+  } else {
+    breakdown.style.display = "none";
+  }
+}
+
+/* Calculate button */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("calc-analysis")) return;
+  recalcAnalysis();
+});
+
+/* Input changes -> recalculate */
+document.getElementById("analysis-form").addEventListener("input", e => {
+  if (e.target.classList.contains("an-sale-price") || e.target.classList.contains("twine-cost-kg") ||
+      e.target.classList.contains("an-machine-cost-day") || e.target.classList.contains("an-proc-cost") ||
+      e.target.classList.contains("an-color-cost") || e.target.classList.contains("an-small-size-cost") ||
+      e.target.classList.contains("an-addl-cost") || e.target.classList.contains("an-est-wt") ||
+      e.target.classList.contains("an-req-days")) {
+    recalcAnalysis();
+  }
+});
+
+/* ================= Submit ================= */
+document.getElementById("analysis-form").addEventListener("submit", e => {
+  const totalCost = parseFloat(analysisRow.dataset.totalCost) || 0;
+  if (totalCost <= 0) {
+    alert("Please select a product tracker entry and calculate profit first.");
+    e.preventDefault();
+    return;
+  }
+  const entry = {
+    analysis_key: analysisRow.dataset.editAnalysisKey || "",
+    tracker_key: analysisRow.dataset.trackerKey || "",
+    twine_prices: JSON.stringify(collectTwinePrices()),
+    user_spec: analysisRow.querySelector(".an-user-spec").value,
+    product: analysisRow.querySelector(".an-product").value,
+    mm: analysisRow.querySelector(".an-mm").value,
+    system_spec: analysisRow.querySelector(".an-system-spec").value,
+    machine: analysisRow.querySelector(".an-machine").value,
+    est_weight: analysisRow.querySelector(".an-est-wt").value,
+    total_daily_output: analysisRow.querySelector(".an-daily-output").value,
+    required_days: analysisRow.querySelector(".an-req-days").value,
+    machine_operational_cost_per_day: analysisRow.dataset.machineCostDay || "",
+    machine_operational_total: analysisRow.dataset.machineTotal || "",
+    processing_cost_per_kg: analysisRow.dataset.procCost || "",
+    processing_total: analysisRow.dataset.procTotal || "",
+    color_cost_per_kg: analysisRow.dataset.colorCost || "",
+    color_total: analysisRow.dataset.colorTotal || "",
+    small_size_cost_per_kg: analysisRow.dataset.smallSizeCost || "",
+    small_size_total: analysisRow.dataset.smallSizeTotal || "",
+    additional_cost_per_kg: analysisRow.dataset.addlCost || "",
+    additional_total: analysisRow.dataset.addlTotal || "",
+    raw_material_cost: analysisRow.dataset.rawCost || "",
+    raw_twine_data: analysisRow.dataset.twineCostData || "",
+    total_cost: analysisRow.dataset.totalCost || "",
+    sale_price_per_kg: analysisRow.querySelector(".an-sale-price").value,
+    total_revenue: analysisRow.dataset.revenue || "",
+    total_profit: analysisRow.dataset.profit || "",
+    profit_per_kg: analysisRow.dataset.profitKg || "",
+    profit_per_day: analysisRow.dataset.profitDay || "",
+    profit_margin_pct: analysisRow.dataset.margin || "",
+    remarks: analysisRow.querySelector(".an-remarks").value,
+  };
+  document.getElementById("entries-data").value = JSON.stringify([entry]);
+});
+
+/* ================= Delete single ================= */
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("delete-analysis")) return;
+  if (!confirm("Delete this profit analysis?")) return;
+  const key = e.target.dataset.key;
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = "{% url 'profit_analysis' %}";
+  form.innerHTML = `{% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="analysis_key" value="${key}">`;
+  document.body.appendChild(form);
+  form.submit();
+});
+
+/* ================= Edit ================= */
+function renderSavedRawRows(rows) {
+  const twineContainer = document.getElementById("raw-twine-rows");
+  twineContainer.innerHTML = "";
+  const wastePercentage = parseFloat(additionalData.waste) || 0;
+  if (!rows || rows.length === 0) {
+    twineContainer.innerHTML = '<div class="text-muted small">No raw material data</div>';
+    analysisRow.dataset.twineCostData = "[]";
+    analysisRow.dataset.rawCost = 0;
+    return;
+  }
+  rows.forEach((tw, idx) => {
+    const code = tw.code || "";
+    const label = tw.name || `${code}${getMaterialName(code) ? '-' + getMaterialName(code) : ''}`;
+    const weight = parseFloat(tw.weight) || 0;
+    const waste = (tw.waste !== undefined && tw.waste !== null && tw.waste !== "")
+      ? tw.waste
+      : (weight * wastePercentage / 100).toFixed(2);
+    const div = document.createElement("div");
+    div.className = "row mb-1 align-items-end g-1 twine-cost-row";
+    if (idx === 0) {
+      div.innerHTML = `
+        <div class="col-md-1"><label class="form-label small mb-0">Type</label><span class="badge bg-${tw.type === 'NET' ? 'success' : 'warning'} twine-type-badge">${tw.type}</span></div>
+        <div class="col-md-2"><label class="form-label small mb-0">Twine & Material</label><input type="text" class="form-control form-control-sm twine-name" data-twine-code="${code}" value="${label}" placeholder="Twine/Material"></div>
+        <div class="col-md-2"><label class="form-label small mb-0">Weight (KG)</label><input type="text" class="form-control form-control-sm twine-weight bg-light" value="${tw.weight || ''}" placeholder="Weight(KG)" readonly></div>
+        <div class="col-md-2"><label class="form-label small mb-0">Waste Twine(${wastePercentage}%)</label><input type="text" class="form-control form-control-sm twine-weight-pct bg-light" value="${waste}" placeholder="Waste Twine(%)" readonly></div>
+        <div class="col-md-2"><label class="form-label small mb-0">Cost/KG</label><input type="number" step="0.01" class="form-control form-control-sm twine-cost-kg" placeholder="Cost/KG" value="${tw.costKg || ''}"></div>
+        <div class="col-md-2"><label class="form-label small mb-0">Total</label><input type="text" class="form-control form-control-sm twine-cost-total bg-light" placeholder="Total" readonly value="${tw.total || ''}"></div>
+      `;
+    } else {
+      div.innerHTML = `
+        <div class="col-md-1"><span class="badge bg-${tw.type === 'NET' ? 'success' : 'warning'} twine-type-badge">${tw.type}</span></div>
+        <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-name" data-twine-code="${code}" value="${label}" placeholder="Twine/Material"></div>
+        <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-weight bg-light" value="${tw.weight || ''}" placeholder="Weight(KG)" readonly></div>
+        <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-weight-pct bg-light" value="${waste}" placeholder="Waste Twine(%)" readonly></div>
+        <div class="col-md-2"><input type="number" step="0.01" class="form-control form-control-sm twine-cost-kg" placeholder="Cost/KG" value="${tw.costKg || ''}"></div>
+        <div class="col-md-2"><input type="text" class="form-control form-control-sm twine-cost-total bg-light" placeholder="Total" readonly value="${tw.total || ''}"></div>
+      `;
+    }
+    twineContainer.appendChild(div);
+  });
+  analysisRow.dataset.twineCostData = JSON.stringify(rows);
+  const rawCostVal = rows.reduce((sum, tw) => sum + (parseFloat(tw.total) || 0), 0);
+  analysisRow.dataset.rawCost = rawCostVal;
+}
+
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("edit-analysis")) return;
+  const tr = e.target.closest("tr");
+  if (!tr) return;
+  const row = analysisRow;
+  row.dataset.editAnalysisKey = tr.dataset.analysisKey || "";
+
+  /* Section 1 - restore the twine prices used for this analysis */
+  let savedPrices = {};
+  try { savedPrices = JSON.parse(tr.dataset.twinePrices || "{}"); } catch (err) { savedPrices = {}; }
+  restoreTwinePrices(savedPrices);
+
+  /* Section 2 - tracker (clear filters so the saved entry is visible) */
+  productFilter.value = "";
+  mmFilter.value = "";
+  userSpecFilter.value = "";
+  const trackerKey = tr.dataset.trackerKey || "";
+  rebuildTrackerOptions(trackerKey);
+  trackerSelect.value = trackerKey;
+  const trackerData = trackerKey ? trackersData.find(t => String(t.pt_key) === String(trackerKey)) : null;
+  if (trackerData) loadTracker(trackerData);
+
+  /* Saved values win over current tracker values */
+  row.querySelector(".an-user-spec").value = tr.dataset.userSpec || "";
+  row.querySelector(".an-product").value = tr.dataset.product || "";
+  row.querySelector(".an-mm").value = tr.dataset.mm || "";
+  row.querySelector(".an-system-spec").value = tr.dataset.systemSpec || "";
+  row.querySelector(".an-machine").value = tr.dataset.machine || "";
+  row.querySelector(".an-est-wt").value = tr.dataset.estWeight || "";
+  row.querySelector(".an-daily-output").value = tr.dataset.dailyOutput || "";
+  row.querySelector(".an-req-days").value = tr.dataset.reqDays || "";
+
+  /* Section 3 - saved raw material rows */
+  let savedTwine = [];
+  try { savedTwine = JSON.parse(tr.dataset.rawTwine || "[]"); } catch (err) { savedTwine = []; }
+  renderSavedRawRows(savedTwine);
+
+  /* Cost & revenue inputs */
+  row.querySelector(".an-machine-cost-day").value = tr.dataset.machineCostDay || "";
+  row.querySelector(".an-machine-total").value = tr.dataset.machineTotal || "";
+  row.querySelector(".an-proc-cost").value = tr.dataset.procCost || "";
+  row.querySelector(".an-proc-total").value = tr.dataset.procTotal || "";
+  row.querySelector(".an-color-cost").value = tr.dataset.colorCost || "";
+  row.querySelector(".an-color-total").value = tr.dataset.colorTotal || "";
+  row.querySelector(".an-small-size-cost").value = tr.dataset.smallSizeCost || "";
+  row.querySelector(".an-small-size-total").value = tr.dataset.smallSizeTotal || "";
+  row.querySelector(".an-addl-cost").value = tr.dataset.addlCost || "";
+  row.querySelector(".an-addl-total").value = tr.dataset.addlTotal || "";
+  row.querySelector(".an-total-raw").value = tr.dataset.rawCost || "";
+  row.querySelector(".an-total-cost").value = tr.dataset.totalCost || "";
+  row.querySelector(".an-sale-price").value = tr.dataset.salePrice || "";
+  row.querySelector(".an-total-revenue").value = tr.dataset.totalRevenue || "";
+  row.querySelector(".an-total-profit").value = tr.dataset.totalProfit || "";
+  row.querySelector(".an-profit-kg").value = tr.dataset.profitKg || "";
+  row.querySelector(".an-profit-day").value = tr.dataset.profitDay || "";
+  row.querySelector(".an-margin").value = tr.dataset.margin || "";
+  row.querySelector(".an-remarks").value = tr.dataset.remarks || "";
+
+  row.dataset.machineCostDay = tr.dataset.machineCostDay || "";
+  row.dataset.machineTotal = tr.dataset.machineTotal || "";
+  row.dataset.procCost = tr.dataset.procCost || "";
+  row.dataset.procTotal = tr.dataset.procTotal || "";
+  row.dataset.colorCost = tr.dataset.colorCost || "";
+  row.dataset.colorTotal = tr.dataset.colorTotal || "";
+  row.dataset.smallSizeCost = tr.dataset.smallSizeCost || "";
+  row.dataset.smallSizeTotal = tr.dataset.smallSizeTotal || "";
+  row.dataset.addlCost = tr.dataset.addlCost || "";
+  row.dataset.addlTotal = tr.dataset.addlTotal || "";
+  row.dataset.rawCost = tr.dataset.rawCost || "";
+  row.dataset.totalCost = tr.dataset.totalCost || "";
+  row.dataset.revenue = tr.dataset.totalRevenue || "";
+  row.dataset.profit = tr.dataset.totalProfit || "";
+  row.dataset.profitKg = tr.dataset.profitKg || "";
+  row.dataset.profitDay = tr.dataset.profitDay || "";
+  row.dataset.margin = tr.dataset.margin || "";
+  row.dataset.twineCostData = tr.dataset.rawTwine || "[]";
+
+  /* Calculation breakdown */
+  const rawCostVal = parseFloat(tr.dataset.rawCost) || 0;
+  document.getElementById("analysis-breakdown").style.display = "";
+  document.getElementById("breakdown-content").innerHTML = `
+    <table class="table table-sm table-borderless mb-0">
+      <tr><td>Machine Cost: ${tr.dataset.machineCostDay || 0}/Day x ${tr.dataset.reqDays || 0} Days =</td><td class="text-end fw-bold">${tr.dataset.machineTotal || 0}</td></tr>
+      <tr><td>Processing Cost: ${tr.dataset.procCost || 0}/KG x ${tr.dataset.estWeight || 0} KG =</td><td class="text-end fw-bold">${tr.dataset.procTotal || 0}</td></tr>
+      <tr><td>Color Cost: ${tr.dataset.colorCost || 0}/KG x ${tr.dataset.estWeight || 0} KG =</td><td class="text-end fw-bold">${tr.dataset.colorTotal || 0}</td></tr>
+      <tr><td>Small Size Cost: ${tr.dataset.smallSizeCost || 0}/KG x ${tr.dataset.estWeight || 0} KG =</td><td class="text-end fw-bold">${tr.dataset.smallSizeTotal || 0}</td></tr>
+      <tr><td>Additional Cost: ${tr.dataset.addlCost || 0}/KG x ${tr.dataset.estWeight || 0} KG =</td><td class="text-end fw-bold">${tr.dataset.addlTotal || 0}</td></tr>
+      <tr><td>Raw Material Cost:</td><td class="text-end fw-bold">${rawCostVal.toFixed(2)}</td></tr>
+      <tr class="border-top"><td><b>TOTAL COST:</b></td><td class="text-end fw-bold text-danger">${tr.dataset.totalCost || 0}</td></tr>
+      <tr><td>Revenue: ${tr.dataset.salePrice || 0}/KG x ${tr.dataset.estWeight || 0} KG =</td><td class="text-end fw-bold text-success">${tr.dataset.totalRevenue || 0}</td></tr>
+      <tr class="border-top border-success"><td><b>PROFIT:</b></td><td class="text-end fw-bold text-success">${tr.dataset.totalProfit || 0}</td></tr>
+      <tr><td>Profit/KG:</td><td class="text-end">${tr.dataset.profitKg || 0}</td></tr>
+      <tr><td>Profit/Day:</td><td class="text-end">${tr.dataset.profitDay || 0}</td></tr>
+      <tr><td>Margin:</td><td class="text-end">${tr.dataset.margin || 0}%</td></tr>
+    </table>`;
+
+  /* Open the form and scroll to it */
+  const collapseEl = document.getElementById("analysisForm");
+  if (!collapseEl.classList.contains("show")) {
+    bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).show();
+  }
+  collapseEl.scrollIntoView({ behavior: "smooth" });
+});
+
+/* ================= Bulk select / delete ================= */
+const analysisTable = document.getElementById("analysis-table");
+
+function updateBulkDeleteBtn() {
+  const checked = document.querySelectorAll(".analysis-row-check:checked");
+  const btn = document.getElementById("bulk-delete-btn");
+  if (btn) btn.style.display = checked.length > 0 ? "" : "none";
+}
+
+document.getElementById("select-all-analysis")?.addEventListener("change", e => {
+  document.querySelectorAll(".analysis-row-check").forEach(cb => { cb.checked = e.target.checked; });
+  updateBulkDeleteBtn();
+});
+document.querySelectorAll(".analysis-row-check").forEach(cb => cb.addEventListener("change", updateBulkDeleteBtn));
+
+document.getElementById("bulk-delete-form")?.addEventListener("submit", e => {
+  const checked = document.querySelectorAll(".analysis-row-check:checked");
+  if (checked.length === 0) { e.preventDefault(); return; }
+  if (!confirm(`Delete ${checked.length} selected entries?`)) { e.preventDefault(); return; }
+  document.getElementById("bulk-keys").value = JSON.stringify([...checked].map(cb => cb.value));
+});
+
+/* ================= Init ================= */
+rebuildTrackerOptions();
+</script>
+{% endblock %}

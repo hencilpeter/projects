@@ -178,6 +178,7 @@ path('production/load/<int:pk>/', views.load_production_view, name='load_product
 path('production/detail', views.production_detail_view, name='production_detail'),
 path('production/tracker', views.production_tracker_entry, name='production_tracker'),
 path('analytics/profit-analytics', views.profit_analytics_view, name='profit_analytics'),
+path('analytics/profit-analysis', views.profit_analysis_view, name='profit_analysis'),
 path('analytics/piece-weight-analyser', views.piece_weight_analyser_view, name='piece_weight_analyser'),
 path('analytics/pwa/load/<int:pk>/', views.load_pwa_view, name='load_pwa'),
 

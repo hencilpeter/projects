@@ -33,6 +33,7 @@ MODEL_REGISTRY = {
     "Production": Production,
     "ProductionTracker": ProductionTracker,
     "ProfitAnalytics": ProfitAnalytics,
+    "ProfitAnalysis": ProfitAnalysis,
     "PieceWeightAnalyser": PieceWeightAnalyser,
     "SettlementInvoice": SettlementInvoice,
     "ApplicationModule": ApplicationModule,
@@ -74,6 +75,7 @@ UNIQUE_KEY_MODEL = {
     "Production": "",
     "ProductionTracker": "",
     "ProfitAnalytics": "",
+    "ProfitAnalysis": "",
     "PieceWeightAnalyser": "",
     "SettlementInvoice": "settlement_invoice_number",
     "ApplicationModule": "key",
@@ -126,6 +128,9 @@ IMPORT_ORDER = [
 
     # Level 8: Depends on Production
     "ProfitAnalytics",
+
+    # Level 8b: Depends on ProductionTracker
+    "ProfitAnalysis",
 
     # Level 9: Depends on Parties (string references)
     "Invoice",
