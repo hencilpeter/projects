@@ -44,6 +44,26 @@
     gap: 8px;
 }
 
+/* Outer card holding the analysis sections. Its top-right corner carries the
+   Expand All / Collapse All buttons so they do not take a row of their own. */
+.analysis-card {
+    position: relative;
+    padding: 52px 1.5rem 1.5rem;
+}
+
+#section-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    margin: 0;
+}
+
+/* First section sits just under the floating buttons; the card's top padding
+   already leaves room for the toggles that overhang its top border. */
+#analysis-row > .legend-section:first-child {
+    margin-top: 8px;
+}
+
 .analysis-table-wrapper {
     max-height: 820px;
     overflow: auto;
@@ -118,10 +138,10 @@
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
   <div class="container my-4">
     <h3>Profit Analysis</h3>
-    <p class="text-muted small mb-3">
+    <!-- <p class="text-muted small mb-3">
       Enhanced Profit Analytics - start with the twine material price, pick a product tracker entry
       (Product Code / MM / User Spec) and analyse the raw material, cost and revenue.
-    </p>
+    </p> -->
 
     <button class="btn btn-primary mb-3" type="button"
             data-bs-toggle="collapse"
@@ -133,14 +153,15 @@
       <form method="POST" id="analysis-form">
         {% csrf_token %}
         <input type="hidden" name="entries_data" id="entries-data">
-        <div class="card p-4 mb-4 shadow-sm">
-          <div class="analysis-row" id="analysis-row">
+        <div class="card analysis-card mb-4 shadow-sm">
 
-            <!-- ============ Section-level actions ============ -->
-            <div class="d-flex justify-content-end gap-2 mb-2" id="section-actions">
-              <button type="button" class="btn btn-success btn-sm" id="expand-all-sections">Expand All</button>
-              <button type="button" class="btn btn-danger btn-sm" id="collapse-all-sections">Collapse All</button>
-            </div>
+          <!-- ===== Section-level actions: top-right corner of the outer card ===== -->
+          <div class="d-flex justify-content-end gap-2" id="section-actions">
+            <button type="button" class="btn btn-success btn-sm" id="expand-all-sections">Expand All</button>
+            <button type="button" class="btn btn-danger btn-sm" id="collapse-all-sections">Collapse All</button>
+          </div>
+
+          <div class="analysis-row" id="analysis-row">
 
             <!-- ============ Section 1: Twine material (collapsible) ============ -->
             <div class="analysis-section legend-section">
@@ -713,7 +734,7 @@ function rebuildTrackerOptions(keepValue) {
   trackersData.filter(trackerMatches).forEach(t => {
     const opt = document.createElement("option");
     opt.value = t.pt_key;
-    opt.textContent = `#${t.pt_key} - ${t.entry_date} - ${t.product || ''}${t.mm ? ' / ' + t.mm : ''}${t.user_spec ? ' / ' + t.user_spec : ''}`;
+    opt.textContent = `#${t.pt_key} - ${t.product || ''}${t.mm ? ' / ' + t.mm : ''}${t.user_spec ? ' / ' + t.user_spec : ''}`;
     opt.dataset.tracker = JSON.stringify(t);
     trackerSelect.appendChild(opt);
   });
