@@ -10,22 +10,14 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
+        migrations.RenameField(
             model_name='productiontracker',
-            name='reference',
+            old_name='specification',
+            new_name='system_spec',
         ),
-        migrations.RemoveField(
+        migrations.RenameField(
             model_name='productiontracker',
-            name='specification',
-        ),
-        migrations.AddField(
-            model_name='productiontracker',
-            name='system_spec',
-            field=models.CharField(blank=True, max_length=255, null=True),
-        ),
-        migrations.AddField(
-            model_name='productiontracker',
-            name='user_spec',
-            field=models.CharField(blank=True, max_length=100, null=True),
+            old_name='reference',
+            new_name='user_spec',
         ),
     ]
