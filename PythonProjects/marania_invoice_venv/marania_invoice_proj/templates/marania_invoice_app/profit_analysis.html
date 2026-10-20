@@ -134,6 +134,170 @@
     border-color: #157347;
     color: #fff;
 }
+
+/* ================= Profit Analysis report popup ================= */
+#profitReportModal .modal-dialog {
+    max-width: 960px;
+}
+
+#profit-report {
+    color: #212529;
+    font-size: 0.9rem;
+}
+
+#profit-report h4 {
+    font-size: 1.15rem;
+    margin-bottom: 2px;
+}
+
+#profit-report h6 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6c757d;
+    margin: 18px 0 6px;
+    padding-bottom: 4px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+#profit-report h6:first-of-type {
+    margin-top: 6px;
+}
+
+#profit-report .report-meta {
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+#profit-report table {
+    width: 100%;
+    margin-bottom: 0;
+    border-collapse: collapse;
+}
+
+#profit-report table th,
+#profit-report table td {
+    padding: 5px 8px;
+    border: 1px solid #dee2e6;
+    vertical-align: top;
+}
+
+#profit-report table th {
+    background: #f1f3f5;
+    font-weight: 600;
+    text-align: left;
+}
+
+#profit-report table td.num,
+#profit-report table th.num {
+    text-align: right;
+    white-space: nowrap;
+}
+
+#profit-report .kv-table td:first-child {
+    width: 45%;
+    color: #495057;
+}
+
+#profit-report .kv-table td:last-child {
+    text-align: right;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+#profit-report .total-row td {
+    background: #f8f9fa;
+    font-weight: 700;
+    border-top: 2px solid #adb5bd;
+}
+
+#profit-report .profit-box {
+    border: 2px solid #198754;
+    border-radius: 6px;
+    background: #f1fbf6;
+    padding: 10px 14px;
+    margin-top: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+#profit-report .profit-box .label {
+    font-weight: 700;
+    color: #146c43;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+#profit-report .profit-box .value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #198754;
+}
+
+/* Only the report is printed / saved as PDF; the modal chrome is hidden and the
+   report is laid out on its own so long tables are not clipped. */
+@media print {
+    @page {
+        margin: 14mm 12mm;
+    }
+    body * {
+        visibility: hidden;
+    }
+    #profitReportModal,
+    #profitReportModal * {
+        visibility: visible;
+    }
+    .modal-backdrop {
+        display: none !important;
+    }
+    #profitReportModal {
+        display: block !important;
+        position: static !important;
+        left: 0;
+        top: 0;
+        width: 100%;
+        overflow: visible !important;
+        background: transparent !important;
+    }
+    #profitReportModal .modal-dialog,
+    #profitReportModal .modal-content {
+        display: block !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        margin: 0 !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+    }
+    #profitReportModal .modal-body {
+        max-height: none !important;
+        height: auto !important;
+        overflow: visible !important;
+        padding: 0 !important;
+    }
+    .report-no-print {
+        display: none !important;
+    }
+    #profit-report {
+        font-size: 11px;
+    }
+    #profit-report h6 {
+        page-break-after: avoid;
+    }
+    #profit-report table {
+        page-break-inside: auto;
+    }
+    #profit-report tr,
+    #profit-report .profit-box {
+        page-break-inside: avoid;
+    }
+    #profit-report thead {
+        display: table-header-group;
+    }
+}
 </style>
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
   <div class="container my-4">
@@ -494,6 +658,11 @@
               <div class="col-md-2 d-flex align-items-end">
                 <button type="button" class="btn btn-info btn-sm calc-analysis">Calculate</button>
               </div>
+              <div class="col-md-4 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-primary btn-sm view-analysis-current" id="view-analysis-current">
+                  &#128202; View Profit Analysis
+                </button>
+              </div>
             </div>
 
             <div id="analysis-breakdown" class="border rounded p-2 mt-2" style="display:none;">
@@ -594,8 +763,9 @@
                 data-raw-twine="{{ a.raw_twine_data }}">
               <td><input type="checkbox" class="analysis-row-check" value="{{ a.analysis_key }}"></td>
               <td>
-                <button type="button" class="btn btn-primary btn-sm edit-analysis" data-key="{{ a.analysis_key }}">&#9998;</button>
-                <button type="button" class="btn btn-danger btn-sm delete-analysis" data-key="{{ a.analysis_key }}">&times;</button>
+                <button type="button" class="btn btn-primary btn-sm edit-analysis" data-key="{{ a.analysis_key }}" title="Edit this analysis">&#9998;</button>
+                <button type="button" class="btn btn-info btn-sm view-analysis" data-key="{{ a.analysis_key }}" title="View full profit analysis report">&#128202;</button>
+                <button type="button" class="btn btn-danger btn-sm delete-analysis" data-key="{{ a.analysis_key }}" title="Delete this analysis">&times;</button>
               </td>
               <td>{{ a.user_spec }}</td>
               <td>{{ a.product }}</td>
@@ -628,6 +798,25 @@
 
   </div>
 </main>
+
+<!-- ================= Profit Analysis report popup ================= -->
+<div class="modal fade" id="profitReportModal" tabindex="-1" aria-labelledby="profitReportTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header report-no-print">
+        <h5 class="modal-title" id="profitReportTitle">Profit Analysis Report</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="profit-report"></div>
+      </div>
+      <div class="modal-footer report-no-print">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-danger" id="download-profit-pdf">&#128196; Download PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 {{ trackers_json|json_script:"trackers-data" }}
 {{ twine_materials_json|json_script:"twine-materials-data" }}
@@ -1508,6 +1697,299 @@ document.getElementById("bulk-delete-form")?.addEventListener("submit", e => {
   if (checked.length === 0) { e.preventDefault(); return; }
   if (!confirm(`Delete ${checked.length} selected entries?`)) { e.preventDefault(); return; }
   document.getElementById("bulk-keys").value = JSON.stringify([...checked].map(cb => cb.value));
+});
+
+/* ================= Profit Analysis report popup ================= */
+const profitReportModalEl = document.getElementById("profitReportModal");
+const profitReportEl = document.getElementById("profit-report");
+
+/* Format a numeric-ish value to 2 dp; blank/NaN -> "0.00". */
+function fmtNum(v) {
+  const n = parseFloat(v);
+  return isFinite(n) ? n.toFixed(2) : "0.00";
+}
+
+/* Escape text for safe insertion into the report HTML. */
+function esc(v) {
+  return String(v === undefined || v === null ? "" : v)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/* Build the report data object from the LIVE form (unsaved analysis). */
+function reportDataFromForm() {
+  const row = analysisRow;
+  const get = sel => {
+    const el = row.querySelector(sel);
+    return el ? el.value : "";
+  };
+
+  const rawTwine = [];
+  document.querySelectorAll("#raw-twine-rows .twine-cost-row").forEach(div => {
+    const nameEl = div.querySelector(".twine-name");
+    if (!nameEl) return;
+    const weight = parseFloat(div.querySelector(".twine-weight")?.value) || 0;
+    const waste = parseFloat(div.querySelector(".twine-weight-pct")?.value) || 0;
+    const costKg = parseFloat(div.querySelector(".twine-cost-kg")?.value) || 0;
+    const total = parseFloat(div.querySelector(".twine-cost-total")?.value) || 0;
+    if (!weight && !total) return;
+    rawTwine.push({
+      type: div.querySelector(".twine-type-badge")?.textContent.trim() || "",
+      code: nameEl.dataset.twineCode || "",
+      name: nameEl.value || "",
+      weight: weight.toFixed(2),
+      waste: waste.toFixed(2),
+      costKg: costKg ? costKg.toFixed(2) : "",
+      total: total.toFixed(2),
+    });
+  });
+
+  const tiers = [];
+  document.querySelectorAll("#target-profit-body .target-profit-row").forEach(tr => {
+    const label = tr.querySelector(".tp-label")?.value.trim() || "";
+    if (!label) return;
+    tiers.push({
+      label: label,
+      profit_per_day: tr.querySelector(".tp-profit-day")?.value || "",
+      selling_price: tr.dataset.sellingPrice || "",
+      profit_per_kg: tr.dataset.profitPerKg || "",
+    });
+  });
+
+  return {
+    title: "Profit Analysis Report",
+    userSpec: get(".an-user-spec"),
+    product: get(".an-product"),
+    mm: get(".an-mm"),
+    systemSpec: get(".an-system-spec"),
+    machine: get(".an-machine"),
+    estWt: get(".an-est-wt"),
+    dailyOutput: get(".an-daily-output"),
+    reqDays: get(".an-req-days"),
+    machineCostDay: get(".an-machine-cost-day"),
+    machineTotal: get(".an-machine-total"),
+    procCost: get(".an-proc-cost"),
+    procTotal: get(".an-proc-total"),
+    colorCost: get(".an-color-cost"),
+    colorTotal: get(".an-color-total"),
+    smallSizeCost: get(".an-small-size-cost"),
+    smallSizeTotal: get(".an-small-size-total"),
+    addlCost: get(".an-addl-cost"),
+    addlTotal: get(".an-addl-total"),
+    rawCost: get(".an-total-raw"),
+    totalCost: get(".an-total-cost"),
+    salePrice: get(".an-sale-price"),
+    totalRevenue: get(".an-total-revenue"),
+    totalProfit: get(".an-total-profit"),
+    profitKg: get(".an-profit-kg"),
+    profitDay: get(".an-profit-day"),
+    margin: get(".an-margin"),
+    remarks: get(".an-remarks"),
+    rawTwine: rawTwine,
+    tiers: tiers,
+  };
+}
+
+/* Build the report data object from a SAVED analysis <tr>. */
+function reportDataFromRow(tr) {
+  const d = tr.dataset;
+  let rawTwine = [];
+  try { rawTwine = JSON.parse(d.rawTwine || "[]"); } catch (err) { rawTwine = []; }
+  if (!Array.isArray(rawTwine)) rawTwine = [];
+
+  let tiers = [];
+  try { tiers = JSON.parse(d.targetProfit || "[]"); } catch (err) { tiers = []; }
+  if (!Array.isArray(tiers)) tiers = [];
+
+  return {
+    title: "Profit Analysis Report",
+    userSpec: d.userSpec, product: d.product, mm: d.mm, systemSpec: d.systemSpec,
+    machine: d.machine, estWt: d.estWeight, dailyOutput: d.dailyOutput, reqDays: d.reqDays,
+    machineCostDay: d.machineCostDay, machineTotal: d.machineTotal,
+    procCost: d.procCost, procTotal: d.procTotal,
+    colorCost: d.colorCost, colorTotal: d.colorTotal,
+    smallSizeCost: d.smallSizeCost, smallSizeTotal: d.smallSizeTotal,
+    addlCost: d.addlCost, addlTotal: d.addlTotal,
+    rawCost: d.rawCost, totalCost: d.totalCost,
+    salePrice: d.salePrice, totalRevenue: d.totalRevenue, totalProfit: d.totalProfit,
+    profitKg: d.profitKg, profitDay: d.profitDay, margin: d.margin,
+    remarks: d.remarks,
+    rawTwine: rawTwine,
+    tiers: tiers,
+  };
+}
+
+/* Render the full report HTML for the given data object. */
+function buildReportHTML(data) {
+  const estWt = parseFloat(data.estWt) || 0;
+  const reqDays = parseFloat(data.reqDays) || 0;
+
+  /* --- Product / order details --- */
+  const details = [
+    ["User Specification", data.userSpec],
+    ["Product", data.product],
+    ["MM", data.mm],
+    ["System Spec", data.systemSpec],
+    ["Machine", data.machine],
+    ["Est. Weight (KG)", data.estWt],
+    ["Daily Output (KG)", data.dailyOutput],
+    ["Required Days", data.reqDays],
+  ].filter(r => r[1] !== undefined && r[1] !== null && String(r[1]).trim() !== "");
+
+  const detailRows = details.map(r =>
+    `<tr><td>${esc(r[0])}</td><td class="num">${esc(r[1])}</td></tr>`).join("");
+
+  /* --- Raw material table --- */
+  let rawRows = "";
+  (data.rawTwine || []).forEach(tw => {
+    rawRows += `<tr>
+      <td>${esc(tw.type)}</td>
+      <td>${esc(tw.name || tw.code)}</td>
+      <td class="num">${fmtNum(tw.weight)}</td>
+      <td class="num">${fmtNum(tw.waste)}</td>
+      <td class="num">${fmtNum(tw.costKg)}</td>
+      <td class="num">${fmtNum(tw.total)}</td>
+    </tr>`;
+  });
+  const rawSection = rawRows
+    ? `<table>
+         <thead><tr>
+           <th>Type</th><th>Twine &amp; Material</th>
+           <th class="num">Weight (KG)</th><th class="num">Waste (KG)</th>
+           <th class="num">Cost/KG</th><th class="num">Total</th>
+         </tr></thead>
+         <tbody>${rawRows}
+           <tr class="total-row"><td colspan="5">Total Raw Material Cost</td>
+             <td class="num">${fmtNum(data.rawCost)}</td></tr>
+         </tbody>
+       </table>`
+    : `<div class="text-muted">No raw material rows.</div>`;
+
+  /* --- Cost breakdown table --- */
+  const costRows = [
+    ["Machine Operational Cost",
+      `${fmtNum(data.machineCostDay)}/Day &times; ${esc(data.reqDays || 0)} Days`, data.machineTotal],
+    ["Processing Cost",
+      `${fmtNum(data.procCost)}/KG &times; ${esc(data.estWt || 0)} KG`, data.procTotal],
+    ["Color Cost",
+      `${fmtNum(data.colorCost)}/KG &times; ${esc(data.estWt || 0)} KG`, data.colorTotal],
+    ["Small Size Cost",
+      `${fmtNum(data.smallSizeCost)}/KG &times; ${esc(data.estWt || 0)} KG`, data.smallSizeTotal],
+    ["Additional Cost",
+      `${fmtNum(data.addlCost)}/KG &times; ${esc(data.estWt || 0)} KG`, data.addlTotal],
+    ["Raw Material Cost", "&mdash;", data.rawCost],
+  ].map(r => `<tr><td>${esc(r[0])}</td><td>${r[1]}</td><td class="num">${fmtNum(r[2])}</td></tr>`).join("");
+
+  /* --- Target profit / recommended selling prices --- */
+  let tierRows = "";
+  (data.tiers || []).forEach(t => {
+    const label = t.label || "";
+    if (!label) return;
+    const price = t.selling_price ? "Rs " + fmtNum(t.selling_price) : "&mdash;";
+    const perKg = t.profit_per_kg ? "Rs " + fmtNum(t.profit_per_kg) : "&mdash;";
+    tierRows += `<tr>
+      <td>${esc(label)}</td>
+      <td class="num">${price}</td>
+      <td class="num">${perKg}</td>
+      <td class="num">Rs ${fmtNum(t.profit_per_day)}</td>
+    </tr>`;
+  });
+  const tierSection = tierRows
+    ? `<h6>Recommended Selling Prices</h6>
+       <table>
+         <thead><tr>
+           <th>Pricing Tier</th><th class="num">Selling Price</th>
+           <th class="num">Profit/KG</th><th class="num">Profit/Day</th>
+         </tr></thead>
+         <tbody>${tierRows}</tbody>
+       </table>`
+    : "";
+
+  return `
+    <h4>${esc(data.title || "Profit Analysis Report")}</h4>
+    <div class="report-meta">Generated ${esc(new Date().toLocaleString())}</div>
+
+    <h6>Product &amp; Order Details</h6>
+    ${detailRows
+      ? `<table class="kv-table"><tbody>${detailRows}</tbody></table>`
+      : `<div class="text-muted">No product selected.</div>`}
+
+    <h6>Raw Material Breakdown</h6>
+    ${rawSection}
+
+    <h6>Cost Breakdown</h6>
+    <table>
+      <thead><tr><th>Cost Item</th><th>Calculation</th><th class="num">Amount (Rs)</th></tr></thead>
+      <tbody>
+        ${costRows}
+        <tr class="total-row"><td colspan="2">TOTAL COST</td>
+          <td class="num">${fmtNum(data.totalCost)}</td></tr>
+      </tbody>
+    </table>
+
+    <h6>Revenue &amp; Profit</h6>
+    <table class="kv-table">
+      <tbody>
+        <tr><td>Sale Price/KG</td><td>${fmtNum(data.salePrice)}</td></tr>
+        <tr><td>Total Revenue (${fmtNum(data.salePrice)}/KG &times; ${esc(data.estWt || 0)} KG)</td>
+          <td>${fmtNum(data.totalRevenue)}</td></tr>
+        <tr><td>TOTAL COST</td><td>${fmtNum(data.totalCost)}</td></tr>
+        <tr><td>Profit/KG</td><td>${fmtNum(data.profitKg)}</td></tr>
+        <tr><td>Profit/Day</td><td>${fmtNum(data.profitDay)}</td></tr>
+        <tr><td>Margin %</td><td>${fmtNum(data.margin)}%</td></tr>
+      </tbody>
+    </table>
+
+    <div class="profit-box">
+      <span class="label">Total Profit</span>
+      <span class="value">Rs ${fmtNum(data.totalProfit)}</span>
+    </div>
+
+    ${tierSection}
+
+    ${data.remarks && String(data.remarks).trim()
+      ? `<h6>Remarks</h6><div>${esc(data.remarks)}</div>` : ""}
+  `;
+}
+
+/* Open the popup with the given report data. */
+function openProfitReport(data) {
+  profitReportEl.innerHTML = buildReportHTML(data);
+  if (profitReportModalEl && window.bootstrap) {
+    bootstrap.Modal.getOrCreateInstance(profitReportModalEl).show();
+  }
+}
+
+/* Saved row -> View button */
+document.addEventListener("click", e => {
+  const btn = e.target.closest(".view-analysis");
+  if (!btn) return;
+  const tr = btn.closest("tr");
+  if (!tr) return;
+  openProfitReport(reportDataFromRow(tr));
+});
+
+/* Live / current form -> View Profit Analysis button */
+const viewCurrentBtn = document.getElementById("view-analysis-current");
+if (viewCurrentBtn) {
+  viewCurrentBtn.addEventListener("click", () => {
+    const totalCost = parseFloat(analysisRow.dataset.totalCost) || 0;
+    const product = analysisRow.querySelector(".an-product")?.value || "";
+    if (!product && totalCost <= 0) {
+      alert("Select a product tracker entry and click Calculate first.");
+      return;
+    }
+    openProfitReport(reportDataFromForm());
+  });
+}
+
+/* Download PDF - print only the report. The print stylesheet hides everything
+   but #profitReportModal and lets long tables flow onto further pages. */
+document.getElementById("download-profit-pdf")?.addEventListener("click", () => {
+  const prevTitle = document.title;
+  document.title = "Profit Analysis Report";
+  window.print();
+  document.title = prevTitle;
 });
 
 /* ================= Init ================= */
