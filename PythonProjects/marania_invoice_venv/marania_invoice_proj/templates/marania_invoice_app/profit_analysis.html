@@ -420,6 +420,27 @@
                   <button type="button" class="btn btn-outline-secondary btn-sm" id="add-target-profit-row">+ Add Tier</button>
                 </div>
                 <input type="hidden" id="target-profit-data" name="target_profit_data" value="">
+
+                <!-- Recommended selling prices derived from the tiers above -->
+                <div class="mt-3">
+                  <h6 class="fw-bold text-primary mb-2">Recommended Selling Prices</h6>
+                  <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-0" id="recommended-price-table">
+                      <thead class="table-success">
+                        <tr>
+                          <th style="width: 220px;">Pricing Tier</th>
+                          <th style="width: 180px;">Selling Price</th>
+                          <th style="width: 160px;">Profit/Kg</th>
+                          <th style="width: 180px;">Profit/Day</th>
+                        </tr>
+                      </thead>
+                      <tbody id="recommended-price-body"></tbody>
+                    </table>
+                  </div>
+                  <div id="recommended-price-empty" class="text-muted small mt-1">
+                    Select a product and configure tiers to see recommended selling prices.
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1152,14 +1173,27 @@ function recalcTargetProfit() {
   const reqDays = parseFloat(analysisRow.querySelector(".an-req-days").value) || 0;
   const rows = targetProfitBody.querySelectorAll(".target-profit-row");
 
+  const recommended = [];
+
   rows.forEach(tr => {
     const profitDay = parseFloat(tr.querySelector(".tp-profit-day").value) || 0;
     /* profit/day x req days = profit for the order; spread over est weight => price/kg.
        Kept on the row (used by Apply and by the saved-results tier matching). */
     const sellingPrice = estWt > 0 ? (totalCost + profitDay * reqDays) / estWt : 0;
+    const profitPerKg = estWt > 0 ? (profitDay * reqDays) / estWt : 0;
     tr.dataset.sellingPrice = sellingPrice ? sellingPrice.toFixed(2) : "";
     tr.dataset.profitDay = profitDay;
+    tr.dataset.profitPerKg = profitPerKg ? profitPerKg.toFixed(2) : "";
+
+    recommended.push({
+      label: tr.querySelector(".tp-label").value.trim(),
+      sellingPrice: sellingPrice,
+      profitPerKg: profitPerKg,
+      profitDay: profitDay,
+    });
   });
+
+  renderRecommendedPrices(recommended, estWt > 0 && (totalCost > 0 || reqDays > 0));
 
   targetProfitEmpty.style.display = rows.length ? "none" : "";
   targetProfitSummary.textContent = rows.length
@@ -1168,6 +1202,25 @@ function recalcTargetProfit() {
 
   /* Persist for saving */
   targetProfitDataInput.value = JSON.stringify(collectTargetProfitTiers());
+}
+
+/* Read-only summary of the selling price, profit/kg and profit/day implied by each
+   tier at the current cost. Mirrors the editable rows above. */
+function renderRecommendedPrices(tiers, hasCost) {
+  const body = document.getElementById("recommended-price-body");
+  const empty = document.getElementById("recommended-price-empty");
+  if (!body) return;
+  body.innerHTML = "";
+  const usable = tiers.filter(t => t.label);
+  usable.forEach(t => {
+    const tr = document.createElement("tr");
+    const price = hasCost && t.sellingPrice > 0 ? "Rs " + t.sellingPrice.toFixed(2) : "—";
+    const perKg = hasCost && t.profitPerKg ? "Rs " + t.profitPerKg.toFixed(2) : "—";
+    const perDay = t.profitDay ? "Rs " + t.profitDay.toFixed(2) : "—";
+    tr.innerHTML = `<td>${t.label}</td><td>${price}</td><td>${perKg}</td><td>${perDay}</td>`;
+    body.appendChild(tr);
+  });
+  if (empty) empty.style.display = usable.length ? "none" : "";
 }
 
 function collectTargetProfitTiers() {
