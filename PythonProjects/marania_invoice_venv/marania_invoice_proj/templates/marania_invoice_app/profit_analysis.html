@@ -70,6 +70,23 @@
     border: 1px solid #ddd;
 }
 
+/* Section 1 twine material list: fixed max height so a long list scrolls
+   vertically inside the section instead of growing the page. Horizontal
+   width is unchanged (the wrapper still spans the section's full width). */
+#twine-price-scroll {
+    max-height: 300px;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
+/* Keep the header visible while scrolling through the material list */
+#twine-price-scroll #twine-price-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f8f9fa;
+}
+
 #analysis-table {
     table-layout: fixed;
     font-size: 0.8rem;
@@ -349,7 +366,7 @@
                   profit calculation further down and are remembered for your next entries.
                   Once amended you can minimize this section and continue with the rest of the analysis.
                 </small>
-                <div class="table-responsive">
+                <div class="table-responsive" id="twine-price-scroll">
                   <table class="table table-sm table-bordered align-middle mb-0" id="twine-price-table">
                     <thead class="table-light">
                       <tr>
@@ -472,7 +489,7 @@
 
             <!-- ============ Section 4: Cost & revenue inputs ============ -->
             <div class="analysis-section legend-section">
-              <h6 class="section-title section-legend" style="color: #6f42c1;">Cost &amp; Revenue Inputs</h6>
+              <h6 class="section-title section-legend" style="color: #6f42c1;">4. Production Cost</h6>
               <div class="section-legend section-legend-actions">
                 <button type="button" class="btn btn-sm section-toggle is-open"
                         data-bs-toggle="collapse"
@@ -546,7 +563,7 @@
 
             <!-- ============ Section 4b: Target Profit (per configured tier) ============ -->
             <div class="analysis-section legend-section">
-              <h6 class="section-title section-legend" style="color: #d63384;">Target Profit</h6>
+              <h6 class="section-title section-legend" style="color: #d63384;">5. Price Recommendation</h6>
               <div class="section-legend section-legend-actions">
                 <span id="target-profit-summary" class="text-muted small"></span>
                 <button type="button" class="btn btn-sm section-toggle is-open"
@@ -610,7 +627,7 @@
 
             <!-- ============ Section 5: Revenue & profit ============ -->
             <div class="analysis-section legend-section">
-              <h6 class="section-title text-success section-legend">Revenue &amp; Profit</h6>
+              <h6 class="section-title text-success section-legend">6. Revenue &amp; Profit</h6>
               <div class="section-legend section-legend-actions">
                 <button type="button" class="btn btn-sm section-toggle is-open"
                         data-bs-toggle="collapse"
