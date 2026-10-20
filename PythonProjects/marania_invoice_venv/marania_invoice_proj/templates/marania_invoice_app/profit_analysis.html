@@ -813,44 +813,55 @@ function loadTracker(t) {
   analysisRow.querySelector(".an-daily-output").value = t.daily_output || "";
   analysisRow.querySelector(".an-req-days").value = t.required_days || "";
 
-  /* Machine operational cost */
-  const machine = machinesData.find(m => m.machine_number === t.machine);
-  const machineCostDay = machine ? machine.total_cost_per_day : "";
-  analysisRow.querySelector(".an-machine-cost-day").value = machineCostDay;
-  analysisRow.dataset.machineCostDay = machineCostDay;
-
-  /* Processing / colour / small size cost from processing config (first twine code) */
-  const twineRows = t.twine_rows || [];
-  const firstTwineCode = twineRows.length > 0 ? (twineRows[0].twine || "") : "";
-  const proc = processingData.find(p => p.code === firstTwineCode);
-  const procCost = proc ? proc.cost_per_kg : "";
-  analysisRow.querySelector(".an-proc-cost").value = procCost;
-  analysisRow.dataset.procCost = procCost;
-
-  /* Colour is not known for tracker entries - colour cost stays user editable */
-  analysisRow.querySelector(".an-color-cost").value = "";
-  analysisRow.dataset.colorCost = "";
-
-  /* Small size cost applies when MD <= small depth starting depth */
-  const firstMd = parseFloat((twineRows.find(r => r.md) || {}).md) || 0;
-  const smallDepthStartingDepth = proc ? (parseFloat(proc.small_depth_starting_depth) || 0) : 0;
-  if (firstMd > 0 && smallDepthStartingDepth > 0 && firstMd <= smallDepthStartingDepth) {
-    analysisRow.querySelector(".an-small-size-cost").value = proc ? proc.small_size_cost : "";
-    analysisRow.dataset.smallSizeCost = proc ? proc.small_size_cost : "";
-  } else {
-    analysisRow.querySelector(".an-small-size-cost").value = "";
-    analysisRow.dataset.smallSizeCost = "";
+  /* Target Profit tiers first, so they always populate for the selected product
+     even if a later step in this function fails. */
+  try {
+    loadTargetProfitTiers(t.product || "");
+  } catch (err) {
+    console.error("Target Profit tiers failed to load:", err);
   }
 
-  /* Additional cost (Transportation + Packing) */
-  let addlCost = 0;
-  if (additionalData.transportation) addlCost += parseFloat(additionalData.transportation);
-  if (additionalData.packing) addlCost += parseFloat(additionalData.packing);
-  analysisRow.querySelector(".an-addl-cost").value = addlCost ? addlCost.toFixed(2) : "";
-  analysisRow.dataset.addlCost = addlCost;
+  /* Remaining tracker-derived setup is isolated so an error here cannot stop
+     the tier rows above from appearing. */
+  try {
+    /* Machine operational cost */
+    const machine = machinesData.find(m => m.machine_number === t.machine);
+    const machineCostDay = machine ? machine.total_cost_per_day : "";
+    analysisRow.querySelector(".an-machine-cost-day").value = machineCostDay;
+    analysisRow.dataset.machineCostDay = machineCostDay;
 
-  /* Target Profit tiers for the selected product */
-  loadTargetProfitTiers(t.product || "");
+    /* Processing / colour / small size cost from processing config (first twine code) */
+    const twineRows = t.twine_rows || [];
+    const firstTwineCode = twineRows.length > 0 ? (twineRows[0].twine || "") : "";
+    const proc = processingData.find(p => p.code === firstTwineCode);
+    const procCost = proc ? proc.cost_per_kg : "";
+    analysisRow.querySelector(".an-proc-cost").value = procCost;
+    analysisRow.dataset.procCost = procCost;
+
+    /* Colour is not known for tracker entries - colour cost stays user editable */
+    analysisRow.querySelector(".an-color-cost").value = "";
+    analysisRow.dataset.colorCost = "";
+
+    /* Small size cost applies when MD <= small depth starting depth */
+    const firstMd = parseFloat((twineRows.find(r => r.md) || {}).md) || 0;
+    const smallDepthStartingDepth = proc ? (parseFloat(proc.small_depth_starting_depth) || 0) : 0;
+    if (firstMd > 0 && smallDepthStartingDepth > 0 && firstMd <= smallDepthStartingDepth) {
+      analysisRow.querySelector(".an-small-size-cost").value = proc ? proc.small_size_cost : "";
+      analysisRow.dataset.smallSizeCost = proc ? proc.small_size_cost : "";
+    } else {
+      analysisRow.querySelector(".an-small-size-cost").value = "";
+      analysisRow.dataset.smallSizeCost = "";
+    }
+
+    /* Additional cost (Transportation + Packing) */
+    let addlCost = 0;
+    if (additionalData.transportation) addlCost += parseFloat(additionalData.transportation);
+    if (additionalData.packing) addlCost += parseFloat(additionalData.packing);
+    analysisRow.querySelector(".an-addl-cost").value = addlCost ? addlCost.toFixed(2) : "";
+    analysisRow.dataset.addlCost = addlCost;
+  } catch (err) {
+    console.error("Tracker cost setup failed:", err);
+  }
 
   renderRawRows(t);
 }
