@@ -152,6 +152,66 @@
     color: #fff;
 }
 
+/* ================= Required-input section highlighting =================
+   Sections that need user input before a profit can be calculated get a
+   subtle translucent amber background. Once every required field in the
+   section is filled the highlight is replaced by a calm green tint. */
+.analysis-section.legend-section.section-required {
+    background: rgba(255, 165, 0, 0.12);
+    border-color: rgba(255, 165, 0, 0.55);
+}
+
+.analysis-section.legend-section.section-required > .section-legend {
+    background: #fff4e0;
+}
+
+.analysis-section.legend-section.section-required > .section-legend-actions {
+    background: transparent;
+}
+
+.analysis-section.legend-section.section-complete {
+    background: rgba(25, 135, 84, 0.07);
+    border-color: rgba(25, 135, 84, 0.4);
+}
+
+.analysis-section.legend-section.section-complete > .section-legend {
+    background: #eafaf1;
+}
+
+/* Small status pill sitting next to each mandatory section's title */
+.section-required-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1;
+    padding: 3px 8px;
+    border-radius: 10px;
+    margin-left: 8px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.section-required-badge.is-pending {
+    background: #ffedd5;
+    color: #b45309;
+    border: 1px solid #fdba74;
+}
+
+.section-required-badge.is-complete {
+    background: #d1e7dd;
+    color: #0f5132;
+    border: 1px solid #a3cfbb;
+}
+
+/* Legend holder needs relative positioning so the badge can follow the title */
+.section-legend-label {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
 /* ================= Profit Analysis report popup ================= */
 #profitReportModal .modal-dialog {
     max-width: 960px;
@@ -384,8 +444,12 @@
             </div>
 
             <!-- ============ Section 2: Product tracker selection ============ -->
-            <div class="analysis-section legend-section">
-              <h6 class="section-title text-success section-legend">2. Select Product Tracker</h6>
+            <div class="analysis-section legend-section" data-required-section="tracker">
+              <h6 class="section-title text-success section-legend">
+                <span class="section-legend-label">2. Select Product Tracker
+                  <span class="section-required-badge is-pending" data-badge-for="tracker">1 input needed</span>
+                </span>
+              </h6>
               <div class="section-legend section-legend-actions">
                 <button type="button" class="btn btn-sm section-toggle is-open"
                         data-bs-toggle="collapse"
@@ -468,8 +532,12 @@
             </div>
 
             <!-- ============ Section 3: Raw material details ============ -->
-            <div class="analysis-section legend-section">
-              <h6 class="section-title section-legend" style="color:#fd7e14;">3. Raw Material Details</h6>
+            <div class="analysis-section legend-section" data-required-section="raw">
+              <h6 class="section-title section-legend" style="color:#fd7e14;">
+                <span class="section-legend-label">3. Raw Material Details
+                  <span class="section-required-badge is-pending" data-badge-for="raw">1 input needed</span>
+                </span>
+              </h6>
               <div class="section-legend section-legend-actions">
                 <button type="button" class="btn btn-sm section-toggle is-open"
                         data-bs-toggle="collapse"
@@ -488,8 +556,12 @@
             </div>
 
             <!-- ============ Section 4: Cost & revenue inputs ============ -->
-            <div class="analysis-section legend-section">
-              <h6 class="section-title section-legend" style="color: #6f42c1;">4. Production Cost</h6>
+            <div class="analysis-section legend-section" data-required-section="cost">
+              <h6 class="section-title section-legend" style="color: #6f42c1;">
+                <span class="section-legend-label">4. Production Cost
+                  <span class="section-required-badge is-pending" data-badge-for="cost">1 input needed</span>
+                </span>
+              </h6>
               <div class="section-legend section-legend-actions">
                 <button type="button" class="btn btn-sm section-toggle is-open"
                         data-bs-toggle="collapse"
@@ -626,8 +698,12 @@
             </div>
 
             <!-- ============ Section 5: Revenue & profit ============ -->
-            <div class="analysis-section legend-section">
-              <h6 class="section-title text-success section-legend">6. Revenue &amp; Profit</h6>
+            <div class="analysis-section legend-section" data-required-section="revenue">
+              <h6 class="section-title text-success section-legend">
+                <span class="section-legend-label">6. Revenue &amp; Profit
+                  <span class="section-required-badge is-pending" data-badge-for="revenue">1 input needed</span>
+                </span>
+              </h6>
               <div class="section-legend section-legend-actions">
                 <button type="button" class="btn btn-sm section-toggle is-open"
                         data-bs-toggle="collapse"
@@ -1025,7 +1101,11 @@ function rebuildTrackerOptions(keepValue) {
 
 trackerSelect.addEventListener("change", () => {
   const opt = trackerSelect.selectedOptions[0];
-  if (!opt || !opt.dataset.tracker) return;
+  if (!opt || !opt.dataset.tracker) {
+    /* Selection cleared - refresh the required-input guidance */
+    updateSectionRequirements();
+    return;
+  }
   loadTracker(JSON.parse(opt.dataset.tracker));
 });
 
@@ -1185,6 +1265,61 @@ function renderRawRows(t) {
   Promise.all(costKgPromises).then(() => recalcAnalysis());
 }
 
+/* ================= Required-input guidance =================
+   Which sections must be completed before a profit can be calculated, and
+   what "complete" means for each. Section 1 (material prices) and section 5
+   (price recommendation) are optional and are never highlighted. */
+function updateSectionRequirements() {
+  const isFilled = sel => {
+    const el = analysisRow.querySelector(sel);
+    return !!(el && el.value !== undefined && String(el.value).trim() !== "");
+  };
+
+  /* Section 2: a product tracker entry must be selected (fills the product). */
+  const trackerDone = isFilled(".an-product");
+
+  /* Section 3: every raw material row needs a Cost/KG (only exists once a
+     tracker is chosen). Considered pending until rows exist and all priced. */
+  const twineRows = [...document.querySelectorAll("#raw-twine-rows .twine-cost-row")];
+  const twineCosts = twineRows.map(div => div.querySelector(".twine-cost-kg"));
+  const rawDone = twineRows.length > 0 &&
+    twineCosts.every(inp => inp && String(inp.value).trim() !== "" && (parseFloat(inp.value) || 0) > 0);
+
+  /* Section 4: at least one production cost must be entered. */
+  const costFields = [".an-machine-cost-day", ".an-proc-cost", ".an-color-cost",
+                      ".an-small-size-cost", ".an-addl-cost"];
+  const costDone = costFields.some(sel => {
+    const el = analysisRow.querySelector(sel);
+    return el && (parseFloat(el.value) || 0) > 0;
+  });
+
+  /* Section 6: a sale price is needed to turn cost into profit. */
+  const revenueDone = isFilled(".an-sale-price");
+
+  const states = {
+    tracker: { done: trackerDone, pendingLabel: "Select a product entry" },
+    raw: { done: rawDone, pendingLabel: trackerDone ? "Enter Cost/KG for all materials" : "Waiting for product" },
+    cost: { done: costDone, pendingLabel: "Enter a production cost" },
+    revenue: { done: revenueDone, pendingLabel: "Enter Sale Price/KG" },
+  };
+
+  Object.keys(states).forEach(key => {
+    const section = document.querySelector(`[data-required-section="${key}"]`);
+    if (!section) return;
+    const badge = section.querySelector(`[data-badge-for="${key}"]`);
+    const done = states[key].done;
+
+    section.classList.toggle("section-complete", done);
+    section.classList.toggle("section-required", !done);
+
+    if (badge) {
+      badge.classList.toggle("is-complete", done);
+      badge.classList.toggle("is-pending", !done);
+      badge.textContent = done ? "✓ Complete" : states[key].pendingLabel;
+    }
+  });
+}
+
 /* ================= Calculate ================= */
 function recalcAnalysis() {
   const row = analysisRow;
@@ -1295,6 +1430,9 @@ function recalcAnalysis() {
 
   /* Keep the Target Profit tiers in step with the current cost / weight / days */
   if (typeof recalcTargetProfit === "function") recalcTargetProfit();
+
+  /* Refresh the required-input highlighting in every section */
+  updateSectionRequirements();
 }
 
 /* ================= Section 4b: Target Profit per configured tier ================= */
@@ -1478,6 +1616,9 @@ document.getElementById("analysis-form").addEventListener("input", e => {
       e.target.classList.contains("an-addl-cost") || e.target.classList.contains("an-est-wt") ||
       e.target.classList.contains("an-req-days")) {
     recalcAnalysis();
+  } else {
+    /* Other inputs can still affect required-input completeness */
+    updateSectionRequirements();
   }
 });
 
@@ -1692,6 +1833,9 @@ document.addEventListener("click", e => {
     bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).show();
   }
   collapseEl.scrollIntoView({ behavior: "smooth" });
+
+  /* Reflect the restored analysis in the required-input highlighting */
+  updateSectionRequirements();
 });
 
 /* ================= Bulk select / delete ================= */
@@ -2011,5 +2155,6 @@ document.getElementById("download-profit-pdf")?.addEventListener("click", () => 
 
 /* ================= Init ================= */
 rebuildTrackerOptions();
+updateSectionRequirements();
 </script>
 {% endblock %}
