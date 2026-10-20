@@ -171,6 +171,7 @@ path('configuration/extra-mesh-config', views.extra_mesh_config_view, name='extr
 path('configuration/get-extra-mesh', views.get_extra_mesh, name='get_extra_mesh'),
 path('configuration/price-list-colour-config', views.price_list_colour_config_view, name='price_list_colour_config'),
 path('configuration/get-product-colour', views.get_product_colour, name='get_product_colour'),
+path('configuration/target-profit-config', views.target_profit_config_view, name='target_profit_config'),
 
 # Production Analytics
 path('production/entry', views.production_entry_view, name='production_entry'),

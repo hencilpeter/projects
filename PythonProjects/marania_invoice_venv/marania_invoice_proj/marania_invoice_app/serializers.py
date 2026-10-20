@@ -30,6 +30,7 @@ MODEL_REGISTRY = {
     "AdditionalCost": AdditionalCost,
     "ExtraMeshConfig": ExtraMeshConfig,
     "PriceListColourConfiguration": PriceListColourConfiguration,
+    "TargetProfitConfiguration": TargetProfitConfiguration,
     "Production": Production,
     "ProductionTracker": ProductionTracker,
     "ProfitAnalytics": ProfitAnalytics,
@@ -72,6 +73,7 @@ UNIQUE_KEY_MODEL = {
     "AdditionalCost": "",
     "ExtraMeshConfig": "",
     "PriceListColourConfiguration": "",
+    "TargetProfitConfiguration": "",
     "Production": "",
     "ProductionTracker": "",
     "ProfitAnalytics": "",
@@ -98,11 +100,8 @@ IMPORT_ORDER = [
     "MachineOperationalCost",
     "ExcelSheet",
     "ApplicationModule",
-
     # Level 1: Depends on PartyRole
-    "Parties",
-
-    # Level 2: Depends on Parties
+    "Parties",    # Level 2: Depends on Parties
     "Transportation",
     "Materials",
     "UserCategory",
@@ -114,6 +113,7 @@ IMPORT_ORDER = [
     "PriceCatalog",
     "PriceListConfiguration",
     "PriceListColourConfiguration",
+    "TargetProfitConfiguration",
 
     # Level 5: Depends on PriceCatalog, Parties
     "CustomerPriceCatalog",

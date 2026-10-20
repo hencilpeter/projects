@@ -85,6 +85,7 @@ from .models import (
     SettlementInvoice,
     PriceListConfiguration,
     PriceListColourConfiguration,
+    TargetProfitConfiguration,
 
 )
 
@@ -6451,6 +6452,68 @@ def get_product_colour(request):
         return JsonResponse({"base_colour": plc.base_colour})
     except PriceListColourConfiguration.DoesNotExist:
         return JsonResponse({"base_colour": ""})
+
+
+@login_required
+def target_profit_config_view(request):
+    if request.method == 'POST':
+        action = request.POST.get("action")
+
+        if action == "save":
+            # Existing row being edited (product + old label identify the record)
+            edit_codes = request.POST.getlist("edit_product_code")
+            edit_labels = request.POST.getlist("edit_profit_mapping_label")
+            product_codes = request.POST.getlist("product_code")
+            labels = request.POST.getlist("profit_mapping_label")
+            profits = request.POST.getlist("profit_per_day")
+
+            for idx, (product_code, label, profit_per_day) in enumerate(zip(product_codes, labels, profits)):
+                product_code = (product_code or "").strip()
+                label = (label or "").strip()
+                if not product_code or not label:
+                    continue
+                product_obj = Product.objects.filter(code=product_code).first()
+                if not product_obj:
+                    continue
+
+                # If this row was loaded for editing, drop the previous record so a
+                # label change updates in place instead of creating a second entry.
+                old_code = (edit_codes[idx] if idx < len(edit_codes) else "").strip()
+                old_label = (edit_labels[idx] if idx < len(edit_labels) else "").strip()
+                if old_code and old_label and (old_code != product_code or old_label != label):
+                    TargetProfitConfiguration.objects.filter(
+                        product__code=old_code, profit_mapping_label=old_label
+                    ).delete()
+
+                TargetProfitConfiguration.objects.update_or_create(
+                    product=product_obj,
+                    profit_mapping_label=label,
+                    defaults={"profit_per_day": profit_per_day or 0}
+                )
+            messages.success(request, "Target Profit Configuration saved successfully.")
+
+        elif action == "delete":
+            product_codes = request.POST.getlist("product_code")
+            labels = request.POST.getlist("profit_mapping_label")
+            for product_code, label in zip(product_codes, labels):
+                product_code = (product_code or "").strip()
+                label = (label or "").strip()
+                if product_code and label:
+                    TargetProfitConfiguration.objects.filter(
+                        product__code=product_code, profit_mapping_label=label
+                    ).delete()
+            messages.success(request, "Target Profit Configuration deleted successfully.")
+
+        # POST/Redirect/GET so refreshing the list does not repeat the last action.
+        return redirect("target_profit_config")
+
+    context = {
+        "configs": TargetProfitConfiguration.objects.select_related("product").all(),
+        "products": Product.objects.all().order_by("code"),
+        "profit_labels": TargetProfitConfiguration.objects.order_by("profit_mapping_label")
+                            .values_list("profit_mapping_label", flat=True).distinct(),
+    }
+    return render(request, "marania_invoice_app/target_profit_config.html", context)
 
 
 @login_required

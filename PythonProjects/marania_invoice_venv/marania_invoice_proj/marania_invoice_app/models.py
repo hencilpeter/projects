@@ -895,6 +895,36 @@ class PriceListColourConfiguration(models.Model):
         return f"{self.product.code} -> {self.base_colour}"
 
 
+class TargetProfitConfiguration(models.Model):
+    product = models.ForeignKey(
+        Product,
+        to_field='code',
+        on_delete=models.CASCADE,
+        related_name='target_profits',
+        db_constraint=False,
+    )
+    profit_mapping_label = models.CharField(
+        max_length=50,
+        help_text="Free-form label for the target level, e.g. Minimum, Standard, Premium"
+    )
+    profit_per_day = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        help_text="Target profit per day for this product and label"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('product', 'profit_mapping_label')
+        ordering = ['product__code', 'profit_mapping_label']
+        verbose_name = "Target Profit Configuration"
+        verbose_name_plural = "Target Profit Configurations"
+
+    def __str__(self):
+        return f"{self.product.code} - {self.profit_mapping_label}: {self.profit_per_day}"
+
+
 class Production(models.Model):
     production_key = models.AutoField(primary_key=True)
     production_date = models.DateField(default='today')

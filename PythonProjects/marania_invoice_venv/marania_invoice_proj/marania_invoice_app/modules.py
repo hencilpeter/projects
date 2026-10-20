@@ -98,6 +98,7 @@ MODULE_REGISTRY = [
             "/configuration/additional-cost",
             "/configuration/extra-mesh-config",
             "/configuration/price-list-colour-config",
+            "/configuration/target-profit-config",
         ],
         "sort_order": 6,
         "is_active": True,
