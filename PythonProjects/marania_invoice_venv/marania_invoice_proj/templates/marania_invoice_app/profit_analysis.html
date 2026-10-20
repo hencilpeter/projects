@@ -380,6 +380,49 @@
             </div>
             </div>
 
+            <!-- ============ Section 4b: Target Profit (per configured tier) ============ -->
+            <div class="analysis-section legend-section">
+              <h6 class="section-title section-legend" style="color: #d63384;">Target Profit</h6>
+              <div class="section-legend section-legend-actions">
+                <span id="target-profit-summary" class="text-muted small"></span>
+                <button type="button" class="btn btn-sm section-toggle is-open"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#targetProfitBody"
+                        aria-expanded="true"
+                        aria-controls="targetProfitBody"
+                        title="Minimize section">
+                  <span class="section-toggle-symbol">&minus;</span>
+                </button>
+              </div>
+
+              <div class="collapse show" id="targetProfitBody">
+                <small class="text-muted d-block mb-2">
+                  Configured profit mappings for the selected product are loaded automatically. Amend the Profit/Day
+                  for any row and click <b>Apply</b> to set the calculated selling price as the Sale Price/KG in
+                  Revenue &amp; Profit below. Use <b>+ Add Tier</b> to add extra rows beyond the configured ones.
+                </small>
+                <div class="table-responsive">
+                  <table class="table table-sm table-bordered align-middle mb-0" id="target-profit-table">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width: 280px;">Profit Mapping Label</th>
+                        <th style="width: 220px;">Profit/Day</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="target-profit-body"></tbody>
+                  </table>
+                </div>
+                <div id="target-profit-empty" class="text-muted small mt-1" style="display:none;">
+                  No profit targets configured for this product. You can still add one here.
+                </div>
+                <div class="mt-2">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" id="add-target-profit-row">+ Add Tier</button>
+                </div>
+                <input type="hidden" id="target-profit-data" name="target_profit_data" value="">
+              </div>
+            </div>
+
             <!-- ============ Section 5: Revenue & profit ============ -->
             <div class="analysis-section legend-section">
               <h6 class="section-title text-success section-legend">Revenue &amp; Profit</h6>
@@ -476,6 +519,7 @@
               <th>User Specification</th>
               <th>Product</th>
               <th>MM</th>
+              <th>Pricing Tier</th>
               <th>Sale Price/KG</th>
               <th>Profit/KG</th>
               <th>Profit/Day</th>
@@ -525,6 +569,7 @@
                 data-profit-day="{{ a.profit_per_day }}"
                 data-margin="{{ a.profit_margin_pct }}"
                 data-remarks="{{ a.remarks }}"
+                data-target-profit="{{ a.target_profit_data }}"
                 data-raw-twine="{{ a.raw_twine_data }}">
               <td><input type="checkbox" class="analysis-row-check" value="{{ a.analysis_key }}"></td>
               <td>
@@ -534,6 +579,7 @@
               <td>{{ a.user_spec }}</td>
               <td>{{ a.product }}</td>
               <td>{{ a.mm }}</td>
+              <td>{{ a.applied_tier }}</td>
               <td>{{ a.sale_price_per_kg }}</td>
               <td>{{ a.profit_per_kg }}</td>
               <td>{{ a.profit_per_day }}</td>
@@ -564,6 +610,8 @@
 
 {{ trackers_json|json_script:"trackers-data" }}
 {{ twine_materials_json|json_script:"twine-materials-data" }}
+{{ target_profit_json|json_script:"target-profit-config-data" }}
+{{ product_name_to_code_json|json_script:"product-name-code-data" }}
 {{ machines_json|json_script:"machines-data" }}
 {{ processing_json|json_script:"processing-data" }}
 {{ additional_json|json_script:"additional-data" }}
@@ -572,6 +620,8 @@
 <script>
 const trackersData = JSON.parse(document.getElementById("trackers-data").textContent);
 const twineMaterialsData = JSON.parse(document.getElementById("twine-materials-data").textContent);
+const targetProfitConfigData = JSON.parse(document.getElementById("target-profit-config-data").textContent);
+const productNameToCode = JSON.parse(document.getElementById("product-name-code-data").textContent);
 const machinesData = JSON.parse(document.getElementById("machines-data").textContent);
 const processingData = JSON.parse(document.getElementById("processing-data").textContent);
 const additionalData = JSON.parse(document.getElementById("additional-data").textContent);
@@ -799,6 +849,9 @@ function loadTracker(t) {
   analysisRow.querySelector(".an-addl-cost").value = addlCost ? addlCost.toFixed(2) : "";
   analysisRow.dataset.addlCost = addlCost;
 
+  /* Target Profit tiers for the selected product */
+  loadTargetProfitTiers(t.product || "");
+
   renderRawRows(t);
 }
 
@@ -1001,14 +1054,152 @@ function recalcAnalysis() {
   } else {
     breakdown.style.display = "none";
   }
+
+  /* Keep the Target Profit tiers in step with the current cost / weight / days */
+  if (typeof recalcTargetProfit === "function") recalcTargetProfit();
 }
+
+/* ================= Section 4b: Target Profit per configured tier ================= */
+const targetProfitBody = document.getElementById("target-profit-body");
+const targetProfitEmpty = document.getElementById("target-profit-empty");
+const targetProfitSummary = document.getElementById("target-profit-summary");
+const targetProfitDataInput = document.getElementById("target-profit-data");
+const targetProfitTable = document.getElementById("target-profit-table");
+
+function currentTotalCost() {
+  return parseFloat(analysisRow.dataset.totalCost) || 0;
+}
+
+function addTargetProfitRow(label, profitPerDay) {
+  const tr = document.createElement("tr");
+  tr.className = "target-profit-row";
+  tr.innerHTML = `
+    <td><input type="text" class="form-control form-control-sm tp-label" value="${label || ""}" placeholder="e.g. Minimum, Standard, Premium"></td>
+    <td><input type="number" step="0.01" class="form-control form-control-sm tp-profit-day" value="${profitPerDay || ""}" placeholder="Profit/Day"></td>
+    <td class="text-center">
+      <button type="button" class="btn btn-primary btn-sm tp-apply" title="Use this selling price">Apply</button>
+      <button type="button" class="btn btn-danger btn-sm tp-remove" title="Remove tier">&times;</button>
+    </td>`;
+  targetProfitBody.appendChild(tr);
+  return tr;
+}
+
+/* Resolve the configured profit rows for a product value coming from a tracker.
+   Accepts the product code and tolerates case / whitespace differences; also
+   falls back to a name -> code match when a tracker stores the product name. */
+function resolveTargetProfitConfig(productValue) {
+  const raw = (productValue || "").trim();
+  if (!raw) return [];
+  if (targetProfitConfigData[raw]) return targetProfitConfigData[raw];
+
+  const needle = raw.toLowerCase();
+  /* case-insensitive / trimmed key match */
+  const key = Object.keys(targetProfitConfigData).find(k => k.trim().toLowerCase() === needle);
+  if (key) return targetProfitConfigData[key];
+
+  /* fallback: match against the product name (products data) */
+  const code = productNameToCode[needle];
+  if (code) {
+    const byCode = Object.keys(targetProfitConfigData).find(k => k.trim().toLowerCase() === code.trim().toLowerCase());
+    if (byCode) return targetProfitConfigData[byCode];
+  }
+  return [];
+}
+
+/* Rebuild rows from the configured targets of the given product.
+   Existing user-entered values for the same label are preserved. */
+function loadTargetProfitTiers(productValue, savedTiers) {
+  const existing = {};
+  targetProfitBody.querySelectorAll(".target-profit-row").forEach(tr => {
+    const lbl = tr.querySelector(".tp-label").value.trim();
+    if (lbl) existing[lbl] = tr.querySelector(".tp-profit-day").value;
+  });
+
+  targetProfitBody.innerHTML = "";
+  const configs = resolveTargetProfitConfig(productValue);
+  configs.forEach(cfg => {
+    const keep = existing[cfg.label];
+    addTargetProfitRow(cfg.label, keep !== undefined ? keep : cfg.profit_per_day);
+  });
+
+  /* Restore saved tiers (from an edited analysis) on top of the configuration */
+  (savedTiers || []).forEach(t => {
+    if (!t || !t.label) return;
+    let tr = [...targetProfitBody.querySelectorAll(".target-profit-row")]
+      .find(r => r.querySelector(".tp-label").value.trim() === t.label);
+    if (!tr) tr = addTargetProfitRow(t.label, t.profit_per_day);
+    tr.querySelector(".tp-profit-day").value = t.profit_per_day || "";
+  });
+
+  recalcTargetProfit();
+}
+
+/* Selling price needed to hit the tier's profit/day target, at the current cost. */
+function recalcTargetProfit() {
+  const totalCost = currentTotalCost();
+  const estWt = parseFloat(analysisRow.querySelector(".an-est-wt").value) || 0;
+  const reqDays = parseFloat(analysisRow.querySelector(".an-req-days").value) || 0;
+  const rows = targetProfitBody.querySelectorAll(".target-profit-row");
+
+  rows.forEach(tr => {
+    const profitDay = parseFloat(tr.querySelector(".tp-profit-day").value) || 0;
+    /* profit/day x req days = profit for the order; spread over est weight => price/kg.
+       Kept on the row (used by Apply and by the saved-results tier matching). */
+    const sellingPrice = estWt > 0 ? (totalCost + profitDay * reqDays) / estWt : 0;
+    tr.dataset.sellingPrice = sellingPrice ? sellingPrice.toFixed(2) : "";
+    tr.dataset.profitDay = profitDay;
+  });
+
+  targetProfitEmpty.style.display = rows.length ? "none" : "";
+  targetProfitSummary.textContent = rows.length
+    ? `${rows.length} tier${rows.length > 1 ? "s" : ""}`
+    : "";
+
+  /* Persist for saving */
+  targetProfitDataInput.value = JSON.stringify(collectTargetProfitTiers());
+}
+
+function collectTargetProfitTiers() {
+  return [...targetProfitBody.querySelectorAll(".target-profit-row")].map(tr => ({
+    label: tr.querySelector(".tp-label").value.trim(),
+    profit_per_day: tr.querySelector(".tp-profit-day").value,
+    selling_price: tr.dataset.sellingPrice || "",
+  })).filter(t => t.label);
+}
+
+/* Apply a tier's selling price as the Sale Price/KG */
+targetProfitBody.addEventListener("click", e => {
+  if (e.target.classList.contains("tp-remove")) {
+    e.target.closest(".target-profit-row").remove();
+    recalcTargetProfit();
+    return;
+  }
+  if (e.target.classList.contains("tp-apply")) {
+    const tr = e.target.closest(".target-profit-row");
+    const price = tr.dataset.sellingPrice || "";
+    if (!price) { alert("Select a product tracker entry and calculate costs first."); return; }
+    analysisRow.querySelector(".an-sale-price").value = price;
+    recalcAnalysis();          /* updates Revenue & Profit, which re-runs target profit */
+    return;
+  }
+});
+
+targetProfitBody.addEventListener("input", e => {
+  if (e.target.classList.contains("tp-profit-day") || e.target.classList.contains("tp-label")) {
+    recalcTargetProfit();
+  }
+});
+
+document.getElementById("add-target-profit-row").addEventListener("click", () => {
+  addTargetProfitRow("", "");
+  recalcTargetProfit();
+});
 
 /* Calculate button */
 document.addEventListener("click", e => {
   if (!e.target.classList.contains("calc-analysis")) return;
   recalcAnalysis();
 });
-
 /* Input changes -> recalculate */
 document.getElementById("analysis-form").addEventListener("input", e => {
   if (e.target.classList.contains("an-sale-price") || e.target.classList.contains("twine-cost-kg") ||
@@ -1060,6 +1251,7 @@ document.getElementById("analysis-form").addEventListener("submit", e => {
     profit_per_day: analysisRow.dataset.profitDay || "",
     profit_margin_pct: analysisRow.dataset.margin || "",
     remarks: analysisRow.querySelector(".an-remarks").value,
+    target_profit_data: JSON.stringify(collectTargetProfitTiers()),
   };
   document.getElementById("entries-data").value = JSON.stringify([entry]);
 });
@@ -1199,6 +1391,11 @@ document.addEventListener("click", e => {
   row.dataset.profitDay = tr.dataset.profitDay || "";
   row.dataset.margin = tr.dataset.margin || "";
   row.dataset.twineCostData = tr.dataset.rawTwine || "[]";
+
+  /* Target Profit tiers - restore the saved tiers for this analysis */
+  let savedTiers = [];
+  try { savedTiers = JSON.parse(tr.dataset.targetProfit || "[]"); } catch (err) { savedTiers = []; }
+  loadTargetProfitTiers(tr.dataset.product || "", savedTiers);
 
   /* Calculation breakdown */
   const rawCostVal = parseFloat(tr.dataset.rawCost) || 0;

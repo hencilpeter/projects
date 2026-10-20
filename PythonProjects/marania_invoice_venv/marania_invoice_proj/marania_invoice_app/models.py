@@ -1067,6 +1067,10 @@ class ProfitAnalysis(models.Model):
     raw_material_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     raw_twine_data = models.TextField(blank=True, null=True)
 
+    # Target Profit tiers (configured + amended) for the selected product
+    # JSON list: [{"label": "...", "profit_per_day": "...", "selling_price": "...", "profit_per_kg": "..."}]
+    target_profit_data = models.TextField(blank=True, null=True)
+
     # Cost components
     machine_operational_cost_per_day = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     machine_operational_total = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)

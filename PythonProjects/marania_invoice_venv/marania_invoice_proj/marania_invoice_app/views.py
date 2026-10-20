@@ -7091,6 +7091,7 @@ def profit_analysis_view(request):
     from .models import (
         ProfitAnalysis, ProductionTracker, MachineOperationalCost, ProcessingCost,
         AdditionalCost, Product, Materials, MaterialConversionRatio, Purchase,
+        TargetProfitConfiguration,
     )
 
     if request.method == "POST":
@@ -7123,6 +7124,7 @@ def profit_analysis_view(request):
                         "required_days": float(entry.get("required_days") or 0) or None,
                         "raw_material_cost": float(entry.get("raw_material_cost") or 0) or None,
                         "raw_twine_data": entry.get("raw_twine_data", ""),
+                        "target_profit_data": entry.get("target_profit_data", "") or "",
                         "machine_operational_cost_per_day": float(entry.get("machine_operational_cost_per_day") or 0) or None,
                         "machine_operational_total": float(entry.get("machine_operational_total") or 0) or None,
                         "processing_cost_per_kg": float(entry.get("processing_cost_per_kg") or 0) or None,
@@ -7286,6 +7288,30 @@ def profit_analysis_view(request):
     }
 
     # ---- Saved analyses ----
+    def _applied_tier_label(tiers_raw, sale_price):
+        """Which configured tier (if any) produced the saved sale price."""
+        if not tiers_raw:
+            return ""
+        try:
+            tiers = json.loads(tiers_raw)
+        except (json.JSONDecodeError, TypeError):
+            return ""
+        if not isinstance(tiers, list):
+            return ""
+        try:
+            price = float(sale_price) if sale_price is not None else None
+        except (TypeError, ValueError):
+            price = None
+        if price is None:
+            return ""
+        for tier in tiers:
+            try:
+                if abs(float(tier.get("selling_price") or 0) - price) < 0.01:
+                    return tier.get("label") or ""
+            except (TypeError, ValueError):
+                continue
+        return ""
+
     analyses = ProfitAnalysis.objects.all()
     analyses_data = []
     for a in analyses:
@@ -7313,6 +7339,8 @@ def profit_analysis_view(request):
             "additional_total": str(a.additional_total) if a.additional_total else "",
             "raw_material_cost": str(a.raw_material_cost) if a.raw_material_cost else "",
             "raw_twine_data": a.raw_twine_data or "",
+            "target_profit_data": a.target_profit_data or "",
+            "applied_tier": _applied_tier_label(a.target_profit_data, a.sale_price_per_kg),
             "total_cost": str(a.total_cost) if a.total_cost else "",
             "sale_price_per_kg": str(a.sale_price_per_kg) if a.sale_price_per_kg else "",
             "total_revenue": str(a.total_revenue) if a.total_revenue else "",
@@ -7323,9 +7351,31 @@ def profit_analysis_view(request):
             "remarks": a.remarks or "",
         })
 
+    # ---- Target profit configurations per product ----
+    target_profit_data = {}
+    for cfg in TargetProfitConfiguration.objects.select_related("product").all():
+        code = cfg.product.code if cfg.product else ""
+        if not code:
+            continue
+        target_profit_data.setdefault(code, []).append({
+            "label": cfg.profit_mapping_label or "",
+            "profit_per_day": str(cfg.profit_per_day) if cfg.profit_per_day is not None else "",
+        })
+    for code in target_profit_data:
+        target_profit_data[code].sort(key=lambda x: (str(x["profit_per_day"]), x["label"]))
+
+    # Map product name -> code so the template can resolve a tracker that stores a name
+    product_name_to_code = {
+        (p.name or "").strip().lower(): p.code
+        for p in Product.objects.all()
+        if p.name and p.code
+    }
+
     context = {
         "twine_materials_json": twine_materials,
         "trackers_json": trackers_data,
+        "target_profit_json": target_profit_data,
+        "product_name_to_code_json": product_name_to_code,
         "product_options": sorted({t["product"] for t in trackers_data if t["product"]}),
         "mm_options": sorted({t["mm"] for t in trackers_data if t["mm"]}, key=lambda v: float(v) if str(v).replace(".", "", 1).isdigit() else str(v)),
         "user_spec_options": sorted({t["user_spec"] for t in trackers_data if t["user_spec"]}),
