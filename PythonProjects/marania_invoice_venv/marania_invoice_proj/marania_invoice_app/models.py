@@ -605,6 +605,7 @@ class Sales(models.Model):
     customer = models.CharField(max_length=255)
     twine = models.CharField(max_length=255, blank=True, null=True)
     speification = models.CharField(max_length=255, blank=True, null=True)
+    prod_spec = models.CharField(max_length=255, blank=True, null=True)
     colour = models.CharField(max_length=50, default='White')
     piece_weight = models.CharField(max_length=50, blank=True, null=True)
     piece_count = models.IntegerField(blank=True, null=True)

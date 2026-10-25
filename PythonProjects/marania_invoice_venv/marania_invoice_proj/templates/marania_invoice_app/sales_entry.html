@@ -320,6 +320,12 @@ tr.row-status-on_hold_processing td {
               <input type="date" name="payment_date" id="payment_date" class="form-control form-control-sm" placeholder="">
               <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Payment Date</small>
             </div>
+            <div class="col-md-3">
+              <select name="prod_spec" id="prod_spec" class="form-control form-control-sm">
+                <option value=""></option>
+              </select>
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Prod.Spec</small>
+            </div>
           </div>
 
           <div class="row mb-3">
@@ -348,6 +354,128 @@ tr.row-status-on_hold_processing td {
         </div>
       </form>
     </div>
+
+    <script>
+      // Define productionTrackers globally so it's available to the function
+      const productionTrackers = JSON.parse('{{ production_trackers|default:"[]"|escapejs }}');
+
+      // Make function globally accessible
+      window.updateProdSpecOptions = function() {
+        const twineCodeEl = document.getElementById('twine');
+        const specInputEl = document.getElementById('speification');
+        const prodSpecSelect = document.getElementById('prod_spec');
+
+        if (!prodSpecSelect) {
+          return;
+        }
+
+        const twineCode = (twineCodeEl ? twineCodeEl.value : '').trim();
+        const specValue = (specInputEl ? specInputEl.value : '').trim();
+
+        // Validation: If either field is empty, do not auto-populate
+        if (!twineCode || !specValue) {
+          prodSpecSelect.innerHTML = '<option value=""></option>';
+          prodSpecSelect.value = '';
+          return;
+        }
+
+        // Extract mesh size (MM) prefix from specification field
+        // The mesh size is typically the first part before the first dash
+        const specParts = specValue.split('-');
+        const meshSizePrefix = specParts[0] ? specParts[0].trim() : '';
+
+        if (!meshSizePrefix) {
+          prodSpecSelect.innerHTML = '<option value=""></option>';
+          prodSpecSelect.value = '';
+          return;
+        }
+
+        const meshSizeUpper = meshSizePrefix.toUpperCase();
+        const productUpper = twineCode.toUpperCase();
+
+        // Filter Production Tracker records matching both product code and mesh size (mm)
+        let filtered = [];
+        if (Array.isArray(productionTrackers)) {
+          for (let i = 0; i < productionTrackers.length; i++) {
+            const pt = productionTrackers[i];
+            if (!pt) continue;
+
+            // Match product code
+            const ptProduct = (pt.product || '').toString().trim().toUpperCase();
+            if (ptProduct !== productUpper) continue;
+
+            // Match mesh size (mm field)
+            const ptMm = (pt.mm || '').toString().trim().toUpperCase();
+            if (ptMm !== meshSizeUpper) continue;
+
+            // Include if it has a system_spec
+            if (pt.system_spec) {
+              filtered.push(pt);
+            }
+          }
+        }
+
+        // If no matches found, clear the dropdown
+        if (filtered.length === 0) {
+          prodSpecSelect.innerHTML = '<option value=""></option>';
+          prodSpecSelect.value = '';
+          return;
+        }
+
+        // Find the closest matching production specification
+        // Priority: exact match with full spec, then partial match
+        const specUpper = specValue.toUpperCase();
+        const combinedSpec = (productUpper + '-' + specUpper);
+
+        // Sort by match quality
+        filtered.sort((a, b) => {
+          const aSpecUpper = String(a.system_spec).toUpperCase();
+          const bSpecUpper = String(b.system_spec).toUpperCase();
+
+          // Exact match with combined spec gets highest priority
+          if (aSpecUpper === combinedSpec && bSpecUpper !== combinedSpec) return -1;
+          if (bSpecUpper === combinedSpec && aSpecUpper !== combinedSpec) return 1;
+
+          // Exact match with spec value gets second priority
+          if (aSpecUpper === specUpper && bSpecUpper !== specUpper) return -1;
+          if (bSpecUpper === specUpper && aSpecUpper !== specUpper) return 1;
+
+          // If no exact matches, keep original order
+          return 0;
+        });
+
+        // Populate dropdown with all matching specifications
+        prodSpecSelect.innerHTML = '<option value=""></option>';
+        filtered.forEach(pt => {
+          const opt = document.createElement('option');
+          opt.value = pt.system_spec;
+          opt.textContent = pt.system_spec;
+          prodSpecSelect.appendChild(opt);
+        });
+
+        // Auto-select the closest match (first in sorted list)
+        if (filtered.length > 0) {
+          prodSpecSelect.value = filtered[0].system_spec;
+        }
+      }
+
+      // Attach event listeners for dynamic updates after DOM is ready
+      document.addEventListener('DOMContentLoaded', function() {
+        const twineEl = document.getElementById('twine');
+        const specEl = document.getElementById('speification');
+
+        if (twineEl) {
+          twineEl.addEventListener('change', window.updateProdSpecOptions);
+          twineEl.addEventListener('blur', window.updateProdSpecOptions);
+        }
+
+        if (specEl) {
+          specEl.addEventListener('input', window.updateProdSpecOptions);
+          specEl.addEventListener('blur', window.updateProdSpecOptions);
+          specEl.addEventListener('change', window.updateProdSpecOptions);
+        }
+      });
+    </script>
 
     <div id="salesSummaryPanel" class="card mb-2 shadow-sm border-primary" style="display:none;">
       <div class="card-body py-1 px-3">
@@ -657,6 +785,7 @@ function getFormData() {
         customer: document.getElementById('customer').value.trim(),
         twine: document.getElementById('twine').value.trim(),
         speification: document.getElementById('speification').value.trim(),
+        prod_spec: document.getElementById('prod_spec') ? document.getElementById('prod_spec').value.trim() : '',
         colour: document.getElementById('colour').value.trim() || 'White',
         piece_weight: document.getElementById('piece_weight').value.trim(),
         piece_count: document.getElementById('piece_count').value,
@@ -754,6 +883,19 @@ function setFormData(data) {
     document.getElementById('customer').value = data.customer || '';
     document.getElementById('twine').value = data.twine || '';
     document.getElementById('speification').value = data.speification || '';
+    // Clear prod_spec dropdown initially
+    if (document.getElementById('prod_spec')) {
+        document.getElementById('prod_spec').innerHTML = '<option value=""></option>';
+        document.getElementById('prod_spec').value = '';
+    }
+    // Trigger auto-population of Prod.Spec dropdown options after both fields are set
+    if (typeof window.updateProdSpecOptions === 'function') {
+      window.updateProdSpecOptions();
+    }
+    // Set the prod_spec value from data if it exists (for existing records)
+    if (document.getElementById('prod_spec') && data.prod_spec) {
+        document.getElementById('prod_spec').value = data.prod_spec;
+    }
     document.getElementById('colour').value = data.colour || 'White';
     document.getElementById('piece_weight').value = data.piece_weight || '';
     document.getElementById('piece_count').value = data.piece_count || '';
@@ -785,6 +927,10 @@ function resetSalesForm() {
     document.getElementById('customer').value = '';
     document.getElementById('twine').value = '';
     document.getElementById('speification').value = '';
+    if (document.getElementById('prod_spec')) {
+        document.getElementById('prod_spec').innerHTML = '<option value=""></option>';
+        document.getElementById('prod_spec').value = '';
+    }
     document.getElementById('colour').value = 'White';
     document.getElementById('piece_weight').value = '';
     document.getElementById('piece_count').value = '';

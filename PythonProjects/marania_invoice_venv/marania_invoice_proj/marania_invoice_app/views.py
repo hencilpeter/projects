@@ -2773,6 +2773,7 @@ def sales_entry(request):
                 obj.customer = entry.get("customer") or ""
                 obj.twine = twine
                 obj.speification = entry.get("speification") or ""
+                obj.prod_spec = entry.get("prod_spec") or ""
                 obj.colour = entry.get("colour") or "White"
                 obj.piece_weight = entry.get("piece_weight") or ""
                 raw_pc = entry.get("piece_count")
@@ -2827,6 +2828,7 @@ def sales_entry(request):
             'customer': s.customer or '',
             'twine': s.twine or '',
             'speification': s.speification or '',
+            'prod_spec': getattr(s, 'prod_spec', '') or '',
             'colour': s.colour or 'White',
             'piece_weight': s.piece_weight or '',
             'piece_count': s.piece_count,
@@ -2841,11 +2843,15 @@ def sales_entry(request):
             'remarks': s.remarks or '',
         })
 
+    from .models import ProductionTracker
+    production_trackers = list(ProductionTracker.objects.all().values('pt_key', 'product', 'system_spec', 'user_spec', 'mm'))
+    import json
     return render(request, 'marania_invoice_app/sales_entry.html', {
         'sales': sales_list,
         'sales_json': json.dumps(sales_json),
         'products': products,
         'parties': parties,
+        'production_trackers': json.dumps(production_trackers, default=str),
     })
 
 
