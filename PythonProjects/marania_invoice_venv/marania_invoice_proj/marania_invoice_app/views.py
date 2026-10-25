@@ -2845,7 +2845,6 @@ def sales_entry(request):
 
     from .models import ProductionTracker
     production_trackers = list(ProductionTracker.objects.all().values('pt_key', 'product', 'system_spec', 'user_spec', 'mm'))
-    import json
     return render(request, 'marania_invoice_app/sales_entry.html', {
         'sales': sales_list,
         'sales_json': json.dumps(sales_json),
@@ -2859,7 +2858,6 @@ def submit_invoice_from_spec(request):
     """Parse invoice specification and auto-create invoices for each customer."""
     if request.method == 'POST':
         try:
-            import json
             import re
             from decimal import Decimal, ROUND_HALF_UP
             from datetime import date
