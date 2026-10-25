@@ -2938,9 +2938,26 @@ def calculate_profit_loss_api(request):
             # Calculate profit/loss
             profit_loss = calculate_profit_loss(temp_sale)
 
+            # Also derive per-kg and per-day if possible
+            profit_per_kg  = None
+            profit_per_day = None
+            if profit_loss is not None:
+                weight = temp_sale.processed_weight if temp_sale.processed_weight else temp_sale.initial_weight
+                if weight and weight > 0:
+                    profit_per_kg = round(profit_loss / weight, 2)
+                pt = _find_production_tracker(temp_sale)
+                if pt and pt.required_days and pt.required_days > 0 and pt.weight and pt.weight > 0:
+                    req_days = Decimal(str(pt.required_days))
+                    pt_weight = Decimal(str(pt.weight))
+                    if weight and weight > 0:
+                        scaled_days = req_days * weight / pt_weight
+                        profit_per_day = round(profit_loss / scaled_days, 2) if scaled_days else None
+
             return JsonResponse({
                 'success': True,
-                'profit_loss': str(profit_loss) if profit_loss is not None else None
+                'profit_loss':     str(profit_loss)     if profit_loss     is not None else None,
+                'profit_per_kg':   str(profit_per_kg)   if profit_per_kg   is not None else None,
+                'profit_per_day':  str(profit_per_day)  if profit_per_day  is not None else None,
             })
         except Exception as e:
             return JsonResponse({
@@ -3138,13 +3155,15 @@ def profit_loss_detail_api(request, sales_key=None):
                 'transportation_total': _d(transportation_cost),
             },
             'summary': {
-                'total_cost':      _d(total_cost),
-                'base_revenue':    _d(base_revenue),
-                'gst_amount':      _d(gst_amount),
-                'total_revenue':   _d(total_revenue),
-                'profit_loss':     _d(profit_loss),
-                'is_profit':       profit_loss > 0,
-                'profit_loss_pct': _d((profit_loss / total_revenue * 100) if total_revenue else 0),
+                'total_cost':       _d(total_cost),
+                'base_revenue':     _d(base_revenue),
+                'gst_amount':       _d(gst_amount),
+                'total_revenue':    _d(total_revenue),
+                'profit_loss':      _d(profit_loss),
+                'profit_per_kg':    _d(profit_loss / weight if weight else 0),
+                'profit_per_day':   _d(profit_loss / req_days if req_days else 0),
+                'is_profit':        profit_loss > 0,
+                'profit_loss_pct':  _d((profit_loss / total_revenue * 100) if total_revenue else 0),
             },
         })
 
@@ -3313,8 +3332,12 @@ def sales_entry(request):
             'payment_date': str(s.payment_date) if s.payment_date else '',
             'remarks': s.remarks or '',
             'profit_loss': str(s.profit_loss) if s.profit_loss is not None else '',
+            'profit_per_kg': (
+                str(round(s.profit_loss / (s.processed_weight or s.initial_weight), 2))
+                if s.profit_loss is not None and (s.processed_weight or s.initial_weight)
+                else ''
+            ),
         })
-
     from .models import ProductionTracker
     production_trackers = list(ProductionTracker.objects.all().values('pt_key', 'product', 'system_spec', 'user_spec', 'mm'))
     return render(request, 'marania_invoice_app/sales_entry.html', {

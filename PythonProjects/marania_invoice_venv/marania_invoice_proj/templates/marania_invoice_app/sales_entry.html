@@ -327,8 +327,15 @@ tr.row-status-on_hold_processing td {
               <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Prod.Spec</small>
             </div>
             <div class="col-md-2">
-              <input type="number" name="profit_loss" id="profit_loss" step="0.01" class="form-control form-control-sm" placeholder="Profit/Loss" readonly>
-              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Profit/Loss</small>
+              <div class="input-group input-group-sm">
+                <input type="number" name="profit_loss" id="profit_loss" step="0.01" class="form-control form-control-sm" placeholder="Total" readonly>
+                <input type="number" id="profit_per_kg" step="0.01" class="form-control form-control-sm" placeholder="/kg" readonly title="Profit/Loss per kg">
+                <input type="number" id="profit_per_day" step="0.01" class="form-control form-control-sm" placeholder="/day" readonly title="Profit/Loss per day">
+              </div>
+              <div class="d-flex justify-content-between" style="font-size:0.68rem;line-height:1;margin-top:1px;color:#6c757d;">
+                <span>Total</span><span>/kg</span><span>/day</span>
+              </div>
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;">Profit/Loss</small>
             </div>
           </div>
 
@@ -722,11 +729,18 @@ tr.row-status-on_hold_processing td {
                   <td>{{ sale.prod_spec|default:"" }}</td>
                   <td>
                     {% if sale.profit_loss is not None %}
-                      <span class="{% if sale.profit_loss > 0 %}text-success{% elif sale.profit_loss < 0 %}text-danger{% else %}text-muted{% endif %}">
-                        {{ sale.profit_loss|floatformat:2 }}
+                      {% with wt=sale.processed_weight|default:sale.initial_weight %}
+                      <span class="{% if sale.profit_loss > 0 %}text-success{% elif sale.profit_loss < 0 %}text-danger{% else %}text-muted{% endif %} d-block fw-semibold lh-1">
+                        {{ sale.profit_loss|floatformat:0 }}
                       </span>
+                      {% if wt and wt > 0 %}
+                      <small class="text-muted lh-1" style="font-size:0.68rem;" data-sales-key-pl="{{ sale.sales_key }}">
+                        <span class="pl-per-kg"></span>/kg
+                      </small>
+                      {% endif %}
+                      {% endwith %}
                     {% else %}
-                      -
+                      <span class="text-muted">-</span>
                     {% endif %}
                   </td>
                 </tr>
@@ -916,13 +930,25 @@ function calcProfitLoss() {
     .then(data => {
         if (data.success && data.profit_loss !== null) {
             document.getElementById('profit_loss').value = data.profit_loss;
+            var pkEl  = document.getElementById('profit_per_kg');
+            var pdEl  = document.getElementById('profit_per_day');
+            if (pkEl)  pkEl.value  = data.profit_per_kg  !== null ? data.profit_per_kg  : '';
+            if (pdEl)  pdEl.value  = data.profit_per_day !== null ? data.profit_per_day : '';
         } else {
             document.getElementById('profit_loss').value = '';
+            var pkEl  = document.getElementById('profit_per_kg');
+            var pdEl  = document.getElementById('profit_per_day');
+            if (pkEl)  pkEl.value  = '';
+            if (pdEl)  pdEl.value  = '';
         }
     })
     .catch(error => {
         console.error('Error calculating profit/loss:', error);
         document.getElementById('profit_loss').value = '';
+        var pkEl = document.getElementById('profit_per_kg');
+        var pdEl = document.getElementById('profit_per_day');
+        if (pkEl) pkEl.value = '';
+        if (pdEl) pdEl.value = '';
     });
 }
 
@@ -938,6 +964,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (prodSpecEl) {
         prodSpecEl.addEventListener('change', calcProfitLoss);
     }
+    // Populate /kg column from salesData on initial render
+    document.querySelectorAll('[data-sales-key-pl]').forEach(function(el) {
+        var sk = el.getAttribute('data-sales-key-pl');
+        var sd = salesData.find(function(s) { return String(s.sales_key) === String(sk); });
+        if (sd && sd.profit_per_kg) {
+            var span = el.querySelector('.pl-per-kg');
+            if (span) span.textContent = parseFloat(sd.profit_per_kg).toFixed(0);
+        }
+    });
 });
 
 // Status color sync
@@ -1015,6 +1050,11 @@ function setFormData(data) {
     }
     document.getElementById('colour').value = data.colour || 'White';
     document.getElementById('profit_loss').value = data.profit_loss || '';
+    // Populate per-kg and per-day from stored profit_loss + weight (approximate on load)
+    var pkEl = document.getElementById('profit_per_kg');
+    var pdEl = document.getElementById('profit_per_day');
+    if (pkEl) pkEl.value = '';
+    if (pdEl) pdEl.value = '';
     document.getElementById('piece_weight').value = data.piece_weight || '';
     document.getElementById('piece_count').value = data.piece_count || '';
     document.getElementById('initial_weight').value = data.initial_weight || '';
@@ -1054,6 +1094,10 @@ function resetSalesForm() {
     document.getElementById('piece_weight').value = '';
     document.getElementById('piece_count').value = '';
     document.getElementById('profit_loss').value = '';
+    var pkEl = document.getElementById('profit_per_kg');
+    var pdEl = document.getElementById('profit_per_day');
+    if (pkEl) pkEl.value = '';
+    if (pdEl) pdEl.value = '';
     document.getElementById('initial_weight').value = '';
     document.getElementById('processed_weight').value = '';
     document.getElementById('unit_price').value = '';
@@ -2521,6 +2565,7 @@ function buildPLHtml(data) {
     html += '<div><div class="fs-5 fw-bold">' + (s.customer || '—') + '</div>';
     html += '<div class="small opacity-75">' + (s.twine || '') + ' · ' + (s.speification || s.prod_spec || '') + '</div></div>';
     html += '<div class="text-end"><div class="display-6 fw-bold">' + plFmt(sum.profit_loss) + '</div>';
+    html += '<div class="small mt-1 opacity-90">' + plFmt(sum.profit_per_kg) + '/kg &nbsp;·&nbsp; ' + plFmt(sum.profit_per_day) + '/day</div>';
     html += '<span class="badge fs-6 ' + plBadge + ' border border-white">' + plLabel + '</span></div>';
     html += '</div></div>';
 
@@ -2637,7 +2682,12 @@ function buildPLHtml(data) {
     html += '<tr><td class="ps-3 text-muted">→ Packing</td><td class="text-end">'+plFmt(ac.packing_total)+'</td></tr>';
     html += '<tr><td class="ps-3 text-muted">→ Transportation</td><td class="text-end">'+plFmt(ac.transportation_total)+'</td></tr>';
     html += '<tr class="table-'+(parseFloat(sum.profit_loss)>=0?'success':'danger')+' fw-bold fs-6">';
-    html += '<td>'+plLabel+'</td><td class="text-end '+plColour+'">'+plFmt(sum.profit_loss)+' ('+plNum(sum.profit_loss_pct)+'%)</td></tr>';
+    html += '<td>'+plLabel+' (total)</td><td class="text-end '+plColour+'">'+plFmt(sum.profit_loss)+'</td></tr>';
+    html += '<tr class="'+plColour+'">';
+    html += '<td class="ps-3 text-muted">→ Per kg</td><td class="text-end fw-bold">'+plFmt(sum.profit_per_kg)+'/kg</td></tr>';
+    html += '<tr class="'+plColour+'">';
+    html += '<td class="ps-3 text-muted">→ Per day</td><td class="text-end fw-bold">'+plFmt(sum.profit_per_day)+'/day</td></tr>';
+    html += '<tr><td class="ps-3 text-muted">→ Margin</td><td class="text-end">'+plNum(sum.profit_loss_pct)+'%</td></tr>';
     html += '</tbody></table></div>';
 
     return html;
