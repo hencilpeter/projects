@@ -2499,13 +2499,13 @@ function plNum(v) {
 }
 
 function buildPLHtml(data) {
-    var s      = data.sale;
-    var pt     = data.production_tracker;
-    var tm     = data.twine_materials;
-    var mc     = data.machine_cost;
-    var ac     = data.additional_costs;
-    var sum    = data.summary;
-    var isProfit = sum.is_profit;
+    var s   = data.sale;
+    var pt  = data.production_tracker;
+    var tm  = data.twine_materials;
+    var mc  = data.machine_cost;
+    var pc  = data.processing_cost;
+    var ac  = data.additional_costs;
+    var sum = data.summary;
     var plColour = parseFloat(sum.profit_loss) > 0 ? 'text-success' :
                    parseFloat(sum.profit_loss) < 0 ? 'text-danger' : 'text-secondary';
     var plLabel  = parseFloat(sum.profit_loss) > 0 ? 'PROFIT' :
@@ -2515,7 +2515,7 @@ function buildPLHtml(data) {
 
     var html = '';
 
-    // ── Hero banner ─────────────────────────────────────────────────────────
+    // ── Hero banner ──────────────────────────────────────────────────────────
     html += '<div class="p-3 ' + (parseFloat(sum.profit_loss) >= 0 ? 'bg-success' : 'bg-danger') + ' text-white">';
     html += '<div class="d-flex justify-content-between align-items-center">';
     html += '<div><div class="fs-5 fw-bold">' + (s.customer || '—') + '</div>';
@@ -2526,101 +2526,118 @@ function buildPLHtml(data) {
 
     // ── Summary cards ────────────────────────────────────────────────────────
     html += '<div class="row g-0 border-bottom">';
-    var cards = [
-        { label: 'Revenue',     value: plFmt(sum.total_revenue), icon: 'bi-cash-coin',      cls: 'text-success' },
-        { label: 'Total Cost',  value: plFmt(sum.total_cost),    icon: 'bi-box-seam',        cls: 'text-danger'  },
-        { label: 'Weight Used', value: plNum(s.weight) + ' kg (' + s.weight_label + ')', icon: 'bi-speedometer2', cls: 'text-primary' },
-        { label: 'Margin',      value: plNum(sum.profit_loss_pct) + '%',                 icon: 'bi-percent',      cls: plColour       },
-    ];
-    cards.forEach(function(c) {
+    [{label:'Revenue', value:plFmt(sum.total_revenue), icon:'bi-cash-coin', cls:'text-success'},
+     {label:'Total Cost', value:plFmt(sum.total_cost), icon:'bi-box-seam', cls:'text-danger'},
+     {label:'Weight Used', value:plNum(s.weight)+' kg ('+s.weight_label+')', icon:'bi-speedometer2', cls:'text-primary'},
+     {label:'Margin', value:plNum(sum.profit_loss_pct)+'%', icon:'bi-percent', cls:plColour}
+    ].forEach(function(c) {
         html += '<div class="col-6 col-md-3 p-3 border-end text-center">';
-        html += '<div class="small text-muted"><i class="bi ' + c.icon + ' me-1"></i>' + c.label + '</div>';
-        html += '<div class="fw-bold ' + c.cls + '">' + c.value + '</div></div>';
+        html += '<div class="small text-muted"><i class="bi '+c.icon+' me-1"></i>'+c.label+'</div>';
+        html += '<div class="fw-bold '+c.cls+'">'+c.value+'</div></div>';
     });
     html += '</div>';
 
     // ── Sale info ────────────────────────────────────────────────────────────
     html += '<div class="px-3 pt-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-receipt me-1"></i>Sale Info</h6>';
     html += '<div class="row row-cols-2 row-cols-md-4 g-2 small mb-3">';
-    [
-        ['Order No',    s.order_no   ],
-        ['Twine',       s.twine      ],
-        ['Specification', s.speification || s.prod_spec ],
-        ['Colour',      s.colour     ],
-        ['Unit Price',  plFmt(s.unit_price) ],
-        ['GST Rate',    s.gst_rate + '%'   ],
-        ['PT Spec',     pt.system_spec ],
-        ['Machine',     pt.machine || '—' ],
+    [['Order No', s.order_no], ['Twine', s.twine],
+     ['Specification', s.speification || s.prod_spec], ['Colour', s.colour],
+     ['Unit Price', plFmt(s.unit_price)], ['GST Rate', s.gst_rate+'%'],
+     ['PT Spec', pt.system_spec], ['Machine', pt.machine || '—']
     ].forEach(function(r) {
-        html += '<div class="col"><span class="text-muted">' + r[0] + ':</span> <strong>' + (r[1] || '—') + '</strong></div>';
+        html += '<div class="col"><span class="text-muted">'+r[0]+':</span> <strong>'+(r[1]||'—')+'</strong></div>';
     });
     html += '</div></div>';
 
-    // ── Raw Material ────────────────────────────────────────────────────────
-    html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-boxes me-1"></i>Raw Material Cost</h6>';
+    // ── Raw Material ─────────────────────────────────────────────────────────
+    html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-boxes me-1"></i>Raw Material Cost';
+    html += ' <small class="text-muted fw-normal">(latest Purchase price incl. GST, scaled to sale weight)</small></h6>';
+    html += '<div class="small text-muted mb-1">PT batch weight: <strong>'+pt.batch_weight+' kg</strong> · Required days: <strong>'+pt.required_days+'</strong> · Waste: <strong>'+tm.waste_pct+'%</strong></div>';
     html += '<table class="table table-sm table-bordered small mb-2">';
-    html += '<thead class="table-secondary"><tr><th>Twine Type</th><th>Rows</th><th>Wt/1000 rows (g)</th><th>Line Weight (kg)</th></tr></thead><tbody>';
+    html += '<thead class="table-secondary"><tr><th>Type</th><th>Material</th><th>Daily Out (kg)</th><th>Batch Wt (kg)</th><th>Waste (kg)</th><th>For Sale (kg)</th><th>Price/kg</th><th>Cost</th><th>Price Source</th></tr></thead><tbody>';
     tm.rows.forEach(function(row) {
-        html += '<tr><td>' + row.twine_type + '</td><td>' + row.rows + '</td><td>' + row.weight_per_1000_rows + '</td><td>' + plNum(row.line_weight) + '</td></tr>';
+        html += '<tr>';
+        html += '<td><span class="badge bg-'+(row.type==='NET'?'success':'warning text-dark')+'">'+row.type+'</span></td>';
+        html += '<td><strong>'+row.material_code+'</strong></td>';
+        html += '<td>'+plNum(row.daily_output)+'</td>';
+        html += '<td>'+plNum(row.batch_weight)+'</td>';
+        html += '<td>'+plNum(row.waste)+'</td>';
+        html += '<td><strong>'+plNum(row.twine_for_sale)+'</strong></td>';
+        html += '<td>'+plFmt(row.price_per_kg)+'</td>';
+        html += '<td class="fw-bold text-danger">'+plFmt(row.line_cost)+'</td>';
+        html += '<td class="text-muted" style="font-size:0.75em">'+row.price_source+'</td>';
+        html += '</tr>';
     });
     html += '</tbody></table>';
-    html += '<div class="d-flex justify-content-between small mb-3">';
-    html += '<span>Total twine weight: <strong>' + plNum(tm.total_weight_kg) + ' kg</strong></span>';
-    html += '<span>Price (' + tm.price_catalog_code + '): <strong>' + plFmt(tm.price_per_unit) + '/unit</strong></span>';
-    html += '<span class="fw-bold text-danger">Raw material: ' + plFmt(tm.raw_material_cost) + '</span>';
-    html += '</div></div>';
+    html += '<div class="small fw-bold text-danger mb-3">Total raw material cost: '+plFmt(tm.raw_material_cost)+'</div></div>';
 
     // ── Machine Cost ─────────────────────────────────────────────────────────
-    html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-gear me-1"></i>Machine Operational Cost</h6>';
+    html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-gear me-1"></i>Machine Operational Cost';
+    html += ' <small class="text-muted fw-normal">(scaled to sale weight)</small></h6>';
     if (mc && mc.machine_number) {
-        html += '<div class="small mb-1 text-muted">Machine: <strong>' + mc.machine_number + '</strong> · Required days: <strong>' + mc.required_days + '</strong> · Daily cost: <strong>' + plFmt(mc.daily_total) + '</strong></div>';
+        html += '<div class="small mb-1 text-muted">Machine: <strong>'+mc.machine_number+'</strong>';
+        html += ' · Required days: <strong>'+mc.required_days+'</strong>';
+        html += ' · PT batch: <strong>'+mc.pt_batch_weight+' kg</strong>';
+        html += ' · Daily cost: <strong>'+plFmt(mc.daily_total)+'</strong></div>';
         html += '<div class="row row-cols-2 row-cols-md-4 g-1 small mb-2">';
-        [
-            ['Operator', mc.operator], ['Bobbin Winder', mc.bobbin_winder],
-            ['Mending', mc.mending], ['Mechanic', mc.mechanic],
-            ['Electricity', mc.electricity], ['Maintenance', mc.maintenance],
-            ['Misc.', mc.miscellaneous],
+        [['Operator',mc.operator],['Bobbin Winder',mc.bobbin_winder],['Mending',mc.mending],
+         ['Mechanic',mc.mechanic],['Electricity',mc.electricity],['Maintenance',mc.maintenance],['Misc.',mc.miscellaneous]
         ].forEach(function(r) {
-            html += '<div class="col border rounded p-1"><span class="text-muted">' + r[0] + ':</span> ' + plFmt(r[1]) + '/day</div>';
+            html += '<div class="col border rounded p-1"><span class="text-muted">'+r[0]+':</span> '+plFmt(r[1])+'/day</div>';
         });
         html += '</div>';
-        html += '<div class="small fw-bold text-danger mb-3">Machine total: ' + plFmt(mc.machine_total) + '</div>';
+        html += '<div class="small fw-bold text-danger mb-3">Machine total (for '+plNum(s.weight)+' kg): '+plFmt(mc.machine_total)+'</div>';
     } else {
         html += '<p class="small text-muted">No machine cost data found.</p>';
     }
     html += '</div>';
 
-    // ── Additional Costs ─────────────────────────────────────────────────────
+    // ── Processing Cost ───────────────────────────────────────────────────────
+    html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-tools me-1"></i>Processing Cost</h6>';
+    if (pc && pc.material_code) {
+        html += '<div class="row row-cols-2 g-2 small mb-3">';
+        html += '<div class="col border rounded p-2"><span class="text-muted">Processing ('+plFmt(pc.proc_rate)+'/kg × '+plNum(s.weight)+' kg):</span> <strong class="text-danger">'+plFmt(pc.processing_total)+'</strong></div>';
+        html += '<div class="col border rounded p-2"><span class="text-muted">Colour ('+plFmt(pc.colour_rate)+'/kg × '+plNum(s.weight)+' kg):</span> <strong class="text-danger">'+plFmt(pc.colour_total)+'</strong></div>';
+        html += '</div>';
+    } else {
+        html += '<p class="small text-muted">No processing cost config found for this product.</p>';
+    }
+    html += '</div>';
+
+    // ── Additional Costs ──────────────────────────────────────────────────────
     html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-truck me-1"></i>Additional Costs</h6>';
     html += '<div class="row row-cols-2 g-2 small mb-3">';
-    html += '<div class="col border rounded p-2"><span class="text-muted">Packing (' + plFmt(ac.packing_rate) + '/kg × ' + plNum(s.weight) + ' kg):</span> <strong class="text-danger">' + plFmt(ac.packing_total) + '</strong></div>';
-    html += '<div class="col border rounded p-2"><span class="text-muted">Transport (' + plFmt(ac.transportation_rate) + '/kg × ' + plNum(s.weight) + ' kg):</span> <strong class="text-danger">' + plFmt(ac.transportation_total) + '</strong></div>';
+    html += '<div class="col border rounded p-2"><span class="text-muted">Packing ('+plFmt(ac.packing_rate)+'/kg × '+plNum(s.weight)+' kg):</span> <strong class="text-danger">'+plFmt(ac.packing_total)+'</strong></div>';
+    html += '<div class="col border rounded p-2"><span class="text-muted">Transport ('+plFmt(ac.transportation_rate)+'/kg × '+plNum(s.weight)+' kg):</span> <strong class="text-danger">'+plFmt(ac.transportation_total)+'</strong></div>';
     html += '</div></div>';
 
-    // ── Revenue breakdown ─────────────────────────────────────────────────────
+    // ── Revenue ───────────────────────────────────────────────────────────────
     html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-cash-stack me-1"></i>Revenue</h6>';
     html += '<div class="d-flex flex-wrap gap-3 small mb-3">';
-    html += '<span>Base revenue (' + plFmt(s.unit_price) + '/kg × ' + plNum(s.weight) + ' kg): <strong class="text-success">' + plFmt(sum.base_revenue) + '</strong></span>';
-    html += '<span>GST (' + s.gst_rate + '%): <strong class="text-success">' + plFmt(sum.gst_amount) + '</strong></span>';
-    html += '<span>Total revenue: <strong class="text-success">' + plFmt(sum.total_revenue) + '</strong></span>';
+    html += '<span>Base revenue ('+plFmt(s.unit_price)+'/kg × '+plNum(s.weight)+' kg): <strong class="text-success">'+plFmt(sum.base_revenue)+'</strong></span>';
+    html += '<span>GST ('+s.gst_rate+'%): <strong class="text-success">'+plFmt(sum.gst_amount)+'</strong></span>';
+    html += '<span>Total revenue: <strong class="text-success">'+plFmt(sum.total_revenue)+'</strong></span>';
     html += '</div></div>';
 
-    // ── Final summary table ───────────────────────────────────────────────────
+    // ── Summary table ─────────────────────────────────────────────────────────
     html += '<div class="px-3 pb-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-calculator me-1"></i>Summary</h6>';
-    html += '<table class="table table-sm table-bordered small">';
-    html += '<tbody>';
-    html += '<tr class="table-success"><td>Total Revenue</td><td class="text-end fw-bold">' + plFmt(sum.total_revenue) + '</td></tr>';
-    html += '<tr><td class="ps-3 text-muted">→ Base Revenue</td><td class="text-end">' + plFmt(sum.base_revenue) + '</td></tr>';
-    html += '<tr><td class="ps-3 text-muted">→ GST Amount</td><td class="text-end">' + plFmt(sum.gst_amount) + '</td></tr>';
-    html += '<tr class="table-danger"><td>Total Cost</td><td class="text-end fw-bold">' + plFmt(sum.total_cost) + '</td></tr>';
-    html += '<tr><td class="ps-3 text-muted">→ Raw Material</td><td class="text-end">' + plFmt(tm.raw_material_cost) + '</td></tr>';
+    html += '<table class="table table-sm table-bordered small"><tbody>';
+    html += '<tr class="table-success"><td>Total Revenue</td><td class="text-end fw-bold">'+plFmt(sum.total_revenue)+'</td></tr>';
+    html += '<tr><td class="ps-3 text-muted">→ Base Revenue</td><td class="text-end">'+plFmt(sum.base_revenue)+'</td></tr>';
+    html += '<tr><td class="ps-3 text-muted">→ GST Amount</td><td class="text-end">'+plFmt(sum.gst_amount)+'</td></tr>';
+    html += '<tr class="table-danger"><td>Total Cost</td><td class="text-end fw-bold">'+plFmt(sum.total_cost)+'</td></tr>';
+    html += '<tr><td class="ps-3 text-muted">→ Raw Material</td><td class="text-end">'+plFmt(tm.raw_material_cost)+'</td></tr>';
     if (mc && mc.machine_number) {
-        html += '<tr><td class="ps-3 text-muted">→ Machine Cost</td><td class="text-end">' + plFmt(mc.machine_total) + '</td></tr>';
+        html += '<tr><td class="ps-3 text-muted">→ Machine Cost</td><td class="text-end">'+plFmt(mc.machine_total)+'</td></tr>';
     }
-    html += '<tr><td class="ps-3 text-muted">→ Packing</td><td class="text-end">' + plFmt(ac.packing_total) + '</td></tr>';
-    html += '<tr><td class="ps-3 text-muted">→ Transportation</td><td class="text-end">' + plFmt(ac.transportation_total) + '</td></tr>';
-    html += '<tr class="table-' + (parseFloat(sum.profit_loss) >= 0 ? 'success' : 'danger') + ' fw-bold fs-6">';
-    html += '<td>' + plLabel + '</td><td class="text-end ' + plColour + '">' + plFmt(sum.profit_loss) + ' (' + plNum(sum.profit_loss_pct) + '%)</td></tr>';
+    if (pc && pc.material_code) {
+        html += '<tr><td class="ps-3 text-muted">→ Processing</td><td class="text-end">'+plFmt(pc.processing_total)+'</td></tr>';
+        html += '<tr><td class="ps-3 text-muted">→ Colour</td><td class="text-end">'+plFmt(pc.colour_total)+'</td></tr>';
+    }
+    html += '<tr><td class="ps-3 text-muted">→ Packing</td><td class="text-end">'+plFmt(ac.packing_total)+'</td></tr>';
+    html += '<tr><td class="ps-3 text-muted">→ Transportation</td><td class="text-end">'+plFmt(ac.transportation_total)+'</td></tr>';
+    html += '<tr class="table-'+(parseFloat(sum.profit_loss)>=0?'success':'danger')+' fw-bold fs-6">';
+    html += '<td>'+plLabel+'</td><td class="text-end '+plColour+'">'+plFmt(sum.profit_loss)+' ('+plNum(sum.profit_loss_pct)+'%)</td></tr>';
     html += '</tbody></table></div>';
 
     return html;

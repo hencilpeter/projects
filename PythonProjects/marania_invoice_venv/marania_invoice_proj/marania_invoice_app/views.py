@@ -2685,157 +2685,235 @@ def parse_date(value):
     except (ValueError, TypeError):
         return None
 
+def _get_latest_twine_price(material_code):
+    """
+    Return the latest GST-inclusive price for a twine material code.
+    Mirrors the exact logic used in profit_analysis_view._latest_twine_price:
+      1. Latest Purchase record (by delivery_date, then purchase_key) with is_twine=True
+      2. Fallback: Materials.price
+    Both include GST: price × (1 + gst_percent/100)
+    Returns a Decimal or None.
+    """
+    from .models import Purchase, Materials
+    from decimal import Decimal
+    latest = Purchase.objects.filter(
+        material_code=material_code, is_twine=True
+    ).order_by('-delivery_date', '-purchase_key').first()
+    if latest and latest.unit_price is not None:
+        gst = latest.gst_percent or Decimal('0')
+        return (latest.unit_price * (Decimal('1') + gst / Decimal('100'))).quantize(Decimal('0.01'))
+    mat = Materials.objects.filter(code=material_code).first()
+    if mat and mat.price:
+        gst = mat.gst or Decimal('0')
+        return (mat.price * (Decimal('1') + gst / Decimal('100'))).quantize(Decimal('0.01'))
+    return None
+
+
+def _find_production_tracker(sale):
+    """
+    Find the best-matching ProductionTracker for a sale, trying multiple
+    strategies in order of specificity.  Returns a PT instance or None.
+    """
+    import re as _re
+    from .models import ProductionTracker
+    spec = sale.prod_spec if sale.prod_spec else getattr(sale, 'speification', None)
+    if not spec:
+        return None
+
+    pt = ProductionTracker.objects.filter(system_spec=spec).first()
+    if not pt:
+        pt = ProductionTracker.objects.filter(user_spec=spec).first()
+    if not pt:
+        pt = ProductionTracker.objects.filter(system_spec__icontains=spec).first()
+    if not pt:
+        mm_match = _re.search(r'(\d+)\s*MM', spec, _re.IGNORECASE)
+        if mm_match and sale.twine:
+            pt = ProductionTracker.objects.filter(
+                product__iexact=sale.twine,
+                mm__iexact=mm_match.group(1)
+            ).first()
+    if not pt:
+        return None
+
+    # If the PT product doesn't match the sale twine, try to find a better one
+    if pt.product and sale.twine and pt.product.upper() != sale.twine.upper():
+        alt = ProductionTracker.objects.filter(
+            product__iexact=sale.twine, mm=pt.mm
+        ).first()
+        if alt:
+            pt = alt
+    return pt
+
+
+def _calc_twine_rows(pt, sale_weight):
+    """
+    Compute per-material twine weights and costs for a given PT and sale weight.
+
+    Uses pt.twine_rows (the same field used by profit_analysis_view) which
+    contains conversion_factor and twine_count for each material row.
+
+    Formula (mirrors profit_analysis.html JS):
+      daily_output  = (conversion_factor × mm × twine_count × knots_capacity_per_day) / 1000
+      batch_weight  = daily_output × required_days          (kg of this material for the full PT batch)
+      waste         = batch_weight × waste_percentage / 100
+      twine_for_sale = (batch_weight + waste) × sale_weight / pt.weight
+      cost          = twine_for_sale × latest_price_incl_gst
+
+    Returns (rows_detail list, total_raw_material_cost Decimal).
+    rows_detail items: {material_code, type, daily_output, batch_weight, waste,
+                        twine_for_sale, price_per_kg, line_cost}
+    """
+    from decimal import Decimal
+    from marania_invoice_app.models import AdditionalCost
+
+    if not pt.twine_rows:
+        return [], Decimal('0')
+
+    try:
+        twine_rows = json.loads(pt.twine_rows)
+    except (json.JSONDecodeError, TypeError):
+        return [], Decimal('0')
+
+    ac = AdditionalCost.objects.first()
+    waste_pct = Decimal(str(ac.waste_percentage)) if (ac and ac.waste_percentage) else Decimal('0')
+
+    mm_val = Decimal(str(pt.mm)) if pt.mm else Decimal('0')
+    knot_cap = Decimal(str(pt.knots_capacity_per_day)) if pt.knots_capacity_per_day else Decimal('0')
+    req_days = Decimal(str(pt.required_days)) if pt.required_days else Decimal('1')
+    pt_weight = Decimal(str(pt.weight)) if pt.weight else Decimal('0')
+
+    rows_detail = []
+    total_cost = Decimal('0')
+
+    for tr in twine_rows:
+        code = (tr.get('twine') or '').strip()
+        if not code:
+            continue
+        row_mm = Decimal(str(tr['mm'])) if tr.get('mm') else mm_val
+        if not row_mm:
+            row_mm = mm_val
+        twine_count = Decimal(str(tr.get('twine_count') or '0'))
+        conv        = Decimal(str(tr.get('conversion_factor') or '0'))
+
+        # Use pre-computed daily_output if present, otherwise calculate
+        if tr.get('daily_output') not in (None, '', 'undefined'):
+            daily_out = Decimal(str(tr['daily_output']))
+        else:
+            if knot_cap and conv and twine_count and row_mm:
+                daily_out = (conv * row_mm * twine_count * knot_cap) / Decimal('1000')
+            else:
+                daily_out = Decimal('0')
+
+        batch_weight = daily_out * req_days
+        waste        = batch_weight * waste_pct / Decimal('100')
+
+        # Scale to the actual sale weight (proportional to pt.weight batch)
+        if pt_weight > 0:
+            twine_for_sale = (batch_weight + waste) * Decimal(str(sale_weight)) / pt_weight
+        else:
+            twine_for_sale = Decimal('0')
+
+        price = _get_latest_twine_price(code)
+        if price is None:
+            price = Decimal('0')
+
+        line_cost = twine_for_sale * price
+        total_cost += line_cost
+
+        rows_detail.append({
+            'material_code':  code,
+            'type':           tr.get('type', ''),
+            'daily_output':   float(daily_out),
+            'batch_weight':   float(batch_weight),
+            'waste':          float(waste),
+            'twine_for_sale': float(twine_for_sale),
+            'price_per_kg':   float(price),
+            'line_cost':      float(line_cost),
+        })
+
+    return rows_detail, total_cost
+
+
 def calculate_profit_loss(sale):
     """
     Calculate profit/loss for a sales entry.
 
-    Logic:
-    1. From the selected Prod.Spec value, calculate the respective twine weight for the Proc Wt (if exist otherwise use the Init Wt)
-    2. Use the latest respective twine price and calculate the production cost
-    3. Use the respective machine cost for the selected product and processing cost and other cost for the respective sales entry
-    4. Use the unit price & GST and eventually auto calculate the profit/loss value
+    Raw-material cost uses the same logic as the Profit Analysis module:
+      - twine_rows from ProductionTracker (daily_output × required_days)
+      - latest Purchase price (GST-inclusive) per material, falling back to Materials.price
+      - waste percentage from AdditionalCost
+      - weight scaled proportionally to the actual sale weight vs PT batch weight
+
+    Other costs use ProcessingCost (per product material) and AdditionalCost.
     """
-    from .models import ProductionTracker, MachineOperationalCost, AdditionalCost, PriceCatalog, Product
+    from .models import MachineOperationalCost, AdditionalCost, ProcessingCost, Product
+    from decimal import Decimal
 
     try:
-        # Get the weight to use (processed weight if available, otherwise initial weight)
         weight = sale.processed_weight if sale.processed_weight else sale.initial_weight
         if not weight:
             return None
+        weight = Decimal(str(weight))
 
-        # Get the production specification - use prod_spec if available, otherwise fall back to speification
-        spec_to_use = sale.prod_spec if sale.prod_spec else getattr(sale, 'speification', None)
-        if not spec_to_use:
-            return None
-
-        # Find the ProductionTracker record matching the specification
-        # First try exact match on system_spec
-        pt = ProductionTracker.objects.filter(system_spec=spec_to_use).first()
-        if not pt:
-            # Try matching user_spec
-            pt = ProductionTracker.objects.filter(user_spec=spec_to_use).first()
-        if not pt:
-            # Try partial match - if spec_to_use contains the system_spec
-            pt = ProductionTracker.objects.filter(system_spec__icontains=spec_to_use).first()
-        if not pt:
-            # Try matching by mesh size from specification
-            # Extract MM from spec like "80MM-50MD-2/3 NylonSel" -> "80"
-            import re
-            mm_match = re.search(r'(\d+)\s*MM', spec_to_use, re.IGNORECASE)
-            if mm_match and sale.twine:
-                mesh_size = mm_match.group(1)
-                pt = ProductionTracker.objects.filter(
-                    product__iexact=sale.twine,
-                    mm__iexact=mesh_size
-                ).first()
-        
+        pt = _find_production_tracker(sale)
         if not pt:
             return None
-        
-        # Verify product matches
-        if pt.product and sale.twine and pt.product.upper() != sale.twine.upper():
-            # Try to find a better match
-            pt_alt = ProductionTracker.objects.filter(
-                product__iexact=sale.twine,
-                mm=pt.mm
-            ).first()
-            if pt_alt:
-                pt = pt_alt
 
-        # Calculate twine weight from ProductionTracker
-        # twine_detail is JSON: {"16Fida": "600", "N6": "10"} - number of rows
-        # twine_weight is JSON: {"16FidaG": "58.45|48.11", "N6": "8.37|6.89"} - weight per 1000 rows (NET|SEL)
-        from decimal import Decimal
-        
-        twine_detail = json.loads(pt.twine_detail) if pt.twine_detail else {}
-        twine_weight_json = json.loads(pt.twine_weight) if pt.twine_weight else {}
+        # ── Raw material cost ────────────────────────────────────────────────
+        _, raw_material_cost = _calc_twine_rows(pt, weight)
 
-        total_twine_weight = Decimal('0')
-        for twine_type, quantity in twine_detail.items():
-            if twine_type in twine_weight_json:
-                twine_weight_val = twine_weight_json[twine_type]
-                # Handle format like "58.45|48.11" - take the first value or sum
-                if '|' in str(twine_weight_val):
-                    # Take the first value before | (NET weight per 1000 rows)
-                    twine_weight_val = str(twine_weight_val).split('|')[0]
-                # weight is per 1000 rows, so divide by 1000
-                qty = Decimal(str(quantity))
-                wt = Decimal(str(twine_weight_val)) / Decimal('1000')
-                total_twine_weight += qty * wt
-
-        # Get latest twine price from PriceCatalog
-        # Match by product (the Product model's name/code relationship)
-        # PriceCatalog.product links to Product model, and Product.code contains codes like 'DK16TN'
-        # sale.twine contains values like 'DK16', so we need to match the Product by name containing twine
-        price_catalog = PriceCatalog.objects.filter(
-            product__name__icontains=sale.twine,
-            is_active=True
-        ).order_by('-updated_at').first()
-        
-        # Fallback: try matching product code directly
-        if not price_catalog:
-            price_catalog = PriceCatalog.objects.filter(
-                product__code__icontains=sale.twine,
-                is_active=True
-            ).order_by('-updated_at').first()
-
-        if not price_catalog:
-            return None
-
-        twine_price = price_catalog.price
-        production_cost = total_twine_weight * twine_price
-
-        # Get machine operational cost
-        machine_cost = 0
+        # ── Machine operational cost ─────────────────────────────────────────
+        machine_cost = Decimal('0')
         if pt.machine:
-            machine_op_cost = MachineOperationalCost.objects.filter(
-                machine_number=pt.machine
-            ).first()
-            if machine_op_cost:
-                # Calculate daily cost
+            moc = MachineOperationalCost.objects.filter(machine_number=pt.machine).first()
+            if moc:
                 daily_cost = (
-                    machine_op_cost.operator_cost_per_day +
-                    machine_op_cost.bobbin_winder_cost_per_day +
-                    machine_op_cost.mending_cost_per_day +
-                    machine_op_cost.mechanic_cost_per_day +
-                    machine_op_cost.electricity_cost_per_day +
-                    machine_op_cost.maintenance_cost_per_day +
-                    machine_op_cost.miscellaneous_cost_per_day
+                    moc.operator_cost_per_day +
+                    moc.bobbin_winder_cost_per_day +
+                    moc.mending_cost_per_day +
+                    moc.mechanic_cost_per_day +
+                    moc.electricity_cost_per_day +
+                    moc.maintenance_cost_per_day +
+                    moc.miscellaneous_cost_per_day
                 )
-                # Calculate based on required days from ProductionTracker
-                required_days = pt.required_days if pt.required_days else 1
-                machine_cost = daily_cost * required_days
+                req_days  = Decimal(str(pt.required_days)) if pt.required_days else Decimal('1')
+                pt_weight = Decimal(str(pt.weight)) if pt.weight else Decimal('1')
+                # Scale machine cost to the actual sale weight
+                machine_cost = daily_cost * req_days * weight / pt_weight
 
-        # Get additional costs (processing, transportation, packing)
-        additional_cost = AdditionalCost.objects.first()
-        processing_cost = 0
-        other_costs = 0
+        # ── Processing cost (from ProcessingCost per product material) ────────
+        processing_cost  = Decimal('0')
+        colour_cost      = Decimal('0')
+        additional_cost_val = Decimal('0')
+        prod = Product.objects.filter(code=sale.twine).first() if sale.twine else None
+        if prod and prod.material_id:
+            pc = ProcessingCost.objects.filter(material_code=prod.material_id).first()
+            if pc:
+                processing_cost = weight * (pc.processing_cost_per_kg or Decimal('0'))
+                colour_cost     = weight * (pc.color_cost_per_kg or Decimal('0'))
 
-        if additional_cost:
-            # Processing cost per kg
-            processing_cost = weight * (additional_cost.packing_cost_per_kg or 0)
-            # Other costs (transportation, etc.)
-            other_costs = weight * (additional_cost.transportation_cost_per_kg or 0)
+        ac = AdditionalCost.objects.first()
+        if ac:
+            additional_cost_val = weight * (
+                (ac.transportation_cost_per_kg or Decimal('0')) +
+                (ac.packing_cost_per_kg        or Decimal('0'))
+            )
 
-        # Total production cost
-        total_production_cost = production_cost + machine_cost + processing_cost + other_costs
+        total_cost = raw_material_cost + machine_cost + processing_cost + colour_cost + additional_cost_val
 
-        # Calculate revenue (unit price * weight + GST)
-        unit_price = sale.unit_price if sale.unit_price else 0
-        gst_rate = sale.gst_rate if sale.gst_rate else 0
-        base_revenue = unit_price * weight
-        gst_amount = base_revenue * (gst_rate / 100)
+        # ── Revenue ──────────────────────────────────────────────────────────
+        unit_price = Decimal(str(sale.unit_price)) if sale.unit_price else Decimal('0')
+        gst_rate   = Decimal(str(sale.gst_rate))   if sale.gst_rate   else Decimal('0')
+        base_revenue  = unit_price * weight
+        gst_amount    = base_revenue * gst_rate / Decimal('100')
         total_revenue = base_revenue + gst_amount
 
-        # Calculate profit/loss
-        profit_loss = total_revenue - total_production_cost
-
-        return round(profit_loss, 2)
+        return round(total_revenue - total_cost, 2)
 
     except Exception as e:
-        # Log error and return None
         print(f"Error calculating profit/loss: {e}")
         return None
+
 
 def calculate_profit_loss_api(request):
     """
@@ -2879,19 +2957,12 @@ def profit_loss_detail_api(request, sales_key=None):
 
     Two calling modes:
       GET  /sales/profit-loss-detail/<sales_key>/  — load a saved Sales record
-      POST /sales/profit-loss-detail/0/            — pass raw form fields
-            (twine, speification, prod_spec, initial_weight, processed_weight,
-             unit_price, gst_rate, customer, colour, order_no)
+      POST /sales/profit-loss-detail/              — pass raw form fields
     """
-    from .models import (
-        Sales, ProductionTracker, MachineOperationalCost, AdditionalCost,
-        PriceCatalog,
-    )
+    from .models import Sales, MachineOperationalCost, AdditionalCost, ProcessingCost, Product
     from decimal import Decimal
-    import re as _re
 
     def _d(v, default='0'):
-        """Safely convert a value to string for JSON, rounding to 2 dp."""
         try:
             return str(round(Decimal(str(v)), 2))
         except Exception:
@@ -2899,7 +2970,6 @@ def profit_loss_detail_api(request, sales_key=None):
 
     # ── Build the sale-like object ────────────────────────────────────────────
     if request.method == 'POST':
-        # Unsaved form data path
         sale = Sales()
         sale.sales_key        = None
         sale.twine            = request.POST.get('twine', '').strip()
@@ -2925,174 +2995,158 @@ def profit_loss_detail_api(request, sales_key=None):
         except Exception:
             sale.gst_rate = Decimal('0')
     else:
-        # Saved record path
         try:
             sale = Sales.objects.get(pk=sales_key)
         except Sales.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Sale not found'}, status=404)
 
     try:
-        # ── weight ────────────────────────────────────────────────────────────
         weight = sale.processed_weight if sale.processed_weight else sale.initial_weight
         if not weight:
             return JsonResponse({'success': False, 'error': 'No weight value on this sale'})
+        weight = Decimal(str(weight))
 
-        spec_to_use = sale.prod_spec if sale.prod_spec else getattr(sale, 'speification', None)
-        if not spec_to_use:
-            return JsonResponse({'success': False, 'error': 'No specification on this sale'})
-
-        # ── find ProductionTracker ────────────────────────────────────────────
-        pt = ProductionTracker.objects.filter(system_spec=spec_to_use).first()
+        pt = _find_production_tracker(sale)
         if not pt:
-            pt = ProductionTracker.objects.filter(user_spec=spec_to_use).first()
-        if not pt:
-            pt = ProductionTracker.objects.filter(system_spec__icontains=spec_to_use).first()
-        if not pt:
-            mm_match = _re.search(r'(\d+)\s*MM', spec_to_use, _re.IGNORECASE)
-            if mm_match and sale.twine:
-                mesh_size = mm_match.group(1)
-                pt = ProductionTracker.objects.filter(
-                    product__iexact=sale.twine,
-                    mm__iexact=mesh_size
-                ).first()
-        if not pt:
-            return JsonResponse({'success': False, 'error': 'No Production Tracker match found for specification'})
+            return JsonResponse({'success': False, 'error': 'No Production Tracker match found for this specification'})
 
-        if pt.product and sale.twine and pt.product.upper() != sale.twine.upper():
-            pt_alt = ProductionTracker.objects.filter(
-                product__iexact=sale.twine, mm=pt.mm
-            ).first()
-            if pt_alt:
-                pt = pt_alt
+        # ── Raw material ─────────────────────────────────────────────────────
+        twine_rows_detail, raw_material_cost = _calc_twine_rows(pt, weight)
 
-        # ── twine weight breakdown ────────────────────────────────────────────
-        twine_detail     = json.loads(pt.twine_detail)     if pt.twine_detail     else {}
-        twine_weight_map = json.loads(pt.twine_weight)     if pt.twine_weight     else {}
+        if not twine_rows_detail:
+            return JsonResponse({'success': False, 'error': 'No twine row data found in Production Tracker (twine_rows field is empty)'})
 
-        twine_rows_detail = []
-        total_twine_weight = Decimal('0')
-        for twine_type, quantity in twine_detail.items():
-            wt_raw = twine_weight_map.get(twine_type, '0')
-            wt_net = str(wt_raw).split('|')[0] if '|' in str(wt_raw) else str(wt_raw)
-            qty    = Decimal(str(quantity))
-            wt     = Decimal(wt_net) / Decimal('1000')
-            line_weight = qty * wt
-            total_twine_weight += line_weight
-            twine_rows_detail.append({
-                'twine_type': twine_type,
-                'rows':       str(qty),
-                'weight_per_1000_rows': wt_net,
-                'line_weight': _d(line_weight),
+        # Build display-friendly rows with price source info
+        display_rows = []
+        for row in twine_rows_detail:
+            code = row['material_code']
+            from .models import Purchase, Materials
+            latest_p = Purchase.objects.filter(material_code=code, is_twine=True).order_by('-delivery_date', '-purchase_key').first()
+            price_source = f"Purchase {latest_p.delivery_date}" if latest_p else "Materials fallback"
+            display_rows.append({
+                'material_code':   code,
+                'type':            row['type'],
+                'daily_output':    _d(row['daily_output']),
+                'batch_weight':    _d(row['batch_weight']),
+                'waste':           _d(row['waste']),
+                'twine_for_sale':  _d(row['twine_for_sale']),
+                'price_per_kg':    _d(row['price_per_kg']),
+                'line_cost':       _d(row['line_cost']),
+                'price_source':    price_source,
             })
 
-        # ── raw material (twine) cost ─────────────────────────────────────────
-        price_catalog = PriceCatalog.objects.filter(
-            product__name__icontains=sale.twine, is_active=True
-        ).order_by('-updated_at').first()
-        if not price_catalog:
-            price_catalog = PriceCatalog.objects.filter(
-                product__code__icontains=sale.twine, is_active=True
-            ).order_by('-updated_at').first()
-        if not price_catalog:
-            return JsonResponse({'success': False, 'error': 'No price catalog entry found for twine'})
-
-        twine_price     = price_catalog.price
-        raw_material_cost = total_twine_weight * twine_price
-
-        # ── machine cost ──────────────────────────────────────────────────────
+        # ── Machine cost ─────────────────────────────────────────────────────
         machine_cost = Decimal('0')
         machine_detail = {}
+        pt_weight = Decimal(str(pt.weight)) if pt.weight else Decimal('1')
+        req_days  = Decimal(str(pt.required_days)) if pt.required_days else Decimal('1')
         if pt.machine:
             moc = MachineOperationalCost.objects.filter(machine_number=pt.machine).first()
             if moc:
                 daily_cost = (
-                    moc.operator_cost_per_day +
-                    moc.bobbin_winder_cost_per_day +
-                    moc.mending_cost_per_day +
-                    moc.mechanic_cost_per_day +
-                    moc.electricity_cost_per_day +
-                    moc.maintenance_cost_per_day +
+                    moc.operator_cost_per_day + moc.bobbin_winder_cost_per_day +
+                    moc.mending_cost_per_day  + moc.mechanic_cost_per_day +
+                    moc.electricity_cost_per_day + moc.maintenance_cost_per_day +
                     moc.miscellaneous_cost_per_day
                 )
-                required_days = pt.required_days if pt.required_days else Decimal('1')
-                machine_cost  = daily_cost * required_days
+                machine_cost = daily_cost * req_days * weight / pt_weight
                 machine_detail = {
-                    'machine_number':        pt.machine,
-                    'operator':              _d(moc.operator_cost_per_day),
-                    'bobbin_winder':         _d(moc.bobbin_winder_cost_per_day),
-                    'mending':               _d(moc.mending_cost_per_day),
-                    'mechanic':              _d(moc.mechanic_cost_per_day),
-                    'electricity':           _d(moc.electricity_cost_per_day),
-                    'maintenance':           _d(moc.maintenance_cost_per_day),
-                    'miscellaneous':         _d(moc.miscellaneous_cost_per_day),
-                    'daily_total':           _d(daily_cost),
-                    'required_days':         str(required_days),
-                    'machine_total':         _d(machine_cost),
+                    'machine_number':  pt.machine,
+                    'operator':        _d(moc.operator_cost_per_day),
+                    'bobbin_winder':   _d(moc.bobbin_winder_cost_per_day),
+                    'mending':         _d(moc.mending_cost_per_day),
+                    'mechanic':        _d(moc.mechanic_cost_per_day),
+                    'electricity':     _d(moc.electricity_cost_per_day),
+                    'maintenance':     _d(moc.maintenance_cost_per_day),
+                    'miscellaneous':   _d(moc.miscellaneous_cost_per_day),
+                    'daily_total':     _d(daily_cost),
+                    'required_days':   str(req_days),
+                    'pt_batch_weight': str(pt_weight),
+                    'machine_total':   _d(machine_cost),
                 }
 
-        # ── additional costs ──────────────────────────────────────────────────
+        # ── Processing cost ───────────────────────────────────────────────────
+        processing_cost = Decimal('0')
+        colour_cost     = Decimal('0')
+        processing_detail = {}
+        prod = Product.objects.filter(code=sale.twine).first() if sale.twine else None
+        if prod and prod.material_id:
+            pc = ProcessingCost.objects.filter(material_code=prod.material_id).first()
+            if pc:
+                processing_cost = weight * (pc.processing_cost_per_kg or Decimal('0'))
+                colour_cost     = weight * (pc.color_cost_per_kg       or Decimal('0'))
+                processing_detail = {
+                    'material_code':      prod.material_id,
+                    'proc_rate':          _d(pc.processing_cost_per_kg),
+                    'colour_rate':        _d(pc.color_cost_per_kg),
+                    'processing_total':   _d(processing_cost),
+                    'colour_total':       _d(colour_cost),
+                }
+
+        # ── Additional costs ──────────────────────────────────────────────────
         ac = AdditionalCost.objects.first()
-        packing_cost       = Decimal('0')
+        packing_cost        = Decimal('0')
         transportation_cost = Decimal('0')
         if ac:
-            packing_cost        = weight * (ac.packing_cost_per_kg       or Decimal('0'))
+            packing_cost        = weight * (ac.packing_cost_per_kg        or Decimal('0'))
             transportation_cost = weight * (ac.transportation_cost_per_kg or Decimal('0'))
 
-        # ── totals ────────────────────────────────────────────────────────────
-        total_cost    = raw_material_cost + machine_cost + packing_cost + transportation_cost
-        unit_price    = sale.unit_price or Decimal('0')
-        gst_rate      = sale.gst_rate   or Decimal('0')
+        # ── Totals ────────────────────────────────────────────────────────────
+        total_cost    = raw_material_cost + machine_cost + processing_cost + colour_cost + packing_cost + transportation_cost
+        unit_price    = Decimal(str(sale.unit_price)) if sale.unit_price else Decimal('0')
+        gst_rate      = Decimal(str(sale.gst_rate))   if sale.gst_rate   else Decimal('0')
         base_revenue  = unit_price * weight
-        gst_amount    = base_revenue * (gst_rate / Decimal('100'))
+        gst_amount    = base_revenue * gst_rate / Decimal('100')
         total_revenue = base_revenue + gst_amount
         profit_loss   = total_revenue - total_cost
 
-        result = {
+        ac_obj = ac  # keep reference for display
+        return JsonResponse({
             'success': True,
             'sale': {
-                'sales_key':        sale.sales_key,
-                'order_no':         sale.order_no,
-                'customer':         sale.customer,
-                'twine':            sale.twine or '',
-                'speification':     sale.speification or '',
-                'prod_spec':        sale.prod_spec or '',
-                'colour':           sale.colour or '',
-                'weight_label':     'Proc. Wt' if sale.processed_weight else 'Init. Wt',
-                'weight':           _d(weight),
-                'unit_price':       _d(unit_price),
-                'gst_rate':         _d(gst_rate),
+                'sales_key':    sale.sales_key,
+                'order_no':     getattr(sale, 'order_no', ''),
+                'customer':     getattr(sale, 'customer', ''),
+                'twine':        sale.twine or '',
+                'speification': sale.speification or '',
+                'prod_spec':    sale.prod_spec or '',
+                'colour':       getattr(sale, 'colour', ''),
+                'weight_label': 'Proc. Wt' if sale.processed_weight else 'Init. Wt',
+                'weight':       _d(weight),
+                'unit_price':   _d(unit_price),
+                'gst_rate':     _d(gst_rate),
             },
             'production_tracker': {
-                'pt_key':      pt.pt_key,
-                'system_spec': pt.system_spec or '',
-                'machine':     pt.machine or '',
-                'mm':          pt.mm or '',
+                'pt_key':       pt.pt_key,
+                'system_spec':  pt.system_spec or '',
+                'machine':      pt.machine or '',
+                'mm':           pt.mm or '',
+                'required_days': str(req_days),
+                'batch_weight':  str(pt_weight),
             },
             'twine_materials': {
-                'rows':               twine_rows_detail,
-                'total_weight_kg':    _d(total_twine_weight),
-                'price_per_unit':     _d(twine_price),
-                'price_catalog_code': price_catalog.code or '',
-                'raw_material_cost':  _d(raw_material_cost),
+                'rows':              display_rows,
+                'raw_material_cost': _d(raw_material_cost),
+                'waste_pct':         str(ac_obj.waste_percentage if ac_obj else 0),
             },
             'machine_cost': machine_detail,
+            'processing_cost': processing_detail,
             'additional_costs': {
-                'packing_rate':          _d(ac.packing_cost_per_kg       if ac else 0),
-                'transportation_rate':   _d(ac.transportation_cost_per_kg if ac else 0),
-                'packing_total':         _d(packing_cost),
-                'transportation_total':  _d(transportation_cost),
+                'packing_rate':         _d(ac_obj.packing_cost_per_kg        if ac_obj else 0),
+                'transportation_rate':  _d(ac_obj.transportation_cost_per_kg if ac_obj else 0),
+                'packing_total':        _d(packing_cost),
+                'transportation_total': _d(transportation_cost),
             },
             'summary': {
-                'total_cost':       _d(total_cost),
-                'base_revenue':     _d(base_revenue),
-                'gst_amount':       _d(gst_amount),
-                'total_revenue':    _d(total_revenue),
-                'profit_loss':      _d(profit_loss),
-                'is_profit':        profit_loss > 0,
-                'profit_loss_pct':  _d((profit_loss / total_revenue * 100) if total_revenue else 0),
+                'total_cost':      _d(total_cost),
+                'base_revenue':    _d(base_revenue),
+                'gst_amount':      _d(gst_amount),
+                'total_revenue':   _d(total_revenue),
+                'profit_loss':     _d(profit_loss),
+                'is_profit':       profit_loss > 0,
+                'profit_loss_pct': _d((profit_loss / total_revenue * 100) if total_revenue else 0),
             },
-        }
-        return JsonResponse(result)
+        })
 
     except Exception as e:
         import traceback
