@@ -127,6 +127,9 @@ path('purchases', views.purchase_entry, name='purchase_entry'),
 # sales
 path('sales', views.sales_entry, name='sales_entry'),
 path('sales/submit_invoice_from_spec', views.submit_invoice_from_spec, name='submit_invoice_from_spec'),
+path('sales/calculate-profit-loss', views.calculate_profit_loss_api, name='calculate_profit_loss'),
+path('sales/profit-loss-detail/<int:sales_key>/', views.profit_loss_detail_api, name='profit_loss_detail'),
+path('sales/profit-loss-detail/', views.profit_loss_detail_api, name='profit_loss_detail_post'),
 
 # payment receipt
 path('payment-receipts', views.payment_receipt_entry, name='payment_receipt_entry'),

@@ -326,6 +326,10 @@ tr.row-status-on_hold_processing td {
               </select>
               <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Prod.Spec</small>
             </div>
+            <div class="col-md-2">
+              <input type="number" name="profit_loss" id="profit_loss" step="0.01" class="form-control form-control-sm" placeholder="Profit/Loss" readonly>
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Profit/Loss</small>
+            </div>
           </div>
 
           <div class="row mb-3">
@@ -343,6 +347,9 @@ tr.row-status-on_hold_processing td {
             <button type="button" class="btn btn-info me-2" onclick="showGSTCalculator()">GST Calculator</button>
             <button type="button" class="btn btn-secondary" onclick="resetSalesForm()">Clear</button>
             <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="viewSalesList()">View</button>
+            <button type="button" class="btn btn-3d-yellow btn-sm ms-1" id="formPLBtn" onclick="viewFormPL()" title="View P&amp;L for current sale" disabled>
+              <i class="bi bi-bar-chart-line me-1"></i>P&amp;L
+            </button>
           </div>
 
           <div id="draft-list" class="mt-3" style="display:none;">
@@ -457,6 +464,10 @@ tr.row-status-on_hold_processing td {
         // Auto-select the closest match (first in sorted list)
         if (filtered.length > 0) {
           prodSpecSelect.value = filtered[0].system_spec;
+          // Trigger profit/loss calculation after prod_spec is auto-populated
+          if (typeof calcProfitLoss === 'function') {
+            calcProfitLoss();
+          }
         }
       }
 
@@ -515,7 +526,7 @@ tr.row-status-on_hold_processing td {
           <table id="sales-table" class="table table-striped table-hover table-bordered table-sm align-middle">
             <colgroup>
               <col style="width:50px">
-              <col style="width:176px">
+              <col style="width:175px">
               <col style="width:130px">
               <col style="width:85px">
               <col style="width:100px">
@@ -531,6 +542,8 @@ tr.row-status-on_hold_processing td {
               <col style="width:60px">
               <col style="width:80px">
               <col style="width:90px">
+              <col style="width:90px">
+              <col style="width:200px">
               <col style="width:90px">
             </colgroup>
             <thead class="table-dark">
@@ -553,6 +566,8 @@ tr.row-status-on_hold_processing td {
                 <th scope="col" class="col-narrow">GST Rate</th>
                 <th scope="col">Delivery Date</th>
                 <th scope="col">Payment Date</th>
+                <th scope="col">Prod.Spec</th>
+                <th scope="col">Profit/Loss</th>
               </tr>
               <tr id="sales-filter-row">
                 <th>
@@ -651,6 +666,8 @@ tr.row-status-on_hold_processing td {
                       </div>
                     </div>
                   </th>
+                <th><input class="filter-input" placeholder="Prod.Spec"></th>
+                <th><input class="filter-input" placeholder="Profit/Loss"></th>
               </tr>
             </thead>
             <tbody>
@@ -667,11 +684,9 @@ tr.row-status-on_hold_processing td {
                       </button>
                       <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="javascript:void(0);" onclick="loadSale('{{ sale.sales_key }}')"><i class="bi bi-pencil-square me-2"></i>G.Edit</a></li>
+                        <li><a class="dropdown-item" href="javascript:void(0);" onclick="cloneSale('{{ sale.sales_key }}')"><i class="bi bi-copy me-2"></i>Clone</a></li>
                       </ul>
                     </div>
-                    <a href="javascript:void(0);" onclick="cloneSale('{{ sale.sales_key }}')" class="btn btn-sm btn-info">
-                      <i class="bi bi-copy"></i> Clone
-                    </a>
                     <form method="POST" action="{% url 'sales_entry' %}" style="display:inline;" onsubmit="return confirm('Delete this sale?')">
                       {% csrf_token %}
                       <input type="hidden" name="action" value="delete">
@@ -680,6 +695,9 @@ tr.row-status-on_hold_processing td {
                         <i class="bi bi-trash"></i> Del
                       </button>
                     </form>
+                    <button type="button" class="btn btn-sm btn-info" onclick="viewProfitLoss('{{ sale.sales_key }}')" title="View P&amp;L Breakdown">
+                      <i class="bi bi-bar-chart-line me-1"></i>P&amp;L
+                    </button>
                   </td>
                   <td>
                     <span class="badge {% if sale.status == 'PAID' %}bg-success{% elif sale.status == 'PARTIALLY_PAID' %}bg-info text-dark{% elif sale.status == 'PENDING' %}bg-pending{% elif sale.status == 'NO_PAYMENT' %}bg-danger{% elif sale.status == 'ON_HOLD_STOCK' %}bg-secondary{% elif sale.status == 'ON_HOLD_PROCESSING' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
@@ -701,6 +719,16 @@ tr.row-status-on_hold_processing td {
                   <td>{{ sale.gst_rate|default:"" }}</td>
                   <td>{{ sale.delivery_date|default:""|date:"Y-m-d" }}</td>
                   <td>{{ sale.payment_date|default:""|date:"Y-m-d" }}</td>
+                  <td>{{ sale.prod_spec|default:"" }}</td>
+                  <td>
+                    {% if sale.profit_loss is not None %}
+                      <span class="{% if sale.profit_loss > 0 %}text-success{% elif sale.profit_loss < 0 %}text-danger{% else %}text-muted{% endif %}">
+                        {{ sale.profit_loss|floatformat:2 }}
+                      </span>
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -726,6 +754,28 @@ tr.row-status-on_hold_processing td {
       </div>
       <div class="modal-body">
         <div id="sales-list-content"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- P&L Detail Modal -->
+<div class="modal fade" id="plDetailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title"><i class="bi bi-bar-chart-line me-2"></i>Profit &amp; Loss Breakdown</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0" id="plDetailBody">
+        <div class="text-center py-5" id="plDetailLoading">
+          <div class="spinner-border text-warning" role="status"></div>
+          <div class="mt-2 text-muted">Loading breakdown…</div>
+        </div>
+        <div id="plDetailContent" style="display:none;"></div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -795,6 +845,7 @@ function getFormData() {
         unit_price: document.getElementById('unit_price').value,
         gst_rate: document.getElementById('gst_rate').value,
         total_amount: document.getElementById('total_amount').value,
+        profit_loss: document.getElementById('profit_loss').value,
         delivery_date: getDateValue('delivery_date'),
         status: document.getElementById('status').value,
         is_new_sale: document.getElementById('is_new_sale').checked,
@@ -816,12 +867,77 @@ function calcTotalAmount() {
     } else {
         document.getElementById('total_amount').value = '';
     }
+    // Trigger profit/loss calculation after total amount is calculated
+    calcProfitLoss();
+}
+
+function calcProfitLoss() {
+    const twine = document.getElementById('twine').value.trim();
+    const speification = document.getElementById('speification').value.trim();
+    const prod_spec = document.getElementById('prod_spec').value.trim();
+    const initial_weight = document.getElementById('initial_weight').value;
+    const processed_weight = document.getElementById('processed_weight').value;
+    const unit_price = document.getElementById('unit_price').value;
+    const gst_rate = document.getElementById('gst_rate').value;
+
+    // Determine if there's enough data to show the P&L popup
+    var hasWeight = (parseFloat(initial_weight) > 0 || parseFloat(processed_weight) > 0);
+    var hasSpec   = !!(prod_spec || speification);
+    var hasPrice  = parseFloat(unit_price) > 0;
+    var canShowPL = !!(twine && hasSpec && hasWeight && hasPrice);
+    var plBtn = document.getElementById('formPLBtn');
+    if (plBtn) plBtn.disabled = !canShowPL;
+
+    // Only calculate the field value if we have the minimum required fields
+    if (!twine || !prod_spec || (!initial_weight && !processed_weight)) {
+        document.getElementById('profit_loss').value = '';
+        return;
+    }
+
+    // Prepare form data
+    const formData = new FormData();
+    formData.append('twine', twine);
+    formData.append('speification', speification);
+    formData.append('prod_spec', prod_spec);
+    formData.append('initial_weight', initial_weight || 0);
+    formData.append('processed_weight', processed_weight || 0);
+    formData.append('unit_price', unit_price || 0);
+    formData.append('gst_rate', gst_rate || 0);
+
+    // Call the API
+    fetch('{% url "calculate_profit_loss" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.profit_loss !== null) {
+            document.getElementById('profit_loss').value = data.profit_loss;
+        } else {
+            document.getElementById('profit_loss').value = '';
+        }
+    })
+    .catch(error => {
+        console.error('Error calculating profit/loss:', error);
+        document.getElementById('profit_loss').value = '';
+    });
 }
 
 var calcFields = ['initial_weight', 'processed_weight', 'unit_price', 'gst_rate'];
 calcFields.forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.addEventListener('blur', calcTotalAmount);
+});
+
+// Attach event listener to prod_spec change to trigger profit/loss calculation
+document.addEventListener('DOMContentLoaded', function() {
+    const prodSpecEl = document.getElementById('prod_spec');
+    if (prodSpecEl) {
+        prodSpecEl.addEventListener('change', calcProfitLoss);
+    }
 });
 
 // Status color sync
@@ -898,6 +1014,7 @@ function setFormData(data) {
         document.getElementById('prod_spec').value = data.prod_spec;
     }
     document.getElementById('colour').value = data.colour || 'White';
+    document.getElementById('profit_loss').value = data.profit_loss || '';
     document.getElementById('piece_weight').value = data.piece_weight || '';
     document.getElementById('piece_count').value = data.piece_count || '';
     document.getElementById('initial_weight').value = data.initial_weight || '';
@@ -918,6 +1035,7 @@ function setFormData(data) {
         bsCollapse.show();
     }
     calcTotalAmount();
+    // Enable state is evaluated by calcProfitLoss() which is called inside calcTotalAmount()
 }
 
 function resetSalesForm() {
@@ -935,6 +1053,7 @@ function resetSalesForm() {
     document.getElementById('colour').value = 'White';
     document.getElementById('piece_weight').value = '';
     document.getElementById('piece_count').value = '';
+    document.getElementById('profit_loss').value = '';
     document.getElementById('initial_weight').value = '';
     document.getElementById('processed_weight').value = '';
     document.getElementById('unit_price').value = '';
@@ -948,6 +1067,9 @@ function resetSalesForm() {
     document.getElementById('remarks').value = '';
     currentEditDraftId = null;
     editMode = 'single_edit';
+    // Disable P&L button when form is cleared
+    var plBtn = document.getElementById('formPLBtn');
+    if (plBtn) plBtn.disabled = true;
     renderDrafts();
 }
 
@@ -2265,5 +2387,243 @@ window.addEventListener('load', function() {
         } catch(e) {}
     }
 });
+
+// ─── View P&L Breakdown ──────────────────────────────────────────────────────
+var plDetailUrlTemplate = '{% url "profit_loss_detail" sales_key=0 %}'.replace('/0/', '/{key}/');
+
+function viewFormPL() {
+    var sk = document.getElementById('sales_key').value;
+    if (sk) {
+        // Saved record — use the GET endpoint
+        viewProfitLoss(sk);
+        return;
+    }
+    // Unsaved form data — POST to the detail endpoint
+    var modal = new bootstrap.Modal(document.getElementById('plDetailModal'));
+    document.getElementById('plDetailLoading').style.display = '';
+    document.getElementById('plDetailContent').style.display = 'none';
+    modal.show();
+
+    var formData = new FormData();
+    formData.append('twine',            document.getElementById('twine').value.trim());
+    formData.append('speification',     document.getElementById('speification').value.trim());
+    formData.append('prod_spec',        document.getElementById('prod_spec').value.trim());
+    formData.append('initial_weight',   document.getElementById('initial_weight').value || '0');
+    formData.append('processed_weight', document.getElementById('processed_weight').value || '0');
+    formData.append('unit_price',       document.getElementById('unit_price').value || '0');
+    formData.append('gst_rate',         document.getElementById('gst_rate').value || '0');
+    formData.append('customer',         document.getElementById('customer').value.trim());
+    formData.append('colour',           document.getElementById('colour').value.trim());
+    formData.append('order_no',         document.getElementById('order_no').value.trim());
+
+    var postUrl = '{% url "profit_loss_detail_post" %}';
+    fetch(postUrl, {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        document.getElementById('plDetailLoading').style.display = 'none';
+        var content = document.getElementById('plDetailContent');
+        content.style.display = '';
+        if (!data.success) {
+            content.innerHTML = '<div class="alert alert-warning m-3"><i class="bi bi-exclamation-triangle me-2"></i>' +
+                (data.error || 'Unable to calculate P&amp;L for this sale.') +
+                '<br><small class="text-muted">Check that this sale has a matching Production Tracker entry, a Price Catalog entry, and a valid weight.</small></div>';
+            return;
+        }
+        content.innerHTML = buildPLHtml(data);
+    })
+    .catch(function(err) {
+        document.getElementById('plDetailLoading').style.display = 'none';
+        document.getElementById('plDetailContent').style.display = '';
+        document.getElementById('plDetailContent').innerHTML =
+            '<div class="alert alert-danger m-3">Network error: ' + err + '</div>';
+    });
+}
+
+function viewProfitLoss(salesKey) {
+    var modal = new bootstrap.Modal(document.getElementById('plDetailModal'));
+    document.getElementById('plDetailLoading').style.display = '';
+    document.getElementById('plDetailContent').style.display = 'none';
+    modal.show();
+
+    var url = plDetailUrlTemplate.replace('{key}', salesKey);
+    fetch(url)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            document.getElementById('plDetailLoading').style.display = 'none';
+            var content = document.getElementById('plDetailContent');
+            content.style.display = '';
+            if (!data.success) {
+                content.innerHTML = '<div class="alert alert-warning m-3"><i class="bi bi-exclamation-triangle me-2"></i>' +
+                    (data.error || 'Unable to calculate P&amp;L for this sale.') +
+                    '<br><small class="text-muted">Check that this sale has a matching Production Tracker entry, a Price Catalog entry, and a valid weight.</small></div>';
+                return;
+            }
+            content.innerHTML = buildPLHtml(data);
+        })
+        .catch(function(err) {
+            document.getElementById('plDetailLoading').style.display = 'none';
+            document.getElementById('plDetailContent').style.display = '';
+            document.getElementById('plDetailContent').innerHTML =
+                '<div class="alert alert-danger m-3">Network error: ' + err + '</div>';
+        });
+}
+
+function plFmt(v) {
+    // Indian number format with ₹ prefix
+    var num = parseFloat(v);
+    if (isNaN(num)) return '—';
+    var neg = num < 0;
+    num = Math.abs(num);
+    var s = num.toFixed(2);
+    var parts = s.split('.');
+    var ip = parts[0], dp = parts[1];
+    if (ip.length > 3) {
+        var head = ip.slice(0, -3);
+        var tail = ip.slice(-3);
+        var chunks = [];
+        while (head.length > 2) { chunks.unshift(head.slice(-2)); head = head.slice(0, -2); }
+        if (head) chunks.unshift(head);
+        ip = chunks.join(',') + ',' + tail;
+    }
+    return (neg ? '−' : '') + '₹\u202f' + ip + '.' + dp;
+}
+
+function plNum(v) {
+    var num = parseFloat(v);
+    if (isNaN(num)) return '—';
+    return num.toFixed(4).replace(/\.?0+$/, '');
+}
+
+function buildPLHtml(data) {
+    var s      = data.sale;
+    var pt     = data.production_tracker;
+    var tm     = data.twine_materials;
+    var mc     = data.machine_cost;
+    var ac     = data.additional_costs;
+    var sum    = data.summary;
+    var isProfit = sum.is_profit;
+    var plColour = parseFloat(sum.profit_loss) > 0 ? 'text-success' :
+                   parseFloat(sum.profit_loss) < 0 ? 'text-danger' : 'text-secondary';
+    var plLabel  = parseFloat(sum.profit_loss) > 0 ? 'PROFIT' :
+                   parseFloat(sum.profit_loss) < 0 ? 'LOSS'   : 'BREAK-EVEN';
+    var plBadge  = parseFloat(sum.profit_loss) > 0 ? 'bg-success' :
+                   parseFloat(sum.profit_loss) < 0 ? 'bg-danger'  : 'bg-secondary';
+
+    var html = '';
+
+    // ── Hero banner ─────────────────────────────────────────────────────────
+    html += '<div class="p-3 ' + (parseFloat(sum.profit_loss) >= 0 ? 'bg-success' : 'bg-danger') + ' text-white">';
+    html += '<div class="d-flex justify-content-between align-items-center">';
+    html += '<div><div class="fs-5 fw-bold">' + (s.customer || '—') + '</div>';
+    html += '<div class="small opacity-75">' + (s.twine || '') + ' · ' + (s.speification || s.prod_spec || '') + '</div></div>';
+    html += '<div class="text-end"><div class="display-6 fw-bold">' + plFmt(sum.profit_loss) + '</div>';
+    html += '<span class="badge fs-6 ' + plBadge + ' border border-white">' + plLabel + '</span></div>';
+    html += '</div></div>';
+
+    // ── Summary cards ────────────────────────────────────────────────────────
+    html += '<div class="row g-0 border-bottom">';
+    var cards = [
+        { label: 'Revenue',     value: plFmt(sum.total_revenue), icon: 'bi-cash-coin',      cls: 'text-success' },
+        { label: 'Total Cost',  value: plFmt(sum.total_cost),    icon: 'bi-box-seam',        cls: 'text-danger'  },
+        { label: 'Weight Used', value: plNum(s.weight) + ' kg (' + s.weight_label + ')', icon: 'bi-speedometer2', cls: 'text-primary' },
+        { label: 'Margin',      value: plNum(sum.profit_loss_pct) + '%',                 icon: 'bi-percent',      cls: plColour       },
+    ];
+    cards.forEach(function(c) {
+        html += '<div class="col-6 col-md-3 p-3 border-end text-center">';
+        html += '<div class="small text-muted"><i class="bi ' + c.icon + ' me-1"></i>' + c.label + '</div>';
+        html += '<div class="fw-bold ' + c.cls + '">' + c.value + '</div></div>';
+    });
+    html += '</div>';
+
+    // ── Sale info ────────────────────────────────────────────────────────────
+    html += '<div class="px-3 pt-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-receipt me-1"></i>Sale Info</h6>';
+    html += '<div class="row row-cols-2 row-cols-md-4 g-2 small mb-3">';
+    [
+        ['Order No',    s.order_no   ],
+        ['Twine',       s.twine      ],
+        ['Specification', s.speification || s.prod_spec ],
+        ['Colour',      s.colour     ],
+        ['Unit Price',  plFmt(s.unit_price) ],
+        ['GST Rate',    s.gst_rate + '%'   ],
+        ['PT Spec',     pt.system_spec ],
+        ['Machine',     pt.machine || '—' ],
+    ].forEach(function(r) {
+        html += '<div class="col"><span class="text-muted">' + r[0] + ':</span> <strong>' + (r[1] || '—') + '</strong></div>';
+    });
+    html += '</div></div>';
+
+    // ── Raw Material ────────────────────────────────────────────────────────
+    html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-boxes me-1"></i>Raw Material Cost</h6>';
+    html += '<table class="table table-sm table-bordered small mb-2">';
+    html += '<thead class="table-secondary"><tr><th>Twine Type</th><th>Rows</th><th>Wt/1000 rows (g)</th><th>Line Weight (kg)</th></tr></thead><tbody>';
+    tm.rows.forEach(function(row) {
+        html += '<tr><td>' + row.twine_type + '</td><td>' + row.rows + '</td><td>' + row.weight_per_1000_rows + '</td><td>' + plNum(row.line_weight) + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    html += '<div class="d-flex justify-content-between small mb-3">';
+    html += '<span>Total twine weight: <strong>' + plNum(tm.total_weight_kg) + ' kg</strong></span>';
+    html += '<span>Price (' + tm.price_catalog_code + '): <strong>' + plFmt(tm.price_per_unit) + '/unit</strong></span>';
+    html += '<span class="fw-bold text-danger">Raw material: ' + plFmt(tm.raw_material_cost) + '</span>';
+    html += '</div></div>';
+
+    // ── Machine Cost ─────────────────────────────────────────────────────────
+    html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-gear me-1"></i>Machine Operational Cost</h6>';
+    if (mc && mc.machine_number) {
+        html += '<div class="small mb-1 text-muted">Machine: <strong>' + mc.machine_number + '</strong> · Required days: <strong>' + mc.required_days + '</strong> · Daily cost: <strong>' + plFmt(mc.daily_total) + '</strong></div>';
+        html += '<div class="row row-cols-2 row-cols-md-4 g-1 small mb-2">';
+        [
+            ['Operator', mc.operator], ['Bobbin Winder', mc.bobbin_winder],
+            ['Mending', mc.mending], ['Mechanic', mc.mechanic],
+            ['Electricity', mc.electricity], ['Maintenance', mc.maintenance],
+            ['Misc.', mc.miscellaneous],
+        ].forEach(function(r) {
+            html += '<div class="col border rounded p-1"><span class="text-muted">' + r[0] + ':</span> ' + plFmt(r[1]) + '/day</div>';
+        });
+        html += '</div>';
+        html += '<div class="small fw-bold text-danger mb-3">Machine total: ' + plFmt(mc.machine_total) + '</div>';
+    } else {
+        html += '<p class="small text-muted">No machine cost data found.</p>';
+    }
+    html += '</div>';
+
+    // ── Additional Costs ─────────────────────────────────────────────────────
+    html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-truck me-1"></i>Additional Costs</h6>';
+    html += '<div class="row row-cols-2 g-2 small mb-3">';
+    html += '<div class="col border rounded p-2"><span class="text-muted">Packing (' + plFmt(ac.packing_rate) + '/kg × ' + plNum(s.weight) + ' kg):</span> <strong class="text-danger">' + plFmt(ac.packing_total) + '</strong></div>';
+    html += '<div class="col border rounded p-2"><span class="text-muted">Transport (' + plFmt(ac.transportation_rate) + '/kg × ' + plNum(s.weight) + ' kg):</span> <strong class="text-danger">' + plFmt(ac.transportation_total) + '</strong></div>';
+    html += '</div></div>';
+
+    // ── Revenue breakdown ─────────────────────────────────────────────────────
+    html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-cash-stack me-1"></i>Revenue</h6>';
+    html += '<div class="d-flex flex-wrap gap-3 small mb-3">';
+    html += '<span>Base revenue (' + plFmt(s.unit_price) + '/kg × ' + plNum(s.weight) + ' kg): <strong class="text-success">' + plFmt(sum.base_revenue) + '</strong></span>';
+    html += '<span>GST (' + s.gst_rate + '%): <strong class="text-success">' + plFmt(sum.gst_amount) + '</strong></span>';
+    html += '<span>Total revenue: <strong class="text-success">' + plFmt(sum.total_revenue) + '</strong></span>';
+    html += '</div></div>';
+
+    // ── Final summary table ───────────────────────────────────────────────────
+    html += '<div class="px-3 pb-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-calculator me-1"></i>Summary</h6>';
+    html += '<table class="table table-sm table-bordered small">';
+    html += '<tbody>';
+    html += '<tr class="table-success"><td>Total Revenue</td><td class="text-end fw-bold">' + plFmt(sum.total_revenue) + '</td></tr>';
+    html += '<tr><td class="ps-3 text-muted">→ Base Revenue</td><td class="text-end">' + plFmt(sum.base_revenue) + '</td></tr>';
+    html += '<tr><td class="ps-3 text-muted">→ GST Amount</td><td class="text-end">' + plFmt(sum.gst_amount) + '</td></tr>';
+    html += '<tr class="table-danger"><td>Total Cost</td><td class="text-end fw-bold">' + plFmt(sum.total_cost) + '</td></tr>';
+    html += '<tr><td class="ps-3 text-muted">→ Raw Material</td><td class="text-end">' + plFmt(tm.raw_material_cost) + '</td></tr>';
+    if (mc && mc.machine_number) {
+        html += '<tr><td class="ps-3 text-muted">→ Machine Cost</td><td class="text-end">' + plFmt(mc.machine_total) + '</td></tr>';
+    }
+    html += '<tr><td class="ps-3 text-muted">→ Packing</td><td class="text-end">' + plFmt(ac.packing_total) + '</td></tr>';
+    html += '<tr><td class="ps-3 text-muted">→ Transportation</td><td class="text-end">' + plFmt(ac.transportation_total) + '</td></tr>';
+    html += '<tr class="table-' + (parseFloat(sum.profit_loss) >= 0 ? 'success' : 'danger') + ' fw-bold fs-6">';
+    html += '<td>' + plLabel + '</td><td class="text-end ' + plColour + '">' + plFmt(sum.profit_loss) + ' (' + plNum(sum.profit_loss_pct) + '%)</td></tr>';
+    html += '</tbody></table></div>';
+
+    return html;
+}
 </script>
 {% endblock %}
