@@ -379,18 +379,20 @@ tr.row-status-on_hold_processing td {
           return;
         }
 
-        // Extract mesh size (MM) prefix from specification field
-        // The mesh size is typically the first part before the first dash
-        const specParts = specValue.split('-');
-        const meshSizePrefix = specParts[0] ? specParts[0].trim() : '';
+        // Extract mesh size (MM) from specification field
+        // Look for pattern like "55MM" or "60MM" and extract the number before MM
+        const specUpper = specValue.toUpperCase();
+        const mmMatch = specUpper.match(/(\d+)\s*MM/);
 
-        if (!meshSizePrefix) {
+        if (!mmMatch) {
+          // If no MM pattern found, don't auto-populate
           prodSpecSelect.innerHTML = '<option value=""></option>';
           prodSpecSelect.value = '';
           return;
         }
 
-        const meshSizeUpper = meshSizePrefix.toUpperCase();
+        const meshSize = mmMatch[1]; // Extract the number before MM
+        const meshSizeUpper = meshSize.toUpperCase();
         const productUpper = twineCode.toUpperCase();
 
         // Filter Production Tracker records matching both product code and mesh size (mm)
@@ -424,7 +426,6 @@ tr.row-status-on_hold_processing td {
 
         // Find the closest matching production specification
         // Priority: exact match with full spec, then partial match
-        const specUpper = specValue.toUpperCase();
         const combinedSpec = (productUpper + '-' + specUpper);
 
         // Sort by match quality
