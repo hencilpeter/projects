@@ -7177,6 +7177,111 @@ def profit_analysis_view(request):
                 ProfitAnalysis.objects.filter(analysis_key__in=keys).delete()
                 messages.success(request, "Selected entries deleted.")
 
+        elif action == "update_saved_twine_prices":
+            price_map_raw = request.POST.get("twine_price_map")
+            price_map = {}
+            if price_map_raw:
+                try:
+                    price_map = json.loads(price_map_raw) if isinstance(price_map_raw, str) else price_map_raw
+                except (json.JSONDecodeError, TypeError):
+                    price_map = {}
+            updated = 0
+            for analysis in ProfitAnalysis.objects.all():
+                changed = False
+                twine_prices_raw = analysis.twine_prices or ""
+                twine_prices = {}
+                try:
+                    twine_prices = json.loads(twine_prices_raw) if twine_prices_raw else {}
+                except (json.JSONDecodeError, TypeError):
+                    twine_prices = {}
+                if not isinstance(twine_prices, dict):
+                    twine_prices = {}
+                # Merge current "Price to Use/KG" into the stored twine_prices map
+                for code, price in price_map.items():
+                    if price is None or str(price).strip() == "":
+                        continue
+                    twine_prices[str(code)] = str(price).strip()
+                    changed = True
+                if changed:
+                    analysis.twine_prices = json.dumps(twine_prices)
+
+                # Rebuild raw_twine_data with updated costKg/total
+                raw_twine_raw = analysis.raw_twine_data or ""
+                raw_twine = []
+                try:
+                    raw_twine = json.loads(raw_twine_raw) if raw_twine_raw else []
+                except (json.JSONDecodeError, TypeError):
+                    raw_twine = []
+                if isinstance(raw_twine, list) and raw_twine:
+                    new_raw = []
+                    raw_cost_sum = Decimal("0")
+                    for tw in raw_twine:
+                        if not isinstance(tw, dict):
+                            new_raw.append(tw)
+                            continue
+                        code = tw.get("code") or ""
+                        cost_kg_str = twine_prices.get(code) or price_map.get(code) or tw.get("costKg") or "0"
+                        try:
+                            cost_kg = Decimal(str(cost_kg_str).strip() or "0")
+                        except Exception:
+                            cost_kg = Decimal("0")
+                        try:
+                            weight = Decimal(str(tw.get("weight") or "0").strip() or "0")
+                        except Exception:
+                            weight = Decimal("0")
+                        try:
+                            waste = Decimal(str(tw.get("waste") or "0").strip() or "0")
+                        except Exception:
+                            waste = Decimal("0")
+                        total = (weight + waste) * cost_kg
+                        tw2 = dict(tw)
+                        tw2["costKg"] = str(cost_kg.quantize(Decimal("0.01")))
+                        tw2["total"] = str(total.quantize(Decimal("0.01")))
+                        new_raw.append(tw2)
+                        raw_cost_sum += total
+                    analysis.raw_twine_data = json.dumps(new_raw)
+                    analysis.raw_material_cost = raw_cost_sum.quantize(Decimal("0.01")) if raw_cost_sum else None
+
+                # Recalculate all dependent fields
+                est_wt = analysis.est_weight or Decimal("0")
+                req_days = analysis.required_days or Decimal("0")
+                machine_cost_day = analysis.machine_operational_cost_per_day or Decimal("0")
+                proc_cost = analysis.processing_cost_per_kg or Decimal("0")
+                color_cost = analysis.color_cost_per_kg or Decimal("0")
+                small_cost = analysis.small_depth_size_cost_per_kg or Decimal("0")
+                addl_cost = analysis.additional_cost_per_kg or Decimal("0")
+                sale_price = analysis.sale_price_per_kg or Decimal("0")
+                raw_cost = analysis.raw_material_cost or Decimal("0")
+
+                machine_total = machine_cost_day * req_days
+                proc_total = proc_cost * est_wt
+                color_total = color_cost * est_wt
+                small_total = small_cost * est_wt
+                addl_total = addl_cost * est_wt
+                total_cost = machine_total + proc_total + color_total + small_total + addl_total + raw_cost
+                revenue = sale_price * est_wt
+                profit = revenue - total_cost
+                profit_kg = (profit / est_wt) if est_wt > 0 else None
+                profit_day = (profit / req_days) if req_days > 0 else None
+                margin = ((profit / revenue) * Decimal("100")) if revenue > 0 else None
+
+                analysis.machine_operational_total = machine_total.quantize(Decimal("0.01")) if machine_total else None
+                analysis.processing_total = proc_total.quantize(Decimal("0.01")) if proc_total else None
+                analysis.color_total = color_total.quantize(Decimal("0.01")) if color_total else None
+                analysis.small_size_total = small_total.quantize(Decimal("0.01")) if small_total else None
+                analysis.additional_total = addl_total.quantize(Decimal("0.01")) if addl_total else None
+                analysis.total_cost = total_cost.quantize(Decimal("0.01")) if total_cost else None
+                analysis.total_revenue = revenue.quantize(Decimal("0.01")) if revenue else None
+                analysis.total_profit = profit.quantize(Decimal("0.01")) if profit else None
+                analysis.profit_per_kg = profit_kg.quantize(Decimal("0.01")) if profit_kg is not None else None
+                analysis.profit_per_day = profit_day.quantize(Decimal("0.01")) if profit_day is not None else None
+                analysis.profit_margin_pct = margin.quantize(Decimal("0.01")) if margin is not None else None
+
+                analysis.save()
+                updated += 1
+
+            messages.success(request, f"Updated twine prices and recalculated {updated} saved analysis record(s).")
+
         return redirect("profit_analysis")
 
     # ---- Section 1: twine material codes with their latest price ----

@@ -408,6 +408,7 @@
             <div class="analysis-section legend-section">
               <h6 class="section-title text-primary section-legend">1. Twine Material &amp; Latest Price</h6>
               <div class="section-legend section-legend-actions">
+                <button type="button" class="btn btn-sm btn-warning" id="update-saved-prices" title="Update prices used by existing saved analyses to the latest prices">Update Saved Analysis Prices</button>
                 <span id="twine-summary" class="text-muted small"></span>
                 <button type="button" class="btn btn-sm section-toggle is-open" id="twine-toggle"
                         data-bs-toggle="collapse"
@@ -2156,5 +2157,33 @@ document.getElementById("download-profit-pdf")?.addEventListener("click", () => 
 /* ================= Init ================= */
 rebuildTrackerOptions();
 updateSectionRequirements();
+
+/* Update Saved Analysis Prices - apply current "Price to Use/KG" to all saved analyses */
+document.getElementById("update-saved-prices")?.addEventListener("click", () => {
+  const priceMap = {};
+  document.querySelectorAll("#twine-price-body tr").forEach(tr => {
+    const code = tr.dataset.twineCode;
+    const price = tr.querySelector(".twine-price-input")?.value;
+    if (code && price !== undefined && String(price).trim() !== "") {
+      priceMap[code] = String(price).trim();
+    }
+  });
+  if (Object.keys(priceMap).length === 0) {
+    alert("No 'Price to Use/KG' values found in the Twine Material section.");
+    return;
+  }
+  if (!confirm("Apply the current 'Price to Use/KG' prices to all saved Profit Analysis records and recalculate profits?")) {
+    return;
+  }
+  const form = document.getElementById("analysis-form");
+  const token = form?.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
+  const body = new URLSearchParams();
+  if (token) body.set("csrfmiddlewaretoken", token);
+  body.set("action", "update_saved_twine_prices");
+  body.set("twine_price_map", JSON.stringify(priceMap));
+  fetch(window.location.href, { method: "POST", body: body, credentials: "same-origin" })
+    .then(r => { window.location.reload(); })
+    .catch(() => { alert("Failed to update saved analysis prices."); });
+});
 </script>
 {% endblock %}
