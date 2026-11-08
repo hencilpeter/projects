@@ -162,8 +162,6 @@ path('invoice-aging-report', views.invoice_aging_report, name='invoice_aging_rep
 # analytics
 path('season-trends', views.season_trends, name='season_trends'),
 path('trend-analytics', views.trend_analytics, name='trend_analytics'),
-path('analytics/production-entry', views.production_entry_view, name='production_entry_old'),
-path('analytics/production-detail', views.production_detail_view, name='production_detail_old'),
 
 # configuration
 path('configuration/material-conversion-ratio', views.material_conversion_ratio_view, name='material_conversion_ratio'),
@@ -176,12 +174,8 @@ path('configuration/price-list-colour-config', views.price_list_colour_config_vi
 path('configuration/get-product-colour', views.get_product_colour, name='get_product_colour'),
 path('configuration/target-profit-config', views.target_profit_config_view, name='target_profit_config'),
 
-# Production Analytics
-path('production/entry', views.production_entry_view, name='production_entry'),
-path('production/load/<int:pk>/', views.load_production_view, name='load_production'),
-path('production/detail', views.production_detail_view, name='production_detail'),
+# Production Tracker
 path('production/tracker', views.production_tracker_entry, name='production_tracker'),
-path('analytics/profit-analytics', views.profit_analytics_view, name='profit_analytics'),
 path('analytics/profit-analysis', views.profit_analysis_view, name='profit_analysis'),
 path('analytics/piece-weight-analyser', views.piece_weight_analyser_view, name='piece_weight_analyser'),
 path('analytics/pwa/load/<int:pk>/', views.load_pwa_view, name='load_pwa'),
