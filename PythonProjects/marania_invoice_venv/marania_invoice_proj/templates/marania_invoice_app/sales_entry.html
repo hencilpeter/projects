@@ -660,8 +660,8 @@ tr.row-status-on_hold_processing td {
                     <option value="ON HOLD(PROCESSING)" style="background-color:#ffc107;color:#000;">ON HOLD(PROCESSING)</option>
                   </select>
                 </th>
-                <th><input class="filter-input" placeholder="Order No"></th>
-                <th><input class="filter-input" placeholder="Invoice"></th>
+                <th><input class="filter-input" placeholder="Order No ((empty))" title="Type (empty) to show blank rows"></th>
+                <th><input class="filter-input" placeholder="Invoice ((empty))" title="Type (empty) to show blank rows"></th>
                 <th>
                     <div class="date-filter-container">
                       <input type="text" id="entryDateFilter" class="form-control form-control-sm" placeholder="Entry date...">
@@ -684,22 +684,23 @@ tr.row-status-on_hold_processing td {
                       </div>
                     </div>
                   </th>
-                <th><input class="filter-input" placeholder="Customer" list="filter_customer_list"></th>
-                <th><input class="filter-input" placeholder="Twine" list="filter_twine_list"></th>
-                <th><input class="filter-input" placeholder="Spec"></th>
-                <th><input class="filter-input" placeholder="U Price"></th>
-                <th><input class="filter-input" placeholder="Total"></th>
-                <th><input class="filter-input" placeholder="Colour"></th>
-                <th><input class="filter-input" placeholder="Piece Ct"></th>
-                <th><input class="filter-input" placeholder="Init Wt"></th>
-                <th><input class="filter-input" placeholder="Proc Wt"></th>
+                <th><input class="filter-input" placeholder="Customer ((empty))" title="Type (empty) to show blank rows" list="filter_customer_list"></th>
+                <th><input class="filter-input" placeholder="Twine ((empty))" title="Type (empty) to show blank rows" list="filter_twine_list"></th>
+                <th><input class="filter-input" placeholder="Spec ((empty))" title="Type (empty) to show blank rows"></th>
+                <th><input class="filter-input" placeholder="U Price ((empty))" title="Type (empty) to show blank rows"></th>
+                <th><input class="filter-input" placeholder="Total ((empty))" title="Type (empty) to show blank rows"></th>
+                <th><input class="filter-input" placeholder="Colour ((empty))" title="Type (empty) to show blank rows"></th>
+                <th><input class="filter-input" placeholder="Piece Ct ((empty))" title="Type (empty) to show blank rows"></th>
+                <th><input class="filter-input" placeholder="Init Wt ((empty))" title="Type (empty) to show blank rows"></th>
+                <th><input class="filter-input" placeholder="Proc Wt ((empty))" title="Type (empty) to show blank rows"></th>
                 <th><input class="filter-input" placeholder="GST Rate"></th>
                   <th>
                     <div class="date-filter-container">
-                      <input type="text" id="deliveryDateFilter" class="form-control form-control-sm" placeholder="Delivery date...">
+                      <input type="text" id="deliveryDateFilter" class="form-control form-control-sm" placeholder="Delivery ((empty))..." title="Type (empty) to show rows with no delivery date">
                       <div class="btn-group btn-group-sm">
                         <button class="btn btn-outline-secondary dropdown-toggle py-0" data-bs-toggle="dropdown" title="Quick date filters"><i class="bi bi-clock"></i></button>
                         <ul class="dropdown-menu">
+                          <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('blank');return false;">Blank (No Date)</a></li>
                           <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('today');return false;">Today</a></li>
                           <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('thisweek');return false;">This Week</a></li>
                           <li><a class="dropdown-item" href="#" onclick="setDeliveryDateFilterQuick('thismonth');return false;">This Month</a></li>
@@ -718,10 +719,11 @@ tr.row-status-on_hold_processing td {
                   </th>
                   <th>
                     <div class="date-filter-container">
-                      <input type="text" id="paymentDateFilter" class="form-control form-control-sm" placeholder="Payment date...">
+                      <input type="text" id="paymentDateFilter" class="form-control form-control-sm" placeholder="Payment ((empty))..." title="Type (empty) to show rows with no payment date">
                       <div class="btn-group btn-group-sm">
                         <button class="btn btn-outline-secondary dropdown-toggle py-0" data-bs-toggle="dropdown" title="Quick date filters"><i class="bi bi-clock"></i></button>
                         <ul class="dropdown-menu">
+                          <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('blank');return false;">Blank (No Date)</a></li>
                           <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('today');return false;">Today</a></li>
                           <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('thisweek');return false;">This Week</a></li>
                           <li><a class="dropdown-item" href="#" onclick="setPaymentDateFilterQuick('thismonth');return false;">This Month</a></li>
@@ -777,22 +779,22 @@ tr.row-status-on_hold_processing td {
                       {{ sale.get_status_display }}
                     </span>
                   </td>
-                  <td>{{ sale.order_no }}</td>
-                  <td>{{ sale.invoice_no|default:"" }}</td>
+                  <td>{{ sale.order_no|default:"-" }}</td>
+                  <td>{{ sale.invoice_no|default:"-" }}</td>
                   <td>{{ sale.sales_entry_date|date:"Y-m-d" }}</td>
-                  <td>{{ sale.customer }}</td>
-                  <td>{{ sale.twine }}</td>
-                  <td>{{ sale.speification }}{% if sale.piece_weight %}-PW({{ sale.piece_weight }}){% endif %}</td>
-                  <td>{{ sale.unit_price|default:"" }}</td>
-                  <td>{{ sale.total_amount|default:"" }}</td>
-                  <td>{{ sale.colour }}</td>
-                  <td>{{ sale.piece_count|default:"" }}</td>
-                  <td>{{ sale.initial_weight|default:"" }}</td>
-                  <td>{{ sale.processed_weight|default:"" }}</td>
-                  <td>{{ sale.gst_rate|default:"" }}</td>
-                  <td>{{ sale.delivery_date|default:""|date:"Y-m-d" }}</td>
-                  <td>{{ sale.payment_date|default:""|date:"Y-m-d" }}</td>
-                  <td>{{ sale.prod_spec|default:"" }}</td>
+                  <td>{{ sale.customer|default:"-" }}</td>
+                  <td>{{ sale.twine|default:"-" }}</td>
+                  <td>{{ sale.speification|default:"-" }}{% if sale.piece_weight %}-PW({{ sale.piece_weight }}){% endif %}</td>
+                  <td>{% if sale.unit_price is not None %}{{ sale.unit_price }}{% else %}-{% endif %}</td>
+                  <td>{% if sale.total_amount is not None %}{{ sale.total_amount }}{% else %}-{% endif %}</td>
+                  <td>{{ sale.colour|default:"-" }}</td>
+                  <td>{% if sale.piece_count is not None %}{{ sale.piece_count }}{% else %}-{% endif %}</td>
+                  <td>{% if sale.initial_weight is not None %}{{ sale.initial_weight }}{% else %}-{% endif %}</td>
+                  <td>{% if sale.processed_weight is not None %}{{ sale.processed_weight }}{% else %}-{% endif %}</td>
+                  <td>{% if sale.gst_rate is not None %}{{ sale.gst_rate }}{% else %}-{% endif %}</td>
+                  <td>{{ sale.delivery_date|date:"Y-m-d"|default:"-" }}</td>
+                  <td>{{ sale.payment_date|date:"Y-m-d"|default:"-" }}</td>
+                  <td>{{ sale.prod_spec|default:"-" }}</td>
                   <td class="pl-twine-cell">{{ sale.pl_twine_breakdown|default:"-" }}</td>
                   <td style="white-space:nowrap;">
                     {% if sale.pl_profit_loss is not None %}
@@ -1857,6 +1859,14 @@ function initPaymentDatePicker() {
 }
 
 function setDeliveryDateFilterQuick(range) {
+    if (range === 'blank') {
+        deliveryDateFilterState = null;
+        var fpB = document.getElementById('deliveryDateFilter')._flatpickr;
+        if (fpB) fpB.clear();
+        document.getElementById('deliveryDateFilter').value = '(empty)';
+        applySalesFilters();
+        return;
+    }
     var now = new Date();
     var y = now.getFullYear();
     var m = now.getMonth();
@@ -1910,6 +1920,14 @@ function clearDeliveryDateFilter() {
 }
 
 function setPaymentDateFilterQuick(range) {
+    if (range === 'blank') {
+        paymentDateFilterState = null;
+        var fpB2 = document.getElementById('paymentDateFilter')._flatpickr;
+        if (fpB2) fpB2.clear();
+        document.getElementById('paymentDateFilter').value = '(empty)';
+        applySalesFilters();
+        return;
+    }
     var now = new Date();
     var y = now.getFullYear();
     var m = now.getMonth();
@@ -2034,6 +2052,16 @@ if (salesTable) {
                 if (!filter && !(index === 5 && dateFilterState) && !(index === 16 && deliveryDateFilterState) && !(index === 17 && paymentDateFilterState)) return;
                 if (!cells[index]) { show = false; return; }
                 var cellText = cells[index].textContent.toLowerCase();
+                // (empty) / (not empty) on date columns must win over range filtering
+                var ftrimEarly = filter.trim();
+                var isEmptyTokenEarly = ftrimEarly === '(empty)' || ftrimEarly === '<empty>' || ftrimEarly === 'empty' || ftrimEarly === 'is empty' || ftrimEarly === 'blank' || ftrimEarly === 'isempty';
+                var isNotEmptyTokenEarly = ftrimEarly === '(not empty)' || ftrimEarly === '<not empty>' || ftrimEarly === 'not empty' || ftrimEarly === 'notempty' || ftrimEarly === 'is not empty' || ftrimEarly === 'notblank' || ftrimEarly === 'not blank';
+                if ((index === 5 || index === 16 || index === 17) && (isEmptyTokenEarly || isNotEmptyTokenEarly)) {
+                    var isBlankDate = cellText.trim() === '' || cellText.trim() === '-' || cellText.trim() === '—';
+                    if (isEmptyTokenEarly && !isBlankDate) show = false;
+                    if (isNotEmptyTokenEarly && isBlankDate) show = false;
+                    return;
+                }
                 // Entry Date column uses range filtering
                 if (index === 5 && dateFilterState) {
                     var cellDate = cellText.trim();
