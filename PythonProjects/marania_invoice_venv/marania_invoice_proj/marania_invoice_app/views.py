@@ -3018,17 +3018,25 @@ def profit_loss_detail_api(request, sales_key=None):
             return JsonResponse({'success': False, 'error': 'Sale not found'}, status=404)
 
     try:
-        weight = sale.processed_weight if sale.processed_weight else sale.initial_weight
-        if not weight:
+        init_weight = sale.initial_weight
+        proc_weight = sale.processed_weight
+        if not init_weight and not proc_weight:
             return JsonResponse({'success': False, 'error': 'No weight value on this sale'})
-        weight = Decimal(str(weight))
+
+        # Expenses (raw material, machine, processing, packing, transport)
+        # are always calculated on Init.Wt.
+        expense_weight = Decimal(str(init_weight)) if init_weight else Decimal(str(proc_weight))
+
+        # Revenue (sales amount) is calculated on Proc.Wt if available,
+        # otherwise falls back to Init.Wt.
+        revenue_weight = Decimal(str(proc_weight)) if proc_weight else Decimal(str(init_weight))
 
         pt = _find_production_tracker(sale)
         if not pt:
             return JsonResponse({'success': False, 'error': 'No Production Tracker match found for this specification'})
 
         # ── Raw material ─────────────────────────────────────────────────────
-        twine_rows_detail, raw_material_cost = _calc_twine_rows(pt, weight)
+        twine_rows_detail, raw_material_cost = _calc_twine_rows(pt, expense_weight)
 
         if not twine_rows_detail:
             return JsonResponse({'success': False, 'error': 'No twine row data found in Production Tracker (twine_rows field is empty)'})
@@ -3066,7 +3074,7 @@ def profit_loss_detail_api(request, sales_key=None):
                     moc.electricity_cost_per_day + moc.maintenance_cost_per_day +
                     moc.miscellaneous_cost_per_day
                 )
-                machine_cost = daily_cost * req_days * weight / pt_weight
+                machine_cost = daily_cost * req_days * expense_weight / pt_weight
                 machine_detail = {
                     'machine_number':  pt.machine,
                     'operator':        _d(moc.operator_cost_per_day),
@@ -3090,8 +3098,8 @@ def profit_loss_detail_api(request, sales_key=None):
         if prod and prod.material_id:
             pc = ProcessingCost.objects.filter(material_code=prod.material_id).first()
             if pc:
-                processing_cost = weight * (pc.processing_cost_per_kg or Decimal('0'))
-                colour_cost     = weight * (pc.color_cost_per_kg       or Decimal('0'))
+                processing_cost = expense_weight * (pc.processing_cost_per_kg or Decimal('0'))
+                colour_cost     = expense_weight * (pc.color_cost_per_kg       or Decimal('0'))
                 processing_detail = {
                     'material_code':      prod.material_id,
                     'proc_rate':          _d(pc.processing_cost_per_kg),
@@ -3105,14 +3113,14 @@ def profit_loss_detail_api(request, sales_key=None):
         packing_cost        = Decimal('0')
         transportation_cost = Decimal('0')
         if ac:
-            packing_cost        = weight * (ac.packing_cost_per_kg        or Decimal('0'))
-            transportation_cost = weight * (ac.transportation_cost_per_kg or Decimal('0'))
+            packing_cost        = expense_weight * (ac.packing_cost_per_kg        or Decimal('0'))
+            transportation_cost = expense_weight * (ac.transportation_cost_per_kg or Decimal('0'))
 
         # ── Totals ────────────────────────────────────────────────────────────
         total_cost    = raw_material_cost + machine_cost + processing_cost + colour_cost + packing_cost + transportation_cost
         unit_price    = Decimal(str(sale.unit_price)) if sale.unit_price else Decimal('0')
         gst_rate      = Decimal(str(sale.gst_rate))   if sale.gst_rate   else Decimal('0')
-        base_revenue  = unit_price * weight
+        base_revenue  = unit_price * revenue_weight
         gst_amount    = base_revenue * gst_rate / Decimal('100')
         total_revenue = base_revenue + gst_amount
         profit_loss   = total_revenue - total_cost
@@ -3121,17 +3129,20 @@ def profit_loss_detail_api(request, sales_key=None):
         return JsonResponse({
             'success': True,
             'sale': {
-                'sales_key':    sale.sales_key,
-                'order_no':     getattr(sale, 'order_no', ''),
-                'customer':     getattr(sale, 'customer', ''),
-                'twine':        sale.twine or '',
-                'speification': sale.speification or '',
-                'prod_spec':    sale.prod_spec or '',
-                'colour':       getattr(sale, 'colour', ''),
-                'weight_label': 'Proc. Wt' if sale.processed_weight else 'Init. Wt',
-                'weight':       _d(weight),
-                'unit_price':   _d(unit_price),
-                'gst_rate':     _d(gst_rate),
+                'sales_key':        sale.sales_key,
+                'order_no':         getattr(sale, 'order_no', ''),
+                'customer':         getattr(sale, 'customer', ''),
+                'twine':            sale.twine or '',
+                'speification':     sale.speification or '',
+                'prod_spec':        sale.prod_spec or '',
+                'colour':           getattr(sale, 'colour', ''),
+                'init_weight':      _d(init_weight) if init_weight else '0.00',
+                'proc_weight':      _d(proc_weight) if proc_weight else '0.00',
+                'weight_label':     'Proc. Wt' if sale.processed_weight else 'Init. Wt',
+                'weight':           _d(revenue_weight),
+                'weight_used':      'Proc. Wt' if sale.processed_weight else 'Init. Wt',
+                'unit_price':       _d(unit_price),
+                'gst_rate':         _d(gst_rate),
             },
             'production_tracker': {
                 'pt_key':       pt.pt_key,
@@ -3160,7 +3171,7 @@ def profit_loss_detail_api(request, sales_key=None):
                 'gst_amount':       _d(gst_amount),
                 'total_revenue':    _d(total_revenue),
                 'profit_loss':      _d(profit_loss),
-                'profit_per_kg':    _d(profit_loss / weight if weight else 0),
+                'profit_per_kg':    _d(profit_loss / revenue_weight if revenue_weight else 0),
                 'profit_per_day':   _d(profit_loss / req_days if req_days else 0),
                 'is_profit':        profit_loss > 0,
                 'profit_loss_pct':  _d((profit_loss / total_revenue * 100) if total_revenue else 0),

@@ -804,7 +804,7 @@ tr.row-status-on_hold_processing td {
 <div class="modal fade" id="plDetailModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
-      <div class="modal-header bg-dark text-white">
+      <div class="modal-header bg-dark text-white py-2">
         <h5 class="modal-title"><i class="bi bi-bar-chart-line me-2"></i>Profit &amp; Loss Breakdown</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
@@ -2584,7 +2584,7 @@ function buildPLHtml(data) {
     var html = '';
 
     // ── Hero banner ──────────────────────────────────────────────────────────
-    html += '<div class="p-3 ' + (parseFloat(sum.profit_loss) >= 0 ? 'bg-success' : 'bg-danger') + ' text-white">';
+    html += '<div class="p-2 ' + (parseFloat(sum.profit_loss) >= 0 ? 'bg-success' : 'bg-danger') + ' text-white">';
     html += '<div class="d-flex justify-content-between align-items-center">';
     html += '<div><div class="fs-5 fw-bold">' + (s.customer || '—') + '</div>';
     html += '<div class="small opacity-75">' + (s.twine || '') + ' · ' + (s.speification || s.prod_spec || '') + '</div></div>';
@@ -2597,25 +2597,29 @@ function buildPLHtml(data) {
     html += '<div class="row g-0 border-bottom">';
     [{label:'Revenue', value:plFmt(sum.total_revenue), icon:'bi-cash-coin', cls:'text-success'},
      {label:'Total Cost', value:plFmt(sum.total_cost), icon:'bi-box-seam', cls:'text-danger'},
-     {label:'Weight Used', value:plNum(s.weight)+' kg ('+s.weight_label+')', icon:'bi-speedometer2', cls:'text-primary'},
+     {label:'Init. Wt', value:plNum(s.init_weight)+' kg', icon:'bi-speedometer2', cls:'text-primary'},
+     {label:'Proc. Wt', value:plNum(s.proc_weight)+' kg', icon:'bi-speedometer2', cls:'text-info'},
      {label:'Margin', value:plNum(sum.profit_loss_pct)+'%', icon:'bi-percent', cls:plColour}
     ].forEach(function(c) {
-        html += '<div class="col-6 col-md-3 p-3 border-end text-center">';
+        html += '<div class="col-6 col-md-2 p-2 border-end text-center">';
         html += '<div class="small text-muted"><i class="bi '+c.icon+' me-1"></i>'+c.label+'</div>';
         html += '<div class="fw-bold '+c.cls+'">'+c.value+'</div></div>';
     });
     html += '</div>';
 
     // ── Sale info ────────────────────────────────────────────────────────────
-    html += '<div class="px-3 pt-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-receipt me-1"></i>Sale Info</h6>';
-    html += '<div class="row row-cols-2 row-cols-md-4 g-2 small mb-3">';
-    [['Order No', s.order_no], ['Twine', s.twine],
-     ['Specification', s.speification || s.prod_spec], ['Colour', s.colour],
-     ['Unit Price', plFmt(s.unit_price)], ['GST Rate', s.gst_rate+'%'],
-     ['PT Spec', pt.system_spec], ['Machine', pt.machine || '—']
-    ].forEach(function(r) {
-        html += '<div class="col"><span class="text-muted">'+r[0]+':</span> <strong>'+(r[1]||'—')+'</strong></div>';
-    });
+    html += '<div class="px-2 pt-1"><h6 class="text-muted mb-0 border-bottom pb-0"><i class="bi bi-receipt me-1"></i>Sale Info</h6>';
+    html += '<div class="row row-cols-2 row-cols-md-4 g-0 small mb-1">';
+    // Row 1
+    html += '<div class="col"><span class="text-muted">Order No:</span> <strong>'+(s.order_no||'—')+'</strong></div>';
+    html += '<div class="col"><span class="text-muted">Twine:</span> <strong>'+(s.twine||'—')+'</strong></div>';
+    html += '<div class="col"><span class="text-muted">Specification:</span> <strong>'+(s.speification||s.prod_spec||'—')+'</strong></div>';
+    html += '<div class="col"><span class="text-muted">Colour:</span> <strong>'+(s.colour||'—')+'</strong></div>';
+    // Row 2 — PT Spec sits directly below Specification (column 3)
+    html += '<div class="col"><span class="text-muted">Unit Price:</span> <strong>'+plFmt(s.unit_price)+'</strong></div>';
+    html += '<div class="col"><span class="text-muted">GST Rate:</span> <strong>'+s.gst_rate+'%</strong></div>';
+    html += '<div class="col"><span class="text-muted">PT Spec:</span> <strong>'+(pt.system_spec||'—')+'</strong></div>';
+    html += '<div class="col"><span class="text-muted">Machine:</span> <strong>'+(pt.machine||'—')+'</strong></div>';
     html += '</div></div>';
 
     // ── Raw Material ─────────────────────────────────────────────────────────
@@ -2655,7 +2659,7 @@ function buildPLHtml(data) {
             html += '<div class="col border rounded p-1"><span class="text-muted">'+r[0]+':</span> '+plFmt(r[1])+'/day</div>';
         });
         html += '</div>';
-        html += '<div class="small fw-bold text-danger mb-3">Machine total (for '+plNum(s.weight)+' kg): '+plFmt(mc.machine_total)+'</div>';
+        html += '<div class="small fw-bold text-danger mb-3">Machine total (for '+plNum(s.init_weight)+' kg): '+plFmt(mc.machine_total)+'</div>';
     } else {
         html += '<p class="small text-muted">No machine cost data found.</p>';
     }
@@ -2665,8 +2669,8 @@ function buildPLHtml(data) {
     html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-tools me-1"></i>Processing Cost</h6>';
     if (pc && pc.material_code) {
         html += '<div class="row row-cols-2 g-2 small mb-3">';
-        html += '<div class="col border rounded p-2"><span class="text-muted">Processing ('+plFmt(pc.proc_rate)+'/kg × '+plNum(s.weight)+' kg):</span> <strong class="text-danger">'+plFmt(pc.processing_total)+'</strong></div>';
-        html += '<div class="col border rounded p-2"><span class="text-muted">Colour ('+plFmt(pc.colour_rate)+'/kg × '+plNum(s.weight)+' kg):</span> <strong class="text-danger">'+plFmt(pc.colour_total)+'</strong></div>';
+        html += '<div class="col border rounded p-2"><span class="text-muted">Processing ('+plFmt(pc.proc_rate)+'/kg × '+plNum(s.init_weight)+' kg):</span> <strong class="text-danger">'+plFmt(pc.processing_total)+'</strong></div>';
+        html += '<div class="col border rounded p-2"><span class="text-muted">Colour ('+plFmt(pc.colour_rate)+'/kg × '+plNum(s.init_weight)+' kg):</span> <strong class="text-danger">'+plFmt(pc.colour_total)+'</strong></div>';
         html += '</div>';
     } else {
         html += '<p class="small text-muted">No processing cost config found for this product.</p>';
@@ -2676,8 +2680,8 @@ function buildPLHtml(data) {
     // ── Additional Costs ──────────────────────────────────────────────────────
     html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-truck me-1"></i>Additional Costs</h6>';
     html += '<div class="row row-cols-2 g-2 small mb-3">';
-    html += '<div class="col border rounded p-2"><span class="text-muted">Packing ('+plFmt(ac.packing_rate)+'/kg × '+plNum(s.weight)+' kg):</span> <strong class="text-danger">'+plFmt(ac.packing_total)+'</strong></div>';
-    html += '<div class="col border rounded p-2"><span class="text-muted">Transport ('+plFmt(ac.transportation_rate)+'/kg × '+plNum(s.weight)+' kg):</span> <strong class="text-danger">'+plFmt(ac.transportation_total)+'</strong></div>';
+    html += '<div class="col border rounded p-2"><span class="text-muted">Packing ('+plFmt(ac.packing_rate)+'/kg × '+plNum(s.init_weight)+' kg):</span> <strong class="text-danger">'+plFmt(ac.packing_total)+'</strong></div>';
+    html += '<div class="col border rounded p-2"><span class="text-muted">Transport ('+plFmt(ac.transportation_rate)+'/kg × '+plNum(s.init_weight)+' kg):</span> <strong class="text-danger">'+plFmt(ac.transportation_total)+'</strong></div>';
     html += '</div></div>';
 
     // ── Revenue ───────────────────────────────────────────────────────────────
