@@ -40,6 +40,35 @@
     overflow-y: auto;
 }
 
+/* Thicker existing horizontal scrollbar (Chrome/Edge) */
+.sales-list .invoice-table-wrapper::-webkit-scrollbar {
+    height: 24px !important;
+    width: 16px !important;
+}
+.sales-list .invoice-table-wrapper::-webkit-scrollbar-track {
+    background: #dee2e6 !important;
+}
+.sales-list .invoice-table-wrapper::-webkit-scrollbar-thumb {
+    background: #868e96 !important;
+    border-radius: 12px !important;
+    border: 2px solid #dee2e6 !important;
+}
+.sales-list .invoice-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #495057 !important;
+}
+.sales-list .invoice-table-wrapper::-webkit-scrollbar-thumb:horizontal {
+    min-width: 200px !important;
+}
+.sales-list .invoice-table-wrapper::-webkit-scrollbar-thumb:vertical {
+    min-height: 100px !important;
+}
+
+/* Firefox: widest native scrollbar available */
+.sales-list .invoice-table-wrapper {
+    scrollbar-width: auto !important;
+    scrollbar-color: #868e96 #dee2e6 !important;
+}
+
 
 .date-filter-container {
     display: flex;
@@ -574,7 +603,7 @@ tr.row-status-on_hold_processing td {
               <col style="width:90px">
               <col style="width:220px">
               <col style="width:65px">
-              <col style="width:240px">
+              <col style="width:280px">
               <col style="width:70px">
               <col style="width:65px">
               <col style="width:65px">
@@ -584,7 +613,7 @@ tr.row-status-on_hold_processing td {
               <col style="width:80px">
               <col style="width:90px">
               <col style="width:90px">
-              <col style="width:150px">
+              <col style="width:200px">
               <col style="width:170px">
               <col style="width:250px">
             </colgroup>
