@@ -3411,6 +3411,10 @@ def sales_entry(request):
                 '{}({})'.format(row['material_code'], row['twine_for_sale'])
                 for row in pl_data['twine_materials']['rows']
             )
+            s.pl_twine_rows = [
+                {'code': row['material_code'], 'kg': row['twine_for_sale']}
+                for row in pl_data['twine_materials']['rows']
+            ]
             # Values shown in the Profit/Loss cell: label, per-kg, per-day and
             # total. Taken from the same breakdown so the cell and the P&L
             # window always agree.
@@ -3420,6 +3424,7 @@ def sales_entry(request):
             s.pl_profit_per_day = Decimal(str(pl_data['summary']['profit_per_day']))
         else:
             s.pl_twine_breakdown = ''
+            s.pl_twine_rows = []
             # Fall back to the stored total when the live breakdown is
             # unavailable; per-kg/day simply won't be shown.
             s.pl_profit_loss = None
@@ -3430,6 +3435,15 @@ def sales_entry(request):
                 pl_weight = s.processed_weight or s.initial_weight
                 if pl_weight:
                     s.pl_profit_per_kg = (s.pl_profit_loss / Decimal(str(pl_weight))).quantize(Decimal('0.01'))
+    pl_by_key = {s.sales_key: s for s in sales_list}
+    for item in sales_json:
+        s = pl_by_key.get(item['sales_key'])
+        if s is None:
+            continue
+        item['pl_twine_rows'] = s.pl_twine_rows
+        item['pl_profit_loss'] = str(s.pl_profit_loss) if s.pl_profit_loss is not None else ''
+        item['pl_profit_per_kg'] = str(s.pl_profit_per_kg) if s.pl_profit_per_kg is not None else ''
+        item['pl_profit_per_day'] = str(s.pl_profit_per_day) if s.pl_profit_per_day is not None else ''
     from .models import ProductionTracker
     production_trackers = list(ProductionTracker.objects.all().values('pt_key', 'product', 'system_spec', 'user_spec', 'mm'))
     return render(request, 'marania_invoice_app/sales_entry.html', {

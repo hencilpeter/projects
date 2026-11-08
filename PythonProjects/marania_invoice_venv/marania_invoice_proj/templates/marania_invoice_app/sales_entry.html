@@ -523,6 +523,11 @@ tr.row-status-on_hold_processing td {
 
     <div id="salesSummaryPanel" class="card mb-2 shadow-sm border-primary" style="display:none;">
       <div class="card-body py-1 px-3">
+        <div class="d-flex justify-content-end">
+          <button type="button" id="summaryMoreBtn" class="btn btn-sm btn-outline-primary py-0 px-2" data-bs-toggle="collapse" data-bs-target="#salesSummaryDetail" aria-expanded="false" aria-controls="salesSummaryDetail" title="Show order details">
+            <span id="summaryMoreLabel">More</span> <i class="bi bi-chevron-down"></i>
+          </button>
+        </div>
         <div class="row g-1 text-center">
           <div class="col-md-2 col-sm-4 border-end">
             <div class="small text-muted lh-1">Filtered Orders</div>
@@ -548,6 +553,11 @@ tr.row-status-on_hold_processing td {
             <div class="small text-muted lh-1">Grand Total</div>
             <div class="fw-bold lh-1 text-success" id="summary-grand-total">0.00</div>
           </div>
+        </div>
+      </div>
+      <div class="collapse" id="salesSummaryDetail">
+        <div class="card-body pt-0 px-3">
+          <div id="summary-detail-body" class="row g-2"></div>
         </div>
       </div>
     </div>
@@ -2355,6 +2365,7 @@ function updateSalesSummary() {
     let totalGSTAmount = 0;
     let totalInitWeight = 0;
     let totalProcWeight = 0;
+    let visibleSales = [];
 
     salesTbody.querySelectorAll('tr').forEach(function(row) {
         if (row.style.display === 'none') return;
@@ -2364,6 +2375,7 @@ function updateSalesSummary() {
         filteredCount++;
         var sale = salesData.find(function(s) { return s.sales_key == salesKey; });
         if (!sale) return;
+        visibleSales.push(sale);
 
         
 
@@ -2392,7 +2404,84 @@ function updateSalesSummary() {
     document.getElementById('summary-total-init-wt').textContent = totalInitWeight.toFixed(2);
     document.getElementById('summary-total-proc-wt').textContent = totalProcWeight.toFixed(2);
 
+    renderSummaryDetail(visibleSales);
+
     panel.style.display = filteredCount > 0 ? '' : 'none';
+}
+
+function renderSummaryDetail(list) {
+    var body = document.getElementById('summary-detail-body');
+    if (!body) return;
+
+    function esc(v) {
+        return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function num(v) {
+        var n = parseFloat(v);
+        return isNaN(n) ? null : n;
+    }
+
+    var twineTotals = {};
+    var twineOrder = [];
+    var totalPL = 0, plCount = 0, totalWeight = 0, totalPerDay = 0;
+    list.forEach(function(s) {
+        (s.pl_twine_rows || []).forEach(function(r) {
+            if (!(r.code in twineTotals)) {
+                twineTotals[r.code] = 0;
+                twineOrder.push(r.code);
+            }
+            twineTotals[r.code] += num(r.kg) || 0;
+        });
+        var pl = num(s.pl_profit_loss);
+        if (pl !== null) {
+            totalPL += pl;
+            plCount++;
+            totalWeight += num(s.processed_weight) || num(s.initial_weight) || 0;
+        }
+        var pd = num(s.pl_profit_per_day);
+        if (pd !== null) totalPerDay += pd;
+    });
+
+    var twineRows = twineOrder.map(function(code) {
+        return '<tr><td>' + esc(code) + '</td><td class="text-end">' + twineTotals[code].toFixed(2) + '</td></tr>';
+    }).join('') || '<tr><td colspan="2" class="text-muted">No twine data</td></tr>';
+    var twineTotal = twineOrder.reduce(function(sum, code) { return sum + twineTotals[code]; }, 0);
+
+    var plCls = plCount === 0 ? '' : (totalPL >= 0 ? 'text-success' : 'text-danger');
+    var perKg = plCount && totalWeight > 0 ? totalPL / totalWeight : null;
+    var perDayCell = plCount ? indianFormat(totalPerDay) : '—';
+    var plRows =
+        '<tr><td>Orders with P&amp;L</td><td class="text-end">' + plCount + ' of ' + list.length + '</td></tr>' +
+        '<tr><td>Total Weight (kg)</td><td class="text-end">' + totalWeight.toFixed(2) + '</td></tr>' +
+        '<tr class="fw-bold"><td>Total Profit/Loss</td><td class="text-end ' + plCls + '">' + (plCount ? indianFormat(totalPL) : '—') + '</td></tr>' +
+        '<tr><td>Profit/Loss per kg</td><td class="text-end ' + plCls + '">' + (perKg === null ? '—' : indianFormat(perKg)) + '</td></tr>' +
+        '<tr><td>Profit/Loss per day (sum of orders)</td><td class="text-end ' + plCls + '">' + perDayCell + '</td></tr>';
+
+    body.innerHTML =
+        '<div class="col-md-6">' +
+          '<h6 class="text-muted mb-1">Twine Weight Used (kg)</h6>' +
+          '<table class="table table-sm table-bordered mb-0 small"><thead class="table-light"><tr><th>Twine</th><th class="text-end">Total kg</th></tr></thead>' +
+          '<tbody>' + twineRows + '</tbody>' +
+          '<tfoot class="fw-bold"><tr><td>Total</td><td class="text-end">' + twineTotal.toFixed(2) + '</td></tr></tfoot></table>' +
+        '</div>' +
+        '<div class="col-md-6">' +
+          '<h6 class="text-muted mb-1">Profit &amp; Loss Summary</h6>' +
+          '<table class="table table-sm table-bordered mb-0 small"><tbody>' + plRows + '</tbody></table>' +
+        '</div>';
+}
+
+var summaryDetailEl = document.getElementById('salesSummaryDetail');
+if (summaryDetailEl) {
+    summaryDetailEl.addEventListener('shown.bs.collapse', function() {
+        document.querySelector('#summaryMoreBtn i').className = 'bi bi-chevron-up';
+        document.getElementById('summaryMoreLabel').textContent = 'Less';
+        document.getElementById('summaryMoreBtn').setAttribute('aria-expanded', 'true');
+    });
+    summaryDetailEl.addEventListener('hidden.bs.collapse', function() {
+        document.querySelector('#summaryMoreBtn i').className = 'bi bi-chevron-down';
+        document.getElementById('summaryMoreLabel').textContent = 'More';
+        document.getElementById('summaryMoreBtn').setAttribute('aria-expanded', 'false');
+    });
 }
 
 document.getElementById('salesListModal').addEventListener('hidden.bs.modal', function () {
