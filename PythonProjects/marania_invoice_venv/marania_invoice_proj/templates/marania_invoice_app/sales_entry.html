@@ -352,12 +352,12 @@ tr.row-status-on_hold_processing td {
             </div>
             <div class="col-md-2">
               <div class="input-group input-group-sm">
-                <input type="number" name="profit_loss" id="profit_loss" step="0.01" class="form-control form-control-sm" placeholder="Total" readonly>
+                <input type="number" name="profit_loss" id="profit_loss" step="0.01" class="form-control form-control-sm" placeholder="Sum" readonly>
                 <input type="number" id="profit_per_kg" step="0.01" class="form-control form-control-sm" placeholder="/kg" readonly title="Profit/Loss per kg">
                 <input type="number" id="profit_per_day" step="0.01" class="form-control form-control-sm" placeholder="/day" readonly title="Profit/Loss per day">
               </div>
               <div class="d-flex justify-content-between" style="font-size:0.68rem;line-height:1;margin-top:1px;color:#6c757d;">
-                <span>Total</span><span>/kg</span><span>/day</span>
+                <span>Sum:</span><span>/kg</span><span>/day</span>
               </div>
               <small class="text-muted" style="display:block;text-align:end;line-height:1;">Profit/Loss</small>
             </div>
@@ -764,7 +764,7 @@ tr.row-status-on_hold_processing td {
                       <small class="text-muted" style="font-size:0.68rem;">
                         {% if sale.pl_profit_per_kg is not None %} | {{ sale.pl_profit_per_kg|floatformat:2 }}/kg{% endif %}
                         {% if sale.pl_profit_per_day is not None %} | {{ sale.pl_profit_per_day|floatformat:2 }}/day{% endif %}
-                        | Total: {{ v|floatformat:2 }}
+                        | Sum:{{ v|floatformat:2 }}
                       </small>
                       {% endwith %}
                     {% else %}
