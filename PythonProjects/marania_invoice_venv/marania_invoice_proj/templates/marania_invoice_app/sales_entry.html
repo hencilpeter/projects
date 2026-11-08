@@ -448,8 +448,8 @@ tr.row-status-on_hold_processing td {
             const ptMm = (pt.mm || '').toString().trim().toUpperCase();
             if (ptMm !== meshSizeUpper) continue;
 
-            // Include if it has a system_spec
-            if (pt.system_spec) {
+            // Include if it has a user_spec (or system_spec as fallback)
+            if (pt.user_spec || pt.system_spec) {
               filtered.push(pt);
             }
           }
@@ -486,15 +486,16 @@ tr.row-status-on_hold_processing td {
         // Populate dropdown with all matching specifications
         prodSpecSelect.innerHTML = '<option value=""></option>';
         filtered.forEach(pt => {
+          const label = pt.user_spec || pt.system_spec;
           const opt = document.createElement('option');
-          opt.value = pt.system_spec;
-          opt.textContent = pt.system_spec;
+          opt.value = label;
+          opt.textContent = label;
           prodSpecSelect.appendChild(opt);
         });
 
         // Auto-select the closest match (first in sorted list)
         if (filtered.length > 0) {
-          prodSpecSelect.value = filtered[0].system_spec;
+          prodSpecSelect.value = filtered[0].user_spec || filtered[0].system_spec;
           // Trigger profit/loss calculation after prod_spec is auto-populated
           if (typeof calcProfitLoss === 'function') {
             calcProfitLoss();
