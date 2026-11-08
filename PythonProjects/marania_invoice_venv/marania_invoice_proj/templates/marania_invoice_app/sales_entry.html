@@ -486,7 +486,7 @@ tr.row-status-on_hold_processing td {
         // Populate dropdown with all matching specifications
         prodSpecSelect.innerHTML = '<option value=""></option>';
         filtered.forEach(pt => {
-          const label = pt.user_spec || pt.system_spec;
+          const label = (pt.user_spec || '').trim() || (pt.system_spec || '').trim();
           const opt = document.createElement('option');
           opt.value = label;
           opt.textContent = label;
@@ -495,7 +495,7 @@ tr.row-status-on_hold_processing td {
 
         // Auto-select the closest match (first in sorted list)
         if (filtered.length > 0) {
-          prodSpecSelect.value = filtered[0].user_spec || filtered[0].system_spec;
+          prodSpecSelect.value = (filtered[0].user_spec || '').trim() || (filtered[0].system_spec || '').trim();
           // Trigger profit/loss calculation after prod_spec is auto-populated
           if (typeof calcProfitLoss === 'function') {
             calcProfitLoss();
@@ -1077,9 +1077,25 @@ function setFormData(data) {
     if (typeof window.updateProdSpecOptions === 'function') {
       window.updateProdSpecOptions();
     }
-    // Set the prod_spec value from data if it exists (for existing records)
-    if (document.getElementById('prod_spec') && data.prod_spec) {
-        document.getElementById('prod_spec').value = data.prod_spec;
+    // Set the saved prod_spec for existing records. The dropdown is filtered by
+    // product/mm, so add the saved value as an option if it is not listed.
+    const prodSpecSel = document.getElementById('prod_spec');
+    if (prodSpecSel && data.prod_spec) {
+        let savedSpec = data.prod_spec;
+        const matchedPt = Array.isArray(productionTrackers)
+            ? productionTrackers.find(function(pt) { return pt && pt.system_spec === savedSpec; })
+            : null;
+        if (matchedPt && (matchedPt.user_spec || '').trim()) {
+            savedSpec = matchedPt.user_spec.trim();
+        }
+        const exists = Array.from(prodSpecSel.options).some(function(o) { return o.value === savedSpec; });
+        if (!exists) {
+            const opt = document.createElement('option');
+            opt.value = savedSpec;
+            opt.textContent = savedSpec;
+            prodSpecSel.appendChild(opt);
+        }
+        prodSpecSel.value = savedSpec;
     }
     document.getElementById('colour').value = data.colour || 'White';
     document.getElementById('profit_loss').value = data.profit_loss || '';

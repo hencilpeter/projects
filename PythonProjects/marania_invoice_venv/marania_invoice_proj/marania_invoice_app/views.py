@@ -23,7 +23,7 @@ from django.db.models import (
     ForeignKey,
 )
 
-from django.db.models.functions import TruncMonth # , Lower, Trim
+from django.db.models.functions import TruncMonth, Trim # , Lower
 
 # =======================
 # Third-party libraries
@@ -2743,7 +2743,9 @@ def _find_production_tracker(sale, cache=None):
     if not pt:
         # Several trackers can share one user_spec and differ only by product/mm,
         # so narrow by the sale's product and mesh size from Specification.
-        user_qs = ProductionTracker.objects.filter(user_spec=spec)
+        user_qs = ProductionTracker.objects.annotate(
+            clean_user_spec=Trim('user_spec')
+        ).filter(clean_user_spec=spec)
         pool = user_qs
         if sale.twine and user_qs.filter(product__iexact=sale.twine).exists():
             pool = user_qs.filter(product__iexact=sale.twine)
@@ -2755,7 +2757,7 @@ def _find_production_tracker(sale, cache=None):
     if not pt:
         pt = ProductionTracker.objects.filter(system_spec__icontains=spec).first()
     if not pt:
-        mm_match = _re.search(r'(\d+)\s*MM', spec, _re.IGNORECASE)
+        mm_match = _re.search(r'(\d+)\s*MM', sale.speification or '', _re.IGNORECASE)
         if mm_match and sale.twine:
             pt = ProductionTracker.objects.filter(
                 product__iexact=sale.twine,
