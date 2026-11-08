@@ -127,6 +127,7 @@ path('purchases', views.purchase_entry, name='purchase_entry'),
 # sales
 path('sales', views.sales_entry, name='sales_entry'),
 path('sales/submit_invoice_from_spec', views.submit_invoice_from_spec, name='submit_invoice_from_spec'),
+path('sales/update-twine-prices/', views.update_sale_twine_prices_api, name='update_twine_prices'),
 path('sales/calculate-profit-loss', views.calculate_profit_loss_api, name='calculate_profit_loss'),
 path('sales/profit-loss-detail/<int:sales_key>/', views.profit_loss_detail_api, name='profit_loss_detail'),
 path('sales/profit-loss-detail/', views.profit_loss_detail_api, name='profit_loss_detail_post'),

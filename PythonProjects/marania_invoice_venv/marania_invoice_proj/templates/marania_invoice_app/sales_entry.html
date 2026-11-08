@@ -859,6 +859,8 @@ tr.row-status-on_hold_processing td {
         <div id="plDetailContent" style="display:none;"></div>
       </div>
       <div class="modal-footer">
+        <span class="text-muted small me-auto" id="plOverrideHint">Edit Price/kg, then Apply to update sale &amp; table</span>
+        <button type="button" class="btn btn-success" id="plApplyBtn" onclick="applyPLPriceOverrides()" disabled><i class="bi bi-check-lg me-1"></i>Apply Prices</button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
@@ -927,6 +929,7 @@ function getFormData() {
         gst_rate: document.getElementById('gst_rate').value,
         total_amount: document.getElementById('total_amount').value,
         profit_loss: document.getElementById('profit_loss').value,
+        twine_price_overrides: window._pendingPlOverrides || null,
         delivery_date: getDateValue('delivery_date'),
         status: document.getElementById('status').value,
         is_new_sale: document.getElementById('is_new_sale').checked,
@@ -987,6 +990,7 @@ function calcProfitLoss() {
     formData.append('processed_weight', processed_weight || 0);
     formData.append('unit_price', unit_price || 0);
     formData.append('gst_rate', gst_rate || 0);
+    if (window._pendingPlOverrides) formData.append('twine_price_overrides', JSON.stringify(window._pendingPlOverrides));
 
     // Call the API
     fetch('{% url "calculate_profit_loss" %}', {
@@ -1126,6 +1130,7 @@ function setFormData(data) {
         prodSpecSel.value = savedSpec;
     }
     document.getElementById('colour').value = data.colour || 'White';
+    window._pendingPlOverrides = data.twine_price_overrides ? (typeof data.twine_price_overrides === 'string' ? JSON.parse(data.twine_price_overrides) : data.twine_price_overrides) : null;
     document.getElementById('profit_loss').value = data.profit_loss || '';
     // Populate per-kg and per-day from stored profit_loss + weight (approximate on load)
     var pkEl = document.getElementById('profit_per_kg');
@@ -2593,6 +2598,8 @@ var plDetailUrlTemplate = '{% url "profit_loss_detail" sales_key=0 %}'.replace('
 
 function viewFormPL() {
     // Always use the current form values so an unsaved Prod.Spec is included
+    currentPlSaleKey = null;
+    currentPlData = null;
     var modal = new bootstrap.Modal(document.getElementById('plDetailModal'));
     document.getElementById('plDetailLoading').style.display = '';
     document.getElementById('plDetailContent').style.display = 'none';
@@ -2609,6 +2616,9 @@ function viewFormPL() {
     formData.append('customer',         document.getElementById('customer').value.trim());
     formData.append('colour',           document.getElementById('colour').value.trim());
     formData.append('order_no',         document.getElementById('order_no').value.trim());
+    var skVal = (document.getElementById('sales_key') || {}).value;
+    if (skVal) formData.append('sales_key', skVal);
+    if (window._pendingPlOverrides) formData.append('twine_price_overrides', JSON.stringify(window._pendingPlOverrides));
 
     var postUrl = '{% url "profit_loss_detail_post" %}';
     fetch(postUrl, {
@@ -2627,7 +2637,9 @@ function viewFormPL() {
                 '<br><small class="text-muted">Check that this sale has a matching Production Tracker entry, a Price Catalog entry, and a valid weight.</small></div>';
             return;
         }
+        currentPlData = data;
         content.innerHTML = buildPLHtml(data);
+        bindPlPriceInputs();
     })
     .catch(function(err) {
         document.getElementById('plDetailLoading').style.display = 'none';
@@ -2638,6 +2650,8 @@ function viewFormPL() {
 }
 
 function viewProfitLoss(salesKey) {
+    currentPlSaleKey = salesKey;
+    currentPlData = null;
     var modal = new bootstrap.Modal(document.getElementById('plDetailModal'));
     document.getElementById('plDetailLoading').style.display = '';
     document.getElementById('plDetailContent').style.display = 'none';
@@ -2656,7 +2670,9 @@ function viewProfitLoss(salesKey) {
                     '<br><small class="text-muted">Check that this sale has a matching Production Tracker entry, a Price Catalog entry, and a valid weight.</small></div>';
                 return;
             }
+            currentPlData = data;
             content.innerHTML = buildPLHtml(data);
+            bindPlPriceInputs();
         })
         .catch(function(err) {
             document.getElementById('plDetailLoading').style.display = 'none';
@@ -2763,7 +2779,7 @@ function buildPLHtml(data) {
         html += '<td>'+plNum(row.batch_weight)+'</td>';
         html += '<td>'+plNum(row.waste)+'</td>';
         html += '<td><strong>'+plNum(row.twine_for_sale)+'</strong></td>';
-        html += '<td>'+plFmt(row.price_per_kg)+'</td>';
+        html += '<td><input type="number" step="0.01" min="0" class="form-control form-control-sm pl-price-input" data-code="'+row.material_code+'" data-for-sale="'+row.twine_for_sale+'" value="'+row.price_per_kg+'" style="width:110px" title="Editable Price/kg (incl. GST)"></td>';
         html += '<td class="fw-bold text-danger">'+plFmt(row.line_cost)+'</td>';
         html += '<td class="text-muted" style="font-size:0.75em">'+row.price_source+'</td>';
         html += '</tr>';
@@ -2864,6 +2880,192 @@ function buildPLHtml(data) {
     html += '</tbody></table></div>';
 
     return html;
+}
+
+var currentPlData = null;
+var currentPlSaleKey = null;
+var currentPlOverrides = {};
+
+function getPlPriceOverrides() {
+    var ov = {};
+    document.querySelectorAll('#plDetailContent .pl-price-input').forEach(function(inp) {
+        var code = inp.getAttribute('data-code');
+        var val = parseFloat(inp.value);
+        if (code && !isNaN(val) && val >= 0) ov[code] = val.toFixed(2);
+    });
+    return ov;
+}
+
+function recalcPlModal() {
+    if (!currentPlData) return;
+    var sum = currentPlData.summary;
+    var tm = currentPlData.twine_materials;
+    var otherCost = parseFloat(sum.total_cost) - parseFloat(tm.raw_material_cost);
+    var newRaw = 0;
+    document.querySelectorAll('#plDetailContent .pl-price-input').forEach(function(inp) {
+        var forSale = parseFloat(inp.getAttribute('data-for-sale')) || 0;
+        var price = parseFloat(inp.value) || 0;
+        newRaw += forSale * price;
+        var row = inp.closest('tr');
+        var costCell = row ? row.querySelectorAll('td')[7] : null;
+        if (costCell) costCell.textContent = plFmt(forSale * price);
+    });
+    // Raw material table total row (Cost column, index 7)
+    document.querySelectorAll('#plDetailContent table tbody tr').forEach(function(tr) {
+        var first = tr.querySelector('td');
+        if (first && first.textContent.trim() === 'Total' && tr.querySelectorAll('td').length >= 8) {
+            tr.querySelectorAll('td')[7].textContent = plFmt(newRaw);
+        }
+    });
+    var newTotalCost = otherCost + newRaw;
+    var newProfit = parseFloat(sum.total_revenue) - newTotalCost;
+    // Update hero + summary numbers in modal
+    var hero = document.querySelector('#plDetailContent .p-2 .fs-4');
+    var heroSub = document.querySelector('#plDetailContent .p-2 .small.mt-1');
+    var weight = parseFloat(currentPlData.sale.weight) || 1;
+    var perKg = newProfit / weight;
+    var reqDays = parseFloat(currentPlData.production_tracker.required_days) || 1;
+    var perDay = newProfit / reqDays;
+    if (hero) {
+        var isProf = newProfit > 0 ? 'PROFIT' : (newProfit < 0 ? 'LOSS' : 'BREAK-EVEN');
+        var badgeCls = newProfit > 0 ? 'bg-success' : (newProfit < 0 ? 'bg-danger' : 'bg-secondary');
+        var banner = hero.closest('.p-2');
+        banner.className = 'p-2 ' + (newProfit >= 0 ? 'bg-success' : 'bg-danger') + ' text-white';
+        hero.innerHTML = plFmt(newProfit) + ' <span class="badge fs-6 ' + badgeCls + ' border border-white">' + isProf + '</span>';
+    }
+    if (heroSub) heroSub.innerHTML = plFmt(perKg) + '/kg &nbsp;·&nbsp; ' + plFmt(perDay) + '/day';
+    // Summary table: total cost + raw + profit rows
+    var rows = document.querySelectorAll('#plDetailContent tbody tr');
+    rows.forEach(function(tr) {
+        var label = tr.querySelector('td') ? tr.querySelector('td').textContent.trim() : '';
+        if (label.indexOf('Total Cost') === 0) tr.querySelectorAll('td')[1].textContent = plFmt(newTotalCost);
+        if (label.indexOf('→ Raw Material') === 0) tr.querySelectorAll('td')[1].textContent = plFmt(newRaw);
+    });
+    var cards = document.querySelectorAll('#plDetailContent .row.g-0 .fw-bold');
+    if (cards.length > 1) cards[1].textContent = plFmt(newTotalCost);
+    var rows2 = document.querySelectorAll('#plDetailContent table.table-bordered tbody tr');
+    rows2.forEach(function(tr) {
+        var label = tr.querySelector('td') ? tr.querySelector('td').textContent.trim() : '';
+        if (label.indexOf('PROFIT') === 0 || label.indexOf('LOSS') === 0 || label.indexOf('BREAK-EVEN') === 0) {
+            tr.querySelectorAll('td')[1].textContent = plFmt(newProfit);
+        }
+        if (label.indexOf('→ Per kg') === 0) tr.querySelectorAll('td')[1].textContent = plFmt(perKg) + '/kg';
+        if (label.indexOf('→ Per day') === 0) tr.querySelectorAll('td')[1].textContent = plFmt(perDay) + '/day';
+        var pct = parseFloat(sum.total_revenue) ? newProfit / parseFloat(sum.total_revenue) * 100 : 0;
+        if (label.indexOf('→ Margin') === 0) tr.querySelectorAll('td')[1].textContent = plNum(pct) + '%';
+    });
+    return { newProfit: newProfit, perKg: perKg, perDay: perDay, newRaw: newRaw };
+}
+
+function applyPLPriceOverrides() {
+    if (!currentPlData) return;
+    var ov = getPlPriceOverrides();
+    var calc = recalcPlModal();
+    var btn = document.getElementById('plApplyBtn');
+    var hint = document.getElementById('plOverrideHint');
+    // Update sale entry form fields (works for both saved-form and unsaved-form modes)
+    var plEl = document.getElementById('profit_loss');
+    var pkEl = document.getElementById('profit_per_kg');
+    var pdEl = document.getElementById('profit_per_day');
+    if (plEl) plEl.value = calc.newProfit.toFixed(2);
+    if (pkEl) pkEl.value = calc.perKg.toFixed(2);
+    if (pdEl) pdEl.value = calc.perDay.toFixed(2);
+    currentPlOverrides = ov;
+    if (!currentPlSaleKey) {
+        if (hint) hint.textContent = 'Prices applied to entry form. Save the sale to keep them.';
+        // Keep overrides for next save
+        window._pendingPlOverrides = ov;
+        // Treat edited values as baseline so button disables until next change
+        Object.keys(ov).forEach(function(k) { originalPlPrices[k] = parseFloat(ov[k]); });
+        updatePlApplyState();
+        return;
+    }
+    if (btn) { btn.disabled = true; btn.innerHTML = 'Saving…'; }
+    var formData = new FormData();
+    formData.append('sales_key', currentPlSaleKey);
+    formData.append('twine_price_overrides', JSON.stringify(ov));
+    fetch('{% url "update_twine_prices" %}', {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Apply Prices'; }
+        if (!data.success) {
+            if (hint) hint.textContent = 'Save failed: ' + (data.error || 'unknown error');
+            return;
+        }
+        // Refresh modal with server-recalculated values
+        currentPlData = data;
+        document.getElementById('plDetailContent').innerHTML = buildPLHtml(data);
+        bindPlPriceInputs();
+        // Update sales table row in place (P/L cell + twine cell)
+        var saleKey = currentPlSaleKey;
+        var newData = data;
+        document.querySelectorAll('tr[data-sales-key]').forEach(function(tr) {
+            if (tr.getAttribute('data-sales-key') == saleKey) {
+                var cells = tr.querySelectorAll('td');
+                if (cells.length >= 2) {
+                    var plCell = cells[cells.length - 1];
+                    var v = parseFloat(newData.summary.profit_loss);
+                    var cls = v > 0 ? 'text-success' : (v < 0 ? 'text-danger' : 'text-muted');
+                    var lbl = v > 0 ? 'Profit' : (v < 0 ? 'Loss' : 'Break Even');
+                    plCell.innerHTML = '<span class="' + cls + ' fw-semibold">' + lbl + '</span> <small class="text-muted" style="font-size:0.68rem;"> | ' + newData.summary.profit_per_kg + '/kg | ' + newData.summary.profit_per_day + '/day | Sum:' + newData.summary.profit_loss + '</small>';
+                }
+                if (cells.length >= 3) {
+                    var twineCell = cells[cells.length - 2];
+                    twineCell.textContent = newData.twine_materials.rows.map(function(r) { return r.material_code + '(' + r.twine_for_sale + ')'; }).join('|');
+                }
+            }
+        });
+        // Also refresh salesData cache used by summary banner
+        if (typeof salesData !== 'undefined') {
+            salesData.forEach(function(s) {
+                if (s.sales_key == saleKey) {
+                    s.pl_profit_loss = newData.summary.profit_loss;
+                    s.pl_profit_per_kg = newData.summary.profit_per_kg;
+                    s.pl_profit_per_day = newData.summary.profit_per_day;
+                    s.pl_twine_rows = newData.twine_materials.rows.map(function(r) { return { code: r.material_code, kg: r.twine_for_sale }; });
+                }
+            });
+            if (typeof updateSalesSummary === 'function') updateSalesSummary();
+        }
+        if (hint) hint.textContent = 'Saved. Table & entry updated.';
+    })
+    .catch(function(err) {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Apply Prices'; }
+        if (hint) hint.textContent = 'Network error: ' + err;
+    });
+}
+
+var originalPlPrices = {};
+
+function updatePlApplyState() {
+    var btn = document.getElementById('plApplyBtn');
+    if (!btn) return;
+    var modified = false;
+    document.querySelectorAll('#plDetailContent .pl-price-input').forEach(function(inp) {
+        var code = inp.getAttribute('data-code');
+        var orig = originalPlPrices[code];
+        var cur = parseFloat(inp.value);
+        if (orig === undefined) { modified = true; return; }
+        if (isNaN(cur)) { modified = true; return; }
+        if (Math.abs(cur - orig) > 0.005) modified = true;
+    });
+    btn.disabled = !modified;
+}
+
+function bindPlPriceInputs() {
+    originalPlPrices = {};
+    document.querySelectorAll('#plDetailContent .pl-price-input').forEach(function(inp) {
+        var code = inp.getAttribute('data-code');
+        var val = parseFloat(inp.value);
+        originalPlPrices[code] = isNaN(val) ? 0 : val;
+        inp.addEventListener('input', function() { recalcPlModal(); updatePlApplyState(); });
+        inp.addEventListener('change', function() { recalcPlModal(); updatePlApplyState(); });
+    });
+    updatePlApplyState();
 }
 </script>
 {% endblock %}

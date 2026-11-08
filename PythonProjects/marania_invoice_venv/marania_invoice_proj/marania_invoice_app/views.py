@@ -2780,7 +2780,7 @@ def _find_production_tracker(sale, cache=None):
     return pt
 
 
-def _calc_twine_rows(pt, sale_weight, cache=None):
+def _calc_twine_rows(pt, sale_weight, cache=None, price_overrides=None):
     """
     Compute per-material twine weights and costs for a given PT and sale weight.
 
@@ -2872,7 +2872,13 @@ def _calc_twine_rows(pt, sale_weight, cache=None):
         # as displayed in the table (avoids full-precision vs rounded-display mismatch)
         twine_for_sale = twine_for_sale.quantize(Decimal('0.01'))
 
-        price = _get_latest_twine_price(code, cache)
+        if price_overrides and code in price_overrides:
+            try:
+                price = Decimal(str(price_overrides[code]))
+            except Exception:
+                price = _get_latest_twine_price(code, cache) or Decimal('0')
+        else:
+            price = _get_latest_twine_price(code, cache)
         if price is None:
             price = Decimal('0')
 
@@ -2940,6 +2946,12 @@ def calculate_profit_loss_api(request):
             temp_sale.processed_weight = Decimal(request.POST.get('processed_weight') or 0)
             temp_sale.unit_price = Decimal(request.POST.get('unit_price') or 0)
             temp_sale.gst_rate = Decimal(request.POST.get('gst_rate') or 0)
+            ov_raw = request.POST.get('twine_price_overrides', '')
+            if ov_raw:
+                try:
+                    temp_sale._price_overrides = json.loads(ov_raw)
+                except (json.JSONDecodeError, TypeError):
+                    temp_sale._price_overrides = {}
 
             # Calculate profit/loss
             profit_loss = calculate_profit_loss(temp_sale)
@@ -3010,8 +3022,23 @@ def _build_profit_loss_breakdown(sale, cache=None):
         if not pt:
             return None, 'No Production Tracker match found for this Prod.Spec'
 
+        # Manual price overrides (from P&L window) take precedence over latest Purchase
+        price_overrides = getattr(sale, '_price_overrides', None)
+        if price_overrides is None:
+            price_overrides = getattr(sale, '_twine_price_overrides', None)
+        if price_overrides is None:
+            raw_ov = getattr(sale, 'twine_price_overrides', None)
+            if raw_ov:
+                if isinstance(raw_ov, str):
+                    try:
+                        price_overrides = json.loads(raw_ov)
+                    except (json.JSONDecodeError, TypeError):
+                        price_overrides = None
+                elif isinstance(raw_ov, dict):
+                    price_overrides = raw_ov
+
         # ── Raw material ─────────────────────────────────────────────────────
-        twine_rows_detail, raw_material_cost = _calc_twine_rows(pt, expense_weight, cache)
+        twine_rows_detail, raw_material_cost = _calc_twine_rows(pt, expense_weight, cache, price_overrides=price_overrides)
 
         if not twine_rows_detail:
             return None, 'No twine row data found in Production Tracker (twine_rows field is empty)'
@@ -3027,7 +3054,10 @@ def _build_profit_loss_breakdown(sale, cache=None):
                 latest_p = Purchase.objects.filter(material_code=code, is_twine=True).order_by('-delivery_date', '-purchase_key').first()
                 if latest_purchase_cache is not None:
                     latest_purchase_cache[code] = latest_p
-            price_source = f"Purchase {latest_p.delivery_date}" if latest_p else "Materials fallback"
+            if price_overrides and code in price_overrides:
+                price_source = "Manual override"
+            else:
+                price_source = f"Purchase {latest_p.delivery_date}" if latest_p else "Materials fallback"
             display_rows.append({
                 'material_code':   code,
                 'type':            row['type'],
@@ -3224,6 +3254,12 @@ def profit_loss_detail_api(request, sales_key=None):
             sale.gst_rate = Decimal(request.POST.get('gst_rate') or '0')
         except Exception:
             sale.gst_rate = Decimal('0')
+        ov_raw = request.POST.get('twine_price_overrides', '')
+        if ov_raw:
+            try:
+                sale._price_overrides = json.loads(ov_raw)
+            except (json.JSONDecodeError, TypeError):
+                sale._price_overrides = {}
     else:
         try:
             sale = Sales.objects.get(pk=sales_key)
@@ -3233,6 +3269,46 @@ def profit_loss_detail_api(request, sales_key=None):
     data, error = _build_profit_loss_breakdown(sale)
     if error:
         return JsonResponse({'success': False, 'error': error})
+    return JsonResponse({'success': True, **data})
+
+
+def update_sale_twine_prices_api(request):
+    """Persist manual twine price overrides for a saved sale and return fresh breakdown."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST required'})
+    from .models import Sales
+    sales_key = request.POST.get('sales_key')
+    ov_raw = request.POST.get('twine_price_overrides', '')
+    if not sales_key:
+        return JsonResponse({'success': False, 'error': 'sales_key is required'})
+    try:
+        sale = Sales.objects.get(pk=sales_key)
+    except (Sales.DoesNotExist, ValueError, TypeError):
+        return JsonResponse({'success': False, 'error': 'Sale not found'})
+    try:
+        overrides = json.loads(ov_raw) if ov_raw else {}
+        if not isinstance(overrides, dict):
+            overrides = {}
+    except (json.JSONDecodeError, TypeError):
+        return JsonResponse({'success': False, 'error': 'Invalid overrides JSON'})
+    # Normalize: drop empty / zero values that equal current auto price? keep explicit; empty string means clear
+    clean = {}
+    for k, v in overrides.items():
+        try:
+            dv = Decimal(str(v))
+            if dv < 0:
+                continue
+            clean[str(k).strip()] = str(dv.quantize(Decimal('0.01')))
+        except Exception:
+            continue
+    sale.twine_price_overrides = json.dumps(clean) if clean else None
+    sale._price_overrides = clean
+    data, error = _build_profit_loss_breakdown(sale)
+    if error:
+        return JsonResponse({'success': False, 'error': error})
+    from decimal import Decimal as _Dec
+    sale.profit_loss = _Dec(str(data['summary']['profit_loss']))
+    sale.save(update_fields=['twine_price_overrides', 'profit_loss', 'updated_at'])
     return JsonResponse({'success': True, **data})
 
 
@@ -3341,6 +3417,18 @@ def sales_entry(request):
                 obj.status = entry.get("status") or "ON_HOLD_PROCESSING"
                 obj.payment_date = parse_date(entry.get("payment_date"))
                 obj.remarks = entry.get("remarks") or ""
+                ov = entry.get("twine_price_overrides")
+                if isinstance(ov, dict) and ov:
+                    obj.twine_price_overrides = json.dumps(ov)
+                    obj._price_overrides = ov
+                elif isinstance(ov, str) and ov.strip():
+                    obj.twine_price_overrides = ov
+                    try:
+                        obj._price_overrides = json.loads(ov)
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                else:
+                    obj.twine_price_overrides = None
                 obj.created_at = now
                 obj.updated_at = now
 
@@ -3396,6 +3484,7 @@ def sales_entry(request):
             'payment_date': str(s.payment_date) if s.payment_date else '',
             'remarks': s.remarks or '',
             'profit_loss': str(s.profit_loss) if s.profit_loss is not None else '',
+            'twine_price_overrides': getattr(s, 'twine_price_overrides', None) or '',
             'profit_per_kg': (
                 str(round(s.profit_loss / (s.processed_weight or s.initial_weight), 2))
                 if s.profit_loss is not None and (s.processed_weight or s.initial_weight)
