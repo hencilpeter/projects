@@ -361,6 +361,13 @@ function onCustomerChange() {
     var val = document.getElementById('alloc_customer').value.trim().toLowerCase();
     var code = val.split('-')[0].trim();
 
+    // Clear all allocation inputs and reset total when switching customers,
+    // so stale values from a previous customer don't carry over.
+    document.querySelectorAll('input[name="allocated_amount[]"]').forEach(function(inp) {
+        inp.value = '';
+    });
+    document.getElementById('total-allocating').textContent = '0.00';
+
     // Don't filter on very short input (prevents flickering while typing)
     if (code.length < 2) {
         filteredPayments = paymentData;
@@ -390,7 +397,9 @@ function renderPayments() {
     countBadge.textContent = filteredPayments.length;
     var html = '';
     filteredPayments.forEach(function(p, i) {
-        html += '<tr class="payment-row" data-payment-id="' + p.payment_id + '">'
+        // All rows keep their checkbox - the user decides whether to include
+        // a debit adjustment (Adjustment(Dr)) in the available pool.
+        html += '<tr class="payment-row" data-payment-id="' + p.payment_id + '" data-ttype="' + p.transaction_type + '">'
             + '<td><input type="checkbox" class="payment-checkbox" checked onchange="distribute()"></td>'
             + '<td>' + (p.payment_date || '') + '</td>'
             + '<td>' + (p.display_label || p.receipt_no || '') + '</td>'
@@ -459,13 +468,22 @@ function renderInvoices() {
 }
 
 function allocateSequential() {
-    // Compute total available from SELECTED payment checkboxes only
+    // Compute total available from SELECTED payment checkboxes only.
+    // Debit adjustments (Adjustment(Dr)) reduce the available credit pool
+    // only when checked - the user can uncheck them to exclude them.
     var totalAvailable = 0;
-    document.querySelectorAll('.payment-checkbox:checked').forEach(function(cb) {
-        var row = cb.closest('tr');
-        if (row) {
-            var availCell = row.cells[4];
-            totalAvailable += parseAmount(availCell ? availCell.textContent : '0');
+    document.querySelectorAll('#payment-tbody tr.payment-row').forEach(function(row) {
+        var availCell = row.cells[4];
+        var avail = parseAmount(availCell ? availCell.textContent : '0');
+        var ttype = row.getAttribute('data-ttype');
+        var cb = row.querySelector('.payment-checkbox');
+        if (cb && cb.checked) {
+            if (ttype === 'Adjustment(Dr)') {
+                // Debit adjustment reduces the available credit pool.
+                totalAvailable -= avail;
+            } else {
+                totalAvailable += avail;
+            }
         }
     });
     document.getElementById('total-available').textContent = indianFormat(totalAvailable);
@@ -497,13 +515,22 @@ function allocateSequential() {
 }
 
 function allocatePerfect() {
-    // Compute total available from SELECTED payment checkboxes
+    // Compute total available from SELECTED payment checkboxes.
+    // Debit adjustments (Adjustment(Dr)) reduce the available credit pool
+    // only when checked - the user can uncheck them to exclude them.
     var totalAvailable = 0;
-    document.querySelectorAll('.payment-checkbox:checked').forEach(function(cb) {
-        var row = cb.closest('tr');
-        if (row) {
-            var availCell = row.cells[4];
-            totalAvailable += parseAmount(availCell ? availCell.textContent : '0');
+    document.querySelectorAll('#payment-tbody tr.payment-row').forEach(function(row) {
+        var availCell = row.cells[4];
+        var avail = parseAmount(availCell ? availCell.textContent : '0');
+        var ttype = row.getAttribute('data-ttype');
+        var cb = row.querySelector('.payment-checkbox');
+        if (cb && cb.checked) {
+            if (ttype === 'Adjustment(Dr)') {
+                // Debit adjustment reduces the available credit pool.
+                totalAvailable -= avail;
+            } else {
+                totalAvailable += avail;
+            }
         }
     });
     document.getElementById('total-available').textContent = indianFormat(totalAvailable);

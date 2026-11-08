@@ -30,6 +30,37 @@
     {% endblock %}
 
     <style>
+      /* Sidebar and Main Content Layout
+         The menu is position:fixed (dashboard.css), so it takes no space in
+         .row and <main> has to be sized explicitly; its ms-sm-auto margin
+         then pushes it against the menu. The selectors need class-level
+         specificity to beat Bootstrap's .col-md-9 / .col-lg-10 / .col-lg-2. */
+      @media (min-width: 768px) {
+        #sidebarMenu {
+          width: 200px;
+          max-width: 200px;
+        }
+
+        main.col-md-9,
+        main.col-lg-10 {
+          flex: 0 0 auto;
+          width: calc(100% - 200px);
+          max-width: calc(100% - 200px);
+        }
+
+        .navbar-brand.col-md-3,
+        .navbar-brand.col-lg-2 {
+          width: 200px;
+          max-width: 200px;
+        }
+      }
+
+      /* Long menu labels must wrap instead of forcing the menu wide: the
+         unbreakable "Invoice/Items/Sales/Purchase" label would otherwise set a
+         ~243px floor and overflow a 200px menu onto the page content. */
+      .sidebar .nav-link,
+      .sidebar .parent-menu { overflow-wrap: anywhere; }
+
       .bd-placeholder-img {
         font-size: 1.125rem;
         text-anchor: middle;
@@ -84,7 +115,7 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
 
 <div class="container-fluid">
   <div class="row">
-    <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+    <nav id="sidebarMenu" class="d-md-block bg-light sidebar collapse">
       <div class="position-sticky pt-3">
         <ul class="nav flex-column">
 

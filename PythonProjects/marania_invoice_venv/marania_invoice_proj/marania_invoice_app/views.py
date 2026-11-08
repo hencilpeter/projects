@@ -4044,15 +4044,33 @@ def payment_allocation_entry(request):
                 messages.error(request, "Payment receipts not found.")
                 return redirect('payment_allocation_entry')
 
-            # Build available balance per receipt
+            # Build available balance per receipt.
+            # A debit adjustment reduces the customer's available credit rather
+            # of adding to it, so it is treated as an offset against payment
+            # credits (e.g. an unallocated Adjustment(Dr) of 181,777 cancels an
+            # unallocated payment credit of 181,777).
             receipt_avail = {}
+            dr_offset_total = 0
             for r in receipts:
                 total_alloc = PaymentAllocation.objects.filter(
                     payment=r
                 ).aggregate(total=Sum('allocated_amount'))['total'] or 0
-                avail = r.total_received - total_alloc
-                if avail > 0:
-                    receipt_avail[r.payment_id] = avail
+                unallocated = r.total_received - total_alloc
+                if r.transaction_type == 'Adjustment(Dr)':
+                    # Debit adjustment: reduces available credit.
+                    dr_offset_total += unallocated
+                elif unallocated > 0:
+                    receipt_avail[r.payment_id] = unallocated
+
+            # Net available credit = payment credits - debit adjustments.
+            net_available = sum(receipt_avail.values()) - dr_offset_total
+            if net_available <= 0:
+                messages.warning(
+                    request,
+                    "No net available credit: the selected debit adjustment(s) "
+                    "offset the unallocated payment credit(s). Nothing to allocate."
+                )
+                return redirect('payment_allocation_entry')
 
             if not receipt_avail:
                 messages.warning(request, "Selected receipts have no available balance.")
@@ -4065,8 +4083,13 @@ def payment_allocation_entry(request):
             affected_expenses = set()
             affected_obs = set()
             affected_sis = set()
+            # Cap total allocation at the net available credit so debit
+            # adjustments are not exceeded.
+            net_remaining = net_available
 
             for i, inv_no in enumerate(invoice_nos):
+                if net_remaining <= 0:
+                    break
                 amt_str = alloc_amts[i] if i < len(alloc_amts) else ""
                 if not amt_str:
                     continue
@@ -4174,6 +4197,7 @@ def payment_allocation_entry(request):
 
                     receipt_avail[pid] -= take
                     remaining_amt -= take
+                    net_remaining -= take
                     saved += 1
 
             # Update allocation_status for all involved receipts
@@ -4205,6 +4229,32 @@ def payment_allocation_entry(request):
                     ob.amount = 0
                     ob.save()
 
+            # If a customer's payment credits and debit adjustments net to zero,
+            # mark all their receipts as Fully Allocated so they disappear from
+            # both the payment allocation module and the outstanding payment list.
+            customer_codes = set()
+            for r in receipts:
+                if r.customer:
+                    customer_codes.add(r.customer.code)
+            for cc in customer_codes:
+                customer_receipts = list(PaymentReceipt.objects.filter(customer__code=cc))
+                credits = 0.0
+                debits = 0.0
+                for cr in customer_receipts:
+                    ca = PaymentAllocation.objects.filter(
+                        payment=cr
+                    ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+                    cavail = float(cr.total_received) - float(ca)
+                    if cr.transaction_type == 'Adjustment(Dr)':
+                        debits += cavail
+                    else:
+                        credits += cavail
+                if credits > 0 and abs(credits - debits) < 0.005:
+                    for cr in customer_receipts:
+                        if cr.allocation_status != 'Fully Allocated':
+                            cr.allocation_status = 'Fully Allocated'
+                            cr.save()
+
             if saved:
                 messages.success(request, f"{saved} allocation(s) saved.")
             else:
@@ -4213,19 +4263,48 @@ def payment_allocation_entry(request):
 
     # GET: build split-panel data
     payments_qs = PaymentReceipt.objects.all()
-    payment_data = []
+
+    # Collect all payments with available != 0, grouped by customer, so we can
+    # net payment credits against debit adjustments per customer. If a
+    # customer's credits and debits fully offset (net == 0), none of their
+    # receipts should show as unallocated.
+    customer_payments = {}
     for p in payments_qs:
         total_alloc = PaymentAllocation.objects.filter(
             payment=p
         ).aggregate(total=Sum('allocated_amount'))['total'] or 0
         available = p.total_received - total_alloc
-        if available > 0:
+        if available == 0:
+            continue
+        code = p.customer.code if p.customer else None
+        customer_payments.setdefault(code, []).append({
+            'payment': p,
+            'available': available,
+            'is_debit_adjustment': p.transaction_type == 'Adjustment(Dr)',
+        })
+
+    payment_data = []
+    for code, items in customer_payments.items():
+        credits = sum(item['available'] for item in items if not item['is_debit_adjustment'])
+        debits = sum(item['available'] for item in items if item['is_debit_adjustment'])
+        net = credits - debits
+
+        # Fully offset (or over-offset): nothing truly unallocated for this
+        # customer, so don't show any receipts.
+        if net <= 0:
+            continue
+
+        for item in items:
+            p = item['payment']
             ttype = p.transaction_type or 'Payment'
             prefix = ''
             if ttype == 'Adjustment(Cr)':
                 prefix = 'Adj(Cr) '
             elif ttype == 'Adjustment(Dr)':
                 prefix = 'Adj(Dr) '
+            # Hide receipts already marked fully allocated.
+            if p.allocation_status == 'Fully Allocated':
+                continue
             payment_data.append({
                 'payment_id': p.payment_id,
                 'receipt_no': p.receipt_no or '',
@@ -4233,8 +4312,10 @@ def payment_allocation_entry(request):
                 'customer': str(p.customer) if p.customer else '',
                 'customer_code': p.customer.code if p.customer else '',
                 'total_received': str(p.total_received),
-                'available': str(available),
+                'available': str(item['available']),
                 'transaction_type': ttype,
+                'is_debit_adjustment': item['is_debit_adjustment'],
+                'allocation_status': p.allocation_status,
                 'display_label': prefix + (p.receipt_no or ''),
                 'display_comment': p.display_comment or '',
             })
@@ -4415,7 +4496,7 @@ def payment_allocation_entry(request):
                 payment=receipt
             ).aggregate(total=Sum('allocated_amount'))['total'] or 0
             available = float(receipt.total_received) - float(alloc_total)
-            if available > 0:
+            if available > 0 and receipt.allocation_status != 'Fully Allocated':
                 ttype = receipt.transaction_type or 'Payment'
                 comment = receipt.display_comment or ''
                 if ttype == 'Payment':
@@ -8285,7 +8366,7 @@ def outstanding_payment_list_view(request):
                 payment=receipt
             ).aggregate(total=Sum('allocated_amount'))['total'] or 0
             available = float(receipt.total_received) - float(alloc_total)
-            if available > 0:
+            if available > 0 and receipt.allocation_status != 'Fully Allocated':
                 ttype = receipt.transaction_type or 'Payment'
                 comment = receipt.display_comment or ''
                 if ttype == 'Payment':
