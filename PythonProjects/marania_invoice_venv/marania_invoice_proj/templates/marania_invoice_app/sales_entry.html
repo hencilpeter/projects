@@ -933,6 +933,10 @@ function calcProfitLoss() {
     // Profit/loss is only calculated when Prod.Spec is chosen
     if (!twine || !prod_spec || (!initial_weight && !processed_weight)) {
         document.getElementById('profit_loss').value = '';
+        var pkEmpty = document.getElementById('profit_per_kg');
+        var pdEmpty = document.getElementById('profit_per_day');
+        if (pkEmpty) pkEmpty.value = '';
+        if (pdEmpty) pdEmpty.value = '';
         return;
     }
 
