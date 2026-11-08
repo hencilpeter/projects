@@ -2730,7 +2730,7 @@ def _find_production_tracker(sale, cache=None):
     """
     import re as _re
     from .models import ProductionTracker
-    spec = sale.prod_spec if sale.prod_spec else getattr(sale, 'speification', None)
+    spec = sale.prod_spec
     cache_key = (spec, sale.twine)
     if cache is not None and cache_key in cache.setdefault('pt', {}):
         return cache['pt'][cache_key]
@@ -2893,69 +2893,16 @@ def calculate_profit_loss(sale):
 
     Other costs use ProcessingCost (per product material) and AdditionalCost.
     """
-    from .models import MachineOperationalCost, AdditionalCost, ProcessingCost, Product
     from decimal import Decimal
 
+    if not sale.prod_spec:
+        return None
+
     try:
-        weight = sale.processed_weight if sale.processed_weight else sale.initial_weight
-        if not weight:
+        data, error = _build_profit_loss_breakdown(sale)
+        if error or not data:
             return None
-        weight = Decimal(str(weight))
-
-        pt = _find_production_tracker(sale)
-        if not pt:
-            return None
-
-        # ── Raw material cost ────────────────────────────────────────────────
-        _, raw_material_cost = _calc_twine_rows(pt, weight)
-
-        # ── Machine operational cost ─────────────────────────────────────────
-        machine_cost = Decimal('0')
-        if pt.machine:
-            moc = MachineOperationalCost.objects.filter(machine_number=pt.machine).first()
-            if moc:
-                daily_cost = (
-                    moc.operator_cost_per_day +
-                    moc.bobbin_winder_cost_per_day +
-                    moc.mending_cost_per_day +
-                    moc.mechanic_cost_per_day +
-                    moc.electricity_cost_per_day +
-                    moc.maintenance_cost_per_day +
-                    moc.miscellaneous_cost_per_day
-                )
-                req_days  = Decimal(str(pt.required_days)) if pt.required_days else Decimal('1')
-                pt_weight = Decimal(str(pt.weight)) if pt.weight else Decimal('1')
-                # Scale machine cost to the actual sale weight
-                machine_cost = daily_cost * req_days * weight / pt_weight
-
-        # ── Processing cost (from ProcessingCost per product material) ────────
-        processing_cost  = Decimal('0')
-        colour_cost      = Decimal('0')
-        additional_cost_val = Decimal('0')
-        prod = Product.objects.filter(code=sale.twine).first() if sale.twine else None
-        if prod and prod.material_id:
-            pc = ProcessingCost.objects.filter(material_code=prod.material_id).first()
-            if pc:
-                processing_cost = weight * (pc.processing_cost_per_kg or Decimal('0'))
-                colour_cost     = weight * (pc.color_cost_per_kg or Decimal('0'))
-
-        ac = AdditionalCost.objects.first()
-        if ac:
-            additional_cost_val = weight * (
-                (ac.transportation_cost_per_kg or Decimal('0')) +
-                (ac.packing_cost_per_kg        or Decimal('0'))
-            )
-
-        total_cost = raw_material_cost + machine_cost + processing_cost + colour_cost + additional_cost_val
-
-        # ── Revenue ──────────────────────────────────────────────────────────
-        unit_price = Decimal(str(sale.unit_price)) if sale.unit_price else Decimal('0')
-        gst_rate   = Decimal(str(sale.gst_rate))   if sale.gst_rate   else Decimal('0')
-        base_revenue  = unit_price * weight
-        gst_amount    = base_revenue * gst_rate / Decimal('100')
-        total_revenue = base_revenue + gst_amount
-
-        return round(total_revenue - total_cost, 2)
+        return Decimal(str(data['summary']['profit_loss']))
 
     except Exception as e:
         print(f"Error calculating profit/loss: {e}")
@@ -2985,20 +2932,14 @@ def calculate_profit_loss_api(request):
             # Calculate profit/loss
             profit_loss = calculate_profit_loss(temp_sale)
 
-            # Also derive per-kg and per-day if possible
+            # Per-kg and per-day come from the same breakdown as the P&L window
             profit_per_kg  = None
             profit_per_day = None
             if profit_loss is not None:
-                weight = temp_sale.processed_weight if temp_sale.processed_weight else temp_sale.initial_weight
-                if weight and weight > 0:
-                    profit_per_kg = round(profit_loss / weight, 2)
-                pt = _find_production_tracker(temp_sale)
-                if pt and pt.required_days and pt.required_days > 0 and pt.weight and pt.weight > 0:
-                    req_days = Decimal(str(pt.required_days))
-                    pt_weight = Decimal(str(pt.weight))
-                    if weight and weight > 0:
-                        scaled_days = req_days * weight / pt_weight
-                        profit_per_day = round(profit_loss / scaled_days, 2) if scaled_days else None
+                data, error = _build_profit_loss_breakdown(temp_sale)
+                if data and not error:
+                    profit_per_kg  = Decimal(str(data['summary']['profit_per_kg']))
+                    profit_per_day = Decimal(str(data['summary']['profit_per_day']))
 
             return JsonResponse({
                 'success': True,
@@ -3050,9 +2991,12 @@ def _build_profit_loss_breakdown(sale, cache=None):
         # otherwise falls back to Init.Wt.
         revenue_weight = Decimal(str(proc_weight)) if proc_weight else Decimal(str(init_weight))
 
+        if not sale.prod_spec:
+            return None, 'Prod.Spec is required to calculate profit/loss'
+
         pt = _find_production_tracker(sale, cache)
         if not pt:
-            return None, 'No Production Tracker match found for this specification'
+            return None, 'No Production Tracker match found for this Prod.Spec'
 
         # ── Raw material ─────────────────────────────────────────────────────
         twine_rows_detail, raw_material_cost = _calc_twine_rows(pt, expense_weight, cache)

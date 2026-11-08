@@ -924,13 +924,13 @@ function calcProfitLoss() {
 
     // Determine if there's enough data to show the P&L popup
     var hasWeight = (parseFloat(initial_weight) > 0 || parseFloat(processed_weight) > 0);
-    var hasSpec   = !!(prod_spec || speification);
+    var hasSpec   = !!prod_spec;
     var hasPrice  = parseFloat(unit_price) > 0;
     var canShowPL = !!(twine && hasSpec && hasWeight && hasPrice);
     var plBtn = document.getElementById('formPLBtn');
     if (plBtn) plBtn.disabled = !canShowPL;
 
-    // Only calculate the field value if we have the minimum required fields
+    // Profit/loss is only calculated when Prod.Spec is chosen
     if (!twine || !prod_spec || (!initial_weight && !processed_weight)) {
         document.getElementById('profit_loss').value = '';
         return;
