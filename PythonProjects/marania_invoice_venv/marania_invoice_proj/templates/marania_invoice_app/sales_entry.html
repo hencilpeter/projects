@@ -2687,30 +2687,29 @@ function buildPLHtml(data) {
     html += '</div>';
 
     // ── Processing Cost ───────────────────────────────────────────────────────
-    html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-tools me-1"></i>Processing Cost</h6>';
+    html += '<div class="px-3 mb-2"><div class="d-flex flex-wrap align-items-center gap-3 small mb-0">';
+    html += '<span class="fw-bold"><i class="bi bi-tools me-1"></i>Processing Cost</span>';
     if (pc && pc.material_code) {
-        html += '<div class="row row-cols-2 g-2 small mb-3">';
-        html += '<div class="col border rounded p-2"><span class="text-muted">Processing ('+plFmt(pc.proc_rate)+'/kg × '+plNum(s.init_weight)+' kg):</span> <strong class="text-danger">'+plFmt(pc.processing_total)+'</strong></div>';
-        html += '<div class="col border rounded p-2"><span class="text-muted">Colour ('+plFmt(pc.colour_rate)+'/kg × '+plNum(s.init_weight)+' kg):</span> <strong class="text-danger">'+plFmt(pc.colour_total)+'</strong></div>';
-        html += '</div>';
+        html += '<span class="text-muted">Processing ('+plFmt(pc.proc_rate)+'/kg × '+plNum(s.init_weight)+' kg): <strong class="text-danger">'+plFmt(pc.processing_total)+'</strong></span>';
+        html += '<span class="text-muted">Colour ('+plFmt(pc.colour_rate)+'/kg × '+plNum(s.init_weight)+' kg): <strong class="text-danger">'+plFmt(pc.colour_total)+'</strong></span>';
     } else {
-        html += '<p class="small text-muted">No processing cost config found for this product.</p>';
+        html += '<span class="text-muted">No processing cost config found for this product.</span>';
     }
-    html += '</div>';
+    html += '</div></div>';
 
     // ── Additional Costs ──────────────────────────────────────────────────────
-    html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-truck me-1"></i>Additional Costs</h6>';
-    html += '<div class="row row-cols-2 g-2 small mb-3">';
-    html += '<div class="col border rounded p-2"><span class="text-muted">Packing ('+plFmt(ac.packing_rate)+'/kg × '+plNum(s.init_weight)+' kg):</span> <strong class="text-danger">'+plFmt(ac.packing_total)+'</strong></div>';
-    html += '<div class="col border rounded p-2"><span class="text-muted">Transport ('+plFmt(ac.transportation_rate)+'/kg × '+plNum(s.init_weight)+' kg):</span> <strong class="text-danger">'+plFmt(ac.transportation_total)+'</strong></div>';
+    html += '<div class="px-3 mb-2"><div class="d-flex flex-wrap align-items-center gap-3 small mb-0">';
+    html += '<span class="fw-bold"><i class="bi bi-truck me-1"></i>Additional Costs</span>';
+    html += '<span class="text-muted">Packing ('+plFmt(ac.packing_rate)+'/kg × '+plNum(s.init_weight)+' kg): <strong class="text-danger">'+plFmt(ac.packing_total)+'</strong></span>';
+    html += '<span class="text-muted">Transport ('+plFmt(ac.transportation_rate)+'/kg × '+plNum(s.init_weight)+' kg): <strong class="text-danger">'+plFmt(ac.transportation_total)+'</strong></span>';
     html += '</div></div>';
 
     // ── Revenue ───────────────────────────────────────────────────────────────
-    html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-cash-stack me-1"></i>Revenue</h6>';
-    html += '<div class="d-flex flex-wrap gap-3 small mb-3">';
-    html += '<span>Base revenue ('+plFmt(s.unit_price)+'/kg × '+plNum(s.weight)+' kg): <strong class="text-success">'+plFmt(sum.base_revenue)+'</strong></span>';
-    html += '<span>GST ('+s.gst_rate+'%): <strong class="text-success">'+plFmt(sum.gst_amount)+'</strong></span>';
-    html += '<span>Total revenue: <strong class="text-success">'+plFmt(sum.total_revenue)+'</strong></span>';
+    html += '<div class="px-3 mb-2"><div class="d-flex flex-wrap align-items-center gap-3 small mb-0">';
+    html += '<span class="fw-bold"><i class="bi bi-cash-stack me-1"></i>Revenue</span>';
+    html += '<span class="text-muted">Base revenue ('+plFmt(s.unit_price)+'/kg × '+plNum(s.weight)+' kg): <strong class="text-success">'+plFmt(sum.base_revenue)+'</strong></span>';
+    html += '<span class="text-muted">GST ('+s.gst_rate+'%): <strong class="text-success">'+plFmt(sum.gst_amount)+'</strong></span>';
+    html += '<span class="text-muted">Total revenue: <strong class="text-success">'+plFmt(sum.total_revenue)+'</strong></span>';
     html += '</div></div>';
 
     // ── Summary table ─────────────────────────────────────────────────────────
