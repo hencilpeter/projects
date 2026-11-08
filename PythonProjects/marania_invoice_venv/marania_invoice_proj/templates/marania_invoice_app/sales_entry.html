@@ -738,7 +738,7 @@ tr.row-status-on_hold_processing td {
                       </div>
                     </div>
                   </th>
-                <th><input class="filter-input" placeholder="Prod.Spec"></th>
+                <th><input class="filter-input" placeholder="Prod.Spec ( (empty) )" title="Type (empty) to show blank rows, (not empty) for filled rows"></th>
                 <th><input class="filter-input" placeholder="Twine"></th>
                 <th><input class="filter-input" placeholder="Profit/Loss"></th>
               </tr>
@@ -2063,7 +2063,17 @@ if (salesTable) {
                 if (isSelect) {
                     if (cellText.trim() !== filter) show = false;
                 } else {
-                    if (!cellText.includes(filter)) show = false;
+                    var ftrim = filter.trim();
+                    var isEmptyToken = ftrim === '(empty)' || ftrim === '<empty>' || ftrim === 'empty' || ftrim === 'is empty' || ftrim === 'blank' || ftrim === 'isempty';
+                    var isNotEmptyToken = ftrim === '(not empty)' || ftrim === '<not empty>' || ftrim === 'not empty' || ftrim === 'notempty' || ftrim === 'is not empty' || ftrim === 'notblank' || ftrim === 'not blank';
+                    var isBlankCell = cellText.trim() === '' || cellText.trim() === '-' || cellText.trim() === '—';
+                    if (isEmptyToken) {
+                        if (!isBlankCell) show = false;
+                    } else if (isNotEmptyToken) {
+                        if (isBlankCell) show = false;
+                    } else {
+                        if (!cellText.includes(filter)) show = false;
+                    }
                 }
             });
             row.style.display = show ? '' : 'none';
