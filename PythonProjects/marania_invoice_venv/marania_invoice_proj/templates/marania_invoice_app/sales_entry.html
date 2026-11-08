@@ -844,11 +844,21 @@ tr.row-status-on_hold_processing td {
 </div>
 
 <!-- P&L Detail Modal -->
+<style>
+  #plDetailModal .modal-header { padding: 0.4rem 0.75rem; }
+  #plDetailModal .modal-header .modal-title { font-size: 1rem; }
+  #plDetailModal .modal-footer { gap: 0.4rem; padding: 0.4rem 0.75rem; align-items: center; }
+  #plDetailModal .modal-footer .btn { padding: 0.22rem 0.7rem; font-size: 0.8rem; line-height: 1.2; }
+  #plDetailContent h6 { margin-bottom: 0.25rem !important; }
+  #plDetailContent .row.g-0 > div { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+  #plDetailContent table.table-bordered td, #plDetailContent table.table-bordered th { padding: 0.2rem 0.4rem !important; vertical-align: middle; }
+  #plDetailContent table.table-bordered tr { line-height: 1.2; }
+</style>
 <div class="modal fade" id="plDetailModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
-      <div class="modal-header bg-dark text-white py-2">
-        <h5 class="modal-title"><i class="bi bi-bar-chart-line me-2"></i>Profit &amp; Loss Breakdown</h5>
+      <div class="modal-header bg-dark text-white">
+        <h6 class="modal-title mb-0"><i class="bi bi-bar-chart-line me-2"></i>Profit &amp; Loss Breakdown</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body p-0" id="plDetailBody">
@@ -860,8 +870,8 @@ tr.row-status-on_hold_processing td {
       </div>
       <div class="modal-footer">
         <span class="text-muted small me-auto" id="plOverrideHint">Edit Price/kg, then Apply to update sale &amp; table</span>
-        <button type="button" class="btn btn-success" id="plApplyBtn" onclick="applyPLPriceOverrides()" disabled><i class="bi bi-check-lg me-1"></i>Apply Prices</button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-sm btn-success" id="plApplyBtn" onclick="applyPLPriceOverrides()" disabled><i class="bi bi-check-lg me-1"></i>Apply Prices</button>
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
