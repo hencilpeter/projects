@@ -236,7 +236,7 @@ tr.row-status-on_hold_processing td {
     <h2 class="mb-4">Sales</h2>
 
     <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#salesForm" aria-expanded="false" aria-controls="salesForm">
-      New Sale
+      Sale Entry
     </button>
 
     <div class="collapse" id="salesForm">
@@ -523,12 +523,7 @@ tr.row-status-on_hold_processing td {
 
     <div id="salesSummaryPanel" class="card mb-2 shadow-sm border-primary" style="display:none;">
       <div class="card-body py-1 px-3">
-        <div class="d-flex justify-content-end">
-          <button type="button" id="summaryMoreBtn" class="btn btn-sm btn-outline-primary py-0 px-2" data-bs-toggle="collapse" data-bs-target="#salesSummaryDetail" aria-expanded="false" aria-controls="salesSummaryDetail" title="Show order details">
-            <span id="summaryMoreLabel">More</span> <i class="bi bi-chevron-down"></i>
-          </button>
-        </div>
-        <div class="row g-1 text-center">
+        <div class="row g-0 align-items-center text-center">
           <div class="col-md-2 col-sm-4 border-end">
             <div class="small text-muted lh-1">Filtered Orders</div>
             <div class="fw-bold lh-1" id="summary-filtered-orders">0</div>
@@ -545,13 +540,18 @@ tr.row-status-on_hold_processing td {
             <div class="small text-muted lh-1">Total Actual Amt</div>
             <div class="fw-bold lh-1" id="summary-total-actual">0.00</div>
           </div>
-          <div class="col-md-2 col-sm-4 border-end">
+          <div class="col-md-1 col-sm-4 border-end">
             <div class="small text-muted lh-1">Total GST</div>
             <div class="fw-bold lh-1" id="summary-total-gst">0.00</div>
           </div>
-          <div class="col-md-2 col-sm-4">
+          <div class="col-md-2 col-sm-4 border-end">
             <div class="small text-muted lh-1">Grand Total</div>
             <div class="fw-bold lh-1 text-success" id="summary-grand-total">0.00</div>
+          </div>
+          <div class="col-md-1 col-sm-4 d-flex justify-content-center align-items-center">
+            <button type="button" id="summaryMoreBtn" class="btn btn-sm btn-outline-primary py-0 px-2" data-bs-toggle="collapse" data-bs-target="#salesSummaryDetail" aria-expanded="false" aria-controls="salesSummaryDetail" title="Show order details">
+              <span id="summaryMoreLabel">More</span> <i class="bi bi-chevron-down"></i>
+            </button>
           </div>
         </div>
       </div>
