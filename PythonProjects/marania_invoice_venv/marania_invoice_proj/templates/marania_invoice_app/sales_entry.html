@@ -2643,8 +2643,27 @@ function buildPLHtml(data) {
         html += '<td class="text-muted" style="font-size:0.75em">'+row.price_source+'</td>';
         html += '</tr>';
     });
-    html += '</tbody></table>';
-    html += '<div class="small fw-bold text-danger mb-3">Total raw material cost: '+plFmt(tm.raw_material_cost)+'</div></div>';
+    // Total row
+    var total_daily = 0, total_batch = 0, total_waste = 0, total_for_sale = 0, total_cost = 0;
+    tm.rows.forEach(function(row) {
+        total_daily  += parseFloat(row.daily_output || 0);
+        total_batch  += parseFloat(row.batch_weight || 0);
+        total_waste  += parseFloat(row.waste || 0);
+        total_for_sale += parseFloat(row.twine_for_sale || 0);
+        total_cost   += parseFloat(row.line_cost || 0);
+    });
+    html += '<tr class="table-secondary fw-bold">';
+    html += '<td>Total</td>';
+    html += '<td></td>';
+    html += '<td>'+plNum(total_daily)+'</td>';
+    html += '<td>'+plNum(total_batch)+'</td>';
+    html += '<td>'+plNum(total_waste)+'</td>';
+    html += '<td>'+plNum(total_for_sale)+'</td>';
+    html += '<td></td>';
+    html += '<td class="text-danger">'+plFmt(total_cost)+'</td>';
+    html += '<td></td>';
+    html += '</tr>';
+    html += '</tbody></table></div>';
 
     // ── Machine Cost ─────────────────────────────────────────────────────────
     html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-gear me-1"></i>Machine Operational Cost';
