@@ -1,17 +1,5 @@
 {% load static %}
 
-{% if messages %}
-    <div class="container mt-3">
-        {% for message in messages %}
-            <div class="alert alert-success alert-dismissible fade show shadow-sm" 
-                 role="alert" id="auto-dismiss-alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        {% endfor %}
-    </div>
-{% endif %}
-
 <!doctype html>
 <html lang="en">
   <head>
@@ -83,6 +71,21 @@
     </style>
   </head>
   <body>
+
+{% if messages %}
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080; pointer-events: none;" aria-live="polite" aria-atomic="true">
+  {% for message in messages %}
+  <div class="toast align-items-center text-white border-0 mb-2 {% if message.tags == 'error' %}bg-danger{% elif message.tags == 'warning' %}bg-warning text-dark{% elif message.tags == 'info' %}bg-info text-dark{% else %}bg-success{% endif %} shadow" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="3000" style="pointer-events: auto; min-width: 280px;">
+    <div class="d-flex">
+      <div class="toast-body fw-semibold small">
+        {% if message.tags == 'error' %}<i class="bi bi-x-circle me-2"></i>{% elif message.tags == 'warning' %}<i class="bi bi-exclamation-triangle me-2"></i>{% elif message.tags == 'info' %}<i class="bi bi-info-circle me-2"></i>{% else %}<i class="bi bi-check-circle me-2"></i>{% endif %}{{ message }}
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
 
 <header class="navbar navbar-dark sticky-top" 
 style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; padding: 0; box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15);">
@@ -587,15 +590,7 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
     });
   });
 
-  // Auto fade-out after 3 seconds
-  setTimeout(function () {
-      const alert = document.getElementById("auto-dismiss-alert");
-      if (alert) {
-          alert.classList.remove("show");
-          alert.classList.add("fade");
-          setTimeout(() => alert.remove(), 500);
-      }
-  }, 3000);
+  // Floating toasts are initialized after bootstrap.bundle.min.js loads (end of body)
 </script>
 
 <!-- CSS for smaller rounded button -->
@@ -634,6 +629,18 @@ style="background: linear-gradient(90deg, #0062E6, #33AEFF); flex-wrap: nowrap; 
 <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.28.0/dist/feather.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js" crossorigin="anonymous"></script>
 <script src="{% static 'assets/js/dashboard.js' %}"></script>
+<script>
+  // Show floating toasts (auto-hide after 3s, no layout shift)
+  document.querySelectorAll('.toast').forEach(function (el) {
+    try {
+      var toast = new bootstrap.Toast(el, { delay: 3000 });
+      toast.show();
+    } catch (e) {
+      el.style.display = 'block';
+      setTimeout(function () { el.remove(); }, 3000);
+    }
+  });
+</script>
 
 {% block scripts %}
 {% endblock %}
