@@ -2831,6 +2831,10 @@ def _calc_twine_rows(pt, sale_weight):
         else:
             twine_for_sale = Decimal('0')
 
+        # Round twine_for_sale to 2dp so that For Sale × Price/kg = Cost exactly
+        # as displayed in the table (avoids full-precision vs rounded-display mismatch)
+        twine_for_sale = twine_for_sale.quantize(Decimal('0.01'))
+
         price = _get_latest_twine_price(code)
         if price is None:
             price = Decimal('0')
