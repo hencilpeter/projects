@@ -2712,29 +2712,29 @@ function buildPLHtml(data) {
     html += '</div></div>';
 
     // ── Summary table ─────────────────────────────────────────────────────────
-    html += '<div class="px-3 pb-3"><h6 class="text-muted mb-2 pb-1"><i class="bi bi-calculator me-1"></i>Summary</h6>';
+    html += '<div class="px-3 pb-1"><h6 class="text-muted mb-1 pb-0"><i class="bi bi-calculator me-1"></i>Summary</h6>';
     html += '<table class="table table-sm table-bordered small"><tbody>';
     html += '<tr class="table-success"><td>Total Revenue</td><td class="text-end fw-bold">'+plFmt(sum.total_revenue)+'</td></tr>';
-    html += '<tr><td class="ps-3 text-muted">→ Base Revenue</td><td class="text-end">'+plFmt(sum.base_revenue)+'</td></tr>';
-    html += '<tr><td class="ps-3 text-muted">→ GST Amount</td><td class="text-end">'+plFmt(sum.gst_amount)+'</td></tr>';
+    html += '<tr><td class="ps-3 text-muted small">→ Base Revenue</td><td class="text-end">'+plFmt(sum.base_revenue)+'</td></tr>';
+    html += '<tr><td class="ps-3 text-muted small">→ GST Amount</td><td class="text-end">'+plFmt(sum.gst_amount)+'</td></tr>';
     html += '<tr class="table-danger"><td>Total Cost</td><td class="text-end fw-bold">'+plFmt(sum.total_cost)+'</td></tr>';
-    html += '<tr><td class="ps-3 text-muted">→ Raw Material</td><td class="text-end">'+plFmt(tm.raw_material_cost)+'</td></tr>';
+    html += '<tr><td class="ps-3 text-muted small">→ Raw Material</td><td class="text-end">'+plFmt(tm.raw_material_cost)+'</td></tr>';
     if (mc && mc.machine_number) {
-        html += '<tr><td class="ps-3 text-muted">→ Machine Cost</td><td class="text-end">'+plFmt(mc.machine_total)+'</td></tr>';
+        html += '<tr><td class="ps-3 text-muted small">→ Machine Cost</td><td class="text-end">'+plFmt(mc.machine_total)+'</td></tr>';
     }
     if (pc && pc.material_code) {
-        html += '<tr><td class="ps-3 text-muted">→ Processing</td><td class="text-end">'+plFmt(pc.processing_total)+'</td></tr>';
-        html += '<tr><td class="ps-3 text-muted">→ Colour</td><td class="text-end">'+plFmt(pc.colour_total)+'</td></tr>';
+        html += '<tr><td class="ps-3 text-muted small">→ Processing</td><td class="text-end">'+plFmt(pc.processing_total)+'</td></tr>';
+        html += '<tr><td class="ps-3 text-muted small">→ Colour</td><td class="text-end">'+plFmt(pc.colour_total)+'</td></tr>';
     }
-    html += '<tr><td class="ps-3 text-muted">→ Packing</td><td class="text-end">'+plFmt(ac.packing_total)+'</td></tr>';
-    html += '<tr><td class="ps-3 text-muted">→ Transportation</td><td class="text-end">'+plFmt(ac.transportation_total)+'</td></tr>';
+    html += '<tr><td class="ps-3 text-muted small">→ Packing</td><td class="text-end">'+plFmt(ac.packing_total)+'</td></tr>';
+    html += '<tr><td class="ps-3 text-muted small">→ Transportation</td><td class="text-end">'+plFmt(ac.transportation_total)+'</td></tr>';
     html += '<tr class="table-'+(parseFloat(sum.profit_loss)>=0?'success':'danger')+' fw-bold fs-6">';
     html += '<td>'+plLabel+' (total)</td><td class="text-end '+plColour+'">'+plFmt(sum.profit_loss)+'</td></tr>';
     html += '<tr class="'+plColour+'">';
-    html += '<td class="ps-3 text-muted">→ Per kg</td><td class="text-end fw-bold">'+plFmt(sum.profit_per_kg)+'/kg</td></tr>';
+    html += '<td class="ps-3 text-muted small">→ Per kg</td><td class="text-end fw-bold">'+plFmt(sum.profit_per_kg)+'/kg</td></tr>';
     html += '<tr class="'+plColour+'">';
-    html += '<td class="ps-3 text-muted">→ Per day</td><td class="text-end fw-bold">'+plFmt(sum.profit_per_day)+'/day</td></tr>';
-    html += '<tr><td class="ps-3 text-muted">→ Margin</td><td class="text-end">'+plNum(sum.profit_loss_pct)+'%</td></tr>';
+    html += '<td class="ps-3 text-muted small">→ Per day</td><td class="text-end fw-bold">'+plFmt(sum.profit_per_day)+'/day</td></tr>';
+    html += '<tr><td class="ps-3 text-muted small">→ Margin</td><td class="text-end">'+plNum(sum.profit_loss_pct)+'%</td></tr>';
     html += '</tbody></table></div>';
 
     return html;
