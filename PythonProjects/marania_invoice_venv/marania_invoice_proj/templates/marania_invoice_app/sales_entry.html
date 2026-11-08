@@ -2613,13 +2613,15 @@ function buildPLHtml(data) {
     // Row 1
     html += '<div class="col"><span class="text-muted">Order No:</span> <strong>'+(s.order_no||'—')+'</strong></div>';
     html += '<div class="col"><span class="text-muted">Twine:</span> <strong>'+(s.twine||'—')+'</strong></div>';
-    html += '<div class="col"><span class="text-muted">Specification:</span> <strong>'+(s.speification||s.prod_spec||'—')+'</strong></div>';
-    html += '<div class="col"><span class="text-muted">Colour:</span> <strong>'+(s.colour||'—')+'</strong></div>';
-    // Row 2 — PT Spec sits directly below Specification (column 3)
-    html += '<div class="col"><span class="text-muted">Unit Price:</span> <strong>'+plFmt(s.unit_price)+'</strong></div>';
-    html += '<div class="col"><span class="text-muted">GST Rate:</span> <strong>'+s.gst_rate+'%</strong></div>';
     html += '<div class="col"><span class="text-muted">PT Spec:</span> <strong>'+(pt.system_spec||'—')+'</strong></div>';
-    html += '<div class="col"><span class="text-muted">Machine:</span> <strong>'+(pt.machine||'—')+'</strong></div>';
+    html += '<div class="col"><span class="text-muted">Specification:</span> <strong>'+(s.speification||s.prod_spec||'—')+'</strong></div>';
+    // Row 2
+    var unitPriceNum = parseFloat(s.unit_price) || 0;
+    var gstRateNum = parseFloat(s.gst_rate) || 0;
+    var gstPriceNum = unitPriceNum * gstRateNum / 100;
+    var unitPriceInclGstNum = unitPriceNum + gstPriceNum;
+    html += '<div class="col"><span class="text-muted">Unit Price:</span> <strong>'+plFmt(unitPriceNum)+' + '+plFmt(gstPriceNum)+' GST = '+plFmt(unitPriceInclGstNum)+' incl.</strong></div>';
+    html += '<div class="col"><span class="text-muted">Colour:</span> <strong>'+(s.colour||'—')+'</strong></div>';
     html += '</div></div>';
 
     // ── Raw Material ─────────────────────────────────────────────────────────
