@@ -2666,13 +2666,12 @@ function buildPLHtml(data) {
     html += '</tbody></table></div>';
 
     // ── Machine Cost ─────────────────────────────────────────────────────────
-    html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-gear me-1"></i>Machine Operational Cost';
-    html += ' <small class="text-muted fw-normal">(scaled to sale weight)</small></h6>';
+    var mcLabel = 'Machine Operational Cost';
     if (mc && mc.machine_number) {
-        html += '<div class="small mb-1 text-muted">Machine: <strong>'+mc.machine_number+'</strong>';
-        html += ' · Required days: <strong>'+mc.required_days+'</strong>';
-        html += ' · PT batch: <strong>'+mc.pt_batch_weight+' kg</strong>';
-        html += ' · Daily cost: <strong>'+plFmt(mc.daily_total)+'</strong></div>';
+        mcLabel += ' <span style="font-size:0.75em;color:#6c757d;">(Machine: <strong>'+mc.machine_number+'</strong> · Required days: <strong>'+mc.required_days+'</strong> · PT batch: <strong>'+mc.pt_batch_weight+' kg</strong> · Daily cost: <strong>'+plFmt(mc.daily_total)+'</strong>)</span>';
+    }
+    html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-gear me-1"></i>'+mcLabel+'</h6>';
+    if (mc && mc.machine_number) {
         html += '<div class="row row-cols-2 row-cols-md-4 g-1 small mb-2">';
         [['Operator',mc.operator],['Bobbin Winder',mc.bobbin_winder],['Mending',mc.mending],
          ['Mechanic',mc.mechanic],['Electricity',mc.electricity],['Maintenance',mc.maintenance],['Misc.',mc.miscellaneous]
