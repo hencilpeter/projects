@@ -926,8 +926,7 @@ function calcProfitLoss() {
     // Determine if there's enough data to show the P&L popup
     var hasWeight = (parseFloat(initial_weight) > 0 || parseFloat(processed_weight) > 0);
     var hasSpec   = !!prod_spec;
-    var hasPrice  = parseFloat(unit_price) > 0;
-    var canShowPL = !!(twine && hasSpec && hasWeight && hasPrice);
+    var canShowPL = !!(twine && hasSpec && hasWeight);
     var plBtn = document.getElementById('formPLBtn');
     if (plBtn) plBtn.disabled = !canShowPL;
 
@@ -2456,13 +2455,7 @@ window.addEventListener('load', function() {
 var plDetailUrlTemplate = '{% url "profit_loss_detail" sales_key=0 %}'.replace('/0/', '/{key}/');
 
 function viewFormPL() {
-    var sk = document.getElementById('sales_key').value;
-    if (sk) {
-        // Saved record — use the GET endpoint
-        viewProfitLoss(sk);
-        return;
-    }
-    // Unsaved form data — POST to the detail endpoint
+    // Always use the current form values so an unsaved Prod.Spec is included
     var modal = new bootstrap.Modal(document.getElementById('plDetailModal'));
     document.getElementById('plDetailLoading').style.display = '';
     document.getElementById('plDetailContent').style.display = 'none';

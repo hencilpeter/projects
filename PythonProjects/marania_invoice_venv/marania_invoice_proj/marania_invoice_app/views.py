@@ -2731,7 +2731,7 @@ def _find_production_tracker(sale, cache=None):
     import re as _re
     from .models import ProductionTracker
     spec = sale.prod_spec
-    cache_key = (spec, sale.twine)
+    cache_key = (spec, sale.twine, sale.speification)
     if cache is not None and cache_key in cache.setdefault('pt', {}):
         return cache['pt'][cache_key]
     if not spec:
@@ -2741,7 +2741,17 @@ def _find_production_tracker(sale, cache=None):
 
     pt = ProductionTracker.objects.filter(system_spec=spec).first()
     if not pt:
-        pt = ProductionTracker.objects.filter(user_spec=spec).first()
+        # Several trackers can share one user_spec and differ only by product/mm,
+        # so narrow by the sale's product and mesh size from Specification.
+        user_qs = ProductionTracker.objects.filter(user_spec=spec)
+        pool = user_qs
+        if sale.twine and user_qs.filter(product__iexact=sale.twine).exists():
+            pool = user_qs.filter(product__iexact=sale.twine)
+        mm_match = _re.search(r'(\d+)\s*MM', sale.speification or '', _re.IGNORECASE)
+        if mm_match:
+            pt = pool.filter(mm__iexact=mm_match.group(1)).first()
+        if not pt:
+            pt = pool.first()
     if not pt:
         pt = ProductionTracker.objects.filter(system_spec__icontains=spec).first()
     if not pt:
