@@ -2779,12 +2779,14 @@ def _calc_twine_rows(pt, sale_weight):
 
     mm_val = Decimal(str(pt.mm)) if pt.mm else Decimal('0')
     knot_cap = Decimal(str(pt.knots_capacity_per_day)) if pt.knots_capacity_per_day else Decimal('0')
-    req_days = Decimal(str(pt.required_days)) if pt.required_days else Decimal('1')
     pt_weight = Decimal(str(pt.weight)) if pt.weight else Decimal('0')
 
     rows_detail = []
     total_cost = Decimal('0')
 
+    # ── First pass: compute each row's daily_output and the total ----------
+    per_row = []
+    total_daily_output = Decimal('0')
     for tr in twine_rows:
         code = (tr.get('twine') or '').strip()
         if not code:
@@ -2795,16 +2797,32 @@ def _calc_twine_rows(pt, sale_weight):
         twine_count = Decimal(str(tr.get('twine_count') or '0'))
         conv        = Decimal(str(tr.get('conversion_factor') or '0'))
 
-        # Use pre-computed daily_output if present, otherwise calculate
-        if tr.get('daily_output') not in (None, '', 'undefined'):
+        # Always compute daily_output fresh from the formula for accuracy.
+        daily_out = Decimal('0')
+        if knot_cap and conv and twine_count and row_mm:
+            daily_out = (conv * row_mm * twine_count * knot_cap) / Decimal('1000')
+        # Fall back to pre-computed daily_output only if computation not possible
+        if daily_out == 0 and tr.get('daily_output') not in (None, '', 'undefined'):
             daily_out = Decimal(str(tr['daily_output']))
-        else:
-            if knot_cap and conv and twine_count and row_mm:
-                daily_out = (conv * row_mm * twine_count * knot_cap) / Decimal('1000')
-            else:
-                daily_out = Decimal('0')
 
-        batch_weight = daily_out * req_days
+        per_row.append({
+            'code': code,
+            'daily_out': daily_out,
+        })
+        total_daily_output += daily_out
+
+    # Compute req_days with FULL precision (not the rounded DB value).
+    # Frontend: reqDaysNum = weight / dailyOutput (full precision).
+    # Backend:  previously used pt.required_days which is rounded to 3 decimals,
+    #           causing batch_weight mismatches (e.g. 50.63 vs 50.51).
+    computed_req_days = (pt_weight / total_daily_output) if (pt_weight > 0 and total_daily_output > 0) else Decimal('1')
+
+    # ── Second pass: compute batch_weight, waste, cost -----------------------
+    for row in per_row:
+        code = row['code']
+        daily_out = row['daily_out']
+
+        batch_weight = daily_out * computed_req_days
         waste        = batch_weight * waste_pct / Decimal('100')
 
         # Scale to the actual sale weight (proportional to pt.weight batch)
@@ -2822,7 +2840,7 @@ def _calc_twine_rows(pt, sale_weight):
 
         rows_detail.append({
             'material_code':  code,
-            'type':           tr.get('type', ''),
+            'type':           next((tr.get('type', '') for tr in twine_rows if (tr.get('twine') or '').strip() == code), ''),
             'daily_output':   float(daily_out),
             'batch_weight':   float(batch_weight),
             'waste':          float(waste),
