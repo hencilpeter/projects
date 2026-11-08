@@ -2678,8 +2678,9 @@ function buildPLHtml(data) {
         ].forEach(function(r) {
             html += '<div class="col border rounded p-1"><span class="text-muted">'+r[0]+':</span> '+plFmt(r[1])+'/day</div>';
         });
+        // Machine total moved into the grid to save vertical row space
+        html += '<div class="col fw-bold text-danger text-center"><span class="text-muted">Machine total('+plNum(s.init_weight)+' kg):</span> <strong>'+plFmt(mc.machine_total)+'</strong></div>';
         html += '</div>';
-        html += '<div class="small fw-bold text-danger mb-3">Machine total (for '+plNum(s.init_weight)+' kg): '+plFmt(mc.machine_total)+'</div>';
     } else {
         html += '<p class="small text-muted">No machine cost data found.</p>';
     }
