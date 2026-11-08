@@ -2685,7 +2685,7 @@ def parse_date(value):
     except (ValueError, TypeError):
         return None
 
-def _get_latest_twine_price(material_code):
+def _get_latest_twine_price(material_code, cache=None):
     """
     Return the latest GST-inclusive price for a twine material code.
     Mirrors the exact logic used in profit_analysis_view._latest_twine_price:
@@ -2693,31 +2693,50 @@ def _get_latest_twine_price(material_code):
       2. Fallback: Materials.price
     Both include GST: price × (1 + gst_percent/100)
     Returns a Decimal or None.
+
+    ``cache`` is an optional per-request dict used to avoid repeating the same
+    lookups when several sales share the same material codes.
     """
     from .models import Purchase, Materials
     from decimal import Decimal
+    if cache is not None:
+        price_cache = cache.setdefault('twine_price', {})
+        if material_code in price_cache:
+            return price_cache[material_code]
     latest = Purchase.objects.filter(
         material_code=material_code, is_twine=True
     ).order_by('-delivery_date', '-purchase_key').first()
+    result = None
     if latest and latest.unit_price is not None:
         gst = latest.gst_percent or Decimal('0')
-        return (latest.unit_price * (Decimal('1') + gst / Decimal('100'))).quantize(Decimal('0.01'))
-    mat = Materials.objects.filter(code=material_code).first()
-    if mat and mat.price:
-        gst = mat.gst or Decimal('0')
-        return (mat.price * (Decimal('1') + gst / Decimal('100'))).quantize(Decimal('0.01'))
-    return None
+        result = (latest.unit_price * (Decimal('1') + gst / Decimal('100'))).quantize(Decimal('0.01'))
+    else:
+        mat = Materials.objects.filter(code=material_code).first()
+        if mat and mat.price:
+            gst = mat.gst or Decimal('0')
+            result = (mat.price * (Decimal('1') + gst / Decimal('100'))).quantize(Decimal('0.01'))
+    if cache is not None:
+        cache['twine_price'][material_code] = result
+    return result
 
 
-def _find_production_tracker(sale):
+def _find_production_tracker(sale, cache=None):
     """
     Find the best-matching ProductionTracker for a sale, trying multiple
     strategies in order of specificity.  Returns a PT instance or None.
+
+    ``cache`` is an optional per-request dict; results are keyed by
+    (spec, twine) so sales sharing a specification reuse the same lookup.
     """
     import re as _re
     from .models import ProductionTracker
     spec = sale.prod_spec if sale.prod_spec else getattr(sale, 'speification', None)
+    cache_key = (spec, sale.twine)
+    if cache is not None and cache_key in cache.setdefault('pt', {}):
+        return cache['pt'][cache_key]
     if not spec:
+        if cache is not None:
+            cache['pt'][cache_key] = None
         return None
 
     pt = ProductionTracker.objects.filter(system_spec=spec).first()
@@ -2733,6 +2752,8 @@ def _find_production_tracker(sale):
                 mm__iexact=mm_match.group(1)
             ).first()
     if not pt:
+        if cache is not None:
+            cache['pt'][cache_key] = None
         return None
 
     # If the PT product doesn't match the sale twine, try to find a better one
@@ -2742,10 +2763,12 @@ def _find_production_tracker(sale):
         ).first()
         if alt:
             pt = alt
+    if cache is not None:
+        cache['pt'][cache_key] = pt
     return pt
 
 
-def _calc_twine_rows(pt, sale_weight):
+def _calc_twine_rows(pt, sale_weight, cache=None):
     """
     Compute per-material twine weights and costs for a given PT and sale weight.
 
@@ -2774,7 +2797,9 @@ def _calc_twine_rows(pt, sale_weight):
     except (json.JSONDecodeError, TypeError):
         return [], Decimal('0')
 
-    ac = AdditionalCost.objects.first()
+    ac = cache.get('additional_cost') if cache is not None and 'additional_cost' in cache else AdditionalCost.objects.first()
+    if cache is not None:
+        cache['additional_cost'] = ac
     waste_pct = Decimal(str(ac.waste_percentage)) if (ac and ac.waste_percentage) else Decimal('0')
 
     mm_val = Decimal(str(pt.mm)) if pt.mm else Decimal('0')
@@ -2835,7 +2860,7 @@ def _calc_twine_rows(pt, sale_weight):
         # as displayed in the table (avoids full-precision vs rounded-display mismatch)
         twine_for_sale = twine_for_sale.quantize(Decimal('0.01'))
 
-        price = _get_latest_twine_price(code)
+        price = _get_latest_twine_price(code, cache)
         if price is None:
             price = Decimal('0')
 
@@ -2990,15 +3015,19 @@ def calculate_profit_loss_api(request):
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 
-def profit_loss_detail_api(request, sales_key=None):
+def _build_profit_loss_breakdown(sale, cache=None):
     """
-    Return a full P&L breakdown.
+    Compute the full Profit & Loss breakdown for a saved or unsaved Sales object.
 
-    Two calling modes:
-      GET  /sales/profit-loss-detail/<sales_key>/  — load a saved Sales record
-      POST /sales/profit-loss-detail/              — pass raw form fields
+    Returns (data_dict, None) on success, or (None, error_message) on failure.
+    This routine powers both the Profit & Loss Breakdown window and the
+    Twine / P/L Amount columns of the sales table, so the figures shown in
+    the table always match the breakdown window.
+
+    ``cache`` is an optional per-request dict shared across sales to avoid
+    repeating identical reference-data lookups.
     """
-    from .models import Sales, MachineOperationalCost, AdditionalCost, ProcessingCost, Product
+    from .models import MachineOperationalCost, AdditionalCost, ProcessingCost, Product, Purchase
     from decimal import Decimal
 
     def _d(v, default='0'):
@@ -3007,43 +3036,11 @@ def profit_loss_detail_api(request, sales_key=None):
         except Exception:
             return default
 
-    # ── Build the sale-like object ────────────────────────────────────────────
-    if request.method == 'POST':
-        sale = Sales()
-        sale.sales_key        = None
-        sale.twine            = request.POST.get('twine', '').strip()
-        sale.speification     = request.POST.get('speification', '').strip()
-        sale.prod_spec        = request.POST.get('prod_spec', '').strip()
-        sale.customer         = request.POST.get('customer', '').strip()
-        sale.colour           = request.POST.get('colour', 'White').strip()
-        sale.order_no         = request.POST.get('order_no', '').strip()
-        try:
-            sale.initial_weight   = Decimal(request.POST.get('initial_weight') or '0') or None
-        except Exception:
-            sale.initial_weight   = None
-        try:
-            sale.processed_weight = Decimal(request.POST.get('processed_weight') or '0') or None
-        except Exception:
-            sale.processed_weight = None
-        try:
-            sale.unit_price = Decimal(request.POST.get('unit_price') or '0')
-        except Exception:
-            sale.unit_price = Decimal('0')
-        try:
-            sale.gst_rate = Decimal(request.POST.get('gst_rate') or '0')
-        except Exception:
-            sale.gst_rate = Decimal('0')
-    else:
-        try:
-            sale = Sales.objects.get(pk=sales_key)
-        except Sales.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Sale not found'}, status=404)
-
     try:
         init_weight = sale.initial_weight
         proc_weight = sale.processed_weight
         if not init_weight and not proc_weight:
-            return JsonResponse({'success': False, 'error': 'No weight value on this sale'})
+            return None, 'No weight value on this sale'
 
         # Expenses (raw material, machine, processing, packing, transport)
         # are always calculated on Init.Wt.
@@ -3053,22 +3050,27 @@ def profit_loss_detail_api(request, sales_key=None):
         # otherwise falls back to Init.Wt.
         revenue_weight = Decimal(str(proc_weight)) if proc_weight else Decimal(str(init_weight))
 
-        pt = _find_production_tracker(sale)
+        pt = _find_production_tracker(sale, cache)
         if not pt:
-            return JsonResponse({'success': False, 'error': 'No Production Tracker match found for this specification'})
+            return None, 'No Production Tracker match found for this specification'
 
         # ── Raw material ─────────────────────────────────────────────────────
-        twine_rows_detail, raw_material_cost = _calc_twine_rows(pt, expense_weight)
+        twine_rows_detail, raw_material_cost = _calc_twine_rows(pt, expense_weight, cache)
 
         if not twine_rows_detail:
-            return JsonResponse({'success': False, 'error': 'No twine row data found in Production Tracker (twine_rows field is empty)'})
+            return None, 'No twine row data found in Production Tracker (twine_rows field is empty)'
 
         # Build display-friendly rows with price source info
+        latest_purchase_cache = cache.setdefault('latest_purchase', {}) if cache is not None else None
         display_rows = []
         for row in twine_rows_detail:
             code = row['material_code']
-            from .models import Purchase, Materials
-            latest_p = Purchase.objects.filter(material_code=code, is_twine=True).order_by('-delivery_date', '-purchase_key').first()
+            if latest_purchase_cache is not None and code in latest_purchase_cache:
+                latest_p = latest_purchase_cache[code]
+            else:
+                latest_p = Purchase.objects.filter(material_code=code, is_twine=True).order_by('-delivery_date', '-purchase_key').first()
+                if latest_purchase_cache is not None:
+                    latest_purchase_cache[code] = latest_p
             price_source = f"Purchase {latest_p.delivery_date}" if latest_p else "Materials fallback"
             display_rows.append({
                 'material_code':   code,
@@ -3088,7 +3090,13 @@ def profit_loss_detail_api(request, sales_key=None):
         pt_weight = Decimal(str(pt.weight)) if pt.weight else Decimal('1')
         req_days  = Decimal(str(pt.required_days)) if pt.required_days else Decimal('1')
         if pt.machine:
-            moc = MachineOperationalCost.objects.filter(machine_number=pt.machine).first()
+            moc_cache = cache.setdefault('moc', {}) if cache is not None else None
+            if moc_cache is not None and pt.machine in moc_cache:
+                moc = moc_cache[pt.machine]
+            else:
+                moc = MachineOperationalCost.objects.filter(machine_number=pt.machine).first()
+                if moc_cache is not None:
+                    moc_cache[pt.machine] = moc
             if moc:
                 daily_cost = (
                     moc.operator_cost_per_day + moc.bobbin_winder_cost_per_day +
@@ -3116,9 +3124,24 @@ def profit_loss_detail_api(request, sales_key=None):
         processing_cost = Decimal('0')
         colour_cost     = Decimal('0')
         processing_detail = {}
-        prod = Product.objects.filter(code=sale.twine).first() if sale.twine else None
+        product_cache = cache.setdefault('product', {}) if cache is not None else None
+        if sale.twine:
+            if product_cache is not None and sale.twine in product_cache:
+                prod = product_cache[sale.twine]
+            else:
+                prod = Product.objects.filter(code=sale.twine).first()
+                if product_cache is not None:
+                    product_cache[sale.twine] = prod
+        else:
+            prod = None
         if prod and prod.material_id:
-            pc = ProcessingCost.objects.filter(material_code=prod.material_id).first()
+            pc_cache = cache.setdefault('processing_cost', {}) if cache is not None else None
+            if pc_cache is not None and prod.material_id in pc_cache:
+                pc = pc_cache[prod.material_id]
+            else:
+                pc = ProcessingCost.objects.filter(material_code=prod.material_id).first()
+                if pc_cache is not None:
+                    pc_cache[prod.material_id] = pc
             if pc:
                 processing_cost = expense_weight * (pc.processing_cost_per_kg or Decimal('0'))
                 colour_cost     = expense_weight * (pc.color_cost_per_kg       or Decimal('0'))
@@ -3131,7 +3154,12 @@ def profit_loss_detail_api(request, sales_key=None):
                 }
 
         # ── Additional costs ──────────────────────────────────────────────────
-        ac = AdditionalCost.objects.first()
+        if cache is not None and 'additional_cost' in cache:
+            ac = cache['additional_cost']
+        else:
+            ac = AdditionalCost.objects.first()
+            if cache is not None:
+                cache['additional_cost'] = ac
         packing_cost        = Decimal('0')
         transportation_cost = Decimal('0')
         if ac:
@@ -3148,8 +3176,7 @@ def profit_loss_detail_api(request, sales_key=None):
         profit_loss   = total_revenue - total_cost
 
         ac_obj = ac  # keep reference for display
-        return JsonResponse({
-            'success': True,
+        return {
             'sale': {
                 'sales_key':        sale.sales_key,
                 'order_no':         getattr(sale, 'order_no', ''),
@@ -3198,11 +3225,59 @@ def profit_loss_detail_api(request, sales_key=None):
                 'is_profit':        profit_loss > 0,
                 'profit_loss_pct':  _d((profit_loss / total_revenue * 100) if total_revenue else 0),
             },
-        })
+        }, None
 
     except Exception as e:
-        import traceback
-        return JsonResponse({'success': False, 'error': str(e), 'trace': traceback.format_exc()})
+        return None, str(e)
+
+
+def profit_loss_detail_api(request, sales_key=None):
+    """
+    Return a full P&L breakdown.
+
+    Two calling modes:
+      GET  /sales/profit-loss-detail/<sales_key>/  — load a saved Sales record
+      POST /sales/profit-loss-detail/              — pass raw form fields
+    """
+    from .models import Sales
+    from decimal import Decimal
+
+    # ── Build the sale-like object ────────────────────────────────────────────
+    if request.method == 'POST':
+        sale = Sales()
+        sale.sales_key        = None
+        sale.twine            = request.POST.get('twine', '').strip()
+        sale.speification     = request.POST.get('speification', '').strip()
+        sale.prod_spec        = request.POST.get('prod_spec', '').strip()
+        sale.customer         = request.POST.get('customer', '').strip()
+        sale.colour           = request.POST.get('colour', 'White').strip()
+        sale.order_no         = request.POST.get('order_no', '').strip()
+        try:
+            sale.initial_weight   = Decimal(request.POST.get('initial_weight') or '0') or None
+        except Exception:
+            sale.initial_weight   = None
+        try:
+            sale.processed_weight = Decimal(request.POST.get('processed_weight') or '0') or None
+        except Exception:
+            sale.processed_weight = None
+        try:
+            sale.unit_price = Decimal(request.POST.get('unit_price') or '0')
+        except Exception:
+            sale.unit_price = Decimal('0')
+        try:
+            sale.gst_rate = Decimal(request.POST.get('gst_rate') or '0')
+        except Exception:
+            sale.gst_rate = Decimal('0')
+    else:
+        try:
+            sale = Sales.objects.get(pk=sales_key)
+        except Sales.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Sale not found'}, status=404)
+
+    data, error = _build_profit_loss_breakdown(sale)
+    if error:
+        return JsonResponse({'success': False, 'error': error})
+    return JsonResponse({'success': True, **data})
 
 
 def sales_entry(request):
@@ -3371,6 +3446,45 @@ def sales_entry(request):
                 else ''
             ),
         })
+    # ── Values for the trailing "Twine" and "P/L Amount" columns ───────────
+    # Computed with the same routine that powers the Profit & Loss Breakdown
+    # window, so the table figures always match the breakdown.
+    pl_cache = {}
+    for s in sales_list:
+        pl_data, pl_error = _build_profit_loss_breakdown(s, pl_cache)
+        if pl_data and not pl_error:
+            s.pl_twine_breakdown = '|'.join(
+                '{}({})'.format(row['material_code'], row['twine_for_sale'])
+                for row in pl_data['twine_materials']['rows']
+            )
+            s.pl_amount = pl_data['summary']['profit_loss']
+            pl_value = Decimal(str(s.pl_amount))
+            if pl_value > 0:
+                s.pl_amount_class = 'text-success'
+            elif pl_value < 0:
+                s.pl_amount_class = 'text-danger'
+            else:
+                s.pl_amount_class = 'text-muted'
+            # Figures shown under the Profit/Loss label. Taken from the same
+            # breakdown so the cell, the P/L Amount column and the P&L window
+            # always agree.
+            s.pl_profit_loss = pl_value
+            s.pl_profit_per_kg = Decimal(str(pl_data['summary']['profit_per_kg']))
+            s.pl_profit_per_day = Decimal(str(pl_data['summary']['profit_per_day']))
+        else:
+            s.pl_twine_breakdown = ''
+            s.pl_amount = ''
+            s.pl_amount_class = 'text-muted'
+            # Fall back to the stored total when the live breakdown is
+            # unavailable; per-kg/day simply won't be shown.
+            s.pl_profit_loss = None
+            s.pl_profit_per_kg = None
+            s.pl_profit_per_day = None
+            if s.profit_loss is not None:
+                s.pl_profit_loss = Decimal(str(s.profit_loss))
+                pl_weight = s.processed_weight or s.initial_weight
+                if pl_weight:
+                    s.pl_profit_per_kg = (s.pl_profit_loss / Decimal(str(pl_weight))).quantize(Decimal('0.01'))
     from .models import ProductionTracker
     production_trackers = list(ProductionTracker.objects.all().values('pt_key', 'product', 'system_spec', 'user_spec', 'mm'))
     return render(request, 'marania_invoice_app/sales_entry.html', {

@@ -574,8 +574,10 @@ tr.row-status-on_hold_processing td {
               <col style="width:80px">
               <col style="width:90px">
               <col style="width:90px">
-              <col style="width:200px">
-              <col style="width:90px">
+              <col style="width:150px">
+              <col style="width:170px">
+              <col style="width:120px">
+              <col style="width:110px">
             </colgroup>
             <thead class="table-dark">
               <tr>
@@ -598,7 +600,9 @@ tr.row-status-on_hold_processing td {
                 <th scope="col">Delivery Date</th>
                 <th scope="col">Payment Date</th>
                 <th scope="col">Prod.Spec</th>
+                <th scope="col">Twine</th>
                 <th scope="col">Profit/Loss</th>
+                <th scope="col" class="col-narrow">P/L Amount</th>
               </tr>
               <tr id="sales-filter-row">
                 <th>
@@ -698,7 +702,9 @@ tr.row-status-on_hold_processing td {
                     </div>
                   </th>
                 <th><input class="filter-input" placeholder="Prod.Spec"></th>
+                <th><input class="filter-input" placeholder="Twine"></th>
                 <th><input class="filter-input" placeholder="Profit/Loss"></th>
+                <th><input class="filter-input" placeholder="P/L Amount"></th>
               </tr>
             </thead>
             <tbody>
@@ -751,21 +757,27 @@ tr.row-status-on_hold_processing td {
                   <td>{{ sale.delivery_date|default:""|date:"Y-m-d" }}</td>
                   <td>{{ sale.payment_date|default:""|date:"Y-m-d" }}</td>
                   <td>{{ sale.prod_spec|default:"" }}</td>
+                  <td class="pl-twine-cell">{{ sale.pl_twine_breakdown|default:"-" }}</td>
                   <td>
-                    {% if sale.profit_loss is not None %}
-                      {% with wt=sale.processed_weight|default:sale.initial_weight %}
-                      <span class="{% if sale.profit_loss > 0 %}text-success{% elif sale.profit_loss < 0 %}text-danger{% else %}text-muted{% endif %} d-block fw-semibold lh-1">
-                        {{ sale.profit_loss|floatformat:0 }}
+                    {% if sale.pl_profit_loss is not None %}
+                      {% with v=sale.pl_profit_loss %}
+                      <span class="{% if v > 0 %}text-success{% elif v < 0 %}text-danger{% else %}text-muted{% endif %} d-block fw-semibold lh-1">
+                        {% if v > 0 %}Profit{% elif v < 0 %}Loss{% else %}Break Even{% endif %}
                       </span>
-                      {% if wt and wt > 0 %}
-                      <small class="text-muted lh-1" style="font-size:0.68rem;" data-sales-key-pl="{{ sale.sales_key }}">
-                        <span class="pl-per-kg"></span>/kg
-                      </small>
+                      {% if sale.pl_profit_per_kg is not None %}
+                      <small class="text-muted lh-1 d-block" style="font-size:0.68rem;">{{ sale.pl_profit_per_kg|floatformat:2 }}/kg</small>
                       {% endif %}
+                      {% if sale.pl_profit_per_day is not None %}
+                      <small class="text-muted lh-1 d-block" style="font-size:0.68rem;">{{ sale.pl_profit_per_day|floatformat:2 }}/day</small>
+                      {% endif %}
+                      <small class="text-muted lh-1 d-block" style="font-size:0.68rem;">Total: {{ v|floatformat:2 }}</small>
                       {% endwith %}
                     {% else %}
                       <span class="text-muted">-</span>
                     {% endif %}
+                  </td>
+                  <td class="text-end fw-semibold {{ sale.pl_amount_class }}">
+                    {% if sale.pl_amount != '' %}{{ sale.pl_amount|floatformat:2 }}{% else %}-{% endif %}
                   </td>
                 </tr>
               {% endfor %}
@@ -988,15 +1000,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (prodSpecEl) {
         prodSpecEl.addEventListener('change', calcProfitLoss);
     }
-    // Populate /kg column from salesData on initial render
-    document.querySelectorAll('[data-sales-key-pl]').forEach(function(el) {
-        var sk = el.getAttribute('data-sales-key-pl');
-        var sd = salesData.find(function(s) { return String(s.sales_key) === String(sk); });
-        if (sd && sd.profit_per_kg) {
-            var span = el.querySelector('.pl-per-kg');
-            if (span) span.textContent = parseFloat(sd.profit_per_kg).toFixed(0);
-        }
-    });
 });
 
 // Status color sync
