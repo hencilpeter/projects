@@ -3446,7 +3446,7 @@ def sales_entry(request):
                 else ''
             ),
         })
-    # ── Values for the trailing "Twine" and "P/L Amount" columns ───────────
+    # ── Values for the trailing "Twine" and "Profit/Loss" columns ─────────
     # Computed with the same routine that powers the Profit & Loss Breakdown
     # window, so the table figures always match the breakdown.
     pl_cache = {}
@@ -3457,24 +3457,15 @@ def sales_entry(request):
                 '{}({})'.format(row['material_code'], row['twine_for_sale'])
                 for row in pl_data['twine_materials']['rows']
             )
-            s.pl_amount = pl_data['summary']['profit_loss']
-            pl_value = Decimal(str(s.pl_amount))
-            if pl_value > 0:
-                s.pl_amount_class = 'text-success'
-            elif pl_value < 0:
-                s.pl_amount_class = 'text-danger'
-            else:
-                s.pl_amount_class = 'text-muted'
-            # Figures shown under the Profit/Loss label. Taken from the same
-            # breakdown so the cell, the P/L Amount column and the P&L window
-            # always agree.
+            # Values shown in the Profit/Loss cell: label, per-kg, per-day and
+            # total. Taken from the same breakdown so the cell and the P&L
+            # window always agree.
+            pl_value = Decimal(str(pl_data['summary']['profit_loss']))
             s.pl_profit_loss = pl_value
             s.pl_profit_per_kg = Decimal(str(pl_data['summary']['profit_per_kg']))
             s.pl_profit_per_day = Decimal(str(pl_data['summary']['profit_per_day']))
         else:
             s.pl_twine_breakdown = ''
-            s.pl_amount = ''
-            s.pl_amount_class = 'text-muted'
             # Fall back to the stored total when the live breakdown is
             # unavailable; per-kg/day simply won't be shown.
             s.pl_profit_loss = None
