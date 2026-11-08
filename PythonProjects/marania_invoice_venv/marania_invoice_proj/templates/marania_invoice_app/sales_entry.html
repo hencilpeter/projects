@@ -2054,7 +2054,7 @@ if (salesTable) {
                 var cellText = cells[index].textContent.toLowerCase();
                 // (empty) / (not empty) on date columns must win over range filtering
                 var ftrimEarly = filter.trim();
-                var isEmptyTokenEarly = ftrimEarly === '(empty)' || ftrimEarly === '<empty>' || ftrimEarly === 'empty' || ftrimEarly === 'is empty' || ftrimEarly === 'blank' || ftrimEarly === 'isempty';
+                var isEmptyTokenEarly = ftrimEarly === '(empty)' || ftrimEarly === '<empty>' || ftrimEarly === 'empty' || ftrimEarly === 'is empty' || ftrimEarly === 'blank' || ftrimEarly === 'isempty' || ftrimEarly === '-';
                 var isNotEmptyTokenEarly = ftrimEarly === '(not empty)' || ftrimEarly === '<not empty>' || ftrimEarly === 'not empty' || ftrimEarly === 'notempty' || ftrimEarly === 'is not empty' || ftrimEarly === 'notblank' || ftrimEarly === 'not blank';
                 if ((index === 5 || index === 16 || index === 17) && (isEmptyTokenEarly || isNotEmptyTokenEarly)) {
                     var isBlankDate = cellText.trim() === '' || cellText.trim() === '-' || cellText.trim() === '—';
@@ -2092,7 +2092,7 @@ if (salesTable) {
                     if (cellText.trim() !== filter) show = false;
                 } else {
                     var ftrim = filter.trim();
-                    var isEmptyToken = ftrim === '(empty)' || ftrim === '<empty>' || ftrim === 'empty' || ftrim === 'is empty' || ftrim === 'blank' || ftrim === 'isempty';
+                    var isEmptyToken = ftrim === '(empty)' || ftrim === '<empty>' || ftrim === 'empty' || ftrim === 'is empty' || ftrim === 'blank' || ftrim === 'isempty' || ftrim === '-';
                     var isNotEmptyToken = ftrim === '(not empty)' || ftrim === '<not empty>' || ftrim === 'not empty' || ftrim === 'notempty' || ftrim === 'is not empty' || ftrim === 'notblank' || ftrim === 'not blank';
                     var isBlankCell = cellText.trim() === '' || cellText.trim() === '-' || cellText.trim() === '—';
                     if (isEmptyToken) {
