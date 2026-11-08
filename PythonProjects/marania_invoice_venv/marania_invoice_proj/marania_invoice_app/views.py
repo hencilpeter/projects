@@ -3008,8 +3008,10 @@ def _build_profit_loss_breakdown(sale, cache=None):
             return None, 'No weight value on this sale'
 
         # Expenses (raw material, machine, processing, packing, transport)
-        # are always calculated on Init.Wt.
-        expense_weight = Decimal(str(init_weight)) if init_weight else Decimal(str(proc_weight))
+        # use the larger of Init.Wt and Proc.Wt.
+        init_dec = Decimal(str(init_weight)) if init_weight else Decimal('0')
+        proc_dec = Decimal(str(proc_weight)) if proc_weight else Decimal('0')
+        expense_weight = max(init_dec, proc_dec)
 
         # Revenue (sales amount) is calculated on Proc.Wt if available,
         # otherwise falls back to Init.Wt.
