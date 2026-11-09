@@ -3,6 +3,8 @@
 
 {% block main %}
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
 <style>
 .invoice-table-wrapper {
     width: 100%;
@@ -91,6 +93,21 @@
     padding: 2px 6px !important;
     font-size: 0.85rem !important;
     line-height: 1.4 !important;
+}
+
+.date-filter-container {
+    display: flex;
+    gap: 2px;
+}
+.date-filter-container .form-control {
+    min-width: 0;
+    flex: 1;
+}
+.date-filter-container .btn {
+    flex-shrink: 0;
+    line-height: 1.2;
+    padding: 1px 4px;
+    font-size: 0.75rem;
 }
 
 .btn-3d-yellow {
@@ -308,7 +325,7 @@
       </form>
     </div>
 
-    <div id="orderSummaryPanel" class="card mb-2 shadow-sm border-primary" style="display:none;">
+    <div id="orderSummaryPanel" class="card mb-2 shadow-sm border-primary">
       <div class="card-body py-1 px-3">
         <div class="row g-0 align-items-center text-center">
           <div class="col-md-1 col-sm-4 border-end">
@@ -400,8 +417,50 @@
                   <button type="button" class="btn btn-outline-primary btn-sm ms-1" id="viewSelectedOrdersBtn" onclick="viewSelectedOrderList()" disabled><i class="bi bi-list-ul"></i>View</button>
                 </th>
                 <th><input class="filter-input" placeholder="Order #"></th>
-                <th><input class="filter-input" placeholder="O.Date"></th>
-                <th><input class="filter-input" placeholder="Status Upd Date"></th>
+                <th>
+                  <div class="date-filter-container">
+                    <input type="text" id="orderDateFilter" class="filter-input form-control form-control-sm" placeholder="O.Date ((empty))..." title="Pick a date range or type (empty) for blank">
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-secondary dropdown-toggle py-0" data-bs-toggle="dropdown" title="Quick date filters"><i class="bi bi-clock"></i></button>
+                      <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="setOrderDateFilterQuick('blank');return false;">Blank (No Date)</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setOrderDateFilterQuick('today');return false;">Today</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setOrderDateFilterQuick('thisweek');return false;">This Week</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setOrderDateFilterQuick('thismonth');return false;">This Month</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setOrderDateFilterQuick('thisyear');return false;">This Year</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" onclick="setOrderDateFilterQuick('yesterday');return false;">Yesterday</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setOrderDateFilterQuick('lastweek');return false;">Last Week</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setOrderDateFilterQuick('lastmonth');return false;">Last Month</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setOrderDateFilterQuick('lastyear');return false;">Last Year</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="clearOrderDateFilter();return false;">Clear</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </th>
+                <th>
+                  <div class="date-filter-container">
+                    <input type="text" id="statusDateFilter" class="filter-input form-control form-control-sm" placeholder="Status ((empty))..." title="Pick a date range or type (empty) for blank">
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-secondary dropdown-toggle py-0" data-bs-toggle="dropdown" title="Quick date filters"><i class="bi bi-clock"></i></button>
+                      <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="setStatusDateFilterQuick('blank');return false;">Blank (No Date)</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setStatusDateFilterQuick('today');return false;">Today</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setStatusDateFilterQuick('thisweek');return false;">This Week</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setStatusDateFilterQuick('thismonth');return false;">This Month</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setStatusDateFilterQuick('thisyear');return false;">This Year</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" onclick="setStatusDateFilterQuick('yesterday');return false;">Yesterday</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setStatusDateFilterQuick('lastweek');return false;">Last Week</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setStatusDateFilterQuick('lastmonth');return false;">Last Month</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setStatusDateFilterQuick('lastyear');return false;">Last Year</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="clearStatusDateFilter();return false;">Clear</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </th>
                 <th><input class="filter-input" placeholder="Customer (comma separated)" list="customer_list_filter"></th>
                 <th><input class="filter-input" placeholder="Twine" list="twine_list_filter"></th>
                 <th><input class="filter-input" placeholder="OrderSpec"></th>
@@ -1039,8 +1098,9 @@ document.addEventListener('DOMContentLoaded', function() {
     try { window.updateProdSpecOptions(); } catch(e) {}
     calcOrderProfitLoss();
 });
-
-
+</script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
 const productNames = {
   {% for product in products %}
   "{{ product.code|escapejs }}": "{{ product.display_name|default:product.name|escapejs }}",
@@ -1707,6 +1767,97 @@ function cloneOrder(orderKey) {
     setFormData(clone);
 }
 
+// ── Order date filters (flatpickr range, same as Sales) ──
+var orderDateFilterState = null;
+var statusDateFilterState = null;
+
+function initOrderDatePicker() {
+    var input = document.getElementById('orderDateFilter');
+    if (!input || input._flatpickr) return;
+    flatpickr(input, {
+        mode: "range", dateFormat: "Y-m-d",
+        onChange: function(sel) {
+            if (sel.length === 2) orderDateFilterState = { from: this.formatDate(sel[0], "Y-m-d"), to: this.formatDate(sel[1], "Y-m-d") };
+            else if (sel.length === 1) { var d = this.formatDate(sel[0], "Y-m-d"); orderDateFilterState = { from: d, to: d }; }
+            else orderDateFilterState = null;
+            applyOrderFilters();
+        },
+        onClear: function() { orderDateFilterState = null; applyOrderFilters(); }
+    });
+}
+function initStatusDatePicker() {
+    var input = document.getElementById('statusDateFilter');
+    if (!input || input._flatpickr) return;
+    flatpickr(input, {
+        mode: "range", dateFormat: "Y-m-d",
+        onChange: function(sel) {
+            if (sel.length === 2) statusDateFilterState = { from: this.formatDate(sel[0], "Y-m-d"), to: this.formatDate(sel[1], "Y-m-d") };
+            else if (sel.length === 1) { var d = this.formatDate(sel[0], "Y-m-d"); statusDateFilterState = { from: d, to: d }; }
+            else statusDateFilterState = null;
+            applyOrderFilters();
+        },
+        onClear: function() { statusDateFilterState = null; applyOrderFilters(); }
+    });
+}
+function orderDateQuickRange(range) {
+    var now = new Date(); var y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
+    function fmt(dt) { return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0'); }
+    var from, to;
+    switch(range) {
+        case 'today': from = to = now; break;
+        case 'thisweek': { var dow = now.getDay(); var diff = now.getDate() - dow + (dow === 0 ? -6 : 1); from = new Date(y, m, diff); to = new Date(from); to.setDate(to.getDate() + 6); break; }
+        case 'thismonth': from = new Date(y, m, 1); to = new Date(y, m+1, 0); break;
+        case 'thisyear': from = new Date(y, 0, 1); to = new Date(y, 11, 31); break;
+        case 'yesterday': from = to = new Date(y, m, d-1); break;
+        case 'lastweek': { var dow2 = now.getDay(); var diff2 = now.getDate() - dow2 + (dow2 === 0 ? -6 : 1) - 7; from = new Date(y, m, diff2); to = new Date(from); to.setDate(to.getDate() + 6); break; }
+        case 'lastmonth': from = new Date(y, m-1, 1); to = new Date(y, m, 0); break;
+        case 'lastyear': from = new Date(y-1, 0, 1); to = new Date(y-1, 11, 31); break;
+    }
+    return { from: fmt(from), to: fmt(to), fromDate: from, toDate: to };
+}
+function setOrderDateFilterQuick(range) {
+    if (range === 'blank') {
+        orderDateFilterState = null;
+        var fpB = document.getElementById('orderDateFilter')._flatpickr;
+        if (fpB) fpB.clear();
+        document.getElementById('orderDateFilter').value = '(empty)';
+        applyOrderFilters();
+        return;
+    }
+    var r = orderDateQuickRange(range);
+    orderDateFilterState = { from: r.from, to: r.to };
+    var fp = document.getElementById('orderDateFilter')._flatpickr;
+    if (fp) fp.setDate([r.fromDate, r.toDate], true);
+    applyOrderFilters();
+}
+function clearOrderDateFilter() {
+    orderDateFilterState = null;
+    var fp = document.getElementById('orderDateFilter')._flatpickr;
+    if (fp) fp.clear();
+    applyOrderFilters();
+}
+function setStatusDateFilterQuick(range) {
+    if (range === 'blank') {
+        statusDateFilterState = null;
+        var fpB = document.getElementById('statusDateFilter')._flatpickr;
+        if (fpB) fpB.clear();
+        document.getElementById('statusDateFilter').value = '(empty)';
+        applyOrderFilters();
+        return;
+    }
+    var r = orderDateQuickRange(range);
+    statusDateFilterState = { from: r.from, to: r.to };
+    var fp = document.getElementById('statusDateFilter')._flatpickr;
+    if (fp) fp.setDate([r.fromDate, r.toDate], true);
+    applyOrderFilters();
+}
+function clearStatusDateFilter() {
+    statusDateFilterState = null;
+    var fp = document.getElementById('statusDateFilter')._flatpickr;
+    if (fp) fp.clear();
+    applyOrderFilters();
+}
+
 const orderTable = document.getElementById('order-table');
 if (orderTable) {
     const orderTbody = orderTable.querySelector('tbody');
@@ -1726,6 +1877,8 @@ if (orderTable) {
         });
         const checkedStatuses = Array.from(document.querySelectorAll('.status-filter-checkbox:checked')).map(cb => cb.value);
         data['statuses'] = checkedStatuses;
+        data['orderDateFilter'] = orderDateFilterState;
+        data['statusDateFilter'] = statusDateFilterState;
         sessionStorage.setItem(filterStorageKey, JSON.stringify(data));
     }
 
@@ -1744,6 +1897,16 @@ if (orderTable) {
                 document.querySelectorAll('.status-filter-checkbox').forEach(cb => {
                     cb.checked = data['statuses'].includes(cb.value);
                 });
+            }
+            if (data['orderDateFilter']) {
+                orderDateFilterState = data['orderDateFilter'];
+                var fpInput = document.getElementById('orderDateFilter');
+                if (fpInput && fpInput._flatpickr) fpInput._flatpickr.setDate([orderDateFilterState.from, orderDateFilterState.to], true);
+            }
+            if (data['statusDateFilter']) {
+                statusDateFilterState = data['statusDateFilter'];
+                var fpInput2 = document.getElementById('statusDateFilter');
+                if (fpInput2 && fpInput2._flatpickr) fpInput2._flatpickr.setDate([statusDateFilterState.from, statusDateFilterState.to], true);
             }
         } catch(e) {}
     }
@@ -1788,6 +1951,27 @@ if (orderTable) {
                         if (!customerValues.some(cv => cellValue.includes(cv))) {
                             show = false;
                         }
+                    }
+                    return;
+                }
+
+                // Date columns (O.Date index 1, Status Date index 2) with range + blank support
+                if (index === 1 || index === 2) {
+                    var fv = filterInput.value.toLowerCase().trim();
+                    var isEmptyEarly = fv === '(empty)' || fv === '<empty>' || fv === 'empty' || fv === 'is empty' || fv === 'blank' || fv === 'isempty' || fv === '-';
+                    var isNotEmptyEarly = fv === '(not empty)' || fv === '<not empty>' || fv === 'not empty' || fv === 'notempty' || fv === 'is not empty' || fv === 'notblank' || fv === 'not blank';
+                    if (isEmptyEarly || isNotEmptyEarly) {
+                        var cellDateTxt = cells[colIdx].textContent.toLowerCase();
+                        var isBlankDate = cellDateTxt.trim() === '' || cellDateTxt.trim() === '-' || cellDateTxt.trim() === '—';
+                        if (isEmptyEarly && !isBlankDate) show = false;
+                        if (isNotEmptyEarly && isBlankDate) show = false;
+                        return;
+                    }
+                    var dateState = index === 1 ? orderDateFilterState : statusDateFilterState;
+                    if (dateState) {
+                        var cellDate = cells[colIdx].textContent.trim();
+                        if (cellDate < dateState.from || cellDate > dateState.to) show = false;
+                        return;
                     }
                     return;
                 }
@@ -1987,12 +2171,20 @@ if (orderTable) {
                 .forEach(cb => cb.checked = false);
             const countEl = document.getElementById('status-filter-count');
             if (countEl) countEl.textContent = '(0)';
+            orderDateFilterState = null;
+            statusDateFilterState = null;
+            var fp1 = document.getElementById('orderDateFilter')._flatpickr; if (fp1) fp1.clear();
+            var fp2 = document.getElementById('statusDateFilter')._flatpickr; if (fp2) fp2.clear();
             sessionStorage.removeItem(filterStorageKey);
             applyOrderFilters();
         });
 
+    try { initOrderDatePicker(); } catch(e) {}
+    try { initStatusDatePicker(); } catch(e) {}
     restoreFiltersFromStorage();
-    applyOrderFilters();
+    try { applyOrderFilters(); } catch(e) { try { updateOrderSummary(); } catch(e2) {} }
+    // Ensure summary shows even if filter step failed
+    try { updateOrderSummary(); } catch(e) {}
 }
 
 function toggleAllOrderCheckboxes(master) {
