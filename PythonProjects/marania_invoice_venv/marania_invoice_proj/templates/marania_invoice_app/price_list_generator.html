@@ -112,15 +112,17 @@
           </div>
         </div>
 
-        <div class="d-flex align-items-center mt-3 mb-2">
-          <h6 class="text-muted mb-0">2. Price List Entry</h6>
-          <button type="button" class="btn btn-sm section-toggle is-open ms-auto" id="priceListEntryToggle"
-                  data-bs-toggle="collapse" data-bs-target="#priceListEntryBody" aria-expanded="true"
-                  aria-controls="priceListEntryBody" title="Minimize section">
-            <span class="section-toggle-symbol">&minus;</span>
-          </button>
-        </div>
-        <div class="collapse show" id="priceListEntryBody">
+        <div class="card border-primary mb-3">
+          <div class="card-header d-flex align-items-center gap-2 py-2">
+            <h6 class="mb-0 text-primary">2. Price List Entry</h6>
+            <button type="button" class="btn btn-sm section-toggle is-open ms-auto" id="priceListEntryToggle"
+                    data-bs-toggle="collapse" data-bs-target="#priceListEntryBody" aria-expanded="true"
+                    aria-controls="priceListEntryBody" title="Minimize section">
+              <span class="section-toggle-symbol">&minus;</span>
+            </button>
+          </div>
+          <div class="collapse show" id="priceListEntryBody">
+            <div class="card-body py-2">
         <!-- Row 1: Product, Twine Price, GST -->
         <div class="row mb-3 align-items-end g-2">
           <div class="col-md-3">
@@ -229,6 +231,8 @@
           <button type="button" id="save-config-btn" class="btn btn-success btn-sm">Save Price List Configuration</button>
           <button type="button" id="cancel-edit-btn" class="btn btn-secondary btn-sm" style="display:none;">Cancel Edit</button>
         </div>
+            </div>
+          </div>
         </div>
 
       </div>
