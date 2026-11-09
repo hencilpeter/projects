@@ -8682,6 +8682,48 @@ def price_list_generator(request):
             "created_at": c.created_at.strftime("%d-%b-%Y %H:%M") if c.created_at else "",
         })
 
+    # ---- Section 1: twine materials with latest price (same as Profit Analysis) ----
+    def _plg_latest_twine_price(code):
+        latest = Purchase.objects.filter(
+            material_code=code, is_twine=True
+        ).order_by("-delivery_date", "-purchase_key").first()
+        if latest and latest.unit_price is not None:
+            gst_percent = latest.gst_percent or Decimal("0")
+            return (latest.unit_price * (Decimal("1") + gst_percent / Decimal("100"))).quantize(Decimal("0.01"))
+        mat = Materials.objects.filter(code=code).first()
+        if mat and mat.price:
+            gst_percent = mat.gst or Decimal("0")
+            return (mat.price * (Decimal("1") + gst_percent / Decimal("100"))).quantize(Decimal("0.01"))
+        return None
+
+    twine_codes = set()
+    for ratio_code in MaterialConversionRatio.objects.values_list("material_code", flat=True):
+        if ratio_code:
+            twine_codes.add(ratio_code)
+    for purchase_code in Purchase.objects.filter(is_twine=True).exclude(material_code="").exclude(material_code=None).values_list("material_code", flat=True):
+        twine_codes.add(purchase_code)
+    amended_prices = request.session.get("price_list_twine_prices") or {}
+    for code in amended_prices:
+        if code:
+            twine_codes.add(code)
+    material_names = {m.code: (m.name or "") for m in Materials.objects.all()}
+    twine_materials = []
+    for code in sorted(twine_codes):
+        latest = _plg_latest_twine_price(code)
+        latest_str = str(latest) if latest is not None else ""
+        amended = str(amended_prices.get(code) or "").strip()
+        twine_materials.append({
+            "code": code,
+            "name": material_names.get(code, ""),
+            "latest_price": latest_str,
+            "price": amended or latest_str,
+            "amended": bool(amended),
+        })
+    product_materials = {}
+    for p in products:
+        if getattr(p, "material_id", None):
+            product_materials[p.code] = p.material_id
+
     if request.method == "POST":
         action = request.POST.get("action", "save")
 
@@ -8691,6 +8733,47 @@ def price_list_generator(request):
                 PriceListConfiguration.objects.filter(price_list_key=pk).delete()
                 messages.success(request, "Configuration deleted successfully.")
             return redirect("price_list_generator")
+
+        if action == "update_twine_prices":
+            raw_map = request.POST.get("twine_price_map") or ""
+            price_map = {}
+            if raw_map:
+                try:
+                    price_map = json.loads(raw_map) if isinstance(raw_map, str) else raw_map
+                except (json.JSONDecodeError, TypeError):
+                    price_map = {}
+            if not isinstance(price_map, dict):
+                price_map = {}
+            clean_map = {str(k).strip(): str(v).strip() for k, v in price_map.items() if str(v).strip() != ""}
+            request.session["price_list_twine_prices"] = clean_map
+            updated = 0
+            for cfg in PriceListConfiguration.objects.all():
+                mat_code = getattr(cfg.product, "material_id", None) if getattr(cfg, "product", None) else None
+                if not mat_code and cfg.product_code:
+                    try:
+                        prod = Product.objects.filter(code=cfg.product_code).first()
+                        mat_code = getattr(prod, "material_id", None) if prod else None
+                    except Exception:
+                        mat_code = None
+                if mat_code and mat_code in clean_map:
+                    try:
+                        cfg.twine_price = Decimal(str(clean_map[mat_code]))
+                        cfg.save(update_fields=["twine_price"])
+                        updated += 1
+                    except Exception:
+                        pass
+            messages.success(request, f"Updated twine prices on {updated} saved configuration(s).")
+            return redirect("price_list_generator")
+
+        # Remember amended Section 1 prices for next entries
+        _tp_raw = request.POST.get("twine_prices") or ""
+        if _tp_raw:
+            try:
+                _tp = json.loads(_tp_raw)
+                if isinstance(_tp, dict):
+                    request.session["price_list_twine_prices"] = {str(k): str(v) for k, v in _tp.items() if str(v).strip() != ""}
+            except (json.JSONDecodeError, TypeError):
+                pass
 
         product_code = request.POST.get("product_code", "").strip()
         twine_price = request.POST.get("twine_price", "0")
@@ -8803,6 +8886,8 @@ def price_list_generator(request):
         "configs_json": json.dumps(configs_json),
         "machines": machines,
         "default_additional_cost": float(default_additional_cost),
+        "twine_materials_json": json.dumps(twine_materials, default=str),
+        "product_materials_json": json.dumps(product_materials, default=str),
     })
 
 

@@ -36,6 +36,21 @@
     font-size: 0.85rem;
     margin: 2px;
 }
+.section-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border-radius: 4px;
+    line-height: 1;
+}
+.section-toggle.is-closed { background: #0d6efd; color: #fff; }
+.section-toggle.is-open { background: #ffc107; }
+/* Section 1 twine material list: fixed max height so a long list scrolls */
+#twine-price-scroll { max-height: 260px; overflow: auto; }
+.twine-price-amended { background: #fff3cd !important; border-color: #ffc107 !important; }
 .daily-profit-item .remove-btn, .mesh-range-item .remove-btn {
     cursor: pointer;
     color: #dc3545;
@@ -58,7 +73,54 @@
       <input type="hidden" name="mesh_size_ranges" id="mesh_size_ranges">
 
       <div class="card shadow-sm p-3 mb-4">
+        <input type="hidden" name="twine_prices" id="twine_prices">
 
+        <!-- Section 1: Twine Material & Latest Price (collapsible) -->
+        <div class="card border-primary mb-3">
+          <div class="card-header d-flex align-items-center gap-2 py-2">
+            <h6 class="mb-0 text-primary">1. Twine Material &amp; Latest Price</h6>
+            <button type="button" class="btn btn-sm btn-warning ms-auto" id="apply-twine-prices-btn" title="Apply amended prices to all saved configurations">Update All Saved Prices</button>
+            <span id="twine-summary" class="text-muted small"></span>
+            <button type="button" class="btn btn-sm section-toggle is-open" id="twine-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#twineMaterialBody" aria-expanded="true"
+                    aria-controls="twineMaterialBody" title="Minimize section">
+              <span class="section-toggle-symbol">&minus;</span>
+            </button>
+          </div>
+          <div class="collapse show" id="twineMaterialBody">
+            <div class="card-body py-2">
+              <small class="text-muted d-block mb-2">
+                All configured twine material codes are listed below with their latest price.
+                Amend any price you need - amended prices are used for price list generation below.
+                Once amended you can minimize this section and continue.
+              </small>
+              <div class="table-responsive" id="twine-price-scroll">
+                <table class="table table-sm table-bordered align-middle mb-0" id="twine-price-table">
+                  <thead class="table-light">
+                    <tr>
+                      <th style="width:170px;">Material Code</th>
+                      <th>Material Name</th>
+                      <th style="width:140px;">Latest Price/KG</th>
+                      <th style="width:170px;">Price to Use/KG</th>
+                    </tr>
+                  </thead>
+                  <tbody id="twine-price-body"></tbody>
+                </table>
+              </div>
+              <div id="twine-empty" class="text-muted small mt-1" style="display:none;">No twine material configured.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center mt-3 mb-2">
+          <h6 class="text-muted mb-0">2. Price List Entry</h6>
+          <button type="button" class="btn btn-sm section-toggle is-open ms-auto" id="priceListEntryToggle"
+                  data-bs-toggle="collapse" data-bs-target="#priceListEntryBody" aria-expanded="true"
+                  aria-controls="priceListEntryBody" title="Minimize section">
+            <span class="section-toggle-symbol">&minus;</span>
+          </button>
+        </div>
+        <div class="collapse show" id="priceListEntryBody">
         <!-- Row 1: Product, Twine Price, GST -->
         <div class="row mb-3 align-items-end g-2">
           <div class="col-md-3">
@@ -167,6 +229,7 @@
           <button type="button" id="save-config-btn" class="btn btn-success btn-sm">Save Price List Configuration</button>
           <button type="button" id="cancel-edit-btn" class="btn btn-secondary btn-sm" style="display:none;">Cancel Edit</button>
         </div>
+        </div>
 
       </div>
     </form>
@@ -253,11 +316,123 @@
 </main>
 
 <script>
+const twineMaterialsData = JSON.parse('{{ twine_materials_json|escapejs }}' || '[]');
+const productMaterials = JSON.parse('{{ product_materials_json|escapejs }}' || '{}');
 const configsData = JSON.parse('{{ configs_json|escapejs }}' || '[]');
 
 let dailyProfits = [];
 let meshRanges = [];
 let editMode = false;
+
+/* ================= Section 1: twine material price sheet (collapsible) ================= */
+const twinePriceBody = document.getElementById('twine-price-body');
+const twineEmpty = document.getElementById('twine-empty');
+const twineSummary = document.getElementById('twine-summary');
+
+function markAmended(tr) {
+  const input = tr.querySelector('.twine-price-input');
+  const latest = tr.dataset.latestPrice || '';
+  const val = input.value.trim();
+  input.classList.toggle('twine-price-amended', !!val && val !== latest);
+}
+function addTwinePriceRow(code, name, latestPrice, price) {
+  const tr = document.createElement('tr');
+  tr.dataset.twineCode = code;
+  tr.dataset.latestPrice = latestPrice || '';
+  tr.innerHTML =
+    '<td class="fw-semibold">' + code + '</td>' +
+    '<td>' + (name || '') + '</td>' +
+    '<td class="twine-latest-price text-muted">' + (latestPrice || '-') + '</td>' +
+    '<td><input type="number" step="0.01" min="0" class="form-control form-control-sm twine-price-input" value="' + (price || '') + '" placeholder="Price/KG"></td>';
+  twinePriceBody.appendChild(tr);
+  markAmended(tr);
+  return tr;
+}
+if (Array.isArray(twineMaterialsData)) {
+  twineMaterialsData.forEach(function(m) {
+    addTwinePriceRow(m.code, m.name, m.latest_price !== undefined ? m.latest_price : m.price, m.price);
+  });
+}
+function findTwinePriceRow(code) {
+  let found = null;
+  twinePriceBody.querySelectorAll('tr').forEach(function(tr) {
+    if (tr.dataset.twineCode === code) found = tr;
+  });
+  return found;
+}
+function twinePriceFor(code) {
+  const tr = findTwinePriceRow(code);
+  if (!tr) return null;
+  const val = tr.querySelector('.twine-price-input').value.trim();
+  return val === '' ? null : val;
+}
+function collectTwinePrices() {
+  const prices = {};
+  twinePriceBody.querySelectorAll('tr').forEach(function(tr) {
+    const val = tr.querySelector('.twine-price-input').value.trim();
+    if (val !== '') prices[tr.dataset.twineCode] = val;
+  });
+  return prices;
+}
+function updateTwineSummary() {
+  const rows = twinePriceBody.querySelectorAll('tr');
+  let amended = 0;
+  rows.forEach(function(tr) {
+    if (tr.querySelector('.twine-price-input').classList.contains('twine-price-amended')) amended++;
+  });
+  twineSummary.textContent = rows.length
+    ? rows.length + ' material' + (rows.length > 1 ? 's' : '') + (amended ? ' \u2022 ' + amended + ' amended' : '')
+    : '';
+  twineEmpty.style.display = rows.length ? 'none' : '';
+}
+function syncTwinePriceToEntry(code, price) {
+  const sel = document.getElementById('product_code');
+  if (!sel || !sel.value) return;
+  if (productMaterials[sel.value] === code && price !== null) {
+    document.getElementById('twine_price').value = price;
+  }
+}
+twinePriceBody.addEventListener('input', function(e) {
+  if (!e.target.classList || !e.target.classList.contains('twine-price-input')) return;
+  const tr = e.target.closest('tr');
+  markAmended(tr);
+  updateTwineSummary();
+  syncTwinePriceToEntry(tr.dataset.twineCode, e.target.value.trim());
+});
+updateTwineSummary();
+
+/* Section toggle - / + (shared by Section 1 and Section 2) */
+function wireSectionToggle(btn) {
+  const target = document.querySelector(btn.getAttribute('data-bs-target') || '');
+  if (!target) return;
+  const symbol = btn.querySelector('.section-toggle-symbol');
+  function setState(open) {
+    symbol.textContent = open ? '\u2212' : '+';
+    btn.classList.toggle('is-open', open);
+    btn.classList.toggle('is-closed', !open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    btn.title = open ? 'Minimize section' : 'Expand section';
+  }
+  setState(target.classList.contains('show'));
+  target.addEventListener('shown.bs.collapse', function() { setState(true); });
+  target.addEventListener('hidden.bs.collapse', function() { setState(false); });
+}
+document.querySelectorAll('.section-toggle').forEach(wireSectionToggle);
+
+document.getElementById('apply-twine-prices-btn').addEventListener('click', function() {
+  var prices = collectTwinePrices();
+  if (Object.keys(prices).length === 0) { alert('No price values found in the Twine Material section.'); return; }
+  if (!confirm('Apply the current Price to Use/KG prices to all saved Price List configurations and update their twine prices?')) return;
+  var form = document.getElementById('priceListForm');
+  var hiddenAction = document.getElementById('form-action');
+  hiddenAction.value = 'update_twine_prices';
+  var mapInput = document.createElement('input');
+  mapInput.type = 'hidden';
+  mapInput.name = 'twine_price_map';
+  mapInput.value = JSON.stringify(prices);
+  form.appendChild(mapInput);
+  form.submit();
+});
 
 /* ========================
    Product Change -> Fetch Twine Price, Machine, Mesh Depth
@@ -286,10 +461,15 @@ document.getElementById('product_code').addEventListener('change', function() {
   })
   .then(function(res) { return res.json(); })
   .then(function(data) {
-    twineInput.value = data.twine_price !== '' ? data.twine_price : '';
+    const matCode = productMaterials[productCode];
+    const amended = matCode ? twinePriceFor(matCode) : null;
+    if (amended !== null) { twineInput.value = amended; }
+    else { twineInput.value = data.twine_price !== '' ? data.twine_price : ''; }
   })
   .catch(function() {
-    twineInput.value = '';
+    const matCode = productMaterials[productCode];
+    const amended = matCode ? twinePriceFor(matCode) : null;
+    twineInput.value = amended !== null ? amended : '';
   });
   fetch('/invoice/price-list-generator/get-machine-for-product/?product_code=' + encodeURIComponent(productCode), {
     headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -420,6 +600,8 @@ document.getElementById('save-config-btn').addEventListener('click', function() 
   }
   document.getElementById('daily_profit_values').value = JSON.stringify(dailyProfits);
   document.getElementById('mesh_size_ranges').value = JSON.stringify(meshRanges);
+  document.getElementById('twine_prices').value = JSON.stringify(collectTwinePrices());
+  document.getElementById('form-action').value = 'save';
   document.getElementById('priceListForm').submit();
 });
 
