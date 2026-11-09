@@ -6370,16 +6370,18 @@ def get_twine_inventory_data(request):
         
         debug_info.append(f"Looking for previous month: {prev_year}-{prev_month:02d}")
         
-        # Get previous month's inventory entry for the same twine
-        prev_inventory = TwineInventory.objects.filter(
-            year=prev_year,
-            month=prev_month,
-            twine=twine_value
-        ).first() if twine_value else TwineInventory.objects.filter(
-            year=prev_year,
-            month=prev_month,
-            twine__iexact=material_code
-        ).first()
+        # Get previous month's inventory entry — match by exact twine, then by
+        # code prefix (handles display-name differences in the stored twine string)
+        prev_inventory = None
+        if twine_value:
+            prev_inventory = TwineInventory.objects.filter(
+                year=prev_year, month=prev_month, twine=twine_value
+            ).first()
+        if not prev_inventory and material_code:
+            prev_inventory = (
+                TwineInventory.objects.filter(year=prev_year, month=prev_month, twine__istartswith=material_code + "-").first()
+                or TwineInventory.objects.filter(year=prev_year, month=prev_month, twine__iexact=material_code).first()
+            )
         
         daily_usage_prev = Decimal("0")
         if prev_inventory:

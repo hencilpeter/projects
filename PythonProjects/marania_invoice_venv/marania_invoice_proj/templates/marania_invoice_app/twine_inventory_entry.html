@@ -105,7 +105,7 @@
               <td class="text-end">{{ s.sales_out|floatformat:2 }}</td>
               <td class="text-end">{{ s.balance|floatformat:2 }}</td>
               <td class="text-end">{{ s.daily_usage|floatformat:2 }}</td>
-              <td class="text-end">{{ s.days_left|default:"—" }}</td>
+              <td class="text-end {% if s.days_left is not None and s.days_left < 10 %}text-danger fw-bold{% endif %}">{{ s.days_left|default:"—" }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -171,11 +171,11 @@
       <div class="row mb-3 align-items-end">
         <div class="col-md-2">
           <label class="form-label" style="font-size:0.75rem;margin-bottom:1px;">Year-Month</label>
-          <input type="month" name="month_year" id="ti_month_year" class="form-control form-control-sm" onchange="autoPopulateValues()">
+          <input type="month" name="month_year" id="ti_month_year" class="form-control form-control-sm" onchange="autoPopulateValues()" oninput="debouncedAutoPopulate()">
         </div>
         <div class="col-md-2">
           <label class="form-label" style="font-size:0.75rem;margin-bottom:1px;">Twine</label>
-          <input type="text" name="twine" id="ti_twine" class="form-control form-control-sm" placeholder="" list="twine_list" oninput="autoPopulateValues()">
+          <input type="text" name="twine" id="ti_twine" class="form-control form-control-sm" placeholder="" list="twine_list" onchange="autoPopulateValues()" oninput="debouncedAutoPopulate()">
           <datalist id="twine_list">
             {% for mat in materials %}
               <option value="{{ mat.code }}-{{ mat.displayname|default:mat.name }}">
@@ -375,11 +375,23 @@ function setDefaultMonthYear() {
 // Call on page load
 setDefaultMonthYear();
 
+var _autoPopulateTimer = null;
+function debouncedAutoPopulate() {
+    if (_autoPopulateTimer) clearTimeout(_autoPopulateTimer);
+    _autoPopulateTimer = setTimeout(autoPopulateValues, 500);
+}
+
 function autoPopulateValues() {
     var monthYear = document.getElementById('ti_month_year').value;
     var twine = document.getElementById('ti_twine').value;
 
     if (!monthYear || !twine) {
+        // Clear auto-filled fields when month/twine is cleared
+        document.getElementById('ti_opening_stock').value = '0.00';
+        document.getElementById('ti_stock_in').value = '0.00';
+        document.getElementById('ti_sales_out').value = '0.00';
+        document.getElementById('ti_daily_usage').value = '0.00';
+        calcBalance();
         return;
     }
 
@@ -395,25 +407,18 @@ function autoPopulateValues() {
             if (data.debug) {
                 console.log('Debug info:', data.debug);
             }
-            if (data.opening_stock !== null && data.opening_stock !== '0') {
-                // Only auto-populate opening_stock if it's not already set (for new entries)
-                var currentOpeningStock = document.getElementById('ti_opening_stock').value;
-                if (!currentOpeningStock || currentOpeningStock === '0') {
-                    document.getElementById('ti_opening_stock').value = data.opening_stock;
-                }
+            // Always overwrite so switching to a different twine/month refreshes everything
+            if (data.opening_stock !== null && data.opening_stock !== undefined) {
+                document.getElementById('ti_opening_stock').value = data.opening_stock;
             }
-            if (data.stock_in !== null) {
+            if (data.stock_in !== null && data.stock_in !== undefined) {
                 document.getElementById('ti_stock_in').value = data.stock_in;
             }
-            if (data.sales_out !== null) {
+            if (data.sales_out !== null && data.sales_out !== undefined) {
                 document.getElementById('ti_sales_out').value = data.sales_out;
             }
-            if (data.daily_usage !== null && data.daily_usage !== '0') {
-                // Only auto-populate daily_usage if it's not already set
-                var currentDailyUsage = document.getElementById('ti_daily_usage').value;
-                if (!currentDailyUsage || currentDailyUsage === '0') {
-                    document.getElementById('ti_daily_usage').value = data.daily_usage;
-                }
+            if (data.daily_usage !== null && data.daily_usage !== undefined) {
+                document.getElementById('ti_daily_usage').value = data.daily_usage;
             }
             calcBalance();
         })
@@ -526,6 +531,24 @@ function editTI(tiKey) {
     if (!ti) return;
     editingTIKey = tiKey;
     setFormData(ti);
+    // Refresh Sales Out with live consumption (saved opening/stock/daily stay as stored)
+    refreshEditSalesOut();
+}
+
+function refreshEditSalesOut() {
+    var monthYear = document.getElementById('ti_month_year').value;
+    var twine = document.getElementById('ti_twine').value;
+    if (!monthYear || !twine) return;
+    var materialCode = twine.split('-')[0].trim();
+    fetch('/invoice/get-twine-inventory-data/?month_year=' + monthYear + '&material_code=' + materialCode + '&twine=' + encodeURIComponent(twine))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.sales_out !== null && data.sales_out !== undefined) {
+                document.getElementById('ti_sales_out').value = data.sales_out;
+            }
+            calcBalance();
+        })
+        .catch(function(e) { console.error('Error refreshing edit sales out:', e); });
 }
 
 function setFormData(data) {
@@ -739,6 +762,12 @@ function renderSummaryBanner(period) {
             tr.cells[4].textContent = bal.toFixed(2);
             tr.cells[5].textContent = daily.toFixed(2);
             tr.cells[6].textContent = days;
+            var daysNum = parseFloat(days);
+            if (!isNaN(daysNum) && daysNum < 10) {
+                tr.cells[6].className = 'text-end text-danger fw-bold';
+            } else {
+                tr.cells[6].className = 'text-end';
+            }
             tbody.appendChild(tr);
         });
         updateSummaryTotals();
