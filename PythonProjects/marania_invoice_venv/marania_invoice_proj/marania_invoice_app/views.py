@@ -5845,6 +5845,56 @@ def get_material_value_breakdown(request):
     return JsonResponse({"success": True, "data": breakdown})
 
 
+def _sales_twine_consumption(year, month):
+    """Live per-material twine consumption (kg) from Sales P&L breakdowns for a month.
+
+    Uses the same breakdown as the Sales Profit & Loss window: for each sale in
+    the month with a Prod.Spec, sums twine_for_sale per material_code.
+    Returns {material_code: Decimal total_kg}.
+    """
+    from .models import Sales as _Sales
+    from decimal import Decimal
+    totals = {}
+    if not year or not month:
+        return totals
+    cache = {}
+    try:
+        qs = _Sales.objects.filter(sales_entry_date__year=year, sales_entry_date__month=month)
+    except Exception:
+        return totals
+    for sale in qs:
+        if not getattr(sale, 'prod_spec', None):
+            continue
+        data, error = _build_profit_loss_breakdown(sale, cache)
+        if error or not data:
+            continue
+        for row in data['twine_materials']['rows']:
+            code = (row.get('material_code') or '').strip()
+            if not code:
+                continue
+            try:
+                kg = Decimal(str(row.get('twine_for_sale') or '0'))
+            except Exception:
+                continue
+            totals[code] = totals.get(code, Decimal('0')) + kg
+    # Round to 2dp
+    return {k: v.quantize(Decimal('0.01')) for k, v in totals.items()}
+
+
+def sales_twine_consumption_api(request):
+    my = request.GET.get("month_year", "")
+    try:
+        y, m = int(my.split("-")[0]), int(my.split("-")[1])
+    except (ValueError, IndexError, TypeError):
+        return JsonResponse({"success": False, "error": "Invalid month_year, expected YYYY-MM"})
+    cons = _sales_twine_consumption(y, m)
+    return JsonResponse({
+        "success": True,
+        "month_year": my,
+        "consumption": {k: str(v) for k, v in cons.items()},
+    })
+
+
 def twine_inventory_entry(request):
     from .models import TwineInventory, Materials
     from datetime import datetime, timedelta
@@ -6176,11 +6226,18 @@ def twine_inventory_entry(request):
         except (ValueError, IndexError, TypeError):
             pass
     selected_summary = f"{summary_year}-{summary_month:02d}"
+    _summary_consumption = _sales_twine_consumption(summary_year, summary_month)
     inventory_summary = []
     for e in TwineInventory.objects.filter(month=summary_month, year=summary_year).order_by('twine'):
         twine_full = (e.twine or '').strip()
         twine_code = twine_full.split('-')[0].strip() if '-' in twine_full else twine_full
-        balance_val = float(e.balance or 0)
+        opening_val = float(e.opening_stock or 0)
+        stock_val = float(e.stock_in or 0)
+        waste_val = float(e.waste_used or 0)
+        sales_val = float(_summary_consumption.get(twine_code, 0) or 0)
+        # Balance / Days Left use the same logic, but with live Sales Out so the
+        # columns add up: Balance = Opening + Stock In - Sales Out (live) - Waste
+        balance_val = opening_val + stock_val - sales_val - waste_val
         daily_val = float(e.daily_usage or 0)
         if e.days_left is not None:
             days_val = e.days_left
@@ -6191,6 +6248,10 @@ def twine_inventory_entry(request):
         inventory_summary.append({
             'twine_code': twine_code,
             'twine': twine_full,
+            'opening_stock': opening_val,
+            'stock_in': stock_val,
+            'sales_out': sales_val,
+            'waste_used': waste_val,
             'balance': balance_val,
             'daily_usage': daily_val,
             'days_left': days_val,
@@ -6294,58 +6355,10 @@ def get_twine_inventory_data(request):
                 stock_in += purchase.quantity_weight
                 debug_info.append(f"    -> Added quantity_weight: {purchase.quantity_weight}")
 
-        # Calculate Sales Out from Sales module
-        # Filter sales where sales_entry_date is in the selected month
-        sales = Sales.objects.filter(
-            sales_entry_date__year=year,
-            sales_entry_date__month=month
-        )
-        debug_info.append(f"Sales in month: {sales.count()} found")
-        
-        for sale in sales:
-            debug_info.append(f"  - sale_key={sale.sales_key}, twine={sale.twine}, speification={sale.speification}, sales_entry_date={sale.sales_entry_date}, processed_weight={sale.processed_weight}, initial_weight={sale.initial_weight}")
-            
-            # Check if the twine field contains any synonym
-            match_found = False
-            for synonym in synonyms:
-                if sale.twine and synonym in sale.twine:
-                    match_found = True
-                    debug_info.append(f"    -> Matched by synonym '{synonym}' in twine field")
-                    break
-            
-            # Also check specification field
-            if not match_found and sale.speification:
-                for synonym in synonyms:
-                    if synonym in sale.speification:
-                        match_found = True
-                        debug_info.append(f"    -> Matched by synonym '{synonym}' in speification field")
-                        break
-            
-            # Additional fallback: check if material_code appears in twine or speification (partial match)
-            if not match_found:
-                if sale.twine and material_code in sale.twine:
-                    match_found = True
-                    debug_info.append(f"    -> Matched by material_code in twine field (partial)")
-                elif sale.speification and material_code in sale.speification:
-                    match_found = True
-                    debug_info.append(f"    -> Matched by material_code in speification field (partial)")
-            
-            # Additional fallback: check if material name appears in twine or speification
-            if not match_found and material_name:
-                if sale.twine and material_name in sale.twine:
-                    match_found = True
-                    debug_info.append(f"    -> Matched by material_name in twine field")
-                elif sale.speification and material_name in sale.speification:
-                    match_found = True
-                    debug_info.append(f"    -> Matched by material_name in speification field")
-            
-            if match_found:
-                if sale.processed_weight:
-                    sales_out += sale.processed_weight
-                    debug_info.append(f"    -> Added processed_weight: {sale.processed_weight}")
-                elif sale.initial_weight:
-                    sales_out += sale.initial_weight
-                    debug_info.append(f"    -> Added initial_weight: {sale.initial_weight}")
+        # Calculate Sales Out from Sales module: live per-material consumption via P&L breakdowns
+        _cons = _sales_twine_consumption(year, month)
+        sales_out = _cons.get(material_code, Decimal("0"))
+        debug_info.append(f"Sales consumption (P&L twine_for_sale sum) for {material_code}: {sales_out} (all: {_cons})")
 
         # Calculate Opening Stock from previous month's Balance
         # Calculate previous month and year
@@ -6402,6 +6415,7 @@ def refresh_twine_inventory(request):
     if not entries.exists():
         return JsonResponse({"success": False, "error": "No entries found for this month"})
 
+    _consumption = _sales_twine_consumption(year, month)
     results = []
     for entry in entries:
         material_code = entry.twine.split("-")[0].strip() if entry.twine else ""
@@ -6436,34 +6450,7 @@ def refresh_twine_inventory(request):
             if match_found and purchase.quantity_weight:
                 stock_in += purchase.quantity_weight
 
-        sales_out = Decimal("0")
-        sales = Sales.objects.filter(sales_entry_date__year=year, sales_entry_date__month=month)
-        for sale in sales:
-            match_found = False
-            for synonym in synonyms:
-                if sale.twine and synonym in sale.twine:
-                    match_found = True
-                    break
-            if not match_found and sale.speification:
-                for synonym in synonyms:
-                    if synonym in sale.speification:
-                        match_found = True
-                        break
-            if not match_found:
-                if sale.twine and material_code in sale.twine:
-                    match_found = True
-                elif sale.speification and material_code in sale.speification:
-                    match_found = True
-            if not match_found and material_name:
-                if sale.twine and material_name in sale.twine:
-                    match_found = True
-                elif sale.speification and material_name in sale.speification:
-                    match_found = True
-            if match_found:
-                if sale.processed_weight:
-                    sales_out += sale.processed_weight
-                elif sale.initial_weight:
-                    sales_out += sale.initial_weight
+        sales_out = _consumption.get(material_code, Decimal("0"))
 
         opening_stock = entry.opening_stock or Decimal("0")
         daily_usage = entry.daily_usage or Decimal("0")

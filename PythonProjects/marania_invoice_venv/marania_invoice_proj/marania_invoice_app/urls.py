@@ -159,6 +159,7 @@ path('material-value-breakdown/', views.get_material_value_breakdown, name='get_
 # twine inventory
 path('twine-inventory', views.twine_inventory_entry, name='twine_inventory_entry'),
 path('get-twine-inventory-data/', views.get_twine_inventory_data, name='get_twine_inventory_data'),
+path('sales-twine-consumption/', views.sales_twine_consumption_api, name='sales_twine_consumption'),
 path('refresh-twine-inventory/', views.refresh_twine_inventory, name='refresh_twine_inventory'),
 
 # invoice aging report

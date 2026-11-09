@@ -84,7 +84,10 @@
           <thead class="table-light">
             <tr>
               <th>Twine Code</th>
-              <th class="text-end">Outstanding Balance (KG)</th>
+              <th class="text-end">Opening Stock (KG)</th>
+              <th class="text-end">Stock In (KG)</th>
+              <th class="text-end">Sales Out (KG)</th>
+              <th class="text-end">Balance (KG)</th>
               <th class="text-end">Daily Usage (KG)</th>
               <th class="text-end">Days Left</th>
             </tr>
@@ -93,12 +96,26 @@
             {% for s in inventory_summary %}
             <tr>
               <td>{{ s.twine_code }}</td>
+              <td class="text-end">{{ s.opening_stock|floatformat:2 }}</td>
+              <td class="text-end">{{ s.stock_in|floatformat:2 }}</td>
+              <td class="text-end">{{ s.sales_out|floatformat:2 }}</td>
               <td class="text-end">{{ s.balance|floatformat:2 }}</td>
               <td class="text-end">{{ s.daily_usage|floatformat:2 }}</td>
               <td class="text-end">{{ s.days_left|default:"—" }}</td>
             </tr>
             {% endfor %}
           </tbody>
+          <tfoot class="table-light fw-bold">
+            <tr>
+              <td>Total</td>
+              <td class="text-end" id="summary-total-opening">—</td>
+              <td class="text-end" id="summary-total-stockin">—</td>
+              <td class="text-end" id="summary-total-salesout">—</td>
+              <td class="text-end" id="summary-total-balance">—</td>
+              <td class="text-end" id="summary-total-daily">—</td>
+              <td class="text-end">—</td>
+            </tr>
+          </tfoot>
         </table>
       </div>
       <p class="text-muted mb-0" id="inventory-summary-empty" style="display:none;">No inventory records for the selected month.</p>
@@ -109,19 +126,33 @@
           <thead class="table-light">
             <tr>
               <th>Twine Code</th>
-              <th class="text-end">Outstanding Balance (KG)</th>
+              <th class="text-end">Opening Stock (KG)</th>
+              <th class="text-end">Stock In (KG)</th>
+              <th class="text-end">Sales Out (KG)</th>
+              <th class="text-end">Balance (KG)</th>
               <th class="text-end">Daily Usage (KG)</th>
               <th class="text-end">Days Left</th>
             </tr>
           </thead>
           <tbody id="inventory-summary-body"></tbody>
+          <tfoot class="table-light fw-bold">
+            <tr>
+              <td>Total</td>
+              <td class="text-end" id="summary-total-opening">—</td>
+              <td class="text-end" id="summary-total-stockin">—</td>
+              <td class="text-end" id="summary-total-salesout">—</td>
+              <td class="text-end" id="summary-total-balance">—</td>
+              <td class="text-end" id="summary-total-daily">—</td>
+              <td class="text-end">—</td>
+            </tr>
+          </tfoot>
         </table>
       </div>
       {% endif %}
     </div>
 
     <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#twineForm" aria-expanded="false" aria-controls="twineForm">
-      New Twine Inventory Entry
+      Twine Inventory Entry
     </button>
 
     <div class="collapse" id="twineForm">
@@ -307,6 +338,7 @@ var editingTIKey = '';
 
 populateYearMonthFilters();
 populateTable();
+try { updateSummaryTotals(); } catch(e) {}
 
 // Set default month-year to current month
 function setDefaultMonthYear() {
@@ -617,6 +649,25 @@ function populateYearMonthFilters() {
     }
 }
 
+function updateSummaryTotals() {
+    var sums = { opening: 0, stockIn: 0, salesOut: 0, balance: 0, daily: 0 };
+    document.querySelectorAll('#inventory-summary-body tr').forEach(function(tr) {
+        var cells = tr.cells;
+        if (!cells || cells.length < 7) return;
+        sums.opening += parseFloat(cells[1].textContent.replace(/,/g, '')) || 0;
+        sums.stockIn += parseFloat(cells[2].textContent.replace(/,/g, '')) || 0;
+        sums.salesOut += parseFloat(cells[3].textContent.replace(/,/g, '')) || 0;
+        sums.balance += parseFloat(cells[4].textContent.replace(/,/g, '')) || 0;
+        sums.daily += parseFloat(cells[5].textContent.replace(/,/g, '')) || 0;
+    });
+    function set(id, val) { var el = document.getElementById(id); if (el) el.textContent = val.toFixed(2); }
+    set('summary-total-opening', sums.opening);
+    set('summary-total-stockin', sums.stockIn);
+    set('summary-total-salesout', sums.salesOut);
+    set('summary-total-balance', sums.balance);
+    set('summary-total-daily', sums.daily);
+}
+
 function onSummaryPeriodChange() {
     var sel = document.getElementById('summary-period-select');
     if (!sel || !sel.value) return;
@@ -644,26 +695,42 @@ function renderSummaryBanner(period) {
         if (emptyMsg) emptyMsg.style.display = '';
         return;
     }
-    rows.forEach(function(ti) {
-        var full = (ti.twine || '').trim();
-        var code = full.indexOf('-') > -1 ? full.split('-')[0].trim() : full;
-        var bal = parseFloat(ti.balance) || 0;
-        var daily = parseFloat(ti.daily_usage) || 0;
-        var days = ti.days_left;
-        if ((days === null || days === undefined || days === '') && daily > 0 && bal > 0) {
-            days = Math.ceil(bal / daily);
-        }
-        if (days === null || days === undefined || days === '') days = '—';
-        var tr = document.createElement('tr');
-        tr.innerHTML = '<td></td><td class="text-end"></td><td class="text-end"></td><td class="text-end"></td>';
-        tr.cells[0].textContent = code;
-        tr.cells[1].textContent = bal.toFixed(2);
-        tr.cells[2].textContent = daily.toFixed(2);
-        tr.cells[3].textContent = days;
-        tbody.appendChild(tr);
-    });
-    if (tableWrap) tableWrap.style.display = '';
-    if (emptyMsg) emptyMsg.style.display = 'none';
+    function renderRows(consumption) {
+        consumption = consumption || {};
+        rows.forEach(function(ti) {
+            var full = (ti.twine || '').trim();
+            var code = full.indexOf('-') > -1 ? full.split('-')[0].trim() : full;
+            var opening = parseFloat(ti.opening_stock) || 0;
+            var stockIn = parseFloat(ti.stock_in) || 0;
+            var waste = parseFloat(ti.waste_used) || 0;
+            var salesOut = parseFloat(consumption[code] || 0);
+            var bal = opening + stockIn - salesOut - waste;
+            var daily = parseFloat(ti.daily_usage) || 0;
+            var days = ti.days_left;
+            if ((days === null || days === undefined || days === '') && daily > 0 && bal > 0) {
+                days = Math.ceil(bal / daily);
+            }
+            if (days === null || days === undefined || days === '') days = '—';
+            var tr = document.createElement('tr');
+            tr.innerHTML = '<td></td><td class="text-end"></td><td class="text-end"></td><td class="text-end"></td><td class="text-end"></td><td class="text-end"></td><td class="text-end"></td>';
+            tr.cells[0].textContent = code;
+            tr.cells[1].textContent = opening.toFixed(2);
+            tr.cells[2].textContent = stockIn.toFixed(2);
+            tr.cells[3].textContent = salesOut.toFixed(2);
+            tr.cells[4].textContent = bal.toFixed(2);
+            tr.cells[5].textContent = daily.toFixed(2);
+            tr.cells[6].textContent = days;
+            tbody.appendChild(tr);
+        });
+        updateSummaryTotals();
+        if (tableWrap) tableWrap.style.display = '';
+        if (emptyMsg) emptyMsg.style.display = 'none';
+    }
+    // Load live Sales consumption for the selected month, then render
+    fetch('/invoice/sales-twine-consumption/?month_year=' + encodeURIComponent(period))
+        .then(function(r) { return r.json(); })
+        .then(function(data) { renderRows(data && data.consumption || {}); })
+        .catch(function() { renderRows({}); });
 }
 
 function toggleSelectAllTI() {
