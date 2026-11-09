@@ -512,6 +512,7 @@ class ProfitLoss(models.Model):
     purchase_expense = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     other_expenses = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     inhouse_material_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    material_sales_profit = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total_income = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total_expenses = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     profit_loss_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -520,12 +521,12 @@ class ProfitLoss(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
+        # In-House Material Value is informational only and is not used in totals/profit
         self.total_income = self.sales_revenue + self.other_income
         self.total_expenses = (
             self.salary_expense
             + self.purchase_expense
             + self.other_expenses
-            + self.inhouse_material_value
         )
         self.profit_loss_amount = self.total_income - self.total_expenses
         if self.profit_loss_amount > 0:

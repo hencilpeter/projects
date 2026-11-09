@@ -155,6 +155,7 @@ path('settlement-invoices', views.settlement_invoice_entry, name='settlement_inv
 path('profit-loss', views.profit_loss_entry, name='profit_loss_entry'),
 path('other-expenses-breakdown/', views.get_other_expenses_breakdown, name='get_other_expenses_breakdown'),
 path('material-value-breakdown/', views.get_material_value_breakdown, name='get_material_value_breakdown'),
+path('purchase-expense-breakdown/', views.get_purchase_expense_breakdown, name='get_purchase_expense_breakdown'),
 
 # twine inventory
 path('twine-inventory', views.twine_inventory_entry, name='twine_inventory_entry'),

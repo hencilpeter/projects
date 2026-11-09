@@ -170,8 +170,14 @@
         <div class="col-md-2">
           <button type="button" class="btn btn-secondary btn-sm w-100" onclick="resetPL()">Clear</button>
         </div>
+        <div class="col-md-2 ms-auto">
+          <button type="button" id="plEntryToggleBtn" class="btn btn-sm btn-outline-primary py-0 px-2 w-100" data-bs-toggle="collapse" data-bs-target="#plEntryDetail" aria-expanded="true" aria-controls="plEntryDetail" title="Expand / collapse entry details">
+            <span id="plEntryToggleLabel">Less</span> <i class="bi bi-chevron-up"></i>
+          </button>
+        </div>
       </div>
 
+      <div class="collapse show" id="plEntryDetail">
       <hr>
 
       <div class="pl-field-group">
@@ -206,7 +212,7 @@
             </div>
           </div>
           <div class="col-md-3">
-            <div class="pl-field-label">Purchase Expense (Rs)</div>
+            <div class="pl-field-label">Raw Material Expense (Rs) <a href="javascript:void(0);" onclick="viewPurchaseExpenseBreakdown()" style="color:#0d6efd;font-size:0.8rem;text-decoration:underline;">View Breakdown</a></div>
             <div class="pl-field-value">
               <input type="number" name="purchase_expense" id="pl_purchase_expense" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
             </div>
@@ -235,9 +241,15 @@
             </div>
           </div>
           <div class="col-md-3">
-            <div class="pl-field-label" style="font-weight:bold;">Profit / Loss Amount (Rs)</div>
+            <div class="pl-field-label" style="font-weight:bold;">Net Profit/Loss Amount (Rs)</div>
             <div class="pl-field-value" style="font-weight:bold;">
               <input type="number" name="profit_loss_amount" id="pl_profit_loss_amount" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="pl-field-label" style="font-weight:bold;">Material Sales Profit (Rs)</div>
+            <div class="pl-field-value">
+              <input type="number" name="material_sales_profit" id="pl_material_sales_profit" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
             </div>
           </div>
           <div class="col-md-3">
@@ -247,6 +259,7 @@
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       </form>
@@ -292,6 +305,7 @@
             <col style="width:100px">
             <col style="width:100px">
             <col style="width:100px">
+            <col style="width:100px">
             <col style="width:110px">
           </colgroup>
           <thead class="table-dark">
@@ -302,12 +316,13 @@
                 <th scope="col">Sales Rev(Rs)</th>
                 <th scope="col">Other Inc(Rs)</th>
                 <th scope="col">Salary Exp(Rs)</th>
-                <th scope="col">Purchase Exp(Rs)</th>
+                <th scope="col">Raw Material Exp(Rs)</th>
                 <th scope="col">Other Exp(Rs)</th>
                 <th scope="col">Material Value(Rs)</th>
                 <th scope="col">Total Income(Rs)</th>
                 <th scope="col">Total Exp(Rs)</th>
-                <th scope="col">Profit/Loss Amount(Rs)</th>
+                <th scope="col">Net Profit/Loss Amount(Rs)</th>
+                <th scope="col">Mat. Sales Profit(Rs)</th>
                 <th scope="col">Status</th>
               </tr>
               <tr id="pl-filter-row">
@@ -337,12 +352,13 @@
                 <th><input class="filter-input" placeholder="Sales Rev"></th>
                 <th><input class="filter-input" placeholder="Other Inc"></th>
                 <th><input class="filter-input" placeholder="Salary"></th>
-                <th><input class="filter-input" placeholder="Purchase"></th>
+                <th><input class="filter-input" placeholder="Raw Material"></th>
                 <th><input class="filter-input" placeholder="Other Exp"></th>
                 <th><input class="filter-input" placeholder="Material"></th>
                 <th><input class="filter-input" placeholder="Total Inc"></th>
                 <th><input class="filter-input" placeholder="Total Exp"></th>
-                <th><input class="filter-input" placeholder="PL Amount"></th>
+                <th><input class="filter-input" placeholder="Net PL Amount"></th>
+                <th><input class="filter-input" placeholder="Mat. Sales Profit"></th>
                 <th>
                   <select class="filter-select">
                     <option value="">All</option>
@@ -379,7 +395,8 @@
                   <td class="text-end">{{ pl.inhouse_material_value }}</td>
                   <td class="text-end">{{ pl.total_income }}</td>
                   <td class="text-end">{{ pl.total_expenses }}</td>
-                  <td class="text-end">{{ pl.profit_loss_amount }}</td>
+                  <td class="text-end {% if pl.profit_loss_amount > 0 %}text-success fw-bold{% elif pl.profit_loss_amount < 0 %}text-danger fw-bold{% else %}text-muted fw-bold{% endif %}">{{ pl.profit_loss_amount }}</td>
+                  <td class="text-end {% if pl.material_sales_profit > 0 %}text-success fw-bold{% elif pl.material_sales_profit < 0 %}text-danger fw-bold{% else %}text-muted fw-bold{% endif %}">{{ pl.material_sales_profit }}</td>
                   <td>
                     <span class="badge {% if pl.profit_loss_status == 'PROFIT' %}bg-pl-profit{% elif pl.profit_loss_status == 'LOSS' %}bg-pl-loss{% else %}bg-pl-neutral{% endif %}">
                       {{ pl.profit_loss_status }}
@@ -458,6 +475,15 @@
             <tbody id="materialValueTableBody">
               <tr><td colspan="6" class="text-center text-muted">No data</td></tr>
             </tbody>
+            <tfoot class="table-light fw-bold">
+              <tr>
+                <td colspan="2">Total</td>
+                <td class="text-end" id="materialValueQtyTotal">0.00</td>
+                <td></td>
+                <td></td>
+                <td class="text-end" id="materialValueTableTotal">0.00</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
@@ -469,7 +495,62 @@
   </div>
 </div>
 
+<div class="modal fade" id="purchaseExpenseModal" tabindex="-1" aria-labelledby="purchaseExpenseModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title" id="purchaseExpenseModalLabel">Purchase Expense Breakdown (Twine Consumed)</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped table-bordered table-sm mb-0 align-middle" id="purchaseExpenseTable">
+            <thead class="table-dark">
+              <tr>
+                <th>#</th>
+                <th>Twine</th>
+                <th>Consumed (KG)</th>
+                <th>Latest Price (Rs/KG)</th>
+                <th class="text-end">Cost (Rs)</th>
+              </tr>
+            </thead>
+            <tbody id="purchaseExpenseTableBody">
+              <tr><td colspan="5" class="text-center text-muted">No data</td></tr>
+            </tbody>
+            <tfoot class="table-light fw-bold">
+              <tr>
+                <td colspan="2">Total</td>
+                <td class="text-end" id="purchaseExpenseQtyTotal">0.00</td>
+                <td></td>
+                <td class="text-end" id="purchaseExpenseTableTotal">0.00</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer py-1">
+        <div class="me-auto fw-bold">Total: Rs <span id="purchaseExpenseTotal">0.00</span></div>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
+var plEntryDetailEl = document.getElementById('plEntryDetail');
+if (plEntryDetailEl) {
+    plEntryDetailEl.addEventListener('shown.bs.collapse', function() {
+        document.querySelector('#plEntryToggleBtn i').className = 'bi bi-chevron-up';
+        document.getElementById('plEntryToggleLabel').textContent = 'Less';
+        document.getElementById('plEntryToggleBtn').setAttribute('aria-expanded', 'true');
+    });
+    plEntryDetailEl.addEventListener('hidden.bs.collapse', function() {
+        document.querySelector('#plEntryToggleBtn i').className = 'bi bi-chevron-down';
+        document.getElementById('plEntryToggleLabel').textContent = 'More';
+        document.getElementById('plEntryToggleBtn').setAttribute('aria-expanded', 'false');
+    });
+}
+
 const plData = JSON.parse('{{ pl_json|escapejs }}' || '[]');
 var editingPLKey = '';
 var monthRangeState = { from: '', to: '' };
@@ -503,6 +584,7 @@ function setFormData(data) {
     document.getElementById('pl_purchase_expense').value = data.purchase_expense || '0';
     document.getElementById('pl_other_expenses').value = data.other_expenses || '0';
     document.getElementById('pl_inhouse_material_value').value = data.inhouse_material_value || '0';
+    document.getElementById('pl_material_sales_profit').value = data.material_sales_profit || '0';
     recalcPL();
 }
 
@@ -512,11 +594,10 @@ function recalcPL() {
     var salary = parseFloat(document.getElementById('pl_salary_expense').value) || 0;
     var purchase = parseFloat(document.getElementById('pl_purchase_expense').value) || 0;
     var otherExp = parseFloat(document.getElementById('pl_other_expenses').value) || 0;
-    var material = parseFloat(document.getElementById('pl_inhouse_material_value').value) || 0;
 
     var totalIncome = sales + other;
     var totalExpenses = salary + purchase + otherExp;
-    var plAmount = totalIncome - totalExpenses + material;
+    var plAmount = totalIncome - totalExpenses;
     var status = 'NO PROFIT / NO LOSS';
     if (plAmount > 0) status = 'PROFIT';
     else if (plAmount < 0) status = 'LOSS';
@@ -525,13 +606,70 @@ function recalcPL() {
     document.getElementById('pl_total_expenses').value = totalExpenses.toFixed(2);
     document.getElementById('pl_profit_loss_amount').value = plAmount.toFixed(2);
     document.getElementById('pl_profit_loss_status').value = status;
+    applyPLColors();
+}
+
+function applyPLColors() {
+    function colorFor(v) { return v > 0 ? '#198754' : v < 0 ? '#dc3545' : '#6c757d'; }
+    var plEl = document.getElementById('pl_profit_loss_amount');
+    if (plEl) { plEl.style.color = colorFor(parseFloat(plEl.value) || 0); plEl.style.fontWeight = 'bold'; }
+    var matEl = document.getElementById('pl_material_sales_profit');
+    if (matEl) { matEl.style.color = colorFor(parseFloat(matEl.value) || 0); matEl.style.fontWeight = 'bold'; }
+    var stEl = document.getElementById('pl_profit_loss_status');
+    if (stEl) {
+        var s = (stEl.value || '').toUpperCase();
+        stEl.style.color = s === 'PROFIT' ? '#198754' : s === 'LOSS' ? '#dc3545' : '#6c757d';
+        stEl.style.fontWeight = 'bold';
+    }
 }
 
 function loadPL(plKey) {
     var pl = plData.find(function(o) { return String(o.pl_key) === String(plKey); });
-    if (!pl) return;
     editingPLKey = plKey;
-    setFormData(pl);
+    if (pl) {
+        setFormData(pl);
+    } else {
+        // Fallback: read the clicked table row directly (e.g. after Generate replaced plData)
+        var anchor = document.querySelector('a[onclick*="loadPL(' + "'" + plKey + "'" + ')"]');
+        var row = anchor ? anchor.closest('tr') : null;
+        if (!row) {
+            // Try matching by data attribute as last resort
+            document.querySelectorAll('#profit-loss-table tbody tr').forEach(function(tr) {
+                var a = tr.querySelector('a[onclick*="loadPL"]');
+                if (a && a.getAttribute('onclick').includes(String(plKey))) row = tr;
+            });
+        }
+        if (row) {
+            var cells = row.querySelectorAll('td');
+            if (cells.length >= 14) {
+                setFormData({
+                    pl_key: plKey,
+                    month_year: cells[2].textContent.trim(),
+                    sales_revenue: cells[3].textContent.trim(),
+                    other_income: cells[4].textContent.trim(),
+                    salary_expense: cells[5].textContent.trim(),
+                    purchase_expense: cells[6].textContent.trim(),
+                    other_expenses: cells[7].textContent.trim(),
+                    inhouse_material_value: cells[8].textContent.trim(),
+                    material_sales_profit: cells[12].textContent.trim()
+                });
+            } else if (cells.length >= 13) {
+                setFormData({
+                    pl_key: plKey,
+                    month_year: cells[2].textContent.trim(),
+                    sales_revenue: cells[3].textContent.trim(),
+                    other_income: cells[4].textContent.trim(),
+                    salary_expense: cells[5].textContent.trim(),
+                    purchase_expense: cells[6].textContent.trim(),
+                    other_expenses: cells[7].textContent.trim(),
+                    inhouse_material_value: cells[8].textContent.trim(),
+                    material_sales_profit: '0'
+                });
+            }
+        }
+    }
+    var form = document.getElementById('plFormTag');
+    if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function resetPL() {
@@ -544,6 +682,7 @@ function resetPL() {
     document.getElementById('pl_purchase_expense').value = '0.00';
     document.getElementById('pl_other_expenses').value = '0.00';
     document.getElementById('pl_inhouse_material_value').value = '0.00';
+    document.getElementById('pl_material_sales_profit').value = '0.00';
     recalcPL();
 }
 
@@ -563,7 +702,7 @@ function updatePLSummary() {
     tbody.querySelectorAll('tr').forEach(function(row) {
         if (row.style.display === 'none') return;
         var cells = row.querySelectorAll('td');
-        if (cells.length < 12) return;
+        if (cells.length < 13) return;
         filteredCount++;
         totalIncome += parseFloat(cells[9].textContent) || 0;
         totalExpenses += parseFloat(cells[10].textContent) || 0;
@@ -684,6 +823,56 @@ function setMonthRangeQuick(range) {
     applyFilters();
 }
 
+function viewPurchaseExpenseBreakdown() {
+    var monthYear = document.getElementById('pl_month_year').value;
+    if (!monthYear) { alert('Please select a Year-Month first.'); return; }
+
+    var tbody = document.getElementById('purchaseExpenseTableBody');
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Loading...</td></tr>';
+    document.getElementById('purchaseExpenseTotal').textContent = '0.00';
+    document.getElementById('purchaseExpenseQtyTotal').textContent = '0.00';
+    document.getElementById('purchaseExpenseTableTotal').textContent = '0.00';
+    document.getElementById('purchaseExpenseModalLabel').textContent = 'Purchase Expense Breakdown (Twine Consumed) - ' + monthYear;
+
+    var modal = new bootstrap.Modal(document.getElementById('purchaseExpenseModal'));
+    modal.show();
+
+    fetch('/invoice/purchase-expense-breakdown/?month_year=' + monthYear)
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (!data.success) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">' + (data.error || 'Error loading data') + '</td></tr>';
+                return;
+            }
+            if (data.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No twine consumption found for this month.</td></tr>';
+                return;
+            }
+            var total = 0;
+            var qtyTotal = 0;
+            var html = '';
+            data.data.forEach(function(item, idx) {
+                var cost = parseFloat(item.line_cost) || 0;
+                total += cost;
+                qtyTotal += parseFloat(item.qty_kg) || 0;
+                html += '<tr>'
+                    + '<td>' + (idx + 1) + '</td>'
+                    + '<td>' + item.material_code + '</td>'
+                    + '<td class="text-end">' + parseFloat(item.qty_kg).toFixed(2) + '</td>'
+                    + '<td class="text-end">' + parseFloat(item.price_per_kg).toFixed(2) + '</td>'
+                    + '<td class="text-end">' + cost.toFixed(2) + '</td>'
+                    + '</tr>';
+            });
+            tbody.innerHTML = html;
+            document.getElementById('purchaseExpenseTotal').textContent = total.toFixed(2);
+            document.getElementById('purchaseExpenseQtyTotal').textContent = qtyTotal.toFixed(2);
+            document.getElementById('purchaseExpenseTableTotal').textContent = total.toFixed(2);
+        })
+        .catch(function(error) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error: ' + error.message + '</td></tr>';
+        });
+}
+
 function viewOtherExpensesBreakdown() {
     var monthYear = document.getElementById('pl_month_year').value;
     if (!monthYear) { alert('Please select a Year-Month first.'); return; }
@@ -738,6 +927,8 @@ function viewMaterialValueBreakdown() {
     var tbody = document.getElementById('materialValueTableBody');
     tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Loading...</td></tr>';
     document.getElementById('materialValueTotal').textContent = '0.00';
+    document.getElementById('materialValueQtyTotal').textContent = '0.00';
+    document.getElementById('materialValueTableTotal').textContent = '0.00';
     document.getElementById('materialValueModalLabel').textContent = 'In-House Material Value Breakdown - ' + monthYear;
 
     var modal = new bootstrap.Modal(document.getElementById('materialValueModal'));
@@ -755,10 +946,12 @@ function viewMaterialValueBreakdown() {
                 return;
             }
             var total = 0;
+            var qtyTotal = 0;
             var html = '';
             data.data.forEach(function(item, idx) {
                 var val = parseFloat(item.material_value) || 0;
                 total += val;
+                qtyTotal += parseFloat(item.stock_qty) || 0;
                 html += '<tr>'
                     + '<td>' + (idx + 1) + '</td>'
                     + '<td>' + item.twine + '</td>'
@@ -770,6 +963,8 @@ function viewMaterialValueBreakdown() {
             });
             tbody.innerHTML = html;
             document.getElementById('materialValueTotal').textContent = total.toFixed(2);
+            document.getElementById('materialValueQtyTotal').textContent = qtyTotal.toFixed(2);
+            document.getElementById('materialValueTableTotal').textContent = total.toFixed(2);
         })
         .catch(function(error) {
             tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error: ' + error.message + '</td></tr>';

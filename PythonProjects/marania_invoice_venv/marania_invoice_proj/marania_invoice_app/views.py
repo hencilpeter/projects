@@ -5569,6 +5569,7 @@ def profit_loss_entry(request):
             purchase_expense = Decimal("0")
             other_expenses = Decimal("0")
             inhouse_material_value = Decimal("0")
+            material_sales_profit = Decimal("0")
 
             if month and year:
                 sales_start = datetime(year, month, 1)
@@ -5592,11 +5593,8 @@ def profit_loss_entry(request):
                 )
                 salary_expense = expense_qs.aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
 
-                purchase_qs = Purchase.objects.filter(
-                    delivery_date__gte=sales_start,
-                    delivery_date__lt=sales_end,
-                )
-                purchase_expense = purchase_qs.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+                # Purchase expense: twine consumed in Sales for the month x latest price
+                purchase_expense, material_sales_profit, _pe_breakdown = _consumption_purchase_expense_and_profit(year, month)
 
                 non_salary_categories = ['Miscellaneous', 'Electricity', 'Spare Parts', 'Transportation', 'Net Processing']
                 other_qs = Expense.objects.filter(
@@ -5641,9 +5639,10 @@ def profit_loss_entry(request):
                 "purchase_expense": str(purchase_expense),
                 "other_expenses": str(other_expenses),
                 "inhouse_material_value": str(inhouse_material_value),
+                "material_sales_profit": str(material_sales_profit),
                 "total_income": str(sales_revenue),
                 "total_expenses": str(salary_expense + purchase_expense + other_expenses),
-                "profit_loss_amount": str(sales_revenue - (salary_expense + purchase_expense + other_expenses) + inhouse_material_value),
+                "profit_loss_amount": str(sales_revenue - (salary_expense + purchase_expense + other_expenses)),
                 "profit_loss_status": "NO PROFIT / NO LOSS",
             }])
 
@@ -5670,6 +5669,7 @@ def profit_loss_entry(request):
         purchase_expense = Decimal(request.POST.get("purchase_expense") or "0")
         other_expenses = Decimal(request.POST.get("other_expenses") or "0")
         inhouse_material_value = Decimal(request.POST.get("inhouse_material_value") or "0")
+        material_sales_profit = Decimal(request.POST.get("material_sales_profit") or "0")
 
         try:
             month = int(month) if month else None
@@ -5684,12 +5684,13 @@ def profit_loss_entry(request):
             purchase_expense = Decimal(purchase_expense)
             other_expenses = Decimal(other_expenses)
             inhouse_material_value = Decimal(inhouse_material_value)
+            material_sales_profit = Decimal(material_sales_profit)
         except Exception:
-            sales_revenue = other_income = salary_expense = purchase_expense = other_expenses = inhouse_material_value = Decimal("0")
+            sales_revenue = other_income = salary_expense = purchase_expense = other_expenses = inhouse_material_value = material_sales_profit = Decimal("0")
 
         total_income = sales_revenue + other_income
         total_expenses = salary_expense + purchase_expense + other_expenses
-        profit_loss_amount = total_income - total_expenses + inhouse_material_value
+        profit_loss_amount = total_income - total_expenses
 
         if profit_loss_amount > 0:
             profit_loss_status = "PROFIT"
@@ -5707,6 +5708,7 @@ def profit_loss_entry(request):
             "purchase_expense": purchase_expense,
             "other_expenses": other_expenses,
             "inhouse_material_value": inhouse_material_value,
+            "material_sales_profit": material_sales_profit,
             "total_income": total_income,
             "total_expenses": total_expenses,
             "profit_loss_amount": profit_loss_amount,
@@ -5743,6 +5745,7 @@ def profit_loss_entry(request):
             "purchase_expense": str(pl.purchase_expense),
             "other_expenses": str(pl.other_expenses),
             "inhouse_material_value": str(pl.inhouse_material_value),
+            "material_sales_profit": str(pl.material_sales_profit),
             "total_income": str(pl.total_income),
             "total_expenses": str(pl.total_expenses),
             "profit_loss_amount": str(pl.profit_loss_amount),
@@ -5879,6 +5882,73 @@ def _sales_twine_consumption(year, month):
             totals[code] = totals.get(code, Decimal('0')) + kg
     # Round to 2dp
     return {k: v.quantize(Decimal('0.01')) for k, v in totals.items()}
+
+
+def _consumption_purchase_expense_and_profit(year, month):
+    """Purchase expense (consumption-based) + Material Sales Profit for a month.
+
+    Purchase expense = sum over twines consumed in Sales for the month of
+    (twine_for_sale_kg x latest twin price incl. GST), e.g. 20JINETS 147.17 x price.
+    Material Sales Profit = sum of per-sale P&L profit_loss (Sales breakdowns).
+    Returns (purchase_expense Decimal, material_sales_profit Decimal, breakdown list).
+    """
+    from .models import Sales as _Sales
+    from decimal import Decimal
+    if not year or not month:
+        return Decimal('0'), Decimal('0'), []
+    cache = {}
+    consumption = {}
+    material_profit = Decimal('0')
+    try:
+        qs = _Sales.objects.filter(sales_entry_date__year=year, sales_entry_date__month=month)
+    except Exception:
+        return Decimal('0'), Decimal('0'), []
+    for sale in qs:
+        if not getattr(sale, 'prod_spec', None):
+            continue
+        data, error = _build_profit_loss_breakdown(sale, cache)
+        if error or not data:
+            continue
+        try:
+            material_profit += Decimal(str(data['summary']['profit_loss']))
+        except Exception:
+            pass
+        for row in data['twine_materials']['rows']:
+            code = (row.get('material_code') or '').strip()
+            if not code:
+                continue
+            try:
+                kg = Decimal(str(row.get('twine_for_sale') or '0'))
+            except Exception:
+                continue
+            consumption[code] = consumption.get(code, Decimal('0')) + kg
+    purchase_expense = Decimal('0')
+    breakdown = []
+    price_cache = {}
+    for code in sorted(consumption.keys()):
+        kg = consumption[code].quantize(Decimal('0.01'))
+        price = _get_latest_twine_price(code, price_cache)
+        if price is None:
+            price = Decimal('0')
+        cost = (kg * price).quantize(Decimal('0.01'))
+        purchase_expense += cost
+        breakdown.append({
+            "material_code": code,
+            "qty_kg": str(kg),
+            "price_per_kg": str(price.quantize(Decimal('0.01'))),
+            "line_cost": str(cost),
+        })
+    return purchase_expense.quantize(Decimal('0.01')), material_profit.quantize(Decimal('0.01')), breakdown
+
+
+def get_purchase_expense_breakdown(request):
+    month_year = request.GET.get("month_year", "")
+    try:
+        year = int(month_year.split("-")[0]); month = int(month_year.split("-")[1])
+    except (ValueError, IndexError, TypeError):
+        return JsonResponse({"success": False, "error": "Invalid month format"})
+    purchase_expense, _, breakdown = _consumption_purchase_expense_and_profit(year, month)
+    return JsonResponse({"success": True, "data": breakdown, "total": str(purchase_expense)})
 
 
 def sales_twine_consumption_api(request):
