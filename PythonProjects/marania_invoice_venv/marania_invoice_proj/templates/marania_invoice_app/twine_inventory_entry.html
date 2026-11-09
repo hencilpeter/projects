@@ -77,7 +77,11 @@
             <option value="{{ p }}" {% if p == selected_summary %}selected{% endif %}>{{ p }}</option>
           {% endfor %}
         </select>
+        <button type="button" id="summaryToggleBtn" class="btn btn-sm btn-outline-primary py-0 px-2 ms-auto" data-bs-toggle="collapse" data-bs-target="#inventorySummaryDetail" aria-expanded="true" aria-controls="inventorySummaryDetail" title="Expand / collapse monthly summary">
+          <span id="summaryToggleLabel">Less</span> <i class="bi bi-chevron-up"></i>
+        </button>
       </div>
+      <div class="collapse show" id="inventorySummaryDetail">
       {% if inventory_summary %}
       <div class="table-responsive">
         <table class="table table-sm table-bordered align-middle mb-0" id="inventory-summary-table">
@@ -149,6 +153,7 @@
         </table>
       </div>
       {% endif %}
+      </div>
     </div>
 
     <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#twineForm" aria-expanded="false" aria-controls="twineForm">
@@ -339,6 +344,20 @@ var editingTIKey = '';
 populateYearMonthFilters();
 populateTable();
 try { updateSummaryTotals(); } catch(e) {}
+
+var summaryDetailEl = document.getElementById('inventorySummaryDetail');
+if (summaryDetailEl) {
+    summaryDetailEl.addEventListener('shown.bs.collapse', function() {
+        document.querySelector('#summaryToggleBtn i').className = 'bi bi-chevron-up';
+        document.getElementById('summaryToggleLabel').textContent = 'Less';
+        document.getElementById('summaryToggleBtn').setAttribute('aria-expanded', 'true');
+    });
+    summaryDetailEl.addEventListener('hidden.bs.collapse', function() {
+        document.querySelector('#summaryToggleBtn i').className = 'bi bi-chevron-down';
+        document.getElementById('summaryToggleLabel').textContent = 'More';
+        document.getElementById('summaryToggleBtn').setAttribute('aria-expanded', 'false');
+    });
+}
 
 // Set default month-year to current month
 function setDefaultMonthYear() {
