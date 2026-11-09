@@ -5899,6 +5899,7 @@ def _consumption_purchase_expense_and_profit(year, month):
     cache = {}
     consumption = {}
     material_profit = Decimal('0')
+    allocated = {}
     try:
         qs = _Sales.objects.filter(sales_entry_date__year=year, sales_entry_date__month=month)
     except Exception:
@@ -5910,10 +5911,18 @@ def _consumption_purchase_expense_and_profit(year, month):
         if error or not data:
             continue
         try:
-            material_profit += Decimal(str(data['summary']['profit_loss']))
+            sale_profit = Decimal(str(data['summary']['profit_loss']))
         except Exception:
-            pass
-        for row in data['twine_materials']['rows']:
+            sale_profit = Decimal('0')
+        material_profit += sale_profit
+        sale_rows = data['twine_materials']['rows']
+        sale_cost_sum = Decimal('0')
+        for row in sale_rows:
+            try:
+                sale_cost_sum += Decimal(str(row.get('line_cost') or '0'))
+            except Exception:
+                pass
+        for row in sale_rows:
             code = (row.get('material_code') or '').strip()
             if not code:
                 continue
@@ -5922,6 +5931,12 @@ def _consumption_purchase_expense_and_profit(year, month):
             except Exception:
                 continue
             consumption[code] = consumption.get(code, Decimal('0')) + kg
+            try:
+                line_cost = Decimal(str(row.get('line_cost') or '0'))
+                share = (line_cost / sale_cost_sum) if sale_cost_sum else Decimal('0')
+                allocated[code] = allocated.get(code, Decimal('0')) + (sale_profit * share)
+            except Exception:
+                pass
     purchase_expense = Decimal('0')
     breakdown = []
     price_cache = {}
@@ -5937,6 +5952,7 @@ def _consumption_purchase_expense_and_profit(year, month):
             "qty_kg": str(kg),
             "price_per_kg": str(price.quantize(Decimal('0.01'))),
             "line_cost": str(cost),
+            "profit_loss": str(allocated.get(code, Decimal('0')).quantize(Decimal('0.01'))),
         })
     return purchase_expense.quantize(Decimal('0.01')), material_profit.quantize(Decimal('0.01')), breakdown
 
@@ -5949,6 +5965,16 @@ def get_purchase_expense_breakdown(request):
         return JsonResponse({"success": False, "error": "Invalid month format"})
     purchase_expense, _, breakdown = _consumption_purchase_expense_and_profit(year, month)
     return JsonResponse({"success": True, "data": breakdown, "total": str(purchase_expense)})
+
+
+def get_material_sales_profit_breakdown(request):
+    month_year = request.GET.get("month_year", "")
+    try:
+        year = int(month_year.split("-")[0]); month = int(month_year.split("-")[1])
+    except (ValueError, IndexError, TypeError):
+        return JsonResponse({"success": False, "error": "Invalid month format"})
+    _, material_profit, breakdown = _consumption_purchase_expense_and_profit(year, month)
+    return JsonResponse({"success": True, "data": breakdown, "material_sales_profit": str(material_profit)})
 
 
 def sales_twine_consumption_api(request):
