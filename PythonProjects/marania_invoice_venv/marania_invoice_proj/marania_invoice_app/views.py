@@ -2474,6 +2474,20 @@ def order_entry(request):
                 obj.customer = entry.get("customer") or ""
                 obj.unit_price = entry.get("unit_price") or None
                 obj.is_gst_included = entry.get("is_gst_included") in (True, "True", "true", "on")
+                obj.prod_spec = entry.get("prod_spec") or ""
+                obj.gst_rate = entry.get("gst_rate") or None
+                ov = entry.get("twine_price_overrides")
+                if isinstance(ov, dict) and ov:
+                    obj.twine_price_overrides = json.dumps(ov)
+                    obj._price_overrides = ov
+                elif isinstance(ov, str) and ov.strip():
+                    obj.twine_price_overrides = ov
+                    try:
+                        obj._price_overrides = json.loads(ov)
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                else:
+                    obj.twine_price_overrides = None
                 obj.status = entry.get("status") or "Ordered"
                 raw_lsd = entry.get("last_status_date")
                 if raw_lsd and str(raw_lsd).strip():
@@ -2489,7 +2503,7 @@ def order_entry(request):
                 # Allow order_number to be updated on existing orders
                 if is_update and updated_order_number:
                     obj.order_number = updated_order_number
-                    
+
                 obj.save()
                 saved_count += 1
 
@@ -2520,6 +2534,11 @@ def order_entry(request):
                         colour=entry.get("colour") or "White",
                         no_of_pcs=int(str(raw_pcs).strip()) if raw_pcs is not None and str(raw_pcs).strip() else None,
                     )
+                try:
+                    obj.profit_loss = calculate_order_profit_loss(obj)
+                except Exception:
+                    obj.profit_loss = None
+                obj.save(update_fields=['profit_loss'])
         else:
             keys = request.POST.getlist("order_key")
             order_number = request.POST.getlist("order_number")
@@ -2615,6 +2634,7 @@ def order_entry(request):
         'order_key', 'order_sequence', 'order_number', 'order_date', 'customer',
         'twine', 'quantity', 'quantity_unit', 'unit_price', 'is_gst_included',
         'status', 'last_status_date', 'order_instructions', 'comments',
+        'prod_spec', 'gst_rate', 'profit_loss', 'twine_price_overrides',
     ))
     
     # Ensure order_number is included in the context for templates
@@ -2644,6 +2664,44 @@ def order_entry(request):
     products = Product.objects.all()
     colours_list = list(OrderSpecification.objects.exclude(colour__isnull=True).exclude(colour='').values_list('colour', flat=True).distinct().order_by('colour'))
 
+    # P&L columns for the order table (same breakdown as P&L window)
+    pl_cache = {}
+    for o in orders:
+        o.pl_twine_breakdown = ''
+        o.pl_twine_rows = []
+        o.pl_profit_loss = None
+        o.pl_profit_per_kg = None
+        o.pl_profit_per_day = None
+        o.pl_profit_loss_display = None
+        pl_data, pl_error = _build_order_profit_loss_breakdown(o, pl_cache)
+        if pl_data and not pl_error:
+            o.pl_twine_breakdown = '|'.join(
+                '{}({})'.format(row['material_code'], row['twine_for_sale'])
+                for row in pl_data['twine_materials']['rows']
+            )
+            o.pl_twine_rows = [
+                {'code': row['material_code'], 'kg': row['twine_for_sale']}
+                for row in pl_data['twine_materials']['rows']
+            ]
+            o.pl_profit_loss = Decimal(str(pl_data['summary']['profit_loss']))
+            o.pl_profit_per_kg = Decimal(str(pl_data['summary']['profit_per_kg']))
+            o.pl_profit_per_day = Decimal(str(pl_data['summary']['profit_per_day']))
+            o.pl_profit_loss_display = pl_data['summary']['profit_loss']
+        elif getattr(o, 'profit_loss', None) is not None:
+            o.pl_profit_loss_display = str(o.profit_loss)
+        # Mirror P&L into orders_json for edit / modal sync
+        for item in orders_data:
+            if item['order_key'] == o.order_key:
+                item['pl_profit_loss'] = str(o.pl_profit_loss) if o.pl_profit_loss is not None else ''
+                item['pl_profit_per_kg'] = str(o.pl_profit_per_kg) if o.pl_profit_per_kg is not None else ''
+                item['pl_profit_per_day'] = str(o.pl_profit_per_day) if o.pl_profit_per_day is not None else ''
+                item['pl_twine_rows'] = o.pl_twine_rows
+                break
+    orders_json = json.dumps(orders_data, default=str)
+
+    from .models import ProductionTracker
+    production_trackers = list(ProductionTracker.objects.all().values('pt_key', 'product', 'system_spec', 'user_spec', 'mm'))
+
     context = {
         "orders": orders,
         "orders_json": orders_json,
@@ -2651,6 +2709,9 @@ def order_entry(request):
         "parties": parties,
         "products": products,
         "colours_list": colours_list,
+        "production_trackers": json.dumps(production_trackers, default=str),
+        "customer_dict": json.dumps(get_parties_dict(), default=str),
+        "product_dict": json.dumps(get_product_dict(), default=str),
     }
     return render(request, "marania_invoice_app/order_entry.html", context)
 
@@ -3311,6 +3372,268 @@ def update_sale_twine_prices_api(request):
     from decimal import Decimal as _Dec
     sale.profit_loss = _Dec(str(data['summary']['profit_loss']))
     sale.save(update_fields=['twine_price_overrides', 'profit_loss', 'updated_at'])
+    return JsonResponse({'success': True, **data})
+
+
+# =======================
+# Order Profit & Loss (mirrors Sales)
+# =======================
+
+def _order_weight_kg(order):
+    """Convert order quantity to kg. Bag uses CompanySettings.default_bag_weight if set."""
+    from decimal import Decimal
+    qty = Decimal(str(getattr(order, 'quantity', 0) or 0))
+    unit = (getattr(order, 'quantity_unit', 'KG') or 'KG').strip()
+    if unit.lower() == 'kg':
+        return qty
+    # Bag
+    try:
+        from .models import CompanySettings
+        cs = CompanySettings.objects.first()
+        bag_w = Decimal(str(cs.default_bag_weight)) if cs and cs.default_bag_weight else Decimal('0')
+        if bag_w > 0:
+            return qty * bag_w
+    except Exception:
+        pass
+    # Fallback: treat quantity as kg if bag weight unknown
+    return qty
+
+
+def _order_spec_string(order):
+    """Build a Specification-like string for PT lookup from the first OrderSpecification."""
+    try:
+        spec = order.specifications.first() if hasattr(order, 'specifications') else None
+    except Exception:
+        spec = None
+    if spec and spec.mesh_size:
+        return f"{spec.mesh_size}MM-{spec.mesh_depth or ''}MD-{spec.salvage or ''}Sel"
+    # Try temp attributes set by APIs
+    ms = getattr(order, '_mesh_size', None)
+    if ms:
+        return f"{ms}MM"
+    return getattr(order, 'speification', '') or ''
+
+
+def _build_order_profit_loss_breakdown(order, cache=None):
+    """P&L breakdown for an Order (saved or unsaved) — same shape as sales breakdown."""
+    from .models import MachineOperationalCost, AdditionalCost, ProcessingCost, Product, Purchase
+    from decimal import Decimal
+
+    def _d(v, default='0'):
+        try:
+            return str(round(Decimal(str(v)), 2))
+        except Exception:
+            return default
+
+    try:
+        weight = _order_weight_kg(order)
+        if not weight or weight <= 0:
+            return None, 'No weight value on this order (quantity required)'
+        if not getattr(order, 'prod_spec', None):
+            return None, 'Prod.Spec is required to calculate profit/loss'
+
+        from .models import Sales as _Sales
+        fake = _Sales()
+        fake.twine = getattr(order, 'twine', '')
+        fake.prod_spec = getattr(order, 'prod_spec', '')
+        fake.speification = _order_spec_string(order)
+        fake.initial_weight = weight
+        fake.processed_weight = weight
+        fake.unit_price = getattr(order, 'unit_price', None)
+        fake.gst_rate = getattr(order, 'gst_rate', None)
+        if hasattr(order, '_price_overrides'):
+            fake._price_overrides = order._price_overrides
+        elif hasattr(order, '_twine_price_overrides'):
+            fake._price_overrides = order._twine_price_overrides
+        else:
+            ov = getattr(order, 'twine_price_overrides', None)
+            if ov:
+                try:
+                    fake._price_overrides = json.loads(ov) if isinstance(ov, str) else ov
+                except Exception:
+                    pass
+
+        data, error = _build_profit_loss_breakdown(fake, cache)
+        if error or not data:
+            return None, error
+
+        # Adjust revenue for order GST-included flag if needed:
+        # _build_profit_loss_breakdown assumes unit_price excl GST + gst_rate.
+        # If order is_gst_included, total_revenue should be price*weight (already incl).
+        if getattr(order, 'is_gst_included', False):
+            unit_price = Decimal(str(order.unit_price)) if getattr(order, 'unit_price', None) else Decimal('0')
+            gst_rate = Decimal(str(getattr(order, 'gst_rate', 0) or 0))
+            total_rev = unit_price * weight
+            if gst_rate > 0:
+                base_rev = total_rev / (Decimal('1') + gst_rate / Decimal('100'))
+                gst_amt = total_rev - base_rev
+            else:
+                base_rev = total_rev
+                gst_amt = Decimal('0')
+            total_cost = Decimal(str(data['summary']['total_cost']))
+            profit = total_rev - total_cost
+            ppk = profit / weight if weight else Decimal('0')
+            req_days = Decimal(str(data['production_tracker'].get('required_days') or '1'))
+            ppd = profit / req_days if req_days else Decimal('0')
+            data['summary'].update({
+                'base_revenue': _d(base_rev),
+                'gst_amount': _d(gst_amt),
+                'total_revenue': _d(total_rev),
+                'profit_loss': _d(profit),
+                'profit_per_kg': _d(ppk),
+                'profit_per_day': _d(ppd),
+                'profit_loss_pct': _d((profit / total_rev * 100) if total_rev else 0),
+                'is_profit': profit > 0,
+            })
+
+        # Remap sale info to order fields for the shared frontend template
+        data['sale'] = {
+            'order_no': getattr(order, 'order_number', ''),
+            'customer': getattr(order, 'customer', ''),
+            'twine': getattr(order, 'twine', ''),
+            'speification': _order_spec_string(order),
+            'prod_spec': getattr(order, 'prod_spec', ''),
+            'colour': getattr(order, '_colour', 'White'),
+            'init_weight': _d(weight),
+            'proc_weight': _d(weight),
+            'weight_label': 'Wt (Qty)',
+            'weight': _d(weight),
+            'weight_used': 'Qty Wt',
+            'unit_price': _d(getattr(order, 'unit_price', 0) or 0),
+            'gst_rate': _d(getattr(order, 'gst_rate', 0) or 0),
+        }
+        return data, None
+    except Exception as e:
+        return None, str(e)
+
+
+def calculate_order_profit_loss(order):
+    from decimal import Decimal
+    if not getattr(order, 'prod_spec', None):
+        return None
+    try:
+        data, error = _build_order_profit_loss_breakdown(order)
+        if error or not data:
+            return None
+        return Decimal(str(data['summary']['profit_loss']))
+    except Exception as e:
+        print(f"Error calculating order profit/loss: {e}")
+        return None
+
+
+def order_calculate_profit_loss_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST required'})
+    try:
+        from .models import Order
+        from decimal import Decimal
+        temp = Order()
+        temp.twine = request.POST.get('twine', '')
+        temp.unit_price = Decimal(request.POST.get('unit_price') or 0)
+        temp.unit_price = temp.unit_price or None
+        temp.quantity = Decimal(request.POST.get('quantity') or 0)
+        temp.quantity_unit = request.POST.get('quantity_unit', 'KG')
+        temp.prod_spec = request.POST.get('prod_spec', '')
+        temp.gst_rate = Decimal(request.POST.get('gst_rate') or 0) or None
+        temp.is_gst_included = request.POST.get('is_gst_included') in ('true', 'True', '1', 'on')
+        temp._mesh_size = request.POST.get('mesh_size', '')
+        ov_raw = request.POST.get('twine_price_overrides', '')
+        if ov_raw:
+            try:
+                temp._price_overrides = json.loads(ov_raw)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        pl = calculate_order_profit_loss(temp)
+        ppk = ppd = None
+        if pl is not None:
+            data, _ = _build_order_profit_loss_breakdown(temp)
+            if data:
+                ppk = Decimal(str(data['summary']['profit_per_kg']))
+                ppd = Decimal(str(data['summary']['profit_per_day']))
+        return JsonResponse({'success': True,
+                             'profit_loss': str(pl) if pl is not None else None,
+                             'profit_per_kg': str(ppk) if ppk is not None else None,
+                             'profit_per_day': str(ppd) if ppd is not None else None})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+def order_profit_loss_detail_api(request, order_key=None):
+    from .models import Order
+    from decimal import Decimal
+    if request.method == 'POST':
+        order = Order()
+        order.order_number = request.POST.get('order_number', '').strip() or 'NA'
+        order.customer = request.POST.get('customer', '').strip()
+        order.twine = request.POST.get('twine', '').strip()
+        order.prod_spec = request.POST.get('prod_spec', '').strip()
+        order._mesh_size = request.POST.get('mesh_size', '').strip()
+        try:
+            order.quantity = Decimal(request.POST.get('quantity') or '0')
+        except Exception:
+            order.quantity = Decimal('0')
+        order.quantity_unit = request.POST.get('quantity_unit', 'KG')
+        try:
+            order.unit_price = Decimal(request.POST.get('unit_price') or '0') or None
+        except Exception:
+            order.unit_price = None
+        try:
+            order.gst_rate = Decimal(request.POST.get('gst_rate') or '0') or None
+        except Exception:
+            order.gst_rate = None
+        order.is_gst_included = request.POST.get('is_gst_included') in ('true', 'True', '1', 'on', 'True')
+        ov_raw = request.POST.get('twine_price_overrides', '')
+        if ov_raw:
+            try:
+                order._price_overrides = json.loads(ov_raw)
+            except (json.JSONDecodeError, TypeError):
+                pass
+    else:
+        try:
+            order = Order.objects.get(pk=order_key)
+        except Order.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Order not found'}, status=404)
+    data, error = _build_order_profit_loss_breakdown(order)
+    if error:
+        return JsonResponse({'success': False, 'error': error})
+    return JsonResponse({'success': True, **data})
+
+
+def order_update_twine_prices_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST required'})
+    from .models import Order
+    order_key = request.POST.get('order_key') or request.POST.get('sales_key')
+    ov_raw = request.POST.get('twine_price_overrides', '')
+    if not order_key:
+        return JsonResponse({'success': False, 'error': 'order_key is required'})
+    try:
+        order = Order.objects.get(pk=order_key)
+    except (Order.DoesNotExist, ValueError, TypeError):
+        return JsonResponse({'success': False, 'error': 'Order not found'})
+    try:
+        overrides = json.loads(ov_raw) if ov_raw else {}
+        if not isinstance(overrides, dict):
+            overrides = {}
+    except (json.JSONDecodeError, TypeError):
+        return JsonResponse({'success': False, 'error': 'Invalid overrides JSON'})
+    clean = {}
+    for k, v in overrides.items():
+        try:
+            dv = Decimal(str(v))
+            if dv < 0:
+                continue
+            clean[str(k).strip()] = str(dv.quantize(Decimal('0.01')))
+        except Exception:
+            continue
+    order.twine_price_overrides = json.dumps(clean) if clean else None
+    order._price_overrides = clean
+    data, error = _build_order_profit_loss_breakdown(order)
+    if error:
+        return JsonResponse({'success': False, 'error': error})
+    from decimal import Decimal as _Dec
+    order.profit_loss = _Dec(str(data['summary']['profit_loss']))
+    order.save(update_fields=['twine_price_overrides', 'profit_loss', 'updated_at'])
     return JsonResponse({'success': True, **data})
 
 

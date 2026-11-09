@@ -5,37 +5,92 @@
 
 <style>
 .invoice-table-wrapper {
+    width: 100%;
+    max-width: 100%;
     max-height: 820px;
+    overflow-x: auto;
     overflow-y: auto;
     border: 1px solid #ddd;
 }
 
+/* Thicker existing horizontal scrollbar (Chrome/Edge) */
+.order-list .invoice-table-wrapper::-webkit-scrollbar {
+    height: 24px !important;
+    width: 16px !important;
+}
+.order-list .invoice-table-wrapper::-webkit-scrollbar-track {
+    background: #dee2e6 !important;
+}
+.order-list .invoice-table-wrapper::-webkit-scrollbar-thumb {
+    background: #868e96 !important;
+    border-radius: 12px !important;
+    border: 2px solid #dee2e6 !important;
+}
+.order-list .invoice-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #495057 !important;
+}
+.order-list .invoice-table-wrapper::-webkit-scrollbar-thumb:horizontal {
+    min-width: 200px !important;
+}
+.order-list .invoice-table-wrapper::-webkit-scrollbar-thumb:vertical {
+    min-height: 100px !important;
+}
+/* Firefox: widest native scrollbar available */
+.order-list .invoice-table-wrapper {
+    scrollbar-width: auto !important;
+    scrollbar-color: #868e96 #dee2e6 !important;
+}
+
 #order-table {
-    table-layout: fixed;
     width: 100%;
-    font-size: 12px;
+    min-width: 1900px;
+    table-layout: fixed;
+    font-size: clamp(0.65rem, 0.8vw, 0.8rem);
+}
+
+#order-table th,
+#order-table td {
+    white-space: normal;
+    overflow-wrap: break-word;
+    padding: 4px 5px;
 }
 
 .col-amount {
-    width: 120px;
+    width: 75px;
     text-align: center;
     white-space: nowrap;
 }
 
 .col-actions {
-    width: 225px;
+    width: 180px;
     text-align: center;
     white-space: nowrap;
 }
 
 .col-orderspec {
-    width: 220px;
+    width: 160px;
 }
 
 #order-table thead th {
     position: sticky;
     top: 0;
     z-index: 2;
+    white-space: nowrap;
+}
+
+#order-table th input.filter-input,
+#order-table th select.filter-select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 2px 4px;
+    font-size: 0.85rem;
+    margin-bottom: 2px;
+}
+
+.btn-action-compact {
+    padding: 2px 6px !important;
+    font-size: 0.85rem !important;
+    line-height: 1.4 !important;
 }
 
 .btn-3d-yellow {
@@ -83,12 +138,12 @@
 </style>
 
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-  <div class="container my-5">
+  <div class="container-fluid my-3 px-2">
 
-    <h2 class="mb-4">Orders</h2>
+    <!-- <h2 class="mb-4">Orders</h2> -->
 
     <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#orderForm" aria-expanded="false" aria-controls="orderForm">
-      New Order
+      Order Entry
     </button>
 
     <div class="collapse" id="orderForm">
@@ -196,6 +251,33 @@
           </div>
 
           <div class="row mb-3">
+            <div class="col-md-3">
+              <select name="prod_spec" id="prod_spec" class="form-control form-control-sm">
+                <option value=""></option>
+              </select>
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Prod.Spec</small>
+            </div>
+            <div class="col-md-2">
+              <input type="number" name="gst_rate" id="gst_rate" step="0.01" class="form-control form-control-sm" placeholder="GST Rate">
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">GST Rate</small>
+              <small class="text-muted" id="gst_rate_hint" style="display:block;text-align:end;line-height:1.2;font-size:0.7rem;"></small>
+            </div>
+            <div class="col-md-4">
+              <div class="input-group input-group-sm">
+                <input type="number" name="profit_loss" id="profit_loss" step="0.01" class="form-control form-control-sm" placeholder="Sum" readonly>
+                <input type="number" id="profit_per_kg" step="0.01" class="form-control form-control-sm" placeholder="/kg" readonly title="Profit/Loss per kg">
+                <input type="number" id="profit_per_day" step="0.01" class="form-control form-control-sm" placeholder="/day" readonly title="Profit/Loss per day">
+              </div>
+              <small class="text-muted" style="display:block;text-align:end;line-height:1;margin-top:1px;">Profit/Loss</small>
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+              <button type="button" class="btn btn-3d-yellow btn-sm w-100" id="formPLBtn" onclick="viewOrderFormPL()" title="View P&amp;L for current order" disabled>
+                <i class="bi bi-bar-chart-line me-1"></i>P&amp;L
+              </button>
+            </div>
+          </div>
+
+          <div class="row mb-3">
             <div class="col-md-6">
               <textarea name="order_instructions" id="order_instructions" class="form-control form-control-sm" rows="2" placeholder="Order Instructions"></textarea>
             </div>
@@ -226,33 +308,55 @@
       </form>
     </div>
 
-    <div class="order-list mt-4">
+    <div class="order-list mt-3">
       {% if orders %}
-        <div class="invoice-table-wrapper" style="width:100%;overflow-x:auto;">
+        <div class="invoice-table-wrapper">
           <table id="order-table" class="table table-striped table-hover table-bordered table-sm align-middle">
+            <colgroup>
+              <col style="width:40px">
+              <col style="width:210px">
+              <col style="width:90px">
+              <col style="width:90px">
+              <col style="width:90px">
+              <col style="width:180px">
+              <col style="width:70px">
+              <col style="width:270px">
+              <col style="width:70px">
+              <col style="width:60px">
+              <col style="width:60px">
+              <col style="width:80px">
+              <col style="width:120px">
+              <col style="width:60px">
+              <col style="width:200px">
+              <col style="width:180px">
+              <col style="width:250px">
+            </colgroup>
             <thead class="table-dark">
               <tr>
-                <th scope="col" style="width:30px"></th>
+                <th scope="col"></th>
                 <th scope="col" class="col-actions">Actions</th>
-                <th scope="col" style="width:65px;">Order #</th>
-                <th scope="col" style="width:85px;">O.Date</th>
-                <th scope="col" style="width:85px;">Status Date</th>
-                <th scope="col" style="width:150px;">Customer</th>
+                <th scope="col">Order #</th>
+                <th scope="col">O.Date</th>
+                <th scope="col">Status Date</th>
+                <th scope="col">Customer</th>
                 <th scope="col">Twine</th>
                 <th scope="col" class="col-orderspec">OrderSpec</th>
                 <th scope="col">Colour</th>
                 <th scope="col">Qty</th>
                 <th scope="col">Unit</th>
-                <th scope="col" class="col-amount" style="width:75px;">Unit Price</th>
-                <th scope="col" style="width:75px;">Status</th>
-                <th scope="col">GST</th>
+                <th scope="col" class="col-amount">Unit Price</th>
+                <th scope="col">Status</th>
+                <th scope="col">GST Included</th>
+                <th scope="col">Prod.Spec</th>
+                <th scope="col">Twine</th>
+                <th scope="col">Profit/Loss</th>
               </tr>
               <tr id="order-filter-row">
                 <th style="text-align:center;vertical-align:middle;"><input type="checkbox" id="select-all-orders" onchange="toggleAllOrderCheckboxes(this)"></th>
                 <th>
                   <button class="btn btn-warning btn-sm" id="clear-order-filters">Clear</button>
-                  <button type="button" class="btn btn-outline-success btn-sm ms-1" id="copySelectedOrdersBtn" onclick="copySelectedOrders()" disabled><i class="bi bi-arrow-right-circle"></i> Copy to Sales</button>
-                  <button type="button" class="btn btn-outline-primary btn-sm ms-1" id="viewSelectedOrdersBtn" onclick="viewSelectedOrderList()" disabled><i class="bi bi-list-ul"></i> View</button>
+                  <button type="button" class="btn btn-outline-success btn-sm ms-1" id="copySelectedOrdersBtn" onclick="copySelectedOrders()" disabled><i class="bi bi-arrow-right-circle"></i>Add to Sales</button>
+                  <button type="button" class="btn btn-outline-primary btn-sm ms-1" id="viewSelectedOrdersBtn" onclick="viewSelectedOrderList()" disabled><i class="bi bi-list-ul"></i>View</button>
                 </th>
                 <th><input class="filter-input" placeholder="Order #"></th>
                 <th><input class="filter-input" placeholder="O.Date"></th>
@@ -288,6 +392,9 @@
                     <option value="No">No</option>
                   </select>
                 </th>
+                <th><input class="filter-input" placeholder="Prod.Spec ((empty))" title="Type (empty) or - to show blank rows"></th>
+                <th><input class="filter-input" placeholder="Twine"></th>
+                <th><input class="filter-input" placeholder="Profit/Loss"></th>
               </tr>
             </thead>
             <tbody>
@@ -304,11 +411,12 @@
                       </button>
                       <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="javascript:void(0);" onclick="loadOrderGroup('{{ order.order_key }}')"><i class="bi bi-pencil-square me-2"></i>G.Edit</a></li>
+                        <li><a class="dropdown-item" href="javascript:void(0);" onclick="cloneOrder('{{ order.order_key }}')"><i class="bi bi-copy me-2"></i>Clone</a></li>
                       </ul>
                     </div>
-                    <a href="javascript:void(0);" onclick="cloneOrder('{{ order.order_key }}')" class="btn btn-sm btn-info d-inline-flex align-items-center">
-                      <i class="bi bi-copy me-1"></i> Clone
-                    </a>
+                    <button type="button" class="btn btn-sm btn-info" onclick="viewOrderProfitLoss('{{ order.order_key }}')" title="View P&amp;L Breakdown">
+                      <i class="bi bi-bar-chart-line me-1"></i>P&amp;L
+                    </button>
                     <form method="POST" action="{% url 'order_entry' %}" style="display:inline;" onsubmit="return confirm('Delete this order?')">
                       {% csrf_token %}
                       <input type="hidden" name="action" value="delete">
@@ -334,6 +442,24 @@
                     </span>
                   </td>
                   <td>{% if order.is_gst_included %}Yes{% else %}No{% endif %}</td>
+                  <td>{{ order.prod_spec|default:"-" }}</td>
+                  <td class="pl-twine-cell">{{ order.pl_twine_breakdown|default:"-" }}</td>
+                  <td style="white-space:nowrap;">
+                    {% if order.pl_profit_loss is not None %}
+                      {% with v=order.pl_profit_loss %}
+                      <span class="{% if v > 0 %}text-success{% elif v < 0 %}text-danger{% else %}text-muted{% endif %} fw-semibold">
+                        {% if v > 0 %}Profit{% elif v < 0 %}Loss{% else %}Break Even{% endif %}
+                      </span>
+                      <small class="text-muted" style="font-size:0.68rem;">
+                        {% if order.pl_profit_per_kg is not None %} | {{ order.pl_profit_per_kg|floatformat:2 }}/kg{% endif %}
+                        {% if order.pl_profit_per_day is not None %} | {{ order.pl_profit_per_day|floatformat:2 }}/day{% endif %}
+                        | Sum:{{ v|floatformat:2 }}
+                      </small>
+                      {% endwith %}
+                    {% else %}
+                      <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -382,7 +508,498 @@
   </div>
 </div>
 
+<!-- P&L Detail Modal -->
+<style>
+  #orderPlDetailModal .modal-header { padding: 0.4rem 0.75rem; }
+  #orderPlDetailModal .modal-header .modal-title { font-size: 1rem; }
+  #orderPlDetailModal .modal-footer { gap: 0.4rem; padding: 0.4rem 0.75rem; align-items: center; }
+  #orderPlDetailModal .modal-footer .btn { padding: 0.22rem 0.7rem; font-size: 0.8rem; line-height: 1.2; }
+  #orderPlDetailContent h6 { margin-bottom: 0.25rem !important; }
+  #orderPlDetailContent .row.g-0 > div { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+  #orderPlDetailContent table.table-bordered td, #orderPlDetailContent table.table-bordered th { padding: 0.2rem 0.4rem !important; vertical-align: middle; }
+</style>
+<div class="modal fade" id="orderPlDetailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h6 class="modal-title mb-0"><i class="bi bi-bar-chart-line me-2"></i>Profit &amp; Loss Breakdown</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0" id="orderPlDetailBody">
+        <div class="text-center py-5" id="orderPlDetailLoading">
+          <div class="spinner-border text-warning" role="status"></div>
+          <div class="mt-2 text-muted">Loading breakdown…</div>
+        </div>
+        <div id="orderPlDetailContent" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <span class="text-muted small me-auto" id="orderPlOverrideHint">Edit Price/kg, then Apply to update order &amp; table</span>
+        <button type="button" class="btn btn-sm btn-success" id="orderPlApplyBtn" onclick="applyOrderPLPriceOverrides()" disabled><i class="bi bi-check-lg me-1"></i>Apply Prices</button>
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
+const productionTrackers = JSON.parse('{{ production_trackers|default:"[]"|escapejs }}');
+window.updateProdSpecOptions = function() {
+  var twineEl = document.getElementById('twine');
+  var prodSpecSelect = document.getElementById('prod_spec');
+  if (!prodSpecSelect) return;
+  var twineCode = (twineEl ? twineEl.value : '').trim();
+  var firstMesh = document.querySelector('#spec-container .spec-mesh-size');
+  var meshSize = (firstMesh && !firstMesh.disabled ? firstMesh.value : (document.querySelector('#spec-container .spec-mesh-size') || {}).value || '').toString().trim();
+  if (!twineCode || !meshSize) { prodSpecSelect.innerHTML = '<option value=""></option>'; prodSpecSelect.value = ''; return; }
+  var productUpper = twineCode.toUpperCase();
+  var filtered = [];
+  if (Array.isArray(productionTrackers)) {
+    for (var i = 0; i < productionTrackers.length; i++) {
+      var pt = productionTrackers[i]; if (!pt) continue;
+      if ((pt.product || '').toString().trim().toUpperCase() !== productUpper) continue;
+      if ((pt.mm || '').toString().trim().toUpperCase() !== meshSize.toUpperCase()) continue;
+      if (pt.user_spec || pt.system_spec) filtered.push(pt);
+    }
+  }
+  if (filtered.length === 0) { prodSpecSelect.innerHTML = '<option value=""></option>'; prodSpecSelect.value = ''; return; }
+  prodSpecSelect.innerHTML = '<option value=""></option>';
+  filtered.forEach(function(pt) {
+    var label = (pt.user_spec || '').trim() || (pt.system_spec || '').trim();
+    var opt = document.createElement('option'); opt.value = label; opt.textContent = label; prodSpecSelect.appendChild(opt);
+  });
+  prodSpecSelect.value = (filtered[0].user_spec || '').trim() || (filtered[0].system_spec || '').trim();
+  if (typeof calcOrderProfitLoss === 'function') calcOrderProfitLoss();
+};
+
+function plFmt(v) {
+    var num = parseFloat(v);
+    if (isNaN(num)) return '—';
+    var neg = num < 0; num = Math.abs(num);
+    var s = num.toFixed(2); var parts = s.split('.'); var ip = parts[0], dp = parts[1];
+    if (ip.length > 3) { var head = ip.slice(0, -3); var tail = ip.slice(-3); var chunks = []; while (head.length > 2) { chunks.unshift(head.slice(-2)); head = head.slice(0, -2); } if (head) chunks.unshift(head); ip = chunks.join(',') + ',' + tail; }
+    return (neg ? '−' : '') + '₹\u202f' + ip + '.' + dp;
+}
+function plNum(v) { var num = parseFloat(v); if (isNaN(num)) return '—'; return num.toFixed(4).replace(/\.?0+$/, ''); }
+
+function buildOrderPLHtml(data) {
+    var s = data.sale, pt = data.production_tracker, tm = data.twine_materials,
+        mc = data.machine_cost, pc = data.processing_cost, ac = data.additional_costs, sum = data.summary;
+    var plColour = parseFloat(sum.profit_loss) > 0 ? 'text-success' : parseFloat(sum.profit_loss) < 0 ? 'text-danger' : 'text-secondary';
+    var plLabel = parseFloat(sum.profit_loss) > 0 ? 'PROFIT' : parseFloat(sum.profit_loss) < 0 ? 'LOSS' : 'BREAK-EVEN';
+    var plBadge = parseFloat(sum.profit_loss) > 0 ? 'bg-success' : parseFloat(sum.profit_loss) < 0 ? 'bg-danger' : 'bg-secondary';
+    var html = '';
+    html += '<div class="p-2 ' + (parseFloat(sum.profit_loss) >= 0 ? 'bg-success' : 'bg-danger') + ' text-white">';
+    html += '<div class="d-flex justify-content-between align-items-center">';
+    html += '<div><div class="fs-5 fw-bold">' + (s.customer || '—') + '</div>';
+    html += '<div class="small opacity-75">' + (s.twine || '') + ' · ' + (s.speification || s.prod_spec || '') + '</div></div>';
+    html += '<div class="text-end"><div class="fs-4 fw-bold">' + plFmt(sum.profit_loss) + ' <span class="badge fs-6 ' + plBadge + ' border border-white">' + plLabel + '</span></div>';
+    html += '<div class="small mt-1 opacity-90">' + plFmt(sum.profit_per_kg) + '/kg &nbsp;·&nbsp; ' + plFmt(sum.profit_per_day) + '/day</div>';
+    html += '</div></div></div>';
+    html += '<div class="row g-0 border-bottom">';
+    [{label:'Revenue', value:plFmt(sum.total_revenue), icon:'bi-cash-coin', cls:'text-success'},
+     {label:'Total Cost', value:plFmt(sum.total_cost), icon:'bi-box-seam', cls:'text-danger'},
+     {label:'Qty Wt', value:plNum(s.init_weight)+' kg', icon:'bi-speedometer2', cls:'text-primary'},
+     {label:'Margin', value:plNum(sum.profit_loss_pct)+'%', icon:'bi-percent', cls:plColour}
+    ].forEach(function(c) {
+        html += '<div class="col-6 col-md-2 p-2 border-end text-center">';
+        html += '<div class="small text-muted"><i class="bi '+c.icon+' me-1"></i>'+c.label+'</div>';
+        html += '<div class="fw-bold '+c.cls+'">'+c.value+'</div></div>';
+    });
+    html += '</div>';
+    html += '<div class="px-2 pt-1"><h6 class="text-muted mb-0 border-bottom pb-0"><i class="bi bi-receipt me-1"></i>Order Info</h6>';
+    html += '<div class="row row-cols-2 row-cols-md-4 g-0 small mb-1">';
+    html += '<div class="col"><span class="text-muted">Order No:</span> <strong>'+(s.order_no||'—')+'</strong></div>';
+    html += '<div class="col"><span class="text-muted">Twine:</span> <strong>'+(s.twine||'—')+'</strong></div>';
+    html += '<div class="col"><span class="text-muted">PT Spec:</span> <strong>'+(pt.system_spec||'—')+'</strong></div>';
+    html += '<div class="col"><span class="text-muted">Specification:</span> <strong>'+(s.speification||s.prod_spec||'—')+'</strong></div>';
+    var upn = parseFloat(s.unit_price)||0, gsn = parseFloat(s.gst_rate)||0;
+    html += '<div class="col-md-8"><span class="text-muted">Unit Price:</span> <strong>'+plFmt(upn)+' + '+plFmt(upn*gsn/100)+' GST = '+plFmt(upn+upn*gsn/100)+' incl.</strong></div>';
+    html += '</div></div>';
+    html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-boxes me-1"></i>Raw Material Cost';
+    html += ' <small class="text-muted fw-normal">(latest Purchase price incl. GST, scaled to order weight)</small></h6>';
+    html += '<div class="small text-muted mb-1">PT batch weight: <strong>'+pt.batch_weight+' kg</strong> · Required days: <strong>'+pt.required_days+'</strong> · Waste: <strong>'+tm.waste_pct+'%</strong></div>';
+    html += '<table class="table table-sm table-bordered small mb-2">';
+    html += '<thead class="table-secondary"><tr><th>Type</th><th>Material</th><th>Daily Out (kg)</th><th>Batch Wt (kg)</th><th>Waste (kg)</th><th>For Sale (kg)</th><th>Price/kg</th><th>Cost</th><th>Price Source</th></tr></thead><tbody>';
+    tm.rows.forEach(function(row) {
+        html += '<tr>';
+        html += '<td><span class="badge bg-'+(row.type==='NET'?'success':'warning text-dark')+'">'+row.type+'</span></td>';
+        html += '<td><strong>'+row.material_code+'</strong></td>';
+        html += '<td>'+plNum(row.daily_output)+'</td>';
+        html += '<td>'+plNum(row.batch_weight)+'</td>';
+        html += '<td>'+plNum(row.waste)+'</td>';
+        html += '<td><strong>'+plNum(row.twine_for_sale)+'</strong></td>';
+        html += '<td><input type="number" step="0.01" min="0" class="form-control form-control-sm pl-price-input" data-code="'+row.material_code+'" data-for-sale="'+row.twine_for_sale+'" value="'+row.price_per_kg+'" style="width:110px" title="Editable Price/kg (incl. GST)"></td>';
+        html += '<td class="fw-bold text-danger">'+plFmt(row.line_cost)+'</td>';
+        html += '<td class="text-muted" style="font-size:0.75em">'+row.price_source+'</td>';
+        html += '</tr>';
+    });
+    var td=0,tb=0,tw=0,tf=0,tc=0;
+    tm.rows.forEach(function(r){ td+=parseFloat(r.daily_output||0); tb+=parseFloat(r.batch_weight||0); tw+=parseFloat(r.waste||0); tf+=parseFloat(r.twine_for_sale||0); tc+=parseFloat(r.line_cost||0); });
+    html += '<tr class="table-secondary fw-bold"><td>Total</td><td></td><td>'+plNum(td)+'</td><td>'+plNum(tb)+'</td><td>'+plNum(tw)+'</td><td>'+plNum(tf)+'</td><td></td><td class="text-danger">'+plFmt(tc)+'</td><td></td></tr>';
+    html += '</tbody></table></div>';
+    if (mc && mc.machine_number) {
+        html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-gear me-1"></i>Machine Operational Cost <span style="font-size:0.75em;color:#6c757d;">(Machine: <strong>'+mc.machine_number+'</strong> · Required days: <strong>'+mc.required_days+'</strong> · PT batch: <strong>'+mc.pt_batch_weight+' kg</strong> · Daily cost: <strong>'+plFmt(mc.daily_total)+'</strong>)</span></h6>';
+        html += '<div class="row row-cols-2 row-cols-md-4 g-1 small mb-2">';
+        [['Operator',mc.operator],['Bobbin Winder',mc.bobbin_winder],['Mending',mc.mending],['Mechanic',mc.mechanic],['Electricity',mc.electricity],['Maintenance',mc.maintenance],['Misc.',mc.miscellaneous]].forEach(function(r){ html += '<div class="col border rounded p-1"><span class="text-muted">'+r[0]+':</span> '+plFmt(r[1])+'/day</div>'; });
+        html += '<div class="col fw-bold text-danger text-center"><span class="text-muted">Machine total('+plNum(s.init_weight)+' kg):</span> <strong>'+plFmt(mc.machine_total)+'</strong></div></div></div>';
+    }
+    html += '<div class="px-3 mb-2"><div class="d-flex flex-wrap align-items-center gap-3 small mb-0">';
+    html += '<span class="fw-bold"><i class="bi bi-tools me-1"></i>Processing Cost</span>';
+    if (pc && pc.material_code) {
+        html += '<span class="text-muted">Processing ('+plFmt(pc.proc_rate)+'/kg × '+plNum(s.init_weight)+' kg): <strong class="text-danger">'+plFmt(pc.processing_total)+'</strong></span>';
+        html += '<span class="text-muted">Colour ('+plFmt(pc.colour_rate)+'/kg × '+plNum(s.init_weight)+' kg): <strong class="text-danger">'+plFmt(pc.colour_total)+'</strong></span>';
+    } else { html += '<span class="text-muted">No processing cost config found.</span>'; }
+    html += '</div></div>';
+    html += '<div class="px-3 mb-2"><div class="d-flex flex-wrap align-items-center gap-3 small mb-0">';
+    html += '<span class="fw-bold"><i class="bi bi-truck me-1"></i>Additional Costs</span>';
+    html += '<span class="text-muted">Packing ('+plFmt(ac.packing_rate)+'/kg × '+plNum(s.init_weight)+' kg): <strong class="text-danger">'+plFmt(ac.packing_total)+'</strong></span>';
+    html += '<span class="text-muted">Transport ('+plFmt(ac.transportation_rate)+'/kg × '+plNum(s.init_weight)+' kg): <strong class="text-danger">'+plFmt(ac.transportation_total)+'</strong></span>';
+    html += '</div></div>';
+    html += '<div class="px-3 pb-1"><h6 class="text-muted mb-1 pb-0"><i class="bi bi-calculator me-1"></i>Summary</h6>';
+    html += '<table class="table table-sm table-bordered small"><tbody>';
+    html += '<tr class="table-success"><td>Total Revenue</td><td class="text-end fw-bold">'+plFmt(sum.total_revenue)+'</td></tr>';
+    html += '<tr class="table-danger"><td>Total Cost</td><td class="text-end fw-bold">'+plFmt(sum.total_cost)+'</td></tr>';
+    html += '<tr><td class="ps-3 text-muted small">→ Raw Material</td><td class="text-end">'+plFmt(tm.raw_material_cost)+'</td></tr>';
+    if (mc && mc.machine_number) html += '<tr><td class="ps-3 text-muted small">→ Machine Cost</td><td class="text-end">'+plFmt(mc.machine_total)+'</td></tr>';
+    if (pc && pc.material_code) { html += '<tr><td class="ps-3 text-muted small">→ Processing</td><td class="text-end">'+plFmt(pc.processing_total)+'</td></tr>'; html += '<tr><td class="ps-3 text-muted small">→ Colour</td><td class="text-end">'+plFmt(pc.colour_total)+'</td></tr>'; }
+    html += '<tr><td class="ps-3 text-muted small">→ Packing</td><td class="text-end">'+plFmt(ac.packing_total)+'</td></tr>';
+    html += '<tr><td class="ps-3 text-muted small">→ Transportation</td><td class="text-end">'+plFmt(ac.transportation_total)+'</td></tr>';
+    html += '<tr class="table-'+(parseFloat(sum.profit_loss)>=0?'success':'danger')+' fw-bold fs-6"><td>'+plLabel+' (total)</td><td class="text-end '+plColour+'">'+plFmt(sum.profit_loss)+'</td></tr>';
+    html += '<tr class="'+plColour+'"><td class="ps-3 text-muted small">→ Per kg</td><td class="text-end fw-bold">'+plFmt(sum.profit_per_kg)+'/kg</td></tr>';
+    html += '<tr class="'+plColour+'"><td class="ps-3 text-muted small">→ Per day</td><td class="text-end fw-bold">'+plFmt(sum.profit_per_day)+'/day</td></tr>';
+    html += '<tr><td class="ps-3 text-muted small">→ Margin</td><td class="text-end">'+plNum(sum.profit_loss_pct)+'%</td></tr>';
+    html += '</tbody></table></div>';
+    return html;
+}
+
+var currentPlData = null;
+var currentPlOrderKey = null;
+var originalPlPrices = {};
+
+function getPlPriceOverrides() {
+    var ov = {};
+    document.querySelectorAll('#orderPlDetailContent .pl-price-input').forEach(function(inp) {
+        var code = inp.getAttribute('data-code'); var val = parseFloat(inp.value);
+        if (code && !isNaN(val) && val >= 0) ov[code] = val.toFixed(2);
+    });
+    return ov;
+}
+function recalcPlModal() {
+    if (!currentPlData) return;
+    var sum = currentPlData.summary, tm = currentPlData.twine_materials;
+    var otherCost = parseFloat(sum.total_cost) - parseFloat(tm.raw_material_cost);
+    var newRaw = 0;
+    document.querySelectorAll('#orderPlDetailContent .pl-price-input').forEach(function(inp) {
+        var forSale = parseFloat(inp.getAttribute('data-for-sale')) || 0;
+        var price = parseFloat(inp.value) || 0;
+        newRaw += forSale * price;
+        var row = inp.closest('tr');
+        var costCell = row ? row.querySelectorAll('td')[7] : null;
+        if (costCell) costCell.textContent = plFmt(forSale * price);
+    });
+    document.querySelectorAll('#orderPlDetailContent table tbody tr').forEach(function(tr) {
+        var first = tr.querySelector('td');
+        if (first && first.textContent.trim() === 'Total' && tr.querySelectorAll('td').length >= 8) tr.querySelectorAll('td')[7].textContent = plFmt(newRaw);
+    });
+    var newTotalCost = otherCost + newRaw;
+    var newProfit = parseFloat(sum.total_revenue) - newTotalCost;
+    var hero = document.querySelector('#orderPlDetailContent .p-2 .fs-4');
+    var heroSub = document.querySelector('#orderPlDetailContent .p-2 .small.mt-1');
+    var weight = parseFloat(currentPlData.sale.weight) || 1;
+    var perKg = newProfit / weight;
+    var reqDays = parseFloat(currentPlData.production_tracker.required_days) || 1;
+    var perDay = newProfit / reqDays;
+    if (hero) {
+        var isProf = newProfit > 0 ? 'PROFIT' : (newProfit < 0 ? 'LOSS' : 'BREAK-EVEN');
+        var badgeCls = newProfit > 0 ? 'bg-success' : (newProfit < 0 ? 'bg-danger' : 'bg-secondary');
+        hero.closest('.p-2').className = 'p-2 ' + (newProfit >= 0 ? 'bg-success' : 'bg-danger') + ' text-white';
+        hero.innerHTML = plFmt(newProfit) + ' <span class="badge fs-6 ' + badgeCls + ' border border-white">' + isProf + '</span>';
+    }
+    if (heroSub) heroSub.innerHTML = plFmt(perKg) + '/kg &nbsp;·&nbsp; ' + plFmt(perDay) + '/day';
+    var rows = document.querySelectorAll('#orderPlDetailContent tbody tr');
+    rows.forEach(function(tr) {
+        var label = tr.querySelector('td') ? tr.querySelector('td').textContent.trim() : '';
+        if (label.indexOf('Total Cost') === 0) tr.querySelectorAll('td')[1].textContent = plFmt(newTotalCost);
+        if (label.indexOf('→ Raw Material') === 0) tr.querySelectorAll('td')[1].textContent = plFmt(newRaw);
+    });
+    var cards = document.querySelectorAll('#orderPlDetailContent .row.g-0 .fw-bold');
+    if (cards.length > 1) cards[1].textContent = plFmt(newTotalCost);
+    var rows2 = document.querySelectorAll('#orderPlDetailContent table.table-bordered tbody tr');
+    rows2.forEach(function(tr) {
+        var label = tr.querySelector('td') ? tr.querySelector('td').textContent.trim() : '';
+        if (label.indexOf('PROFIT') === 0 || label.indexOf('LOSS') === 0 || label.indexOf('BREAK-EVEN') === 0) tr.querySelectorAll('td')[1].textContent = plFmt(newProfit);
+        if (label.indexOf('→ Per kg') === 0) tr.querySelectorAll('td')[1].textContent = plFmt(perKg) + '/kg';
+        if (label.indexOf('→ Per day') === 0) tr.querySelectorAll('td')[1].textContent = plFmt(perDay) + '/day';
+        var pct = parseFloat(sum.total_revenue) ? newProfit / parseFloat(sum.total_revenue) * 100 : 0;
+        if (label.indexOf('→ Margin') === 0) tr.querySelectorAll('td')[1].textContent = plNum(pct) + '%';
+    });
+    return { newProfit: newProfit, perKg: perKg, perDay: perDay, newRaw: newRaw };
+}
+function updatePlApplyState() {
+    var btn = document.getElementById('orderPlApplyBtn');
+    if (!btn) return;
+    var modified = false;
+    document.querySelectorAll('#orderPlDetailContent .pl-price-input').forEach(function(inp) {
+        var code = inp.getAttribute('data-code');
+        var orig = originalPlPrices[code];
+        var cur = parseFloat(inp.value);
+        if (orig === undefined || isNaN(cur) || Math.abs(cur - orig) > 0.005) modified = true;
+    });
+    btn.disabled = !modified;
+}
+function bindPlPriceInputs() {
+    originalPlPrices = {};
+    document.querySelectorAll('#orderPlDetailContent .pl-price-input').forEach(function(inp) {
+        var code = inp.getAttribute('data-code'); var val = parseFloat(inp.value);
+        originalPlPrices[code] = isNaN(val) ? 0 : val;
+        inp.addEventListener('input', function() { recalcPlModal(); updatePlApplyState(); });
+        inp.addEventListener('change', function() { recalcPlModal(); updatePlApplyState(); });
+    });
+    updatePlApplyState();
+}
+function applyOrderPLPriceOverrides() {
+    if (!currentPlData) return;
+    var ov = getPlPriceOverrides();
+    var calc = recalcPlModal();
+    var btn = document.getElementById('orderPlApplyBtn');
+    var hint = document.getElementById('orderPlOverrideHint');
+    var plEl = document.getElementById('profit_loss');
+    var pkEl = document.getElementById('profit_per_kg');
+    var pdEl = document.getElementById('profit_per_day');
+    if (plEl) plEl.value = calc.newProfit.toFixed(2);
+    if (pkEl) pkEl.value = calc.perKg.toFixed(2);
+    if (pdEl) pdEl.value = calc.perDay.toFixed(2);
+    if (!currentPlOrderKey) {
+        window._pendingOrderPlOverrides = ov;
+        if (hint) hint.textContent = 'Prices applied to entry form. Save the order to keep them.';
+        Object.keys(ov).forEach(function(k) { originalPlPrices[k] = parseFloat(ov[k]); });
+        updatePlApplyState();
+        return;
+    }
+    if (btn) { btn.disabled = true; btn.innerHTML = 'Saving…'; }
+    var formData = new FormData();
+    formData.append('order_key', currentPlOrderKey);
+    formData.append('twine_price_overrides', JSON.stringify(ov));
+    fetch('{% url "order_update_twine_prices" %}', {
+        method: 'POST', body: formData,
+        headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Apply Prices'; }
+        if (!data.success) { if (hint) hint.textContent = 'Save failed: ' + (data.error || 'unknown error'); return; }
+        currentPlData = data;
+        document.getElementById('orderPlDetailContent').innerHTML = buildOrderPLHtml(data);
+        bindPlPriceInputs();
+        document.querySelectorAll('#order-table tbody tr').forEach(function(tr) {
+            var cb = tr.querySelector('.order-checkbox');
+            if (cb && cb.value == currentPlOrderKey) {
+                var cells = tr.querySelectorAll('td');
+                if (cells.length >= 2) {
+                    var plCell = cells[cells.length - 1];
+                    var v = parseFloat(data.summary.profit_loss);
+                    var cls = v > 0 ? 'text-success' : (v < 0 ? 'text-danger' : 'text-muted');
+                    var lbl = v > 0 ? 'Profit' : (v < 0 ? 'Loss' : 'Break Even');
+                    plCell.innerHTML = '<span class="' + cls + ' fw-semibold">' + lbl + '</span> <small class="text-muted" style="font-size:0.68rem;"> | ' + data.summary.profit_per_kg + '/kg | ' + data.summary.profit_per_day + '/day | Sum:' + data.summary.profit_loss + '</small>';
+                }
+                if (cells.length >= 3) cells[cells.length - 2].textContent = data.twine_materials.rows.map(function(r) { return r.material_code + '(' + r.twine_for_sale + ')'; }).join('|');
+            }
+        });
+        if (typeof ordersData !== 'undefined') {
+            ordersData.forEach(function(o) {
+                if (o.order_key == currentPlOrderKey) {
+                    o.pl_profit_loss = data.summary.profit_loss;
+                    o.pl_profit_per_kg = data.summary.profit_per_kg;
+                    o.pl_profit_per_day = data.summary.profit_per_day;
+                }
+            });
+        }
+        if (hint) hint.textContent = 'Saved. Table & entry updated.';
+    })
+    .catch(function(err) {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Apply Prices'; }
+        if (hint) hint.textContent = 'Network error: ' + err;
+    });
+}
+
+var orderCustomerDict = JSON.parse('{{ customer_dict|escapejs }}' || '{}');
+var orderProductDict = JSON.parse('{{ product_dict|escapejs }}' || '{}');
+
+function autoFillOrderGst() {
+    var gstEl = document.getElementById('gst_rate');
+    var hintEl = document.getElementById('gst_rate_hint');
+    if (!gstEl) return;
+    var custVal = ((document.getElementById('customer') || {}).value || '').trim();
+    var twineVal = ((document.getElementById('twine') || {}).value || '').trim();
+    if (!custVal || !twineVal) { if (hintEl) hintEl.textContent = ''; return; }
+    var custCode = custVal.split('-')[0].trim();
+    var cust = orderCustomerDict[custCode];
+    var prod = orderProductDict[twineVal];
+    if (!cust || !prod) { if (hintEl) hintEl.textContent = ''; return; }
+    var cgst = parseFloat(prod.cgst) || 0;
+    var sgst = parseFloat(prod.sgst) || 0;
+    var igst = parseFloat(prod.igst) || 0;
+    var isWithin = cust.is_within_state === true || cust.is_within_state === 'True' || cust.is_within_state === 1;
+    var total = isWithin ? (cgst + sgst) : igst;
+    gstEl.value = total.toFixed(2);
+    if (hintEl) {
+        hintEl.textContent = isWithin
+            ? 'CGST ' + cgst + '% + SGST ' + sgst + '% (Intrastate)'
+            : 'IGST ' + igst + '% (Interstate)';
+    }
+    if (typeof calcOrderProfitLoss === 'function') { try { calcOrderProfitLoss(); } catch(e) {} }
+}
+
+function calcOrderProfitLoss() {
+    var twine = (document.getElementById('twine') || {}).value || '';
+    twine = twine.trim();
+    var prod_spec = (document.getElementById('prod_spec') || {}).value || '';
+    prod_spec = prod_spec.trim();
+    var quantity = (document.getElementById('quantity') || {}).value || '';
+    var quantity_unit = (document.getElementById('quantity_unit') || {}).value || 'KG';
+    var unit_price = (document.getElementById('unit_price') || {}).value || '';
+    var gst_rate = (document.getElementById('gst_rate') || {}).value || '';
+    var isGst = document.getElementById('is_gst_included') ? document.getElementById('is_gst_included').checked : false;
+    var btn = document.getElementById('formPLBtn');
+    var canShow = !!(twine && prod_spec && quantity && parseFloat(quantity) > 0);
+    if (btn) btn.disabled = !canShow;
+    var plEl = document.getElementById('profit_loss');
+    var pkEl = document.getElementById('profit_per_kg');
+    var pdEl = document.getElementById('profit_per_day');
+    if (!twine || !prod_spec || !quantity || parseFloat(quantity) <= 0) {
+        if (plEl) plEl.value = '';
+        if (pkEl) pkEl.value = '';
+        if (pdEl) pdEl.value = '';
+        return;
+    }
+    var meshEl = document.querySelector('#spec-container .spec-mesh-size');
+    var meshSize = meshEl ? meshEl.value : '';
+    var formData = new FormData();
+    formData.append('twine', twine);
+    formData.append('prod_spec', prod_spec);
+    formData.append('quantity', quantity || 0);
+    formData.append('quantity_unit', quantity_unit || 'KG');
+    formData.append('unit_price', unit_price || 0);
+    formData.append('gst_rate', gst_rate || 0);
+    formData.append('mesh_size', meshSize || '');
+    formData.append('is_gst_included', isGst ? 'true' : 'false');
+    if (window._pendingOrderPlOverrides) formData.append('twine_price_overrides', JSON.stringify(window._pendingOrderPlOverrides));
+    fetch('{% url "order_calculate_profit_loss" %}', {
+        method: 'POST', body: formData,
+        headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success && data.profit_loss !== null) {
+            if (plEl) plEl.value = data.profit_loss;
+            if (pkEl) pkEl.value = data.profit_per_kg !== null ? data.profit_per_kg : '';
+            if (pdEl) pdEl.value = data.profit_per_day !== null ? data.profit_per_day : '';
+        } else {
+            if (plEl) plEl.value = '';
+            if (pkEl) pkEl.value = '';
+            if (pdEl) pdEl.value = '';
+        }
+    })
+    .catch(function() {
+        if (plEl) plEl.value = '';
+        if (pkEl) pkEl.value = '';
+        if (pdEl) pdEl.value = '';
+    });
+}
+
+function viewOrderFormPL() {
+    currentPlOrderKey = null; currentPlData = null;
+    var modal = new bootstrap.Modal(document.getElementById('orderPlDetailModal'));
+    document.getElementById('orderPlDetailLoading').style.display = '';
+    document.getElementById('orderPlDetailContent').style.display = 'none';
+    modal.show();
+    var firstMesh = document.querySelector('#spec-container .spec-mesh-size');
+    var meshSize = firstMesh ? firstMesh.value : '';
+    var formData = new FormData();
+    formData.append('twine', (document.getElementById('twine') || {}).value || '');
+    formData.append('prod_spec', (document.getElementById('prod_spec') || {}).value || '');
+    formData.append('quantity', (document.getElementById('quantity') || {}).value || '0');
+    formData.append('quantity_unit', (document.getElementById('quantity_unit') || {}).value || 'KG');
+    formData.append('unit_price', (document.getElementById('unit_price') || {}).value || '0');
+    formData.append('gst_rate', (document.getElementById('gst_rate') || {}).value || '0');
+    formData.append('mesh_size', meshSize || '');
+    formData.append('order_number', (document.getElementById('order_number') || {}).value || '');
+    formData.append('customer', (document.getElementById('customer') || {}).value || '');
+    formData.append('is_gst_included', document.getElementById('is_gst_included') && document.getElementById('is_gst_included').checked ? 'true' : 'false');
+    if (window._pendingOrderPlOverrides) formData.append('twine_price_overrides', JSON.stringify(window._pendingOrderPlOverrides));
+    fetch('{% url "order_profit_loss_detail_post" %}', {
+        method: 'POST', body: formData,
+        headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        document.getElementById('orderPlDetailLoading').style.display = 'none';
+        var content = document.getElementById('orderPlDetailContent');
+        content.style.display = '';
+        if (!data.success) {
+            content.innerHTML = '<div class="alert alert-warning m-3"><i class="bi bi-exclamation-triangle me-2"></i>' + (data.error || 'Unable to calculate P&amp;L for this order.') + '</div>';
+            return;
+        }
+        currentPlData = data;
+        content.innerHTML = buildOrderPLHtml(data);
+        bindPlPriceInputs();
+    })
+    .catch(function(err) {
+        document.getElementById('orderPlDetailLoading').style.display = 'none';
+        document.getElementById('orderPlDetailContent').style.display = '';
+        document.getElementById('orderPlDetailContent').innerHTML = '<div class="alert alert-danger m-3">Network error: ' + err + '</div>';
+    });
+}
+
+function viewOrderProfitLoss(orderKey) {
+    currentPlOrderKey = orderKey; currentPlData = null;
+    var modal = new bootstrap.Modal(document.getElementById('orderPlDetailModal'));
+    document.getElementById('orderPlDetailLoading').style.display = '';
+    document.getElementById('orderPlDetailContent').style.display = 'none';
+    modal.show();
+    var url = ('{% url "order_profit_loss_detail" order_key=0 %}').replace('/0/', '/' + orderKey + '/');
+    fetch(url)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            document.getElementById('orderPlDetailLoading').style.display = 'none';
+            var content = document.getElementById('orderPlDetailContent');
+            content.style.display = '';
+            if (!data.success) {
+                content.innerHTML = '<div class="alert alert-warning m-3"><i class="bi bi-exclamation-triangle me-2"></i>' + (data.error || 'Unable to calculate P&amp;L for this order.') + '</div>';
+                return;
+            }
+            currentPlData = data;
+            content.innerHTML = buildOrderPLHtml(data);
+            bindPlPriceInputs();
+        })
+        .catch(function(err) {
+            document.getElementById('orderPlDetailLoading').style.display = 'none';
+            document.getElementById('orderPlDetailContent').style.display = '';
+            document.getElementById('orderPlDetailContent').innerHTML = '<div class="alert alert-danger m-3">Network error: ' + err + '</div>';
+        });
+}
+
+// Wire up Prod.Spec + P&L triggers
+document.addEventListener('DOMContentLoaded', function() {
+    var twineEl = document.getElementById('twine');
+    if (twineEl) { twineEl.addEventListener('change', function() { window.updateProdSpecOptions(); autoFillOrderGst(); }); twineEl.addEventListener('blur', function() { window.updateProdSpecOptions(); autoFillOrderGst(); }); }
+    var custEl = document.getElementById('customer');
+    if (custEl) { custEl.addEventListener('change', autoFillOrderGst); custEl.addEventListener('blur', autoFillOrderGst); custEl.addEventListener('input', function() { clearTimeout(window._gstTimer); window._gstTimer = setTimeout(autoFillOrderGst, 400); }); }
+    var psEl = document.getElementById('prod_spec');
+    if (psEl) psEl.addEventListener('change', calcOrderProfitLoss);
+    ['quantity','quantity_unit','unit_price','gst_rate'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) { el.addEventListener('input', calcOrderProfitLoss); el.addEventListener('change', calcOrderProfitLoss); }
+    });
+    var gstCb = document.getElementById('is_gst_included');
+    if (gstCb) gstCb.addEventListener('change', calcOrderProfitLoss);
+    var specCont = document.getElementById('spec-container');
+    if (specCont) specCont.addEventListener('input', function() { if (typeof window.updateProdSpecOptions === 'function') window.updateProdSpecOptions(); });
+    try { window.updateProdSpecOptions(); } catch(e) {}
+    calcOrderProfitLoss();
+});
+
+
 const productNames = {
   {% for product in products %}
   "{{ product.code|escapejs }}": "{{ product.display_name|default:product.name|escapejs }}",
@@ -424,6 +1041,9 @@ function getFormData() {
         quantity: document.getElementById('quantity').value,
         quantity_unit: document.getElementById('quantity_unit').value,
         unit_price: document.getElementById('unit_price').value,
+        gst_rate: document.getElementById('gst_rate') ? document.getElementById('gst_rate').value : '',
+        prod_spec: document.getElementById('prod_spec') ? document.getElementById('prod_spec').value.trim() : '',
+        twine_price_overrides: window._pendingOrderPlOverrides || null,
         is_gst_included: document.getElementById('is_gst_included').checked,
         is_new_order: document.getElementById('is_new_order').checked,
         status: document.getElementById('status').value,
@@ -546,11 +1166,32 @@ function setFormData(data) {
     document.getElementById('quantity').value = data.quantity || '';
     document.getElementById('quantity_unit').value = data.quantity_unit || 'Bag';
     document.getElementById('unit_price').value = data.unit_price || '';
-    document.getElementById('is_gst_included').checked = data.is_gst_included || false;
-    document.getElementById('is_new_order').checked = data.is_new_order !== undefined ? data.is_new_order : true;
+    if (document.getElementById('gst_rate')) document.getElementById('gst_rate').value = data.gst_rate || '';
+    if (document.getElementById('is_gst_included')) document.getElementById('is_gst_included').checked = data.is_gst_included || false;
+    if (document.getElementById('is_new_order')) document.getElementById('is_new_order').checked = data.is_new_order !== undefined ? data.is_new_order : true;
     document.getElementById('status').value = data.status || 'Ordered';
     document.getElementById('order_instructions').value = data.order_instructions || '';
     document.getElementById('comments').value = data.comments || '';
+    window._pendingOrderPlOverrides = null;
+    var ov = data.twine_price_overrides;
+    if (ov) { try { window._pendingOrderPlOverrides = typeof ov === 'string' ? JSON.parse(ov) : ov; } catch(e) {} }
+    // Prod.Spec dropdown: rebuild from tracker, then restore saved value
+    if (typeof window.updateProdSpecOptions === 'function') { try { window.updateProdSpecOptions(); } catch(e) {} }
+    var psSel = document.getElementById('prod_spec');
+    if (psSel && data.prod_spec) {
+        var savedSpec = (data.prod_spec || '').trim();
+        if (!Array.from(psSel.options).some(function(o) { return o.value === savedSpec; })) {
+            var opt = document.createElement('option'); opt.value = savedSpec; opt.textContent = savedSpec; psSel.appendChild(opt);
+        }
+        psSel.value = savedSpec;
+    } else if (psSel) { psSel.value = ''; }
+    if (document.getElementById('profit_loss')) document.getElementById('profit_loss').value = (data.pl_profit_loss || data.profit_loss || '');
+    var pkEl = document.getElementById('profit_per_kg');
+    var pdEl = document.getElementById('profit_per_day');
+    if (pkEl) pkEl.value = data.pl_profit_per_kg || '';
+    if (pdEl) pdEl.value = data.pl_profit_per_day || '';
+    if (typeof autoFillOrderGst === 'function') { try { autoFillOrderGst(); } catch(e) {} }
+    else if (typeof calcOrderProfitLoss === 'function') { try { calcOrderProfitLoss(); } catch(e) {} }
 
     const collapseEl = document.getElementById("orderForm");
     const bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, {toggle: false});
@@ -571,6 +1212,12 @@ function resetOrderForm() {
     document.getElementById('quantity').value = '';
     document.getElementById('quantity_unit').value = 'Bag';
     document.getElementById('unit_price').value = '';
+    if (document.getElementById('gst_rate')) document.getElementById('gst_rate').value = '';
+    if (document.getElementById('prod_spec')) { document.getElementById('prod_spec').innerHTML = '<option value=""></option>'; document.getElementById('prod_spec').value = ''; }
+    if (document.getElementById('profit_loss')) document.getElementById('profit_loss').value = '';
+    var pkR = document.getElementById('profit_per_kg'); var pdR = document.getElementById('profit_per_day');
+    if (pkR) pkR.value = ''; if (pdR) pdR.value = '';
+    window._pendingOrderPlOverrides = null;
     document.getElementById('is_gst_included').checked = false;
     document.getElementById('is_new_order').checked = true;
     document.getElementById('status').value = 'Ordered';
@@ -1023,8 +1670,9 @@ const orderTable = document.getElementById('order-table');
 if (orderTable) {
     const orderTbody = orderTable.querySelector('tbody');
 
-    // Map filter array index to table column index (skip checkbox col 0 and actions col 2)
-    const filterColMap = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+    // Map filter array index to table column index (skip checkbox col 0 and actions col 1)
+    // Order: Order#, O.Date, StatusDate, Customer, Twine, OrderSpec, Colour, Qty, Unit, Price, GST select, Prod.Spec, Twine, P/L
+    const filterColMap = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16];
     const filterStorageKey = 'orderFilters';
 
     function saveFiltersToStorage() {
@@ -1103,10 +1751,18 @@ if (orderTable) {
                     return;
                 }
 
-                // Handle regular text filters
+                // Handle regular text filters (+ (empty) / - for blank rows)
                 const filterValue = filterInput.value.toLowerCase().trim();
                 if (filterValue) {
-                    if (!cells[colIdx].textContent.toLowerCase().includes(filterValue)) {
+                    var cellTxt = cells[colIdx].textContent.toLowerCase();
+                    var isEmptyToken = filterValue === '(empty)' || filterValue === '<empty>' || filterValue === 'empty' || filterValue === 'is empty' || filterValue === 'blank' || filterValue === 'isempty' || filterValue === '-';
+                    var isNotEmptyToken = filterValue === '(not empty)' || filterValue === '<not empty>' || filterValue === 'not empty' || filterValue === 'notempty' || filterValue === 'is not empty' || filterValue === 'notblank' || filterValue === 'not blank';
+                    var isBlankCell = cellTxt.trim() === '' || cellTxt.trim() === '-' || cellTxt.trim() === '—';
+                    if (isEmptyToken) {
+                        if (!isBlankCell) show = false;
+                    } else if (isNotEmptyToken) {
+                        if (isBlankCell) show = false;
+                    } else if (!cellTxt.includes(filterValue)) {
                         show = false;
                     }
                 }

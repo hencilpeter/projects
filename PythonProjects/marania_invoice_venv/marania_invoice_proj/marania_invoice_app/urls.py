@@ -120,6 +120,10 @@ path("reports/pdf/",  views.report_pdf, name="report_pdf"),
 path('orders', views.order_entry, name='order_entry'),
 path('orders/copy-to-sales/<int:order_key>/', views.copy_order_to_sales, name='copy_order_to_sales'),
 path('orders/copy-orders-to-sales/', views.copy_orders_to_sales, name='copy_orders_to_sales'),
+path('orders/calculate-profit-loss', views.order_calculate_profit_loss_api, name='order_calculate_profit_loss'),
+path('orders/profit-loss-detail/<int:order_key>/', views.order_profit_loss_detail_api, name='order_profit_loss_detail'),
+path('orders/profit-loss-detail/', views.order_profit_loss_detail_api, name='order_profit_loss_detail_post'),
+path('orders/update-twine-prices/', views.order_update_twine_prices_api, name='order_update_twine_prices'),
 
 # purchases
 path('purchases', views.purchase_entry, name='purchase_entry'),

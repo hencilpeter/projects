@@ -429,6 +429,10 @@ class Order(models.Model):
     last_status_date = models.DateField(blank=True, null=True)
     order_instructions = models.TextField(blank=True, null=True)
     comments = models.TextField(blank=True, null=True)
+    prod_spec = models.CharField(max_length=255, blank=True, null=True)
+    gst_rate = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    profit_loss = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    twine_price_overrides = models.TextField(blank=True, null=True, help_text="JSON {material_code: price_per_kg_incl_gst} for manual P&L overrides")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
