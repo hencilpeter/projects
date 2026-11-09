@@ -2702,6 +2702,12 @@ def order_entry(request):
     from .models import ProductionTracker
     production_trackers = list(ProductionTracker.objects.all().values('pt_key', 'product', 'system_spec', 'user_spec', 'mm'))
 
+    try:
+        from .models import CompanySettings as _CS
+        _cs = _CS.objects.first()
+        default_bag_weight = str(_cs.default_bag_weight) if _cs and _cs.default_bag_weight else '55'
+    except Exception:
+        default_bag_weight = '55'
     context = {
         "orders": orders,
         "orders_json": orders_json,
@@ -2712,6 +2718,7 @@ def order_entry(request):
         "production_trackers": json.dumps(production_trackers, default=str),
         "customer_dict": json.dumps(get_parties_dict(), default=str),
         "product_dict": json.dumps(get_product_dict(), default=str),
+        "default_bag_weight": default_bag_weight,
     }
     return render(request, "marania_invoice_app/order_entry.html", context)
 
