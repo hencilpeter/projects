@@ -2802,7 +2802,7 @@ function buildPLHtml(data) {
     // Row 1
     html += '<div class="col"><span class="text-muted">Order No:</span> <strong>'+(s.order_no||'—')+'</strong></div>';
     html += '<div class="col"><span class="text-muted">Twine:</span> <strong>'+(s.twine||'—')+'</strong></div>';
-    html += '<div class="col"><span class="text-muted">PT Spec:</span> <strong>'+(pt.system_spec||'—')+'</strong></div>';
+    html += '<div class="col"><span class="text-muted">PT Spec:</span> '+(pt.system_spec||'—')+'</div>';
     html += '<div class="col"><span class="text-muted">Spec:</span> '+(s.speification||s.prod_spec||'—')+'</div>';
     // Row 2 — Unit Price merged across two columns
     var unitPriceNum = parseFloat(s.unit_price) || 0;
