@@ -166,6 +166,7 @@
             <th style="width:150px;">Product</th>
             <th style="width:150px;">MM</th>
             <th style="width:150px;">User Spec</th>
+            <th class="text-end" style="width:80px;">Extra Mesh</th>
             <th class="text-end" style="width:95px;">Qty/Day</th>
             <th class="text-end" style="width:80px;">Req.Days</th>
             <th class="text-end" style="width:80px;">Weight</th>
@@ -191,40 +192,47 @@
                 <button type="submit" id="bulk-delete-btn" class="btn btn-danger btn-sm ms-1" disabled>Del</button>
               </form>
             </th>
-            <th><select class="form-select form-select-sm saved-filter">
+            <th><select class="form-select form-select-sm saved-filter" data-col="2">
               <option value="">All</option>
-              {% for p in products %}
-              <option value="{{ p.code }}">{{ p.code }}</option>
-              {% endfor %}
             </select></th>
-            <th><select class="form-select form-select-sm saved-filter">
+            <th><select class="form-select form-select-sm saved-filter" data-col="3">
               <option value="">All</option>
-              {% for mm in mm_options %}
-              <option value="{{ mm }}">{{ mm }}</option>
-              {% endfor %}
             </select></th>
-            <th><select class="form-select form-select-sm saved-filter">
+            <th><select class="form-select form-select-sm saved-filter" data-col="4">
               <option value="">All</option>
-              {% for r in user_spec_options %}
-              <option value="{{ r }}">{{ r }}</option>
-              {% endfor %}
             </select></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><select class="form-select form-select-sm saved-filter">
+            <th><select class="form-select form-select-sm saved-filter" data-col="5">
               <option value="">All</option>
-              {% for m in machines %}
-              <option value="{{ m.machine_number }}">{{ m.machine_number }}</option>
-              {% endfor %}
             </select></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
-            <th><input type="text" class="form-control form-control-sm saved-filter" placeholder="Search"></th>
+            <th><select class="form-select form-select-sm saved-filter" data-col="6">
+              <option value="">All</option>
+            </select></th>
+            <th><select class="form-select form-select-sm saved-filter" data-col="7">
+              <option value="">All</option>
+            </select></th>
+            <th><select class="form-select form-select-sm saved-filter" data-col="8">
+              <option value="">All</option>
+            </select></th>
+            <th><select class="form-select form-select-sm saved-filter" data-col="9">
+              <option value="">All</option>
+            </select></th>
+            <th><select class="form-select form-select-sm saved-filter" data-col="10">
+              <option value="">All</option>
+            </select></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" data-col="11" placeholder="Search"></th>
+            <th><input type="text" class="form-control form-control-sm saved-filter" data-col="12" placeholder="Search"></th>
+            <th><select class="form-select form-select-sm saved-filter" data-col="13">
+              <option value="">All</option>
+            </select></th>
+            <th><select class="form-select form-select-sm saved-filter" data-col="14">
+              <option value="">All</option>
+            </select></th>
+            <th><select class="form-select form-select-sm saved-filter" data-col="15">
+              <option value="">All</option>
+            </select></th>
+            <th><select class="form-select form-select-sm saved-filter" data-col="16">
+              <option value="">All</option>
+            </select></th>
           </tr>
         </thead>
         <tbody>
@@ -241,6 +249,7 @@
             <td>{{ t.product }}</td>
             <td>{{ t.mm }}</td>
             <td>{{ t.user_spec }}</td>
+            <td class="text-end">{{ t.extra_mesh|default:"—" }}</td>
             <td class="text-end">{{ t.daily_output }}</td>
             <td class="text-end">{{ t.required_days }}</td>
             <td class="text-end">{{ t.weight }}</td>
@@ -262,7 +271,7 @@
             <td class="text-end">{{ t.addl_net_twine|default:"—" }}</td>
           </tr>
           {% empty %}
-          <tr class="saved-empty-row"><td colspan="16" class="text-center text-muted">No production tracker entries yet.</td></tr>
+          <tr class="saved-empty-row"><td colspan="17" class="text-center text-muted">No production tracker entries yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -638,8 +647,9 @@ function filterSavedTable() {
     filters.forEach((f, idx) => {
       const v = (f.value || "").trim().toLowerCase();
       if (!v || !show) return;
-      /* filter controls map to columns starting at 2 (col 0 = checkbox, col 1 = Actions) */
-      const cell = row.cells[idx + 2];
+      /* filter controls map to columns via data-col (col 0 = checkbox, col 1 = Actions) */
+      const col = f.dataset.col ? parseInt(f.dataset.col, 10) : idx + 2;
+      const cell = row.cells[col];
       const text = cell ? (cell.textContent || "").trim().toLowerCase() : "";
       /* selects (combo boxes) match exactly; text inputs match substring */
       if (f.tagName === "SELECT") { if (text !== v) show = false; }
@@ -648,12 +658,98 @@ function filterSavedTable() {
     row.style.display = show ? "" : "none";
   });
 }
+
+/* Populate select filters with the unique values present in the listed entries */
+function sortFilterValues(values) {
+  return Array.from(values).sort((a, b) => {
+    const na = parseFloat(a), nb = parseFloat(b);
+    if (!isNaN(na) && !isNaN(nb)) return na - nb;
+    return a.localeCompare(b);
+  });
+}
+
+function setSavedFilterOptions(sel, values) {
+  const previous = sel.value;
+  while (sel.options.length > 1) sel.remove(1);
+  sortFilterValues(values).forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    sel.appendChild(opt);
+  });
+  const stillThere = Array.from(sel.options).some(o => o.value === previous);
+  sel.value = stillThere ? previous : "";
+}
+
+function savedCellText(row, col) {
+  const cell = row.cells[col];
+  return cell ? (cell.textContent || "").trim() : "";
+}
+
+function savedFilterControls() {
+  return Array.from(document.querySelectorAll("#saved-filter-row .saved-filter"));
+}
+
+function savedControlMatchesRow(control, row) {
+  const value = (control.value || "").trim().toLowerCase();
+  if (!value) return true;
+  const col = control.dataset.col ? parseInt(control.dataset.col, 10) : -1;
+  const text = savedCellText(row, col).toLowerCase();
+  if (control.tagName === "SELECT") return text === value;
+  return text.indexOf(value) !== -1;
+}
+
+/* Rebuild every dropdown from the rows that match all the other active filters.
+   This makes each column's options depend on the selections made in the rest. */
+function rebuildSavedFilterOptions() {
+  const rows = Array.from(document.querySelectorAll("#saved-list-table tbody tr:not(.saved-empty-row)"));
+  const controls = savedFilterControls();
+  document.querySelectorAll("#saved-filter-row select.saved-filter[data-col]").forEach(sel => {
+    const col = parseInt(sel.dataset.col, 10);
+    const others = controls.filter(c => c !== sel);
+    const values = new Set();
+    rows.forEach(row => {
+      if (others.every(c => savedControlMatchesRow(c, row))) {
+        const text = savedCellText(row, col);
+        if (text !== "") values.add(text);
+      }
+    });
+    /* keep the current selection visible even if other filters temporarily exclude it */
+    if (sel.value) values.add(sel.value);
+    setSavedFilterOptions(sel, values);
+  });
+}
+
+/* When a filter changes, drop selections in the other dropdowns that no longer
+   exist for the newly selected value, then rebuild all options. */
+function refreshSavedFilterOptions(changed) {
+  const rows = Array.from(document.querySelectorAll("#saved-list-table tbody tr:not(.saved-empty-row)"));
+  if (changed && changed.dataset.col) {
+    document.querySelectorAll("#saved-filter-row select.saved-filter[data-col]").forEach(sel => {
+      if (sel === changed) return;
+      const current = sel.value;
+      if (!current) return;
+      const stillValid = rows.some(row =>
+        savedControlMatchesRow(changed, row) &&
+        savedCellText(row, parseInt(sel.dataset.col, 10)) === current
+      );
+      if (!stillValid) sel.value = "";
+    });
+  }
+  rebuildSavedFilterOptions();
+  filterSavedTable();
+}
+
+rebuildSavedFilterOptions();
+
 document.querySelectorAll("#saved-filter-row .saved-filter").forEach(f => {
   f.addEventListener("input", filterSavedTable);
   f.addEventListener("change", filterSavedTable);
+  f.addEventListener("change", function() { refreshSavedFilterOptions(f); });
 });
 document.getElementById("clear-filters").addEventListener("click", () => {
   document.querySelectorAll("#saved-filter-row .saved-filter").forEach(f => f.value = "");
+  rebuildSavedFilterOptions();
   filterSavedTable();
 });
 
