@@ -2565,7 +2565,7 @@ function renderSummaryDetail(list) {
 
     var twineTotals = {};
     var twineOrder = [];
-    var totalPL = 0, plCount = 0, totalWeight = 0, totalPerDay = 0;
+    var totalPL = 0, plCount = 0, totalWeight = 0;
     list.forEach(function(s) {
         (s.pl_twine_rows || []).forEach(function(r) {
             if (!(r.code in twineTotals)) {
@@ -2580,8 +2580,6 @@ function renderSummaryDetail(list) {
             plCount++;
             totalWeight += num(s.processed_weight) || num(s.initial_weight) || 0;
         }
-        var pd = num(s.pl_profit_per_day);
-        if (pd !== null) totalPerDay += pd;
     });
 
     var twineRows = twineOrder.map(function(code) {
@@ -2591,13 +2589,11 @@ function renderSummaryDetail(list) {
 
     var plCls = plCount === 0 ? '' : (totalPL >= 0 ? 'text-success' : 'text-danger');
     var perKg = plCount && totalWeight > 0 ? totalPL / totalWeight : null;
-    var perDayCell = plCount ? indianFormat(totalPerDay) : '—';
     var plRows =
         '<tr><td>Orders with P&amp;L</td><td class="text-end">' + plCount + ' of ' + list.length + '</td></tr>' +
         '<tr><td>Total Weight (kg)</td><td class="text-end">' + totalWeight.toFixed(2) + '</td></tr>' +
         '<tr class="fw-bold"><td>Total Profit/Loss</td><td class="text-end ' + plCls + '">' + (plCount ? indianFormat(totalPL) : '—') + '</td></tr>' +
-        '<tr><td>Profit/Loss per kg</td><td class="text-end ' + plCls + '">' + (perKg === null ? '—' : indianFormat(perKg)) + '</td></tr>' +
-        '<tr><td>Profit/Loss per day (sum of orders)</td><td class="text-end ' + plCls + '">' + perDayCell + '</td></tr>';
+        '<tr><td>Profit/Loss per kg</td><td class="text-end ' + plCls + '">' + (perKg === null ? '—' : indianFormat(perKg)) + '</td></tr>';
 
     body.innerHTML =
         '<div class="col-md-6">' +
@@ -3147,12 +3143,6 @@ function recalcPlModal() {
     var ac  = currentPlData.additional_costs || {};
     var ew  = getPlExpenseWeight(currentPlData);
 
-    // Fixed cost (machine etc.) = total cost minus raw material and the four editable rates
-    var machineCost = parseFloat(sum.total_cost) - parseFloat(tm.raw_material_cost)
-        - (parseFloat(pc.processing_total) || 0) - (parseFloat(pc.colour_total) || 0)
-        - (parseFloat(ac.packing_total) || 0) - (parseFloat(ac.transportation_total) || 0);
-    if (!isFinite(machineCost) || machineCost < 0) machineCost = 0;
-
     var rates = getPlCostRates();
     var procTotal   = rates.processing * ew;
     var colourTotal = rates.colour * ew;
@@ -3194,20 +3184,36 @@ function recalcPlModal() {
     if (actualTotalCell) actualTotalCell.textContent = plFmt(newRaw);
     var refTotalCell = document.querySelector('#plDetailContent .pl-ref-total-cost');
     if (refTotalCell) refTotalCell.textContent = plFmt(refTotal);
-    var newTotalCost = machineCost + newRaw + procTotal + colourTotal + packTotal + transTotal;
-    var newProfit = parseFloat(sum.total_revenue) - newTotalCost;
+    // Delta-based totals keep the backend's rounded baseline (avoids 0.01 drift)
+    var oldRaw     = parseFloat(tm.raw_material_cost) || 0;
+    var oldProc    = parseFloat(pc.processing_total) || 0;
+    var oldColour  = parseFloat(pc.colour_total) || 0;
+    var oldPack    = parseFloat(ac.packing_total) || 0;
+    var oldTrans   = parseFloat(ac.transportation_total) || 0;
+    var oldTotal   = parseFloat(sum.total_cost) || 0;
+    var oldProfit  = parseFloat(sum.profit_loss) || 0;
+    var deltaRaw   = newRaw - oldRaw;
+    var deltaProc  = procTotal - oldProc;
+    var deltaCol   = colourTotal - oldColour;
+    var deltaPack  = packTotal - oldPack;
+    var deltaTrans = transTotal - oldTrans;
+    var totalDelta = deltaRaw + deltaProc + deltaCol + deltaPack + deltaTrans;
+    var newTotalCost = oldTotal + totalDelta;
+    var newProfit    = oldProfit - totalDelta;
     // Update hero + summary numbers in modal
     var hero = document.querySelector('#plDetailContent .p-2 .fs-4');
     var heroSub = document.querySelector('#plDetailContent .p-2 .small.mt-1');
     var weight = parseFloat(currentPlData.sale.weight) || 1;
     var perKg = newProfit / weight;
-    var reqDays = (mc && mc.sale_required_days) ? parseFloat(mc.sale_required_days) : (parseFloat(currentPlData.production_tracker.required_days) || 1);
+    var reqDays = (currentPlData.machine_cost && currentPlData.machine_cost.sale_required_days) ? parseFloat(currentPlData.machine_cost.sale_required_days) : (parseFloat(currentPlData.production_tracker.required_days) || 1);
     var perDay = newProfit / reqDays;
     if (hero) {
         var isProf = newProfit > 0 ? 'PROFIT' : (newProfit < 0 ? 'LOSS' : 'BREAK-EVEN');
         var badgeCls = newProfit > 0 ? 'bg-success' : (newProfit < 0 ? 'bg-danger' : 'bg-secondary');
         var banner = hero.closest('.p-2');
-        banner.className = 'p-2 ' + (newProfit >= 0 ? 'bg-success' : 'bg-danger') + ' text-white';
+        if (banner) {
+            banner.className = 'p-2 ' + (newProfit >= 0 ? 'bg-success' : 'bg-danger') + ' text-white';
+        }
         hero.innerHTML = plFmt(newProfit) + ' <span class="badge fs-6 ' + badgeCls + ' border border-white">' + isProf + '</span>';
     }
     if (heroSub) heroSub.innerHTML = plFmt(perKg) + '/kg &nbsp;·&nbsp; ' + plFmt(perDay) + '/day';
@@ -3244,6 +3250,7 @@ function applyPLPriceOverrides() {
     if (!currentPlData) return;
     var ov = getPlPriceOverrides();
     var costOv = getPlCostRateOverrides();
+    console.log('applyPLPriceOverrides: ov=', ov, 'costOv=', costOv, 'currentPlSaleKey=', currentPlSaleKey);
     var calc = recalcPlModal();
     var btn = document.getElementById('plApplyBtn');
     var hint = document.getElementById('plOverrideHint');
@@ -3258,7 +3265,7 @@ function applyPLPriceOverrides() {
     currentPlCostRateOverrides = costOv;
     window._pendingPlCostRateOverrides = costOv;
     if (!currentPlSaleKey) {
-        if (hint) hint.textContent = 'Prices/rates applied to entry form. Save the sale to keep them.';
+        if (hint) hint.textContent = 'Prices/rates applied to entry form (colour=' + (costOv.colour || '-') + '). Save the sale to keep them.';
         // Keep overrides for next save
         window._pendingPlOverrides = ov;
         // Treat edited values as baseline so button disables until next change
@@ -3321,7 +3328,7 @@ function applyPLPriceOverrides() {
             });
             if (typeof updateSalesSummary === 'function') updateSalesSummary();
         }
-        if (hint) hint.textContent = 'Saved. Table & entry updated.';
+        if (hint) hint.textContent = 'Saved. Colour rate now ' + (data.processing_cost && data.processing_cost.colour_rate) + '/kg. Table & entry updated.';
     })
     .catch(function(err) {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Apply Changes'; }
@@ -3362,15 +3369,15 @@ function bindPlPriceInputs() {
         var code = inp.getAttribute('data-code');
         var val = parseFloat(inp.value);
         originalPlPrices[code] = isNaN(val) ? 0 : val;
-        inp.addEventListener('input', function() { recalcPlModal(); updatePlApplyState(); });
-        inp.addEventListener('change', function() { recalcPlModal(); updatePlApplyState(); });
+        inp.addEventListener('input', function() { try { recalcPlModal(); } catch (e) { console.error('recalc error', e); } updatePlApplyState(); });
+        inp.addEventListener('change', function() { try { recalcPlModal(); } catch (e) { console.error('recalc error', e); } updatePlApplyState(); });
     });
     document.querySelectorAll('#plDetailContent .pl-rate-input').forEach(function(inp) {
         var kind = inp.getAttribute('data-kind');
         var val = parseFloat(inp.value);
         originalPlRates[kind] = isNaN(val) ? 0 : val;
-        inp.addEventListener('input', function() { recalcPlModal(); updatePlApplyState(); });
-        inp.addEventListener('change', function() { recalcPlModal(); updatePlApplyState(); });
+        inp.addEventListener('input', function() { try { recalcPlModal(); } catch (e) { console.error('recalc error', e); } updatePlApplyState(); });
+        inp.addEventListener('change', function() { try { recalcPlModal(); } catch (e) { console.error('recalc error', e); } updatePlApplyState(); });
     });
     updatePlApplyState();
 }
