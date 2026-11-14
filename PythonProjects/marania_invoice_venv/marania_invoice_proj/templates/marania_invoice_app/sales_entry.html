@@ -985,6 +985,7 @@ function getFormData() {
         profit_loss: document.getElementById('profit_loss').value,
         twine_price_overrides: window._pendingPlOverrides || null,
         cost_rate_overrides: window._pendingPlCostRateOverrides || null,
+        raw_material_weight_mode: window._pendingRmWeightMode || null,
         delivery_date: getDateValue('delivery_date'),
         status: document.getElementById('status').value,
         is_new_sale: document.getElementById('is_new_sale').checked,
@@ -1047,6 +1048,7 @@ function calcProfitLoss() {
     formData.append('gst_rate', gst_rate || 0);
     if (window._pendingPlOverrides) formData.append('twine_price_overrides', JSON.stringify(window._pendingPlOverrides));
     if (window._pendingPlCostRateOverrides) formData.append('cost_rate_overrides', JSON.stringify(window._pendingPlCostRateOverrides));
+    if (window._pendingRmWeightMode) formData.append('raw_material_weight_mode', window._pendingRmWeightMode);
 
     // Call the API
     fetch('{% url "calculate_profit_loss" %}', {
@@ -1188,6 +1190,7 @@ function setFormData(data) {
     document.getElementById('colour').value = data.colour || 'White';
     window._pendingPlOverrides = data.twine_price_overrides ? (typeof data.twine_price_overrides === 'string' ? JSON.parse(data.twine_price_overrides) : data.twine_price_overrides) : null;
     window._pendingPlCostRateOverrides = data.cost_rate_overrides ? (typeof data.cost_rate_overrides === 'string' ? JSON.parse(data.cost_rate_overrides) : data.cost_rate_overrides) : null;
+    window._pendingRmWeightMode = data.twine_materials && data.twine_materials.raw_material_weight_mode ? data.twine_materials.raw_material_weight_mode : (data.raw_material_weight_mode || null);
     document.getElementById('profit_loss').value = data.profit_loss || '';
     // Populate per-kg and per-day from stored profit_loss + weight (approximate on load)
     var pkEl = document.getElementById('profit_per_kg');
@@ -2688,6 +2691,7 @@ var plDetailUrlTemplate = '{% url "profit_loss_detail" sales_key=0 %}'.replace('
 function viewFormPL() {
     // Always use the current form values so an unsaved Prod.Spec is included
     currentPlSaleKey = null;
+    var wasInitialLoad = (currentPlData === null);
     currentPlData = null;
     var modal = new bootstrap.Modal(document.getElementById('plDetailModal'));
     document.getElementById('plDetailLoading').style.display = '';
@@ -2709,6 +2713,7 @@ function viewFormPL() {
     if (skVal) formData.append('sales_key', skVal);
     if (window._pendingPlOverrides) formData.append('twine_price_overrides', JSON.stringify(window._pendingPlOverrides));
     if (window._pendingPlCostRateOverrides) formData.append('cost_rate_overrides', JSON.stringify(window._pendingPlCostRateOverrides));
+    if (window._pendingRmWeightMode) formData.append('raw_material_weight_mode', window._pendingRmWeightMode);
 
     var postUrl = '{% url "profit_loss_detail_post" %}';
     fetch(postUrl, {
@@ -2730,6 +2735,9 @@ function viewFormPL() {
         currentPlData = data;
         content.innerHTML = buildPLHtml(data);
         bindPlPriceInputs();
+        if (wasInitialLoad) {
+            initialPlRmWeightMode = (data.twine_materials && data.twine_materials.raw_material_weight_mode) ? data.twine_materials.raw_material_weight_mode : 'init';
+        }
     })
     .catch(function(err) {
         document.getElementById('plDetailLoading').style.display = 'none';
@@ -2763,6 +2771,7 @@ function viewProfitLoss(salesKey) {
             currentPlData = data;
             content.innerHTML = buildPLHtml(data);
             bindPlPriceInputs();
+            initialPlRmWeightMode = (data.twine_materials && data.twine_materials.raw_material_weight_mode) ? data.twine_materials.raw_material_weight_mode : 'init';
         })
         .catch(function(err) {
             document.getElementById('plDetailLoading').style.display = 'none';
@@ -2958,7 +2967,13 @@ function buildPLHtml(data) {
 
     // Actual production details (actual figures — highlighted)
     html += '<div class="pl-actual-panel">';
-    html += '<div class="pl-subsection-title"><i class="bi bi-clipboard-check me-1"></i>Actual Production Details</div>';
+    html += '<div class="pl-subsection-title d-flex justify-content-between align-items-center"><span><i class="bi bi-clipboard-check me-1"></i>Actual Production Details</span>';
+    html += '<span class="btn-group btn-group-sm" role="group">';
+    html += '<input type="radio" class="btn-check" name="plRmWeightMode" id="plRmModeInit" value="init"' + (tm.raw_material_weight_mode === 'proc' ? '' : ' checked') + '>';
+    html += '<label class="btn btn-outline-secondary btn-sm" for="plRmModeInit" style="font-size:0.7rem;padding:0.05rem 0.4rem;">Init.Wt</label>';
+    html += '<input type="radio" class="btn-check" name="plRmWeightMode" id="plRmModeProc" value="proc"' + (tm.raw_material_weight_mode === 'proc' ? ' checked' : '') + '>';
+    html += '<label class="btn btn-outline-secondary btn-sm" for="plRmModeProc" style="font-size:0.7rem;padding:0.05rem 0.4rem;">Proc.Wt</label>';
+    html += '</span></div>';
     html += '<div class="row row-cols-2 row-cols-md-4 g-1 small mb-2">';
     [
         ['Actual Initial Weight(kg)', plFixed(actWeight, 2) + ''],
@@ -3268,6 +3283,9 @@ function applyPLPriceOverrides() {
         if (hint) hint.textContent = 'Prices/rates applied to entry form (colour=' + (costOv.colour || '-') + '). Save the sale to keep them.';
         // Keep overrides for next save
         window._pendingPlOverrides = ov;
+        var selModeUnsaved = 'init';
+        document.querySelectorAll('#plDetailContent input[name="plRmWeightMode"]').forEach(function(r) { if (r.checked) selModeUnsaved = r.value; });
+        window._pendingRmWeightMode = selModeUnsaved;
         // Treat edited values as baseline so button disables until next change
         Object.keys(ov).forEach(function(k) { originalPlPrices[k] = parseFloat(ov[k]); });
         Object.keys(costOv).forEach(function(k) { originalPlRates[k] = parseFloat(costOv[k]); });
@@ -3279,6 +3297,9 @@ function applyPLPriceOverrides() {
     formData.append('sales_key', currentPlSaleKey);
     formData.append('twine_price_overrides', JSON.stringify(ov));
     formData.append('cost_rate_overrides', JSON.stringify(costOv));
+    var selectedRmMode = 'init';
+    document.querySelectorAll('#plDetailContent input[name="plRmWeightMode"]').forEach(function(r) { if (r.checked) selectedRmMode = r.value; });
+    formData.append('raw_material_weight_mode', selectedRmMode);
     fetch('{% url "update_twine_prices" %}', {
         method: 'POST',
         body: formData,
@@ -3297,6 +3318,8 @@ function applyPLPriceOverrides() {
         bindPlPriceInputs();
         window._pendingPlOverrides = ov;
         window._pendingPlCostRateOverrides = costOv;
+        window._pendingRmWeightMode = (data.twine_materials && data.twine_materials.raw_material_weight_mode) ? data.twine_materials.raw_material_weight_mode : (window._pendingRmWeightMode || 'init');
+        initialPlRmWeightMode = window._pendingRmWeightMode;
         // Update sales table row in place (P/L cell + twine cell)
         var saleKey = currentPlSaleKey;
         var newData = data;
@@ -3336,8 +3359,31 @@ function applyPLPriceOverrides() {
     });
 }
 
-var originalPlPrices = {};
+function switchPlRawMaterialWeightMode(mode) {
+    mode = (mode || 'init').toLowerCase();
+    if (mode !== 'init' && mode !== 'proc') mode = 'init';
+    if (!currentPlData) return;
+    if (currentPlSaleKey) {
+        var url = plDetailUrlTemplate.replace('{key}', currentPlSaleKey) + '?raw_material_weight_mode=' + encodeURIComponent(mode);
+        fetch(url)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data || !data.success) return;
+                currentPlData = data;
+                document.getElementById('plDetailContent').innerHTML = buildPLHtml(data);
+                bindPlPriceInputs();
+                window._pendingRmWeightMode = mode;
+            })
+            .catch(function(err) { console.error('switchPlRawMaterialWeightMode', err); });
+    } else {
+        window._pendingRmWeightMode = mode;
+        viewFormPL();
+    }
+}
 var originalPlRates = {};
+var originalPlPrices = {};
+var originalPlRmWeightMode = 'init';
+var initialPlRmWeightMode = 'init';
 
 function updatePlApplyState() {
     var btn = document.getElementById('plApplyBtn');
@@ -3359,12 +3405,19 @@ function updatePlApplyState() {
         if (isNaN(cur)) { modified = true; return; }
         if (Math.abs(cur - orig) > 0.005) modified = true;
     });
+    // raw material weight mode change also enables Apply
+    var currentMode = 'init';
+    document.querySelectorAll('#plDetailContent input[name="plRmWeightMode"]').forEach(function(r) {
+        if (r.checked) currentMode = r.value;
+    });
+    if (currentMode !== initialPlRmWeightMode) modified = true;
     btn.disabled = !modified;
 }
 
 function bindPlPriceInputs() {
     originalPlPrices = {};
     originalPlRates = {};
+    originalPlRmWeightMode = (currentPlData && currentPlData.twine_materials && currentPlData.twine_materials.raw_material_weight_mode) ? currentPlData.twine_materials.raw_material_weight_mode : 'init';
     document.querySelectorAll('#plDetailContent .pl-price-input').forEach(function(inp) {
         var code = inp.getAttribute('data-code');
         var val = parseFloat(inp.value);
@@ -3378,6 +3431,14 @@ function bindPlPriceInputs() {
         originalPlRates[kind] = isNaN(val) ? 0 : val;
         inp.addEventListener('input', function() { try { recalcPlModal(); } catch (e) { console.error('recalc error', e); } updatePlApplyState(); });
         inp.addEventListener('change', function() { try { recalcPlModal(); } catch (e) { console.error('recalc error', e); } updatePlApplyState(); });
+    });
+    // Bind raw material weight mode toggle
+    document.querySelectorAll('#plDetailContent input[name="plRmWeightMode"]').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            if (this.checked) {
+                switchPlRawMaterialWeightMode(this.value);
+            }
+        });
     });
     updatePlApplyState();
 }

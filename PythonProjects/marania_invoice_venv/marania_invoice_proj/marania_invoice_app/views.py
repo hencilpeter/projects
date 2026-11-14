@@ -3054,6 +3054,9 @@ def calculate_profit_loss_api(request):
                     temp_sale._cost_rate_overrides = json.loads(cost_ov_raw)
                 except (json.JSONDecodeError, TypeError):
                     temp_sale._cost_rate_overrides = {}
+            rm_mode_raw = request.POST.get('raw_material_weight_mode', '')
+            if rm_mode_raw:
+                temp_sale._raw_material_weight_mode = rm_mode_raw.strip().lower()
 
             # Calculate profit/loss
             profit_loss = calculate_profit_loss(temp_sale)
@@ -3141,6 +3144,14 @@ def _build_profit_loss_breakdown(sale, cache=None):
                 elif isinstance(raw_ov, dict):
                     price_overrides = raw_ov
 
+        # Raw material weight basis: init (default) or proc
+        raw_weight_mode = getattr(sale, '_raw_material_weight_mode', None)
+        if raw_weight_mode is None:
+            raw_weight_mode = getattr(sale, 'raw_material_weight_mode', None) or 'init'
+        raw_weight_mode = (raw_weight_mode or 'init').lower()
+        if raw_weight_mode not in ('init', 'proc'):
+            raw_weight_mode = 'init'
+
         # Manual per-kg cost-rate overrides (processing/colour/packing/transport)
         cost_rate_overrides = getattr(sale, '_cost_rate_overrides', None)
         if cost_rate_overrides is None:
@@ -3168,9 +3179,12 @@ def _build_profit_loss_breakdown(sale, cache=None):
 
         # ── Raw material ─────────────────────────────────────────────────────
         # The raw material calculation is scaled to the actual production
-        # weight (Init.Wt). Processing/machine/other expenses keep using
-        # expense_weight, as before.
-        raw_material_weight = init_dec if init_dec > 0 else expense_weight
+        # weight (Init.Wt by default, or Proc.Wt if selected). Processing/
+        # machine/other expenses keep using expense_weight, as before.
+        if raw_weight_mode == 'proc' and proc_dec > 0:
+            raw_material_weight = proc_dec
+        else:
+            raw_material_weight = init_dec if init_dec > 0 else expense_weight
         twine_rows_detail, raw_material_cost, twine_meta = _calc_twine_rows(
             pt, raw_material_weight, cache, price_overrides=price_overrides
         )
@@ -3348,6 +3362,7 @@ def _build_profit_loss_breakdown(sale, cache=None):
                 'rows':              display_rows,
                 'raw_material_cost': _d(raw_material_cost),
                 'waste_pct':         str(ac_obj.waste_percentage if ac_obj else 0),
+                'raw_material_weight_mode': raw_weight_mode,
                 'reference_batch':   {
                     'batch_weight':    _d(twine_meta.get('reference_batch_weight', 0)),
                     'daily_consumption': _d(twine_meta.get('daily_consumption', 0)),
@@ -3440,11 +3455,17 @@ def profit_loss_detail_api(request, sales_key=None):
                 sale._cost_rate_overrides = json.loads(cost_ov_raw)
             except (json.JSONDecodeError, TypeError):
                 sale._cost_rate_overrides = {}
+        rm_mode_raw = request.POST.get('raw_material_weight_mode', '')
+        if rm_mode_raw:
+            sale._raw_material_weight_mode = rm_mode_raw.strip().lower()
     else:
         try:
             sale = Sales.objects.get(pk=sales_key)
         except Sales.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Sale not found'}, status=404)
+        rm_mode = request.GET.get('raw_material_weight_mode') or request.POST.get('raw_material_weight_mode')
+        if rm_mode:
+            sale._raw_material_weight_mode = rm_mode.strip().lower()
 
     data, error = _build_profit_loss_breakdown(sale)
     if error:
@@ -3507,6 +3528,14 @@ def update_sale_twine_prices_api(request):
         sale.cost_rate_overrides = json.dumps(clean_rates) if clean_rates else None
         sale._cost_rate_overrides = clean_rates
         update_fields.append('cost_rate_overrides')
+
+    rm_mode_raw = request.POST.get('raw_material_weight_mode', None)
+    if rm_mode_raw is not None and str(rm_mode_raw).strip() != '':
+        mode = str(rm_mode_raw).strip().lower()
+        if mode in ('init', 'proc'):
+            sale.raw_material_weight_mode = mode
+            sale._raw_material_weight_mode = mode
+            update_fields.append('raw_material_weight_mode')
 
     data, error = _build_profit_loss_breakdown(sale)
     if error:
@@ -3909,6 +3938,11 @@ def sales_entry(request):
                         pass
                 else:
                     obj.cost_rate_overrides = None
+                rm_mode = entry.get("raw_material_weight_mode")
+                if isinstance(rm_mode, str) and rm_mode.strip().lower() in ('init', 'proc'):
+                    obj.raw_material_weight_mode = rm_mode.strip().lower()
+                else:
+                    obj.raw_material_weight_mode = 'init'
                 obj.created_at = now
                 obj.updated_at = now
 
@@ -3966,6 +4000,7 @@ def sales_entry(request):
             'profit_loss': str(s.profit_loss) if s.profit_loss is not None else '',
             'twine_price_overrides': getattr(s, 'twine_price_overrides', None) or '',
             'cost_rate_overrides': getattr(s, 'cost_rate_overrides', None) or '',
+            'raw_material_weight_mode': getattr(s, 'raw_material_weight_mode', None) or 'init',
             'profit_per_kg': (
                 str(round(s.profit_loss / (s.processed_weight or s.initial_weight), 2))
                 if s.profit_loss is not None and (s.processed_weight or s.initial_weight)

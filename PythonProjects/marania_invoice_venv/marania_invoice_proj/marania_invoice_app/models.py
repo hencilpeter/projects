@@ -628,6 +628,7 @@ class Sales(models.Model):
     profit_loss = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     twine_price_overrides = models.TextField(blank=True, null=True, help_text="JSON {material_code: price_per_kg_incl_gst} for manual P&L overrides")
     cost_rate_overrides = models.TextField(blank=True, null=True, help_text="JSON {processing,colour,packing,transport} per-kg rates for manual P&L overrides")
+    raw_material_weight_mode = models.CharField(max_length=10, default='init', blank=True, null=True, help_text="Weight basis for Actual Raw Material Cost: init or proc")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
