@@ -882,6 +882,14 @@ tr.row-status-on_hold_processing td {
   }
   #plDetailContent .pl-ref-panel .pl-subsection-title { color: #0d4f8b; }
   #plDetailContent .pl-actual-panel .pl-subsection-title { color: #146c43; }
+  #plDetailContent .pl-mach-w25,
+  #plDetailContent .pl-mach-w21 { flex: 0 0 50%; max-width: 50%; }
+  #plDetailContent .pl-mach-w37 { flex: 0 0 100%; max-width: 100%; }
+  @media (min-width: 768px) {
+    #plDetailContent .pl-mach-w25 { flex: 0 0 25%; max-width: 25%; }
+    #plDetailContent .pl-mach-w21 { flex: 0 0 21%; max-width: 21%; }
+    #plDetailContent .pl-mach-w37 { flex: 0 0 37%; max-width: 37%; }
+  }
   #plDetailContent .pl-section-toggle { text-transform: none; letter-spacing: 0; font-size: 0.7rem; line-height: 1.5; padding: 0.05rem 0.5rem; }
   #plDetailContent .pl-collapse-body { margin-bottom: 0.15rem; }
 </style>
@@ -2989,17 +2997,26 @@ function buildPLHtml(data) {
     }
     html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-gear me-1"></i>'+mcLabel+'</h6>';
     if (mc && mc.machine_number) {
-        html += '<div class="row row-cols-2 row-cols-md-4 g-1 small mb-2">';
-        [['Operator',mc.operator],['Bobbin Winder',mc.bobbin_winder],['Mending',mc.mending],
-         ['Mechanic',mc.mechanic],['Electricity',mc.electricity],['Maintenance',mc.maintenance],['Misc.',mc.miscellaneous]
+        html += '<div class="row g-1 small mb-2">';
+        [
+            ['Operator', mc.operator, 'pl-mach-w25'],
+            ['Bobbin Winder', mc.bobbin_winder, 'pl-mach-w25'],
+            ['Mending', mc.mending, 'pl-mach-w25'],
+            ['Mechanic', mc.mechanic, 'pl-mach-w25'],
+            ['Electricity', mc.electricity, 'pl-mach-w21'],
+            ['Maintenance', mc.maintenance, 'pl-mach-w21'],
+            ['Misc.', mc.miscellaneous, 'pl-mach-w21']
         ].forEach(function(r) {
-            html += '<div class="col border rounded p-1"><span class="text-muted">'+r[0]+':</span> '+plFmt(r[1])+'/day</div>';
+            html += '<div class="col border rounded p-1 ' + r[2] + '"><span class="text-muted">' + r[0] + ':</span> ' + plFmt(r[1]) + '/day</div>';
         });
-        // Machine total moved into the grid to save vertical row space
+        // Machine total — wider column so the formula fits on fewer lines
         var mtDays = parseFloat(mc.sale_required_days || mc.required_days) || 0;
         var mtDaily = parseFloat(mc.daily_total) || 0;
         var mtFormula = plNum(mtDays) + ' days &times; ' + plFmt(mtDaily) + '/day';
-        html += '<div class="col fw-bold text-danger text-center"><span class="text-muted">Total Machine Cost ('+plFixed(s.init_weight,2)+' kg):</span> <span class="text-muted fw-normal" style="font-size:0.8em;">'+mtFormula+' =</span> <strong>'+plFmt(mc.machine_total)+'</strong></div>';
+        html += '<div class="col pl-mach-w37 fw-bold text-danger text-center">';
+        html += '<div class="text-muted" style="font-size:0.8em;">Total Machine Cost (' + plFixed(s.init_weight, 2) + ' kg)</div>';
+        html += '<div><span class="text-muted fw-normal" style="font-size:0.8em;">' + mtFormula + ' =</span> <strong>' + plFmt(mc.machine_total) + '</strong></div>';
+        html += '</div>';
         html += '</div>';
     } else {
         html += '<p class="small text-muted">No machine cost data found.</p>';
