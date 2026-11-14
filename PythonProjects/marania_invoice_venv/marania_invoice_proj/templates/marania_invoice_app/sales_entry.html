@@ -864,6 +864,8 @@ tr.row-status-on_hold_processing td {
   #plDetailContent .pl-raw-actual-table th,
   #plDetailContent .pl-raw-actual-table td { padding: 0.08rem 0.4rem !important; line-height: 1.1; }
   #plDetailContent .pl-raw-actual-table .pl-price-input { height: 22px; padding: 0 0.35rem; font-size: 0.75rem; }
+  #plDetailContent .pl-rate-input { width: 68px; height: 22px; padding: 0 0.3rem; font-size: 0.75rem; display: inline-block; }
+  #plDetailContent .pl-rate-total { min-width: 3.6rem; display: inline-block; }
   #plDetailContent .pl-raw-actual-table .badge { padding: 0.2em 0.45em; font-size: 0.68em; }
   #plDetailContent .pl-ref-panel {
     background: rgba(13, 110, 253, 0.05);
@@ -911,8 +913,8 @@ tr.row-status-on_hold_processing td {
         <div id="plDetailContent" style="display:none;"></div>
       </div>
       <div class="modal-footer">
-        <span class="text-muted small me-auto" id="plOverrideHint">Edit Price/kg, then Apply to update sale &amp; table</span>
-        <button type="button" class="btn btn-sm btn-success" id="plApplyBtn" onclick="applyPLPriceOverrides()" disabled><i class="bi bi-check-lg me-1"></i>Apply Prices</button>
+        <span class="text-muted small me-auto" id="plOverrideHint">Edit prices/rates, then Apply to update sale &amp; table</span>
+        <button type="button" class="btn btn-sm btn-success" id="plApplyBtn" onclick="applyPLPriceOverrides()" disabled><i class="bi bi-check-lg me-1"></i>Apply Changes</button>
         <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
@@ -982,6 +984,7 @@ function getFormData() {
         total_amount: document.getElementById('total_amount').value,
         profit_loss: document.getElementById('profit_loss').value,
         twine_price_overrides: window._pendingPlOverrides || null,
+        cost_rate_overrides: window._pendingPlCostRateOverrides || null,
         delivery_date: getDateValue('delivery_date'),
         status: document.getElementById('status').value,
         is_new_sale: document.getElementById('is_new_sale').checked,
@@ -1043,6 +1046,7 @@ function calcProfitLoss() {
     formData.append('unit_price', unit_price || 0);
     formData.append('gst_rate', gst_rate || 0);
     if (window._pendingPlOverrides) formData.append('twine_price_overrides', JSON.stringify(window._pendingPlOverrides));
+    if (window._pendingPlCostRateOverrides) formData.append('cost_rate_overrides', JSON.stringify(window._pendingPlCostRateOverrides));
 
     // Call the API
     fetch('{% url "calculate_profit_loss" %}', {
@@ -1183,6 +1187,7 @@ function setFormData(data) {
     }
     document.getElementById('colour').value = data.colour || 'White';
     window._pendingPlOverrides = data.twine_price_overrides ? (typeof data.twine_price_overrides === 'string' ? JSON.parse(data.twine_price_overrides) : data.twine_price_overrides) : null;
+    window._pendingPlCostRateOverrides = data.cost_rate_overrides ? (typeof data.cost_rate_overrides === 'string' ? JSON.parse(data.cost_rate_overrides) : data.cost_rate_overrides) : null;
     document.getElementById('profit_loss').value = data.profit_loss || '';
     // Populate per-kg and per-day from stored profit_loss + weight (approximate on load)
     var pkEl = document.getElementById('profit_per_kg');
@@ -2707,6 +2712,7 @@ function viewFormPL() {
     var skVal = (document.getElementById('sales_key') || {}).value;
     if (skVal) formData.append('sales_key', skVal);
     if (window._pendingPlOverrides) formData.append('twine_price_overrides', JSON.stringify(window._pendingPlOverrides));
+    if (window._pendingPlCostRateOverrides) formData.append('cost_rate_overrides', JSON.stringify(window._pendingPlCostRateOverrides));
 
     var postUrl = '{% url "profit_loss_detail_post" %}';
     fetch(postUrl, {
@@ -2823,6 +2829,7 @@ function buildPLHtml(data) {
     var pc  = data.processing_cost;
     var ac  = data.additional_costs;
     var sum = data.summary;
+    var ew  = Math.max(parseFloat(s.init_weight) || 0, parseFloat(s.proc_weight) || 0) || (parseFloat(s.weight) || 0);
     var plColour = parseFloat(sum.profit_loss) > 0 ? 'text-success' :
                    parseFloat(sum.profit_loss) < 0 ? 'text-danger' : 'text-secondary';
     var plLabel  = parseFloat(sum.profit_loss) > 0 ? 'PROFIT' :
@@ -3027,21 +3034,28 @@ function buildPLHtml(data) {
     html += '</div>';
 
     // ── Processing Cost ───────────────────────────────────────────────────────
+    var procRate    = (pc && pc.proc_rate   != null) ? pc.proc_rate   : '0.00';
+    var colourRate  = (pc && pc.colour_rate != null) ? pc.colour_rate : '0.00';
+    var procTotal   = (pc && pc.processing_total != null) ? pc.processing_total : '0.00';
+    var colourTotal = (pc && pc.colour_total != null) ? pc.colour_total : '0.00';
     html += '<div class="px-3 mb-1"><div class="d-flex flex-wrap align-items-center pl-cost-line small mb-0">';
     html += '<span class="fw-bold"><i class="bi bi-tools me-1"></i>Processing Cost</span>';
-    if (pc && pc.material_code) {
-        html += '<span class="text-muted">Processing ('+plFmt(pc.proc_rate)+'/kg × '+plNum(s.init_weight)+' kg): <strong class="text-danger">'+plFmt(pc.processing_total)+'</strong></span>';
-        html += '<span class="text-muted">Colour ('+plFmt(pc.colour_rate)+'/kg × '+plNum(s.init_weight)+' kg): <strong class="text-danger">'+plFmt(pc.colour_total)+'</strong></span>';
-    } else {
-        html += '<span class="text-muted">No processing cost config found for this product.</span>';
+    html += '<span class="text-muted d-inline-flex align-items-center gap-1">Processing: <input type="number" step="0.01" min="0" class="form-control form-control-sm pl-rate-input" data-kind="processing" value="' + procRate + '" title="Editable Processing rate per kg">/kg &times; ' + plNum(ew) + ' kg = <strong class="text-danger pl-rate-total" data-kind="processing">' + plFmt(procTotal) + '</strong></span>';
+    html += '<span class="text-muted d-inline-flex align-items-center gap-1">Colour: <input type="number" step="0.01" min="0" class="form-control form-control-sm pl-rate-input" data-kind="colour" value="' + colourRate + '" title="Editable Colour rate per kg">/kg &times; ' + plNum(ew) + ' kg = <strong class="text-danger pl-rate-total" data-kind="colour">' + plFmt(colourTotal) + '</strong></span>';
+    if (!(pc && pc.material_code)) {
+        html += '<span class="text-muted fst-italic">No saved processing config — enter rates manually.</span>';
     }
     html += '</div></div>';
 
     // ── Additional Costs ──────────────────────────────────────────────────────
+    var packRate   = (ac && ac.packing_rate        != null) ? ac.packing_rate        : '0.00';
+    var transRate  = (ac && ac.transportation_rate != null) ? ac.transportation_rate : '0.00';
+    var packTotal  = (ac && ac.packing_total       != null) ? ac.packing_total       : '0.00';
+    var transTotal = (ac && ac.transportation_total != null) ? ac.transportation_total : '0.00';
     html += '<div class="px-3 mb-1"><div class="d-flex flex-wrap align-items-center pl-cost-line small mb-0">';
     html += '<span class="fw-bold"><i class="bi bi-truck me-1"></i>Additional Costs</span>';
-    html += '<span class="text-muted">Packing ('+plFmt(ac.packing_rate)+'/kg × '+plNum(s.init_weight)+' kg): <strong class="text-danger">'+plFmt(ac.packing_total)+'</strong></span>';
-    html += '<span class="text-muted">Transport ('+plFmt(ac.transportation_rate)+'/kg × '+plNum(s.init_weight)+' kg): <strong class="text-danger">'+plFmt(ac.transportation_total)+'</strong></span>';
+    html += '<span class="text-muted d-inline-flex align-items-center gap-1">Packing: <input type="number" step="0.01" min="0" class="form-control form-control-sm pl-rate-input" data-kind="packing" value="' + packRate + '" title="Editable Packing rate per kg">/kg &times; ' + plNum(ew) + ' kg = <strong class="text-danger pl-rate-total" data-kind="packing">' + plFmt(packTotal) + '</strong></span>';
+    html += '<span class="text-muted d-inline-flex align-items-center gap-1">Transport: <input type="number" step="0.01" min="0" class="form-control form-control-sm pl-rate-input" data-kind="transport" value="' + transRate + '" title="Editable Transport rate per kg">/kg &times; ' + plNum(ew) + ' kg = <strong class="text-danger pl-rate-total" data-kind="transport">' + plFmt(transTotal) + '</strong></span>';
     html += '</div></div>';
 
     // ── Revenue ───────────────────────────────────────────────────────────────
@@ -3063,12 +3077,12 @@ function buildPLHtml(data) {
     if (mc && mc.machine_number) {
         html += '<tr><td class="ps-3 text-muted small">→ Machine Cost</td><td class="text-end">'+plFmt(mc.machine_total)+'</td></tr>';
     }
-    if (pc && pc.material_code) {
-        html += '<tr><td class="ps-3 text-muted small">→ Processing</td><td class="text-end">'+plFmt(pc.processing_total)+'</td></tr>';
-        html += '<tr><td class="ps-3 text-muted small">→ Colour</td><td class="text-end">'+plFmt(pc.colour_total)+'</td></tr>';
+    if (pc) {
+        html += '<tr><td class="ps-3 text-muted small">→ Processing</td><td class="text-end">'+plFmt(pc.processing_total || '0.00')+'</td></tr>';
+        html += '<tr><td class="ps-3 text-muted small">→ Colour</td><td class="text-end">'+plFmt(pc.colour_total || '0.00')+'</td></tr>';
     }
-    html += '<tr><td class="ps-3 text-muted small">→ Packing</td><td class="text-end">'+plFmt(ac.packing_total)+'</td></tr>';
-    html += '<tr><td class="ps-3 text-muted small">→ Transportation</td><td class="text-end">'+plFmt(ac.transportation_total)+'</td></tr>';
+    html += '<tr><td class="ps-3 text-muted small">→ Packing</td><td class="text-end">'+plFmt(ac.packing_total || '0.00')+'</td></tr>';
+    html += '<tr><td class="ps-3 text-muted small">→ Transportation</td><td class="text-end">'+plFmt(ac.transportation_total || '0.00')+'</td></tr>';
     html += '<tr class="table-'+(parseFloat(sum.profit_loss)>=0?'success':'danger')+' fw-bold fs-6">';
     html += '<td>'+plLabel+' (total)</td><td class="text-end '+plColour+'">'+plFmt(sum.profit_loss)+'</td></tr>';
     html += '<tr class="'+plColour+'">';
@@ -3084,6 +3098,7 @@ function buildPLHtml(data) {
 var currentPlData = null;
 var currentPlSaleKey = null;
 var currentPlOverrides = {};
+var currentPlCostRateOverrides = {};
 
 function getPlPriceOverrides() {
     var ov = {};
@@ -3095,11 +3110,55 @@ function getPlPriceOverrides() {
     return ov;
 }
 
+function getPlCostRateOverrides() {
+    var ov = {};
+    document.querySelectorAll('#plDetailContent .pl-rate-input').forEach(function(inp) {
+        var kind = inp.getAttribute('data-kind');
+        var val = parseFloat(inp.value);
+        if (kind && !isNaN(val) && val >= 0) ov[kind] = val.toFixed(2);
+    });
+    return ov;
+}
+
+function getPlExpenseWeight(data) {
+    var s = (data && data.sale) || {};
+    var init = parseFloat(s.init_weight) || 0;
+    var proc = parseFloat(s.proc_weight) || 0;
+    var w = Math.max(init, proc);
+    return w > 0 ? w : (parseFloat(s.weight) || 1);
+}
+
+function getPlCostRates() {
+    var rates = { processing: 0, colour: 0, packing: 0, transport: 0 };
+    document.querySelectorAll('#plDetailContent .pl-rate-input').forEach(function(inp) {
+        var kind = inp.getAttribute('data-kind');
+        if (kind && Object.prototype.hasOwnProperty.call(rates, kind)) {
+            rates[kind] = parseFloat(inp.value) || 0;
+        }
+    });
+    return rates;
+}
+
 function recalcPlModal() {
     if (!currentPlData) return;
     var sum = currentPlData.summary;
-    var tm = currentPlData.twine_materials;
-    var otherCost = parseFloat(sum.total_cost) - parseFloat(tm.raw_material_cost);
+    var tm  = currentPlData.twine_materials;
+    var pc  = currentPlData.processing_cost || {};
+    var ac  = currentPlData.additional_costs || {};
+    var ew  = getPlExpenseWeight(currentPlData);
+
+    // Fixed cost (machine etc.) = total cost minus raw material and the four editable rates
+    var machineCost = parseFloat(sum.total_cost) - parseFloat(tm.raw_material_cost)
+        - (parseFloat(pc.processing_total) || 0) - (parseFloat(pc.colour_total) || 0)
+        - (parseFloat(ac.packing_total) || 0) - (parseFloat(ac.transportation_total) || 0);
+    if (!isFinite(machineCost) || machineCost < 0) machineCost = 0;
+
+    var rates = getPlCostRates();
+    var procTotal   = rates.processing * ew;
+    var colourTotal = rates.colour * ew;
+    var packTotal   = rates.packing * ew;
+    var transTotal  = rates.transport * ew;
+
     var newRaw = 0;
     var refTotal = 0;
     document.querySelectorAll('#plDetailContent .pl-price-input').forEach(function(inp) {
@@ -3123,11 +3182,19 @@ function recalcPlModal() {
             if (refCostCell) refCostCell.textContent = plFmt(refCost);
         }
     });
+
+    // Update the editable rate line totals
+    [['processing', procTotal], ['colour', colourTotal], ['packing', packTotal], ['transport', transTotal]].forEach(function(pair) {
+        document.querySelectorAll('#plDetailContent .pl-rate-total[data-kind="' + pair[0] + '"]').forEach(function(el) {
+            el.textContent = plFmt(pair[1]);
+        });
+    });
+
     var actualTotalCell = document.querySelector('#plDetailContent .pl-actual-total-cost');
     if (actualTotalCell) actualTotalCell.textContent = plFmt(newRaw);
     var refTotalCell = document.querySelector('#plDetailContent .pl-ref-total-cost');
     if (refTotalCell) refTotalCell.textContent = plFmt(refTotal);
-    var newTotalCost = otherCost + newRaw;
+    var newTotalCost = machineCost + newRaw + procTotal + colourTotal + packTotal + transTotal;
     var newProfit = parseFloat(sum.total_revenue) - newTotalCost;
     // Update hero + summary numbers in modal
     var hero = document.querySelector('#plDetailContent .p-2 .fs-4');
@@ -3144,12 +3211,18 @@ function recalcPlModal() {
         hero.innerHTML = plFmt(newProfit) + ' <span class="badge fs-6 ' + badgeCls + ' border border-white">' + isProf + '</span>';
     }
     if (heroSub) heroSub.innerHTML = plFmt(perKg) + '/kg &nbsp;·&nbsp; ' + plFmt(perDay) + '/day';
-    // Summary table: total cost + raw + profit rows
+    // Summary table rows
     var rows = document.querySelectorAll('#plDetailContent tbody tr');
     rows.forEach(function(tr) {
-        var label = tr.querySelector('td') ? tr.querySelector('td').textContent.trim() : '';
-        if (label.indexOf('Total Cost') === 0) tr.querySelectorAll('td')[1].textContent = plFmt(newTotalCost);
-        if (label.indexOf('→ Raw Material') === 0) tr.querySelectorAll('td')[1].textContent = plFmt(newRaw);
+        var tds = tr.querySelectorAll('td');
+        if (tds.length < 2) return;
+        var label = tds[0].textContent.trim();
+        if (label.indexOf('Total Cost') === 0) tds[1].textContent = plFmt(newTotalCost);
+        if (label.indexOf('→ Raw Material') === 0) tds[1].textContent = plFmt(newRaw);
+        if (label.indexOf('→ Processing') === 0) tds[1].textContent = plFmt(procTotal);
+        if (label.indexOf('→ Colour') === 0) tds[1].textContent = plFmt(colourTotal);
+        if (label.indexOf('→ Packing') === 0) tds[1].textContent = plFmt(packTotal);
+        if (label.indexOf('→ Transportation') === 0) tds[1].textContent = plFmt(transTotal);
     });
     var cards = document.querySelectorAll('#plDetailContent .row.g-0 .fw-bold');
     if (cards.length > 1) cards[1].textContent = plFmt(newTotalCost);
@@ -3170,6 +3243,7 @@ function recalcPlModal() {
 function applyPLPriceOverrides() {
     if (!currentPlData) return;
     var ov = getPlPriceOverrides();
+    var costOv = getPlCostRateOverrides();
     var calc = recalcPlModal();
     var btn = document.getElementById('plApplyBtn');
     var hint = document.getElementById('plOverrideHint');
@@ -3181,12 +3255,15 @@ function applyPLPriceOverrides() {
     if (pkEl) pkEl.value = calc.perKg.toFixed(2);
     if (pdEl) pdEl.value = calc.perDay.toFixed(2);
     currentPlOverrides = ov;
+    currentPlCostRateOverrides = costOv;
+    window._pendingPlCostRateOverrides = costOv;
     if (!currentPlSaleKey) {
-        if (hint) hint.textContent = 'Prices applied to entry form. Save the sale to keep them.';
+        if (hint) hint.textContent = 'Prices/rates applied to entry form. Save the sale to keep them.';
         // Keep overrides for next save
         window._pendingPlOverrides = ov;
         // Treat edited values as baseline so button disables until next change
         Object.keys(ov).forEach(function(k) { originalPlPrices[k] = parseFloat(ov[k]); });
+        Object.keys(costOv).forEach(function(k) { originalPlRates[k] = parseFloat(costOv[k]); });
         updatePlApplyState();
         return;
     }
@@ -3194,6 +3271,7 @@ function applyPLPriceOverrides() {
     var formData = new FormData();
     formData.append('sales_key', currentPlSaleKey);
     formData.append('twine_price_overrides', JSON.stringify(ov));
+    formData.append('cost_rate_overrides', JSON.stringify(costOv));
     fetch('{% url "update_twine_prices" %}', {
         method: 'POST',
         body: formData,
@@ -3201,7 +3279,7 @@ function applyPLPriceOverrides() {
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Apply Prices'; }
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Apply Changes'; }
         if (!data.success) {
             if (hint) hint.textContent = 'Save failed: ' + (data.error || 'unknown error');
             return;
@@ -3210,6 +3288,8 @@ function applyPLPriceOverrides() {
         currentPlData = data;
         document.getElementById('plDetailContent').innerHTML = buildPLHtml(data);
         bindPlPriceInputs();
+        window._pendingPlOverrides = ov;
+        window._pendingPlCostRateOverrides = costOv;
         // Update sales table row in place (P/L cell + twine cell)
         var saleKey = currentPlSaleKey;
         var newData = data;
@@ -3244,12 +3324,13 @@ function applyPLPriceOverrides() {
         if (hint) hint.textContent = 'Saved. Table & entry updated.';
     })
     .catch(function(err) {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Apply Prices'; }
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Apply Changes'; }
         if (hint) hint.textContent = 'Network error: ' + err;
     });
 }
 
 var originalPlPrices = {};
+var originalPlRates = {};
 
 function updatePlApplyState() {
     var btn = document.getElementById('plApplyBtn');
@@ -3263,15 +3344,31 @@ function updatePlApplyState() {
         if (isNaN(cur)) { modified = true; return; }
         if (Math.abs(cur - orig) > 0.005) modified = true;
     });
+    document.querySelectorAll('#plDetailContent .pl-rate-input').forEach(function(inp) {
+        var kind = inp.getAttribute('data-kind');
+        var orig = originalPlRates[kind];
+        var cur = parseFloat(inp.value);
+        if (orig === undefined) { modified = true; return; }
+        if (isNaN(cur)) { modified = true; return; }
+        if (Math.abs(cur - orig) > 0.005) modified = true;
+    });
     btn.disabled = !modified;
 }
 
 function bindPlPriceInputs() {
     originalPlPrices = {};
+    originalPlRates = {};
     document.querySelectorAll('#plDetailContent .pl-price-input').forEach(function(inp) {
         var code = inp.getAttribute('data-code');
         var val = parseFloat(inp.value);
         originalPlPrices[code] = isNaN(val) ? 0 : val;
+        inp.addEventListener('input', function() { recalcPlModal(); updatePlApplyState(); });
+        inp.addEventListener('change', function() { recalcPlModal(); updatePlApplyState(); });
+    });
+    document.querySelectorAll('#plDetailContent .pl-rate-input').forEach(function(inp) {
+        var kind = inp.getAttribute('data-kind');
+        var val = parseFloat(inp.value);
+        originalPlRates[kind] = isNaN(val) ? 0 : val;
         inp.addEventListener('input', function() { recalcPlModal(); updatePlApplyState(); });
         inp.addEventListener('change', function() { recalcPlModal(); updatePlApplyState(); });
     });

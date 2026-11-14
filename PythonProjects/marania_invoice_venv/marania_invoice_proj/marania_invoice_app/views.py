@@ -3047,6 +3047,12 @@ def calculate_profit_loss_api(request):
                     temp_sale._price_overrides = json.loads(ov_raw)
                 except (json.JSONDecodeError, TypeError):
                     temp_sale._price_overrides = {}
+            cost_ov_raw = request.POST.get('cost_rate_overrides', '')
+            if cost_ov_raw:
+                try:
+                    temp_sale._cost_rate_overrides = json.loads(cost_ov_raw)
+                except (json.JSONDecodeError, TypeError):
+                    temp_sale._cost_rate_overrides = {}
 
             # Calculate profit/loss
             profit_loss = calculate_profit_loss(temp_sale)
@@ -3133,6 +3139,31 @@ def _build_profit_loss_breakdown(sale, cache=None):
                         price_overrides = None
                 elif isinstance(raw_ov, dict):
                     price_overrides = raw_ov
+
+        # Manual per-kg cost-rate overrides (processing/colour/packing/transport)
+        cost_rate_overrides = getattr(sale, '_cost_rate_overrides', None)
+        if cost_rate_overrides is None:
+            raw_cost_ov = getattr(sale, 'cost_rate_overrides', None)
+            if raw_cost_ov:
+                if isinstance(raw_cost_ov, str):
+                    try:
+                        cost_rate_overrides = json.loads(raw_cost_ov)
+                    except (json.JSONDecodeError, TypeError):
+                        cost_rate_overrides = None
+                elif isinstance(raw_cost_ov, dict):
+                    cost_rate_overrides = raw_cost_ov
+        if not isinstance(cost_rate_overrides, dict):
+            cost_rate_overrides = {}
+
+        def _rate_override(key, default):
+            if key in cost_rate_overrides:
+                try:
+                    val = Decimal(str(cost_rate_overrides[key]))
+                    if val >= 0:
+                        return val
+                except Exception:
+                    pass
+            return default
 
         # ── Raw material ─────────────────────────────────────────────────────
         # The raw material calculation is scaled to the actual production
@@ -3247,16 +3278,18 @@ def _build_profit_loss_breakdown(sale, cache=None):
                 pc = ProcessingCost.objects.filter(material_code=prod.material_id).first()
                 if pc_cache is not None:
                     pc_cache[prod.material_id] = pc
-            if pc:
-                processing_cost = expense_weight * (pc.processing_cost_per_kg or Decimal('0'))
-                colour_cost     = expense_weight * (pc.color_cost_per_kg       or Decimal('0'))
-                processing_detail = {
-                    'material_code':      prod.material_id,
-                    'proc_rate':          _d(pc.processing_cost_per_kg),
-                    'colour_rate':        _d(pc.color_cost_per_kg),
-                    'processing_total':   _d(processing_cost),
-                    'colour_total':       _d(colour_cost),
-                }
+        proc_rate   = _rate_override('processing', (pc.processing_cost_per_kg if pc else Decimal('0')) or Decimal('0'))
+        colour_rate = _rate_override('colour',     (pc.color_cost_per_kg      if pc else Decimal('0')) or Decimal('0'))
+        processing_cost = expense_weight * proc_rate
+        colour_cost     = expense_weight * colour_rate
+        processing_detail = {
+            'material_code':      prod.material_id if (prod and prod.material_id) else '',
+            'has_config':         bool(pc),
+            'proc_rate':          _d(proc_rate),
+            'colour_rate':        _d(colour_rate),
+            'processing_total':   _d(processing_cost),
+            'colour_total':       _d(colour_cost),
+        }
 
         # ── Additional costs ──────────────────────────────────────────────────
         if cache is not None and 'additional_cost' in cache:
@@ -3265,11 +3298,10 @@ def _build_profit_loss_breakdown(sale, cache=None):
             ac = AdditionalCost.objects.first()
             if cache is not None:
                 cache['additional_cost'] = ac
-        packing_cost        = Decimal('0')
-        transportation_cost = Decimal('0')
-        if ac:
-            packing_cost        = expense_weight * (ac.packing_cost_per_kg        or Decimal('0'))
-            transportation_cost = expense_weight * (ac.transportation_cost_per_kg or Decimal('0'))
+        packing_rate        = _rate_override('packing',   (ac.packing_cost_per_kg        if ac else Decimal('0')) or Decimal('0'))
+        transport_rate      = _rate_override('transport', (ac.transportation_cost_per_kg if ac else Decimal('0')) or Decimal('0'))
+        packing_cost        = expense_weight * packing_rate
+        transportation_cost = expense_weight * transport_rate
 
         # ── Totals ────────────────────────────────────────────────────────────
         total_cost    = raw_material_cost + machine_cost + processing_cost + colour_cost + packing_cost + transportation_cost
@@ -3327,10 +3359,14 @@ def _build_profit_loss_breakdown(sale, cache=None):
             'machine_cost': machine_detail,
             'processing_cost': processing_detail,
             'additional_costs': {
-                'packing_rate':         _d(ac_obj.packing_cost_per_kg        if ac_obj else 0),
-                'transportation_rate':  _d(ac_obj.transportation_cost_per_kg if ac_obj else 0),
+                'packing_rate':         _d(packing_rate),
+                'transportation_rate':  _d(transport_rate),
                 'packing_total':        _d(packing_cost),
                 'transportation_total': _d(transportation_cost),
+            },
+            'cost_rate_overrides': {
+                k: _d(v) for k, v in cost_rate_overrides.items()
+                if k in ('processing', 'colour', 'packing', 'transport')
             },
             'summary': {
                 'total_cost':       _d(total_cost),
@@ -3392,6 +3428,12 @@ def profit_loss_detail_api(request, sales_key=None):
                 sale._price_overrides = json.loads(ov_raw)
             except (json.JSONDecodeError, TypeError):
                 sale._price_overrides = {}
+        cost_ov_raw = request.POST.get('cost_rate_overrides', '')
+        if cost_ov_raw:
+            try:
+                sale._cost_rate_overrides = json.loads(cost_ov_raw)
+            except (json.JSONDecodeError, TypeError):
+                sale._cost_rate_overrides = {}
     else:
         try:
             sale = Sales.objects.get(pk=sales_key)
@@ -3435,12 +3477,37 @@ def update_sale_twine_prices_api(request):
             continue
     sale.twine_price_overrides = json.dumps(clean) if clean else None
     sale._price_overrides = clean
+    update_fields = ['twine_price_overrides', 'profit_loss', 'updated_at']
+
+    cost_ov_raw = request.POST.get('cost_rate_overrides', None)
+    if cost_ov_raw is not None:
+        try:
+            cost_overrides = json.loads(cost_ov_raw) if cost_ov_raw else {}
+            if not isinstance(cost_overrides, dict):
+                cost_overrides = {}
+        except (json.JSONDecodeError, TypeError):
+            return JsonResponse({'success': False, 'error': 'Invalid cost rate overrides JSON'})
+        clean_rates = {}
+        for k in ('processing', 'colour', 'packing', 'transport'):
+            if k not in cost_overrides:
+                continue
+            try:
+                dv = Decimal(str(cost_overrides[k]))
+                if dv < 0:
+                    continue
+                clean_rates[k] = str(dv.quantize(Decimal('0.01')))
+            except Exception:
+                continue
+        sale.cost_rate_overrides = json.dumps(clean_rates) if clean_rates else None
+        sale._cost_rate_overrides = clean_rates
+        update_fields.append('cost_rate_overrides')
+
     data, error = _build_profit_loss_breakdown(sale)
     if error:
         return JsonResponse({'success': False, 'error': error})
     from decimal import Decimal as _Dec
     sale.profit_loss = _Dec(str(data['summary']['profit_loss']))
-    sale.save(update_fields=['twine_price_overrides', 'profit_loss', 'updated_at'])
+    sale.save(update_fields=update_fields)
     return JsonResponse({'success': True, **data})
 
 
@@ -3823,6 +3890,18 @@ def sales_entry(request):
                         pass
                 else:
                     obj.twine_price_overrides = None
+                cost_ov = entry.get("cost_rate_overrides")
+                if isinstance(cost_ov, dict) and cost_ov:
+                    obj.cost_rate_overrides = json.dumps(cost_ov)
+                    obj._cost_rate_overrides = cost_ov
+                elif isinstance(cost_ov, str) and cost_ov.strip():
+                    obj.cost_rate_overrides = cost_ov
+                    try:
+                        obj._cost_rate_overrides = json.loads(cost_ov)
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                else:
+                    obj.cost_rate_overrides = None
                 obj.created_at = now
                 obj.updated_at = now
 
@@ -3879,6 +3958,7 @@ def sales_entry(request):
             'remarks': s.remarks or '',
             'profit_loss': str(s.profit_loss) if s.profit_loss is not None else '',
             'twine_price_overrides': getattr(s, 'twine_price_overrides', None) or '',
+            'cost_rate_overrides': getattr(s, 'cost_rate_overrides', None) or '',
             'profit_per_kg': (
                 str(round(s.profit_loss / (s.processed_weight or s.initial_weight), 2))
                 if s.profit_loss is not None and (s.processed_weight or s.initial_weight)
