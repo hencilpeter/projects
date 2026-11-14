@@ -2866,16 +2866,16 @@ def _calc_twine_rows(pt, sale_weight, cache=None, price_overrides=None):
     rows_detail items: {material_code, type, daily_output, batch_weight, waste,
                         twine_for_sale, price_per_kg, line_cost}
     """
-    from decimal import Decimal
+    from decimal import Decimal, ROUND_DOWN
     from marania_invoice_app.models import AdditionalCost
 
     if not pt.twine_rows:
-        return [], Decimal('0')
+        return [], Decimal('0'), {}
 
     try:
         twine_rows = json.loads(pt.twine_rows)
     except (json.JSONDecodeError, TypeError):
-        return [], Decimal('0')
+        return [], Decimal('0'), {}
 
     ac = cache.get('additional_cost') if cache is not None and 'additional_cost' in cache else AdditionalCost.objects.first()
     if cache is not None:
@@ -2929,16 +2929,18 @@ def _calc_twine_rows(pt, sale_weight, cache=None, price_overrides=None):
 
         batch_weight = daily_out * computed_req_days
         waste        = batch_weight * waste_pct / Decimal('100')
+        reference_costing_qty = batch_weight + waste
 
-        # Scale to the actual sale weight (proportional to pt.weight batch)
+        # Scale the reference batch allocation to the actual production weight
+        # (the applicable waste allowance is already included above).
         if pt_weight > 0:
-            twine_for_sale = (batch_weight + waste) * Decimal(str(sale_weight)) / pt_weight
+            actual_costing_qty = (reference_costing_qty * Decimal(str(sale_weight)) / pt_weight).quantize(Decimal('0.01'))
         else:
-            twine_for_sale = Decimal('0')
+            actual_costing_qty = Decimal('0')
 
-        # Round twine_for_sale to 2dp so that For Sale × Price/kg = Cost exactly
-        # as displayed in the table (avoids full-precision vs rounded-display mismatch)
-        twine_for_sale = twine_for_sale.quantize(Decimal('0.01'))
+        # ``twine_for_sale`` is kept as the actual costing quantity so the
+        # sales table / summary banner continue to show the real consumption.
+        twine_for_sale = actual_costing_qty
 
         if price_overrides and code in price_overrides:
             try:
@@ -2951,6 +2953,7 @@ def _calc_twine_rows(pt, sale_weight, cache=None, price_overrides=None):
             price = Decimal('0')
 
         line_cost = twine_for_sale * price
+        reference_cost = reference_costing_qty * price
         total_cost += line_cost
 
         rows_detail.append({
@@ -2959,12 +2962,36 @@ def _calc_twine_rows(pt, sale_weight, cache=None, price_overrides=None):
             'daily_output':   float(daily_out),
             'batch_weight':   float(batch_weight),
             'waste':          float(waste),
+            'reference_costing_qty': float(reference_costing_qty),
+            'reference_cost': float(reference_cost),
             'twine_for_sale': float(twine_for_sale),
+            'actual_costing_qty': float(actual_costing_qty),
             'price_per_kg':   float(price),
             'line_cost':      float(line_cost),
         })
 
-    return rows_detail, total_cost
+    daily_consumption_display = sum(
+        Decimal(str(round(r['daily_output'], 2))) for r in rows_detail
+    )
+    reference_days_display = (
+        Decimal(str(pt.required_days)) if pt.required_days else computed_req_days
+    )
+    actual_required_days = (
+        (Decimal(str(sale_weight)) / total_daily_output).quantize(Decimal('0.001'), rounding=ROUND_DOWN)
+        if (sale_weight and total_daily_output > 0) else Decimal('0')
+    )
+    meta = {
+        'reference_batch_weight':   float(pt_weight),
+        'daily_consumption':        float(daily_consumption_display),
+        'reference_days':           float(reference_days_display),
+        'waste_pct':                float(waste_pct),
+        'actual_initial_weight':    float(sale_weight) if sale_weight else 0.0,
+        'actual_required_days':     float(actual_required_days),
+        'reference_total_costing_qty': float(sum(Decimal(str(r['reference_costing_qty'])) for r in rows_detail)),
+        'actual_total_costing_qty': float(sum(Decimal(str(r['actual_costing_qty'])) for r in rows_detail)),
+    }
+
+    return rows_detail, total_cost, meta
 
 
 def calculate_profit_loss(sale):
@@ -3108,7 +3135,13 @@ def _build_profit_loss_breakdown(sale, cache=None):
                     price_overrides = raw_ov
 
         # ── Raw material ─────────────────────────────────────────────────────
-        twine_rows_detail, raw_material_cost = _calc_twine_rows(pt, expense_weight, cache, price_overrides=price_overrides)
+        # The raw material calculation is scaled to the actual production
+        # weight (Init.Wt). Processing/machine/other expenses keep using
+        # expense_weight, as before.
+        raw_material_weight = init_dec if init_dec > 0 else expense_weight
+        twine_rows_detail, raw_material_cost, twine_meta = _calc_twine_rows(
+            pt, raw_material_weight, cache, price_overrides=price_overrides
+        )
 
         if not twine_rows_detail:
             return None, 'No twine row data found in Production Tracker (twine_rows field is empty)'
@@ -3134,7 +3167,10 @@ def _build_profit_loss_breakdown(sale, cache=None):
                 'daily_output':    _d(row['daily_output']),
                 'batch_weight':    _d(row['batch_weight']),
                 'waste':           _d(row['waste']),
+                'reference_costing_qty': _d(row['reference_costing_qty']),
+                'reference_cost':  _d(row['reference_cost']),
                 'twine_for_sale':  _d(row['twine_for_sale']),
+                'actual_costing_qty': _d(row['actual_costing_qty']),
                 'price_per_kg':    _d(row['price_per_kg']),
                 'line_cost':       _d(row['line_cost']),
                 'price_source':    price_source,
@@ -3274,6 +3310,19 @@ def _build_profit_loss_breakdown(sale, cache=None):
                 'rows':              display_rows,
                 'raw_material_cost': _d(raw_material_cost),
                 'waste_pct':         str(ac_obj.waste_percentage if ac_obj else 0),
+                'reference_batch':   {
+                    'batch_weight':    _d(twine_meta.get('reference_batch_weight', 0)),
+                    'daily_consumption': _d(twine_meta.get('daily_consumption', 0)),
+                    'required_days':   str(round(twine_meta.get('reference_days', 0), 3)),
+                    'waste_pct':       _d(twine_meta.get('waste_pct', 0)),
+                    'total_costing_qty': _d(twine_meta.get('reference_total_costing_qty', 0)),
+                },
+                'actual_production': {
+                    'initial_weight':  _d(twine_meta.get('actual_initial_weight', 0)),
+                    'required_days':   str(round(twine_meta.get('actual_required_days', 0), 3)),
+                    'waste_pct':       _d(twine_meta.get('waste_pct', 0)),
+                    'total_costing_qty': _d(twine_meta.get('actual_total_costing_qty', 0)),
+                },
             },
             'machine_cost': machine_detail,
             'processing_cost': processing_detail,

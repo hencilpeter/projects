@@ -855,6 +855,14 @@ tr.row-status-on_hold_processing td {
   #plDetailContent .row.g-0 > div { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
   #plDetailContent table.table-bordered td, #plDetailContent table.table-bordered th { padding: 0.2rem 0.4rem !important; vertical-align: middle; }
   #plDetailContent table.table-bordered tr { line-height: 1.2; }
+  #plDetailContent .pl-subsection-title { font-weight: 600; color: #495057; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; margin: 0.45rem 0 0.25rem; }
+  #plDetailContent .pl-ref-group { background: #dbeafe !important; color: #0d4f8b !important; font-weight: 700; text-align: center; border-bottom: 1px solid #93c5fd !important; }
+  #plDetailContent .pl-ref-col { background: #eff6ff !important; }
+  #plDetailContent tbody tr .pl-ref-col { background: #f8fbff !important; }
+  #plDetailContent .pl-raw-ref-total .pl-ref-col { background: #e0ecff !important; }
+  #plDetailContent .pl-raw-actual-table { border-color: #b6d4fe; }
+  #plDetailContent .pl-section-toggle { text-transform: none; letter-spacing: 0; font-size: 0.7rem; line-height: 1.5; padding: 0.05rem 0.5rem; }
+  #plDetailContent .pl-collapse-body { margin-bottom: 0.15rem; }
 </style>
 <div class="modal fade" id="plDetailModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -2756,6 +2764,25 @@ function plNum(v) {
     return num.toFixed(4).replace(/\.?0+$/, '');
 }
 
+function plFixed(v, d) {
+    var num = parseFloat(v);
+    if (isNaN(num)) return '—';
+    return num.toFixed(d === undefined ? 2 : d);
+}
+
+var plRefBatchExpanded = false;
+
+function togglePlSection(btn) {
+    var body = document.getElementById('plRefBatchBody');
+    if (!body) return;
+    plRefBatchExpanded = body.style.display === 'none';
+    body.style.display = plRefBatchExpanded ? '' : 'none';
+    btn.setAttribute('aria-expanded', plRefBatchExpanded ? 'true' : 'false');
+    btn.innerHTML = plRefBatchExpanded
+        ? '<i class="bi bi-chevron-up me-1"></i><span>Hide</span>'
+        : '<i class="bi bi-chevron-down me-1"></i><span>Show</span>';
+}
+
 function buildPLHtml(data) {
     var s   = data.sale;
     var pt  = data.production_tracker;
@@ -2813,49 +2840,125 @@ function buildPLHtml(data) {
     html += '<div class="col-md-4"><span class="text-muted">Colour:</span> <strong>'+(s.colour||'—')+'</strong></div>';
     html += '</div></div>';
 
-    // ── Raw Material ─────────────────────────────────────────────────────────
-    html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-boxes me-1"></i>Raw Material Cost';
-    html += ' <small class="text-muted fw-normal">(latest Purchase price incl. GST, scaled to sale weight)</small></h6>';
-    html += '<div class="small text-muted mb-1">PT batch weight: <strong>'+pt.batch_weight+' kg</strong> · Required days: <strong>'+pt.required_days+'</strong> · Waste: <strong>'+tm.waste_pct+'%</strong></div>';
-    html += '<table class="table table-sm table-bordered small mb-2">';
-    html += '<thead class="table-secondary"><tr><th>Type</th><th>Material</th><th>Daily Out (kg)</th><th>Batch Wt (kg)</th><th>Waste (kg)</th><th>For Sale (kg)</th><th>Price/kg</th><th>Cost</th><th>Price Source</th></tr></thead><tbody>';
+    // ── Raw Material Consumption & Cost ──────────────────────────────────────
+    var ref = tm.reference_batch || {};
+    var act = tm.actual_production || {};
+    var refWeight = parseFloat(ref.batch_weight || 0);
+    var refDaily  = parseFloat(ref.daily_consumption || 0);
+    var refDays   = parseFloat(ref.required_days || 0);
+    var refWaste  = parseFloat(ref.waste_pct != null ? ref.waste_pct : (tm.waste_pct || 0));
+    var actWeight = parseFloat(act.initial_weight || 0);
+    var actDays   = parseFloat(act.required_days || 0);
+    var actWaste  = parseFloat(act.waste_pct != null ? act.waste_pct : refWaste);
+    var actQty    = parseFloat(act.total_costing_qty || 0);
+    if (!actQty && actWeight) actQty = actWeight * (1 + actWaste / 100);
+
+    html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-boxes me-1"></i>Raw Material Consumption &amp; Cost';
+    html += ' <small class="text-muted fw-normal">(latest Purchase price incl. GST)</small></h6>';
+
+    // Reference batch details
+    html += '<div class="pl-subsection-title"><i class="bi bi-journal-text me-1"></i>Reference Batch Details</div>';
+    html += '<div class="row row-cols-2 row-cols-md-4 g-1 small mb-2">';
+    [
+        ['Reference Batch Wt(kg)', plFixed(refWeight, 2) + ''],
+        ['Twine Usage (kg/day)', plFixed(refDaily, 2) + ''],
+        ['Ref. Production Days', plFixed(refDays, 3) + ''],
+        ['Waste Allowance', plFixed(refWaste, 2) + '%']
+    ].forEach(function(c) {
+        html += '<div class="col border rounded p-1"><span class="text-muted">' + c[0] + ':</span> <strong>' + c[1] + '</strong></div>';
+    });
+    html += '</div>';
+
+    // Material allocation — reference batch (collapsible)
+    html += '<div class="pl-collapse-block">';
+    html += '<div class="pl-subsection-title d-flex justify-content-between align-items-center">';
+    html += '<span>Material Allocation &ndash; Reference Batch</span>';
+    html += '<button type="button" class="btn btn-sm btn-outline-secondary pl-section-toggle" onclick="togglePlSection(this)" aria-expanded="' + (plRefBatchExpanded ? 'true' : 'false') + '" aria-controls="plRefBatchBody">';
+    html += plRefBatchExpanded ? '<i class="bi bi-chevron-up me-1"></i><span>Hide</span>' : '<i class="bi bi-chevron-down me-1"></i><span>Show</span>';
+    html += '</button></div>';
+    html += '<div id="plRefBatchBody" class="pl-collapse-body"' + (plRefBatchExpanded ? '' : ' style="display:none;"') + '>';
+    html += '<div class="table-responsive"><table class="table table-sm table-bordered small mb-2 pl-raw-ref-table">';
+    html += '<thead class="table-secondary">';
+    html += '<tr><th rowspan="2">Type</th><th rowspan="2">Material</th><th colspan="2" class="pl-ref-group">Reference Batch</th>';
+    html += '<th rowspan="2">Waste Allowance (kg)</th><th rowspan="2">Costing Qty. (kg)</th><th rowspan="2">Purchase Price/kg (Incl. GST)</th><th rowspan="2">Material Cost (₹)</th><th rowspan="2">Price Source</th></tr>';
+    html += '<tr><th class="pl-ref-col">Daily Consumption (kg)</th><th class="pl-ref-col">Batch Allocation (kg)</th></tr>';
+    html += '</thead><tbody>';
+    var total_daily = 0, total_batch = 0, total_waste = 0, total_ref_qty = 0, total_ref_cost = 0;
     tm.rows.forEach(function(row) {
-        html += '<tr>';
-        html += '<td><span class="badge bg-'+(row.type==='NET'?'success':'warning text-dark')+'">'+row.type+'</span></td>';
-        html += '<td><strong>'+row.material_code+'</strong></td>';
-        html += '<td>'+plNum(row.daily_output)+'</td>';
-        html += '<td>'+plNum(row.batch_weight)+'</td>';
-        html += '<td>'+plNum(row.waste)+'</td>';
-        html += '<td><strong>'+plNum(row.twine_for_sale)+'</strong></td>';
-        html += '<td><input type="number" step="0.01" min="0" class="form-control form-control-sm pl-price-input" data-code="'+row.material_code+'" data-for-sale="'+row.twine_for_sale+'" value="'+row.price_per_kg+'" style="width:110px" title="Editable Price/kg (incl. GST)"></td>';
-        html += '<td class="fw-bold text-danger">'+plFmt(row.line_cost)+'</td>';
-        html += '<td class="text-muted" style="font-size:0.75em">'+row.price_source+'</td>';
+        var refQty  = parseFloat(row.reference_costing_qty || 0);
+        var refCost = parseFloat(row.reference_cost || 0);
+        total_daily    += parseFloat(row.daily_output || 0);
+        total_batch    += parseFloat(row.batch_weight || 0);
+        total_waste    += parseFloat(row.waste || 0);
+        total_ref_qty  += refQty;
+        total_ref_cost += refCost;
+        html += '<tr class="pl-raw-row" data-code="' + row.material_code + '" data-ref-qty="' + refQty + '">';
+        html += '<td><span class="badge bg-' + (row.type === 'NET' ? 'success' : 'warning text-dark') + '">' + row.type + '</span></td>';
+        html += '<td><strong>' + row.material_code + '</strong></td>';
+        html += '<td class="pl-ref-col">' + plNum(row.daily_output) + '</td>';
+        html += '<td class="pl-ref-col">' + plNum(row.batch_weight) + '</td>';
+        html += '<td>' + plNum(row.waste) + '</td>';
+        html += '<td><strong>' + plNum(refQty) + '</strong></td>';
+        html += '<td class="pl-ref-price">' + plFmt(row.price_per_kg) + '</td>';
+        html += '<td class="pl-ref-cost fw-bold text-danger">' + plFmt(refCost) + '</td>';
+        html += '<td class="text-muted" style="font-size:0.75em">' + row.price_source + '</td>';
         html += '</tr>';
     });
-    // Total row
-    var total_daily = 0, total_batch = 0, total_waste = 0, total_for_sale = 0, total_cost = 0;
-    tm.rows.forEach(function(row) {
-        total_daily  += parseFloat(row.daily_output || 0);
-        total_batch  += parseFloat(row.batch_weight || 0);
-        total_waste  += parseFloat(row.waste || 0);
-        total_for_sale += parseFloat(row.twine_for_sale || 0);
-        total_cost   += parseFloat(row.line_cost || 0);
-    });
-    html += '<tr class="table-secondary fw-bold">';
+    html += '<tr class="table-secondary fw-bold pl-raw-ref-total">';
     html += '<td>Total</td>';
     html += '<td></td>';
-    html += '<td>'+plNum(total_daily)+'</td>';
-    html += '<td>'+plNum(total_batch)+'</td>';
-    html += '<td>'+plNum(total_waste)+'</td>';
-    html += '<td>'+plNum(total_for_sale)+'</td>';
+    html += '<td class="pl-ref-col">' + plNum(total_daily) + '</td>';
+    html += '<td class="pl-ref-col">' + plNum(total_batch) + '</td>';
+    html += '<td>' + plNum(total_waste) + '</td>';
+    html += '<td>' + plNum(total_ref_qty) + '</td>';
     html += '<td></td>';
-    html += '<td class="text-danger">'+plFmt(total_cost)+'</td>';
+    html += '<td class="text-danger pl-ref-total-cost">' + plFmt(total_ref_cost) + '</td>';
     html += '<td></td>';
     html += '</tr>';
     html += '</tbody></table></div>';
+    html += '</div></div>';
+
+    // Actual production details
+    html += '<div class="pl-subsection-title"><i class="bi bi-clipboard-check me-1"></i>Actual Production Details</div>';
+    html += '<div class="row row-cols-2 row-cols-md-4 g-1 small mb-2">';
+    [
+        ['Actual Initial Weight(kg)', plFixed(actWeight, 2) + ''],
+        ['Actual Required Days', plFixed(actDays, 3) + ''],
+        ['Waste Allowance', plFixed(actWaste, 2) + '%'],
+        ['Total Costing Quantity', plFixed(actQty, 2) + ' kg']
+    ].forEach(function(c) {
+        html += '<div class="col border rounded p-1"><span class="text-muted">' + c[0] + ':</span> <strong>' + c[1] + '</strong></div>';
+    });
+    html += '</div>';
+
+    // Actual raw material cost
+    html += '<div class="pl-subsection-title">Actual Raw Material Cost</div>';
+    html += '<div class="table-responsive"><table class="table table-sm table-bordered small mb-2 pl-raw-actual-table">';
+    html += '<thead class="table-secondary"><tr><th>Material</th><th>Costing Qty. (kg)</th><th>Purchase Price/kg (Incl. GST)</th><th>Material Cost (₹)</th></tr></thead><tbody>';
+    var total_actual_qty = 0, total_actual_cost = 0;
+    tm.rows.forEach(function(row) {
+        var aQty  = parseFloat(row.actual_costing_qty != null ? row.actual_costing_qty : (row.twine_for_sale || 0));
+        var aCost = parseFloat(row.line_cost || 0);
+        var rQty  = parseFloat(row.reference_costing_qty || 0);
+        total_actual_qty  += aQty;
+        total_actual_cost += aCost;
+        html += '<tr class="pl-raw-actual-row" data-code="' + row.material_code + '" data-qty="' + aQty + '">';
+        html += '<td><strong>' + row.material_code + '</strong> <span class="badge bg-' + (row.type === 'NET' ? 'success' : 'warning text-dark') + '">' + row.type + '</span></td>';
+        html += '<td class="pl-actual-qty"><strong>' + plNum(aQty) + '</strong></td>';
+        html += '<td><input type="number" step="0.01" min="0" class="form-control form-control-sm pl-price-input" data-code="' + row.material_code + '" data-qty="' + aQty + '" data-ref-qty="' + rQty + '" value="' + row.price_per_kg + '" style="width:110px" title="Editable Purchase Price/kg (incl. GST)"></td>';
+        html += '<td class="pl-actual-cost fw-bold text-danger">' + plFmt(aCost) + '</td>';
+        html += '</tr>';
+    });
+    html += '<tr class="table-secondary fw-bold pl-raw-actual-total">';
+    html += '<td>Total</td>';
+    html += '<td class="pl-actual-total-qty">' + plNum(total_actual_qty) + '</td>';
+    html += '<td></td>';
+    html += '<td class="text-danger pl-actual-total-cost">' + plFmt(total_actual_cost) + '</td>';
+    html += '</tr>';
+    html += '</tbody></table></div></div>';
 
     // ── Machine Cost ─────────────────────────────────────────────────────────
-    var mcLabel = 'Machine Operational Cost';
+    var mcLabel = 'Machine Operating Expenses';
     if (mc && mc.machine_number) {
         mcLabel += ' <span style="font-size:0.75em;color:#6c757d;">(Machine: <strong>'+mc.machine_number+'</strong> · Required days (Init.Wt): <strong>'+(mc.sale_required_days||mc.required_days)+'</strong> · PT batch: <strong>'+mc.pt_batch_weight+' kg</strong> · Daily cost: <strong>'+plFmt(mc.daily_total)+'</strong>)</span>';
     }
@@ -2871,7 +2974,7 @@ function buildPLHtml(data) {
         var mtDays = parseFloat(mc.sale_required_days || mc.required_days) || 0;
         var mtDaily = parseFloat(mc.daily_total) || 0;
         var mtFormula = plNum(mtDays) + ' days &times; ' + plFmt(mtDaily) + '/day';
-        html += '<div class="col fw-bold text-danger text-center"><span class="text-muted">Machine total('+plNum(s.init_weight)+' kg):</span> <span class="text-muted fw-normal" style="font-size:0.8em;">'+mtFormula+' =</span> <strong>'+plFmt(mc.machine_total)+'</strong></div>';
+        html += '<div class="col fw-bold text-danger text-center"><span class="text-muted">Total Machine Cost ('+plFixed(s.init_weight,2)+' kg):</span> <span class="text-muted fw-normal" style="font-size:0.8em;">'+mtFormula+' =</span> <strong>'+plFmt(mc.machine_total)+'</strong></div>';
         html += '</div>';
     } else {
         html += '<p class="small text-muted">No machine cost data found.</p>';
@@ -2953,21 +3056,32 @@ function recalcPlModal() {
     var tm = currentPlData.twine_materials;
     var otherCost = parseFloat(sum.total_cost) - parseFloat(tm.raw_material_cost);
     var newRaw = 0;
+    var refTotal = 0;
     document.querySelectorAll('#plDetailContent .pl-price-input').forEach(function(inp) {
-        var forSale = parseFloat(inp.getAttribute('data-for-sale')) || 0;
-        var price = parseFloat(inp.value) || 0;
-        newRaw += forSale * price;
+        var code   = inp.getAttribute('data-code');
+        var qty    = parseFloat(inp.getAttribute('data-qty')) || 0;
+        var refQty = parseFloat(inp.getAttribute('data-ref-qty')) || 0;
+        var price  = parseFloat(inp.value) || 0;
+        var cost    = qty * price;
+        var refCost = refQty * price;
+        newRaw   += cost;
+        refTotal += refCost;
         var row = inp.closest('tr');
-        var costCell = row ? row.querySelectorAll('td')[7] : null;
-        if (costCell) costCell.textContent = plFmt(forSale * price);
-    });
-    // Raw material table total row (Cost column, index 7)
-    document.querySelectorAll('#plDetailContent table tbody tr').forEach(function(tr) {
-        var first = tr.querySelector('td');
-        if (first && first.textContent.trim() === 'Total' && tr.querySelectorAll('td').length >= 8) {
-            tr.querySelectorAll('td')[7].textContent = plFmt(newRaw);
+        var costCell = row ? row.querySelector('.pl-actual-cost') : null;
+        if (costCell) costCell.textContent = plFmt(cost);
+        // Keep the reference-batch table price/cost in sync with the edited price
+        var refRow = document.querySelector('#plDetailContent .pl-raw-ref-table tr.pl-raw-row[data-code="' + code + '"]');
+        if (refRow) {
+            var priceCell = refRow.querySelector('.pl-ref-price');
+            var refCostCell = refRow.querySelector('.pl-ref-cost');
+            if (priceCell) priceCell.textContent = plFmt(price);
+            if (refCostCell) refCostCell.textContent = plFmt(refCost);
         }
     });
+    var actualTotalCell = document.querySelector('#plDetailContent .pl-actual-total-cost');
+    if (actualTotalCell) actualTotalCell.textContent = plFmt(newRaw);
+    var refTotalCell = document.querySelector('#plDetailContent .pl-ref-total-cost');
+    if (refTotalCell) refTotalCell.textContent = plFmt(refTotal);
     var newTotalCost = otherCost + newRaw;
     var newProfit = parseFloat(sum.total_revenue) - newTotalCost;
     // Update hero + summary numbers in modal
