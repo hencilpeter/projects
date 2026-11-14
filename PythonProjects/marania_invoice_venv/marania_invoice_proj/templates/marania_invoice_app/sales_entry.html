@@ -891,6 +891,8 @@ tr.row-status-on_hold_processing td {
     #plDetailContent .pl-mach-w37 { flex: 0 0 37%; max-width: 37%; }
   }
   #plDetailContent .pl-cost-line { column-gap: 0.75rem; row-gap: 0.1rem; line-height: 1.25; }
+  #plDetailContent .pl-sale-info-row { line-height: 1.2; }
+  #plDetailContent .row.g-0.pl-sale-info-row > div { padding-top: 0.05rem !important; padding-bottom: 0.05rem !important; }
   #plDetailContent .pl-section-toggle { text-transform: none; letter-spacing: 0; font-size: 0.7rem; line-height: 1.5; padding: 0.05rem 0.5rem; }
   #plDetailContent .pl-collapse-body { margin-bottom: 0.15rem; }
 </style>
@@ -2854,8 +2856,8 @@ function buildPLHtml(data) {
     html += '</div>';
 
     // ── Sale info ────────────────────────────────────────────────────────────
-    html += '<div class="px-2 pt-1"><h6 class="text-muted mb-0 border-bottom pb-0"><i class="bi bi-receipt me-1"></i>Sale Info</h6>';
-    html += '<div class="row row-cols-2 row-cols-md-4 g-0 small mb-1">';
+    // html += '<div class="px-2 pt-1"><h6 class="text-muted mb-0 border-bottom pb-0"><i class="bi bi-receipt me-1"></i>Sale Info</h6>';
+    html += '<div class="row row-cols-2 row-cols-md-4 g-0 small mb-1 pl-sale-info-row">';
     // Row 1
     html += '<div class="col"><span class="text-muted">Order No:</span> <strong>'+(s.order_no||'—')+'</strong></div>';
     html += '<div class="col"><span class="text-muted">Twine:</span> <strong>'+(s.twine||'—')+'</strong></div>';
@@ -3051,7 +3053,7 @@ function buildPLHtml(data) {
     html += '</div></div>';
 
     // ── Summary table ─────────────────────────────────────────────────────────
-    html += '<div class="px-3 pb-1"><h6 class="text-muted mb-1 pb-0"><i class="bi bi-calculator me-1"></i>Summary</h6>';
+    // html += '<div class="px-3 pb-1"><h6 class="text-muted mb-1 pb-0"><i class="bi bi-calculator me-1"></i>Summary</h6>';
     html += '<table class="table table-sm table-bordered small"><tbody>';
     html += '<tr class="table-success"><td>Total Revenue</td><td class="text-end fw-bold">'+plFmt(sum.total_revenue)+'</td></tr>';
     html += '<tr><td class="ps-3 text-muted small">→ Base Revenue</td><td class="text-end">'+plFmt(sum.base_revenue)+'</td></tr>';
