@@ -305,6 +305,7 @@ class PriceListConfiguration(models.Model):
     mesh_depth = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     daily_profit_values = models.TextField(default='[]')
     mesh_size_ranges = models.TextField(default='[]')
+    price_overrides = models.TextField(default='{}', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -69,6 +69,7 @@
 
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
   <div class="container-fluid my-2">
+    {% csrf_token %}
 
     <div class="d-flex justify-content-between align-items-center mb-2">
       <h3>Generated Price List</h3>
@@ -149,13 +150,18 @@
             <th>Daily Production (KG)</th>
             <th>Daily Profit Label</th>
             <th>Profit/KG (Rs)</th>
+            <th>Profit/Day (Rs)</th>
           </tr>
         </thead>
         <tbody>
           {% for row in price_list_rows %}
-          <tr>
+          <tr data-total-expense="{{ row.total_expense }}" data-daily-production="{{ row.daily_production }}" data-profit-label="{{ row.profit_label }}">
             <td>{{ row.mesh_range }}</td>
-            <td>{{ row.calculated_price|floatformat:0 }}</td>
+            <td>
+              <input type="number" step="0.01" class="form-control form-control-sm price-edit-input"
+                data-mesh-range="{{ row.mesh_range }}" data-profit-label="{{ row.profit_label }}"
+                value="{{ row.calculated_price }}" style="width:90px;">
+            </td>
             <td>
               <span class="expense-toggle" onclick="toggleBreakdown(this)">View Breakdown</span>
               <div class="expense-details">
@@ -175,6 +181,7 @@
                   {% endif %}
                   <tr class="expense-total"><td>Total Expense/Kg:</td><td>Rs. {{ row.total_expense|floatformat:2 }}</td></tr>
                   <tr><td>Profit/Kg ({{ row.profit_label }}):</td><td>Rs. {{ row.profit_value|floatformat:2 }}</td></tr>
+                  <tr><td>Profit/Day ({{ row.profit_label }}):</td><td>Rs. {{ row.daily_profit|floatformat:2 }}</td></tr>
                   <tr class="expense-final"><td>Final Price/Kg:</td><td>Rs. {{ row.calculated_price|floatformat:2 }}</td></tr>
                 </table>
               </div>
@@ -182,6 +189,7 @@
             <td>{{ row.daily_production }}</td>
             <td>{{ row.profit_label }}</td>
             <td>{{ row.profit_value }}</td>
+            <td class="profit-day-cell">{{ row.daily_profit }}</td>
             
           </tr>
           {% endfor %}
@@ -192,9 +200,88 @@
     <div class="alert alert-info">No prices could be generated. Please check the configuration values.</div>
     {% endif %}
 
-    <div class="mt-3">
+    <div class="mt-3 d-flex gap-2">
       <button type="button" class="btn btn-outline-primary btn-sm" onclick="window.print()">Print</button>
+      <button type="button" class="btn btn-success btn-sm" id="save-prices-btn">Save Modified Prices</button>
+      <span id="save-prices-status" class="small text-muted"></span>
     </div>
+
+    <script>
+      (function() {
+        var configKey = '{{ config.price_list_key }}';
+        function fmt(n) { return (Math.round(n * 100) / 100).toFixed(2); }
+
+        function recomputeRow(tr) {
+          var input = tr.querySelector('.price-edit-input');
+          if (!input) return;
+          var price = parseFloat(input.value) || 0;
+          var te = parseFloat(tr.getAttribute('data-total-expense')) || 0;
+          var dp = parseFloat(tr.getAttribute('data-daily-production')) || 0;
+          var profitKg = price - te;
+          var profitDay = profitKg * dp;
+          // update breakdown
+          var details = tr.querySelector('.expense-details');
+          if (details) {
+            var profitRow = null, finalRow = null, profitDayRow = null;
+            details.querySelectorAll('tr').forEach(function(r) {
+              var tds = r.querySelectorAll('td');
+              if (tds.length < 2) return;
+              var lbl = tds[0].textContent.trim();
+              if (lbl.indexOf('Profit/Kg') === 0) profitRow = r;
+              if (lbl.indexOf('Final Price/Kg') === 0) finalRow = r;
+              if (lbl.indexOf('Profit/Day') === 0) profitDayRow = r;
+            });
+            if (profitRow) profitRow.querySelectorAll('td')[1].textContent = 'Rs. ' + fmt(profitKg);
+            if (profitDayRow) profitDayRow.querySelectorAll('td')[1].textContent = 'Rs. ' + fmt(profitDay);
+            if (finalRow) finalRow.querySelectorAll('td')[1].textContent = 'Rs. ' + fmt(price);
+          }
+          // update the Profit/Day column cell
+          var pdCell = tr.querySelector('.profit-day-cell');
+          if (pdCell) pdCell.textContent = fmt(profitDay);
+        }
+
+        document.querySelectorAll('.price-edit-input').forEach(function(inp) {
+          inp.addEventListener('input', function() {
+            recomputeRow(inp.closest('tr'));
+          });
+          inp.addEventListener('change', function() {
+            recomputeRow(inp.closest('tr'));
+          });
+        });
+
+        var saveBtn = document.getElementById('save-prices-btn');
+        if (saveBtn) {
+          saveBtn.addEventListener('click', function() {
+            var overrides = {};
+            document.querySelectorAll('.price-edit-input').forEach(function(inp) {
+              var meshRange = inp.getAttribute('data-mesh-range');
+              var profitLabel = inp.getAttribute('data-profit-label');
+              var price = parseFloat(inp.value);
+              if (!isNaN(price)) {
+                overrides[meshRange + '||' + profitLabel] = price.toFixed(2);
+              }
+            });
+            var status = document.getElementById('save-prices-status');
+            fetch('/invoice/price-list-generator/save-prices/', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '' },
+              body: JSON.stringify({ price_list_key: configKey, price_overrides: overrides })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (data && data.success) {
+                if (status) status.textContent = 'Saved ' + data.saved + ' price(s).';
+              } else {
+                if (status) status.textContent = 'Save failed: ' + ((data && data.error) || 'unknown');
+              }
+            })
+            .catch(function(err) {
+              if (status) status.textContent = 'Network error: ' + err;
+            });
+          });
+        }
+      })();
+    </script>
 
   </div>
 </main>

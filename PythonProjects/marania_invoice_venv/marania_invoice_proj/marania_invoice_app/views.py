@@ -9163,12 +9163,32 @@ def view_price_list(request, pk):
                     gst_amount = calculated_price * gst_rate / (Decimal("100") + gst_rate)
                     calculated_price = calculated_price / (Decimal("1") + gst_rate / Decimal("100"))
 
+            # Apply saved price overrides (if any)
+            try:
+                _overrides = json.loads(config.price_overrides) if getattr(config, 'price_overrides', None) else {}
+            except Exception:
+                _overrides = {}
+            if not isinstance(_overrides, dict):
+                _overrides = {}
+            _row_key = f"{mesh_start}\u2013{mesh_end}||{profit_label}"
+            _daily_profit_out = profit_value
+            if _row_key in _overrides:
+                try:
+                    _new_price = Decimal(str(_overrides[_row_key]))
+                    if _new_price >= 0:
+                        calculated_price = _new_price
+                        profit_per_kg = calculated_price - (per_kg_cost + small_mesh_surcharge)
+                        _daily_profit_out = profit_per_kg * daily_production
+                except Exception:
+                    pass
+
             price_list_rows.append({
                 "mesh_range": range_label,
                 "mesh_start": mesh_start,
                 "mesh_end": mesh_end,
                 "profit_label": profit_label,
                 "profit_value": round(float(profit_per_kg), 2),
+                "daily_profit": round(float(_daily_profit_out), 2),
                 "calculated_price": round(float(calculated_price), 2),
                 "daily_production": round(float(daily_production), 2),
                 "twine_price_per_kg": round(float(twine_price_with_waste), 2),
@@ -9431,3 +9451,34 @@ def price_list_calculate_range(request):
 
     return JsonResponse({'success': True, 'mesh_range': f'{mesh_start}\u2013{mesh_end}',
                         'results': results})
+@login_required
+def price_list_save_prices(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST required'}, status=405)
+    try:
+        data = json.loads(request.body) if request.body else {}
+    except Exception:
+        data = request.POST
+    pk = data.get('price_list_key') if isinstance(data, dict) else request.POST.get('price_list_key')
+    overrides = data.get('price_overrides') if isinstance(data, dict) else request.POST.get('price_overrides')
+    if isinstance(overrides, str):
+        try:
+            overrides = json.loads(overrides)
+        except Exception:
+            overrides = {}
+    if not isinstance(overrides, dict):
+        overrides = {}
+    # normalize
+    clean = {}
+    for k, v in overrides.items():
+        try:
+            clean[str(k)] = str(Decimal(str(v)).quantize(Decimal('0.01')))
+        except Exception:
+            continue
+    try:
+        config = PriceListConfiguration.objects.get(price_list_key=pk)
+    except (PriceListConfiguration.DoesNotExist, ValueError, TypeError):
+        return JsonResponse({'success': False, 'error': 'config not found'}, status=404)
+    config.price_overrides = json.dumps(clean)
+    config.save(update_fields=['price_overrides', 'updated_at'])
+    return JsonResponse({'success': True, 'saved': len(clean)})
