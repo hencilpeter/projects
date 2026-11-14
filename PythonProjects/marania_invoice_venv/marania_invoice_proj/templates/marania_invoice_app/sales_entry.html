@@ -865,6 +865,23 @@ tr.row-status-on_hold_processing td {
   #plDetailContent .pl-raw-actual-table td { padding: 0.08rem 0.4rem !important; line-height: 1.1; }
   #plDetailContent .pl-raw-actual-table .pl-price-input { height: 22px; padding: 0 0.35rem; font-size: 0.75rem; }
   #plDetailContent .pl-raw-actual-table .badge { padding: 0.2em 0.45em; font-size: 0.68em; }
+  #plDetailContent .pl-ref-panel {
+    background: rgba(13, 110, 253, 0.05);
+    border-left: 3px solid rgba(13, 110, 253, 0.45);
+    border-radius: 0.35rem;
+    padding: 0.2rem 0.5rem 0.35rem;
+    margin-bottom: 0.5rem;
+  }
+  #plDetailContent .pl-actual-panel {
+    background: linear-gradient(90deg, rgba(25, 135, 84, 0.12), rgba(32, 201, 151, 0.05));
+    border-left: 3px solid #198754;
+    border-radius: 0.35rem;
+    padding: 0.2rem 0.5rem 0.35rem;
+    margin-bottom: 0.25rem;
+    box-shadow: inset 0 0 0 1px rgba(25, 135, 84, 0.10);
+  }
+  #plDetailContent .pl-ref-panel .pl-subsection-title { color: #0d4f8b; }
+  #plDetailContent .pl-actual-panel .pl-subsection-title { color: #146c43; }
   #plDetailContent .pl-section-toggle { text-transform: none; letter-spacing: 0; font-size: 0.7rem; line-height: 1.5; padding: 0.05rem 0.5rem; }
   #plDetailContent .pl-collapse-body { margin-bottom: 0.15rem; }
 </style>
@@ -2857,7 +2874,9 @@ function buildPLHtml(data) {
     var actQty    = parseFloat(act.total_costing_qty || 0);
     if (!actQty && actWeight) actQty = actWeight * (1 + actWaste / 100);
 
-    html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-boxes me-1"></i>Raw Material Consumption &amp; Cost';
+    html += '<div class="px-3">';
+    html += '<div class="pl-ref-panel">';
+    html += '<h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-boxes me-1"></i>Raw Material Consumption &amp; Cost';
     html += ' <small class="text-muted fw-normal">(latest Purchase price incl. GST)</small></h6>';
 
     // Reference batch details
@@ -2921,15 +2940,17 @@ function buildPLHtml(data) {
     html += '</tr>';
     html += '</tbody></table></div>';
     html += '</div></div>';
+    html += '</div>'; // close reference panel
 
-    // Actual production details
+    // Actual production details (actual figures — highlighted)
+    html += '<div class="pl-actual-panel">';
     html += '<div class="pl-subsection-title"><i class="bi bi-clipboard-check me-1"></i>Actual Production Details</div>';
     html += '<div class="row row-cols-2 row-cols-md-4 g-1 small mb-2">';
     [
         ['Actual Initial Weight(kg)', plFixed(actWeight, 2) + ''],
         ['Actual Required Days', plFixed(actDays, 3) + ''],
         ['Waste Allowance', plFixed(actWaste, 2) + '%'],
-        ['Total Costing Quantity', plFixed(actQty, 2) + ' kg']
+        ['Costing Quantity(kg)', plFixed(actQty, 2) + '']
     ].forEach(function(c) {
         html += '<div class="col border rounded p-1"><span class="text-muted">' + c[0] + ':</span> <strong>' + c[1] + '</strong></div>';
     });
@@ -2959,7 +2980,7 @@ function buildPLHtml(data) {
     html += '<td></td>';
     html += '<td class="text-danger pl-actual-total-cost">' + plFmt(total_actual_cost) + '</td>';
     html += '</tr>';
-    html += '</tbody></table></div></div>';
+    html += '</tbody></table></div></div></div>';
 
     // ── Machine Cost ─────────────────────────────────────────────────────────
     var mcLabel = 'Machine Operating Expenses';
