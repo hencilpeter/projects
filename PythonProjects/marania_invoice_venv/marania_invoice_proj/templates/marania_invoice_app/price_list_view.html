@@ -11,23 +11,41 @@
 }
 #price-table {
     min-width: 700px;
-    font-size: 0.85rem;
+    font-size: 0.65rem;
     border-collapse: collapse;
 }
 #price-table th,
 #price-table td {
     border: 1.5px solid #999 !important;
+    padding: 0px 2px !important;
+    line-height: 1.0;
+    vertical-align: middle;
+    margin: 0;
 }
 #price-table thead th {
     position: sticky;
     top: 0;
     z-index: 2;
-    font-size: 0.95rem;
+    font-size: 0.7rem;
     font-weight: bold;
+    padding: 0px 2px !important;
+    line-height: 1.0;
 }
-#price-table thead .info-header th {
-    font-weight: normal;
-    font-size: 0.85rem;
+.expense-details {
+    display: none;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    padding: 2px 0 0 0;
+    margin: 0;
+}
+#price-table tbody tr {
+    height: auto;
+}
+#price-table .form-control-sm {
+    padding: 0px 2px;
+    font-size: 0.63rem;
+    height: 17px;
+    line-height: 1.0;
 }
 .col-mesh { width: 130px; }
 .col-price { width: 150px; }
@@ -157,12 +175,12 @@
           {% for row in price_list_rows %}
           <tr data-total-expense="{{ row.total_expense }}" data-daily-production="{{ row.daily_production }}" data-profit-label="{{ row.profit_label }}">
             <td>
-              <input type="text" class="form-control form-control-sm mesh-label-input"
+              <input type="text" class="form-control form-control-sm mesh-label-input fw-bold"
                 data-mesh-key="{{ row.mesh_start }}–{{ row.mesh_end }}" data-profit-label="{{ row.profit_label }}"
                 value="{{ row.mesh_range }}" style="width:110px;">
             </td>
             <td>
-              <input type="number" step="0.01" class="form-control form-control-sm price-edit-input"
+              <input type="number" step="0.01" class="form-control form-control-sm price-edit-input fw-bold"
                 data-mesh-range="{{ row.mesh_range }}" data-mesh-key="{{ row.mesh_start }}–{{ row.mesh_end }}" data-profit-label="{{ row.profit_label }}"
                 value="{{ row.calculated_price }}" style="width:90px;">
             </td>
