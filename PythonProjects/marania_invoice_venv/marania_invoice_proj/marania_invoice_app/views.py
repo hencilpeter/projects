@@ -6549,7 +6549,31 @@ def twine_inventory_entry(request):
         twine_full = (e.twine or '').strip()
         twine_code = twine_full.split('-')[0].strip() if '-' in twine_full else twine_full
         opening_val = float(e.opening_stock or 0)
-        stock_val = float(e.stock_in or 0)
+        # Compute Stock In live from Purchase (is_twine) for this month+material
+        stock_val = 0.0
+        try:
+            from .models import Materials as _M, Product as _P
+            _mat = _M.objects.filter(code=twine_code).first()
+            _syns = [twine_code]
+            if _mat and _mat.name:
+                _syns.append(_mat.name)
+            _syns.extend(list(_P.objects.filter(material__code=twine_code).values_list('code', flat=True)))
+            for _pur in Purchase.objects.filter(is_twine=True, delivery_date__year=summary_year, delivery_date__month=summary_month):
+                _mc = _pur.material_code or ''
+                _m = _pur.material or ''
+                _match = False
+                if _mc and _mc in _syns:
+                    _match = True
+                elif _m and any(s in _m for s in _syns):
+                    _match = True
+                elif _m and twine_code in _m:
+                    _match = True
+                elif _mc and _mat and _mat.name and _mat.name in _mc:
+                    _match = True
+                if _match and _pur.quantity_weight:
+                    stock_val += float(_pur.quantity_weight)
+        except Exception:
+            stock_val = float(e.stock_in or 0)
         waste_val = float(e.waste_used or 0)
         sales_val = float(_summary_consumption.get(twine_code, 0) or 0)
         # Balance / Days Left use the same logic, but with live Sales Out so the
