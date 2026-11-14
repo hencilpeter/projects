@@ -3160,7 +3160,17 @@ def _build_profit_loss_breakdown(sale, cache=None):
                     moc.electricity_cost_per_day + moc.maintenance_cost_per_day +
                     moc.miscellaneous_cost_per_day
                 )
-                machine_cost = daily_cost * req_days * expense_weight / pt_weight
+                # Required days for this sale's Init.Wt production:
+                # use the Production Tracker's daily output (weight/day).
+                # Fall back to scaling the tracker's batch days by weight when
+                # the tracker has no daily output recorded.
+                machine_weight = init_dec if init_dec > 0 else expense_weight
+                daily_output = Decimal(str(pt.daily_output)) if pt.daily_output else Decimal('0')
+                if daily_output > 0:
+                    sale_required_days = (machine_weight / daily_output).quantize(Decimal('0.0001'))
+                else:
+                    sale_required_days = (req_days * machine_weight / pt_weight).quantize(Decimal('0.0001'))
+                machine_cost = daily_cost * sale_required_days
                 machine_detail = {
                     'machine_number':  pt.machine,
                     'operator':        _d(moc.operator_cost_per_day),
@@ -3172,7 +3182,10 @@ def _build_profit_loss_breakdown(sale, cache=None):
                     'miscellaneous':   _d(moc.miscellaneous_cost_per_day),
                     'daily_total':     _d(daily_cost),
                     'required_days':   str(req_days),
+                    'sale_required_days': str(sale_required_days.quantize(Decimal('0.0001'))),
+                    'daily_output':    str(daily_output),
                     'pt_batch_weight': str(pt_weight),
+                    'expense_weight':  str(expense_weight),
                     'machine_total':   _d(machine_cost),
                 }
 

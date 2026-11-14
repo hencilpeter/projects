@@ -2857,7 +2857,7 @@ function buildPLHtml(data) {
     // ── Machine Cost ─────────────────────────────────────────────────────────
     var mcLabel = 'Machine Operational Cost';
     if (mc && mc.machine_number) {
-        mcLabel += ' <span style="font-size:0.75em;color:#6c757d;">(Machine: <strong>'+mc.machine_number+'</strong> · Required days: <strong>'+mc.required_days+'</strong> · PT batch: <strong>'+mc.pt_batch_weight+' kg</strong> · Daily cost: <strong>'+plFmt(mc.daily_total)+'</strong>)</span>';
+        mcLabel += ' <span style="font-size:0.75em;color:#6c757d;">(Machine: <strong>'+mc.machine_number+'</strong> · Required days (Init.Wt): <strong>'+(mc.sale_required_days||mc.required_days)+'</strong> · PT batch: <strong>'+mc.pt_batch_weight+' kg</strong> · Daily cost: <strong>'+plFmt(mc.daily_total)+'</strong>)</span>';
     }
     html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-gear me-1"></i>'+mcLabel+'</h6>';
     if (mc && mc.machine_number) {
@@ -2868,7 +2868,10 @@ function buildPLHtml(data) {
             html += '<div class="col border rounded p-1"><span class="text-muted">'+r[0]+':</span> '+plFmt(r[1])+'/day</div>';
         });
         // Machine total moved into the grid to save vertical row space
-        html += '<div class="col fw-bold text-danger text-center"><span class="text-muted">Machine total('+plNum(s.init_weight)+' kg):</span> <strong>'+plFmt(mc.machine_total)+'</strong></div>';
+        var mtDays = parseFloat(mc.sale_required_days || mc.required_days) || 0;
+        var mtDaily = parseFloat(mc.daily_total) || 0;
+        var mtFormula = plNum(mtDays) + ' days &times; ' + plFmt(mtDaily) + '/day';
+        html += '<div class="col fw-bold text-danger text-center"><span class="text-muted">Machine total('+plNum(s.init_weight)+' kg):</span> <span class="text-muted fw-normal" style="font-size:0.8em;">'+mtFormula+' =</span> <strong>'+plFmt(mc.machine_total)+'</strong></div>';
         html += '</div>';
     } else {
         html += '<p class="small text-muted">No machine cost data found.</p>';

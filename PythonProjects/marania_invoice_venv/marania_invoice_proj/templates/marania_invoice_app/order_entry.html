@@ -738,10 +738,13 @@ function buildOrderPLHtml(data) {
     html += '<tr class="table-secondary fw-bold"><td>Total</td><td></td><td>'+plNum(td)+'</td><td>'+plNum(tb)+'</td><td>'+plNum(tw)+'</td><td>'+plNum(tf)+'</td><td></td><td class="text-danger">'+plFmt(tc)+'</td><td></td></tr>';
     html += '</tbody></table></div>';
     if (mc && mc.machine_number) {
-        html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-gear me-1"></i>Machine Operational Cost <span style="font-size:0.75em;color:#6c757d;">(Machine: <strong>'+mc.machine_number+'</strong> · Required days: <strong>'+mc.required_days+'</strong> · PT batch: <strong>'+mc.pt_batch_weight+' kg</strong> · Daily cost: <strong>'+plFmt(mc.daily_total)+'</strong>)</span></h6>';
+        html += '<div class="px-3"><h6 class="text-muted mb-2 border-bottom pb-1"><i class="bi bi-gear me-1"></i>Machine Operational Cost <span style="font-size:0.75em;color:#6c757d;">(Machine: <strong>'+mc.machine_number+'</strong> · Required days (Init.Wt): <strong>'+(mc.sale_required_days||mc.required_days)+'</strong> · PT batch: <strong>'+mc.pt_batch_weight+' kg</strong> · Daily cost: <strong>'+plFmt(mc.daily_total)+'</strong>)</span></h6>';
         html += '<div class="row row-cols-2 row-cols-md-4 g-1 small mb-2">';
         [['Operator',mc.operator],['Bobbin Winder',mc.bobbin_winder],['Mending',mc.mending],['Mechanic',mc.mechanic],['Electricity',mc.electricity],['Maintenance',mc.maintenance],['Misc.',mc.miscellaneous]].forEach(function(r){ html += '<div class="col border rounded p-1"><span class="text-muted">'+r[0]+':</span> '+plFmt(r[1])+'/day</div>'; });
-        html += '<div class="col fw-bold text-danger text-center"><span class="text-muted">Machine total('+plNum(s.init_weight)+' kg):</span> <strong>'+plFmt(mc.machine_total)+'</strong></div></div></div>';
+        var mtDays = parseFloat(mc.sale_required_days || mc.required_days) || 0;
+        var mtDaily = parseFloat(mc.daily_total) || 0;
+        var mtFormula = plNum(mtDays) + ' days &times; ' + plFmt(mtDaily) + '/day';
+        html += '<div class="col fw-bold text-danger text-center"><span class="text-muted">Machine total('+plNum(s.init_weight)+' kg):</span> <span class="text-muted fw-normal" style="font-size:0.8em;">'+mtFormula+' =</span> <strong>'+plFmt(mc.machine_total)+'</strong></div></div></div>';
     }
     html += '<div class="px-3 mb-2"><div class="d-flex flex-wrap align-items-center gap-3 small mb-0">';
     html += '<span class="fw-bold"><i class="bi bi-tools me-1"></i>Processing Cost</span>';
