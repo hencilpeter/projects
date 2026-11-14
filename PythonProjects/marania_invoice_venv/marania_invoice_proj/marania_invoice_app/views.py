@@ -3212,6 +3212,7 @@ def _build_profit_loss_breakdown(sale, cache=None):
         machine_detail = {}
         pt_weight = Decimal(str(pt.weight)) if pt.weight else Decimal('1')
         req_days  = Decimal(str(pt.required_days)) if pt.required_days else Decimal('1')
+        sale_required_days = None
         if pt.machine:
             moc_cache = cache.setdefault('moc', {}) if cache is not None else None
             if moc_cache is not None and pt.machine in moc_cache:
@@ -3255,6 +3256,10 @@ def _build_profit_loss_breakdown(sale, cache=None):
                     'expense_weight':  str(expense_weight),
                     'machine_total':   _d(machine_cost),
                 }
+
+        profit_days = sale_required_days if sale_required_days is not None else req_days
+        if not profit_days:
+            profit_days = Decimal('1')
 
         # ── Processing cost ───────────────────────────────────────────────────
         processing_cost = Decimal('0')
@@ -3375,7 +3380,7 @@ def _build_profit_loss_breakdown(sale, cache=None):
                 'total_revenue':    _d(total_revenue),
                 'profit_loss':      _d(profit_loss),
                 'profit_per_kg':    _d(profit_loss / revenue_weight if revenue_weight else 0),
-                'profit_per_day':   _d(profit_loss / req_days if req_days else 0),
+                'profit_per_day':   _d(profit_loss / profit_days if profit_days else 0),
                 'is_profit':        profit_loss > 0,
                 'profit_loss_pct':  _d((profit_loss / total_revenue * 100) if total_revenue else 0),
             },
@@ -3609,7 +3614,8 @@ def _build_order_profit_loss_breakdown(order, cache=None):
             total_cost = Decimal(str(data['summary']['total_cost']))
             profit = total_rev - total_cost
             ppk = profit / weight if weight else Decimal('0')
-            req_days = Decimal(str(data['production_tracker'].get('required_days') or '1'))
+            mc = data.get('machine_cost') or {}
+            req_days = Decimal(str(mc.get('sale_required_days') or data['production_tracker'].get('required_days') or '1'))
             ppd = profit / req_days if req_days else Decimal('0')
             data['summary'].update({
                 'base_revenue': _d(base_rev),

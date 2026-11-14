@@ -3201,7 +3201,7 @@ function recalcPlModal() {
     var heroSub = document.querySelector('#plDetailContent .p-2 .small.mt-1');
     var weight = parseFloat(currentPlData.sale.weight) || 1;
     var perKg = newProfit / weight;
-    var reqDays = parseFloat(currentPlData.production_tracker.required_days) || 1;
+    var reqDays = (mc && mc.sale_required_days) ? parseFloat(mc.sale_required_days) : (parseFloat(currentPlData.production_tracker.required_days) || 1);
     var perDay = newProfit / reqDays;
     if (hero) {
         var isProf = newProfit > 0 ? 'PROFIT' : (newProfit < 0 ? 'LOSS' : 'BREAK-EVEN');
