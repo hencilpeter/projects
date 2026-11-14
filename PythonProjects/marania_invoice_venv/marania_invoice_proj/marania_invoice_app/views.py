@@ -9115,7 +9115,21 @@ def view_price_list(request, pk):
         if conversion_factor > 0 and mesh_size_mid > 0 and config.mesh_depth > 0 and knot_capacity_per_day > 0:
             daily_production = conversion_factor * mesh_size_mid * config.mesh_depth * knot_capacity_per_day / Decimal("1000")
 
-        for dp in daily_profits:
+        # Dynamic mode: range carries its own profit value
+        if isinstance(mesh_range, dict) and mesh_range.get("profit_value") is not None:
+            dp_list = [{"label": mesh_range.get("profit_label", ""), "value": mesh_range.get("profit_value", 0)}]
+            # use smaller mesh size for calculation
+            mesh_size_calc = Decimal(str(mesh_start))
+        else:
+            dp_list = daily_profits
+            mesh_size_calc = mesh_size_mid
+
+        # recompute daily_production with chosen mesh size
+        daily_production = Decimal("0")
+        if conversion_factor > 0 and mesh_size_calc > 0 and config.mesh_depth > 0 and knot_capacity_per_day > 0:
+            daily_production = conversion_factor * mesh_size_calc * config.mesh_depth * knot_capacity_per_day / Decimal("1000")
+
+        for dp in dp_list:
             profit_label = dp.get("label", "")
             profit_value = Decimal(str(dp.get("value", 0)))
 
@@ -9275,3 +9289,145 @@ def get_processing_cost_for_product(request):
 
     return JsonResponse({"machine_number": "", "mesh_depth": ""})
 
+@login_required
+def price_list_calculate_range(request):
+    from decimal import Decimal
+    import json as _json
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST required'}, status=405)
+    try:
+        data = _json.loads(request.body) if request.body else {}
+    except Exception:
+        data = request.POST
+
+    def _g(key, default=''):
+        if isinstance(data, dict):
+            return data.get(key, default)
+        return request.POST.get(key, default)
+
+    product_code = _g('product_code', '')
+    twine_price = _g('twine_price', '0')
+    gst_included = _g('gst_included', False)
+    if isinstance(gst_included, str):
+        gst_included = gst_included.lower() in ('true', '1', 'on', 'yes')
+    colour_price_per_kg = _g('colour_price_per_kg', '0')
+    additional_cost_starting_depth_md = _g('additional_cost_starting_depth_md', '0')
+    small_mesh_depth_price_per_kg = _g('small_mesh_depth_price_per_kg', '0')
+    processing_cost_per_kg = _g('processing_cost_per_kg', '0')
+    additional_cost_per_kg = _g('additional_cost_per_kg', '0')
+    machine_number = _g('machine_number', '')
+    mesh_depth = _g('mesh_depth', '0')
+
+    try:
+        mesh_start = int(_g('mesh_start', 0))
+        mesh_end = int(_g('mesh_end', 0))
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'error': 'invalid range'}, status=400)
+
+    try:
+        daily_profits = _g('daily_profits', [])
+        if isinstance(daily_profits, str):
+            daily_profits = _json.loads(daily_profits)
+        if not isinstance(daily_profits, list):
+            daily_profits = []
+    except Exception:
+        daily_profits = []
+
+    machine_cost_per_day = Decimal('0')
+    knot_capacity_per_day = Decimal('0')
+    if machine_number:
+        try:
+            moc = MachineOperationalCost.objects.get(machine_number=machine_number)
+            machine_cost_per_day = (moc.operator_cost_per_day + moc.bobbin_winder_cost_per_day +
+                                    moc.mending_cost_per_day + moc.mechanic_cost_per_day +
+                                    moc.electricity_cost_per_day + moc.maintenance_cost_per_day +
+                                    moc.miscellaneous_cost_per_day)
+            knot_capacity_per_day = moc.knots_capacity_per_day or Decimal('0')
+        except MachineOperationalCost.DoesNotExist:
+            pass
+
+    conversion_factor = Decimal('0')
+    if product_code:
+        try:
+            prod = Product.objects.filter(code=product_code).first()
+            if prod and prod.material:
+                mcr = MaterialConversionRatio.objects.get(material_code=prod.material.code)
+                conversion_factor = mcr.conversion_ratio
+        except Exception:
+            pass
+
+    waste_percentage = Decimal('0')
+    addl = AdditionalCost.objects.first()
+    if addl:
+        waste_percentage = addl.waste_percentage or Decimal('0')
+
+    twine_price = Decimal(str(twine_price or 0))
+    twine_price_with_waste = twine_price * (Decimal('1') + waste_percentage / Decimal('100'))
+    colour_ppk = Decimal(str(colour_price_per_kg or 0))
+    processing_ppk = Decimal(str(processing_cost_per_kg or 0))
+    additional_ppk = Decimal(str(additional_cost_per_kg or 0))
+    mesh_depth_d = Decimal(str(mesh_depth or 0))
+    small_surcharge_ppk = Decimal(str(small_mesh_depth_price_per_kg or 0))
+    starting_depth = int(additional_cost_starting_depth_md or 0)
+
+    try:
+        from .models import CompanySettings
+        cs = CompanySettings.objects.first()
+    except Exception:
+        cs = None
+
+    profit_mode = _g('profit_mode', 'static')
+    if isinstance(profit_mode, str):
+        profit_mode = profit_mode.strip().lower() or 'static'
+
+    if profit_mode == 'dynamic':
+        mesh_size_calc = Decimal(str(mesh_start))
+    else:
+        mesh_size_calc = Decimal(str((mesh_start + mesh_end) / 2))
+
+    mesh_size_mid = mesh_size_calc
+    daily_production = Decimal('0')
+    if conversion_factor > 0 and mesh_size_calc > 0 and mesh_depth_d > 0 and knot_capacity_per_day > 0:
+        daily_production = conversion_factor * mesh_size_calc * mesh_depth_d * knot_capacity_per_day / Decimal('1000')
+
+    results = []
+    for dp in (daily_profits or []):
+        profit_label = dp.get('label', '') if isinstance(dp, dict) else ''
+        profit_value = Decimal(str(dp.get('value', 0) if isinstance(dp, dict) else 0))
+
+        if daily_production > 0:
+            machine_cost_per_kg = machine_cost_per_day / daily_production
+        else:
+            machine_cost_per_kg = Decimal('0')
+
+        per_kg_cost = (machine_cost_per_kg + processing_ppk + additional_ppk + twine_price_with_waste)
+
+        if daily_production > 0:
+            profit_per_kg = profit_value / daily_production
+        else:
+            profit_per_kg = Decimal('0')
+
+        calculated_price = per_kg_cost + profit_per_kg
+
+        small_mesh_surcharge = Decimal('0')
+        if starting_depth and mesh_end <= starting_depth:
+            small_mesh_surcharge = small_surcharge_ppk
+            calculated_price += small_mesh_surcharge
+
+        if gst_included:
+            gst_rate = Decimal('0')
+            if cs:
+                gst_rate = cs.igst if cs.igst else Decimal('0')
+                if gst_rate == 0:
+                    gst_rate = (cs.cgst or Decimal('0')) + (cs.sgst or Decimal('0'))
+            if gst_rate > 0:
+                calculated_price = calculated_price / (Decimal('1') + gst_rate / Decimal('100'))
+
+        results.append({
+            'profit_label': profit_label,
+            'profit_value': round(float(profit_value), 2),
+            'calculated_price': round(float(calculated_price), 2),
+        })
+
+    return JsonResponse({'success': True, 'mesh_range': f'{mesh_start}\u2013{mesh_end}',
+                        'results': results})

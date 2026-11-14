@@ -186,22 +186,53 @@
 
         <hr>
 
-        <!-- Daily Profit Section -->
-        <div class="row mb-3 align-items-end g-2">
+        <!-- Profit Mode Toggle -->
+        <div class="row mb-3 align-items-center g-2">
           <div class="col-md-3">
-            <label class="form-label small mb-0">Daily Profit Label</label>
-            <input type="text" id="profit-label-input" class="form-control form-control-sm" placeholder="e.g. Low, Medium, High">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label small mb-0">Daily Profit Value <span class="text-danger">*</span></label>
-            <input type="number" step="0.01" id="profit-value-input" class="form-control form-control-sm" placeholder="Value">
-          </div>
-          <div class="col-md-1">
-            <button type="button" id="add-profit-btn" class="btn btn-outline-primary btn-sm w-100">Add</button>
+            <label class="form-label small mb-0">Profit Mode</label>
+            <div class="btn-group btn-group-sm w-100" role="group">
+              <input type="radio" class="btn-check" name="profit_mode" id="profit-mode-static" value="static" checked>
+              <label class="btn btn-outline-primary" for="profit-mode-static">Static Profit</label>
+              <input type="radio" class="btn-check" name="profit_mode" id="profit-mode-dynamic" value="dynamic">
+              <label class="btn btn-outline-primary" for="profit-mode-dynamic">Dynamic Profit</label>
+            </div>
           </div>
         </div>
-        <div id="daily-profit-list" class="mb-3">
-          <!-- daily profit badges rendered here -->
+
+        <!-- A. Static Profit Section -->
+        <div id="static-profit-section">
+          <h6 class="text-muted small mb-2">A. Static Profit</h6>
+          <div class="row mb-3 align-items-end g-2">
+            <div class="col-md-3">
+              <label class="form-label small mb-0">Daily Profit Label</label>
+              <input type="text" id="profit-label-input" class="form-control form-control-sm" placeholder="e.g. Low, Medium, High">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small mb-0">Daily Profit Value <span class="text-danger">*</span></label>
+              <input type="number" step="0.01" id="profit-value-input" class="form-control form-control-sm" placeholder="Value">
+            </div>
+            <div class="col-md-1">
+              <button type="button" id="add-profit-btn" class="btn btn-outline-primary btn-sm w-100">Add</button>
+            </div>
+          </div>
+          <div id="daily-profit-list" class="mb-3">
+            <!-- daily profit badges rendered here -->
+          </div>
+        </div>
+
+        <!-- B. Dynamic Profit Section -->
+        <div id="dynamic-profit-section" style="display:none;">
+          <h6 class="text-muted small mb-2">B. Dynamic Profit</h6>
+          <div class="row mb-3 align-items-end g-2">
+            <div class="col-md-3">
+              <label class="form-label small mb-0">Daily Profit Label</label>
+              <input type="text" id="dyn-profit-label-input" class="form-control form-control-sm" placeholder="e.g. Low, Medium, High">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small mb-0">Daily Profit Value <span class="text-danger">*</span></label>
+              <input type="number" step="0.01" id="dyn-profit-value-input" class="form-control form-control-sm" placeholder="Value">
+            </div>
+          </div>
         </div>
 
         <hr>
@@ -509,6 +540,24 @@ document.getElementById('product_code').addEventListener('change', function() {
 });
 
 /* ========================
+   Profit Mode Toggle
+   ======================== */
+let profitMode = 'static';
+function applyProfitMode(mode) {
+  profitMode = mode;
+  const staticSec = document.getElementById('static-profit-section');
+  const dynamicSec = document.getElementById('dynamic-profit-section');
+  if (staticSec) staticSec.style.display = (mode === 'static') ? '' : 'none';
+  if (dynamicSec) dynamicSec.style.display = (mode === 'dynamic') ? '' : 'none';
+}
+document.querySelectorAll('input[name="profit_mode"]').forEach(function(r) {
+  r.addEventListener('change', function() {
+    if (this.checked) applyProfitMode(this.value);
+  });
+});
+applyProfitMode('static');
+
+/* ========================
    Daily Profit Functions
    ======================== */
 function renderDailyProfits() {
@@ -558,8 +607,12 @@ function renderMeshRanges() {
   }
   let html = '';
   meshRanges.forEach(function(r, i) {
+    let label = r.start + '\u2013' + r.end + ' mm';
+    if (r.profit_value !== undefined && r.calculated_price !== undefined) {
+      label += ' | Profit: \u20B9' + Number(r.profit_value).toLocaleString() + '/day | Price: \u20B9' + Number(r.calculated_price).toLocaleString() + '/kg';
+    }
     html += '<span class="mesh-range-item">'
-      + '<strong>' + r.start + '\u2013' + r.end + '</strong>'
+      + '<strong>' + label + '</strong>'
       + ' <span class="remove-btn" onclick="removeMeshRange(' + i + ')">&times;</span>'
       + '</span>';
   });
@@ -580,9 +633,56 @@ document.getElementById('add-range-btn').addEventListener('click', function() {
     return;
   }
   const end = start + increment;
-  meshRanges.push({ start: start, end: end });
-  startInput.value = end + 1;
-  renderMeshRanges();
+
+  function collectConfig() {
+    let dps = dailyProfits;
+    if (profitMode === 'dynamic') {
+      const lbl = (document.getElementById('dyn-profit-label-input') || {}).value || '';
+      const val = (document.getElementById('dyn-profit-value-input') || {}).value || '';
+      dps = [{ label: (lbl.trim() || 'Dynamic'), value: parseFloat(val) || 0 }];
+    }
+    return {
+      product_code: (document.getElementById('product_code') || {}).value || '',
+      twine_price: (document.getElementById('twine_price') || {}).value || '0',
+      gst_included: (document.getElementById('gst_included') || {}).checked || false,
+      colour_price_per_kg: (document.getElementById('colour_price_per_kg') || {}).value || '0',
+      additional_cost_starting_depth_md: (document.getElementById('additional_cost_starting_depth_md') || {}).value || '0',
+      small_mesh_depth_price_per_kg: (document.getElementById('small_mesh_depth_price_per_kg') || {}).value || '0',
+      processing_cost_per_kg: (document.getElementById('processing_cost_per_kg') || {}).value || '0',
+      additional_cost_per_kg: (document.getElementById('additional_cost_per_kg') || {}).value || '0',
+      machine_number: (document.getElementById('machine_number') || {}).value || '',
+      mesh_depth: (document.getElementById('mesh_depth') || {}).value || '0',
+      daily_profits: dps,
+      profit_mode: profitMode,
+      mesh_start: start,
+      mesh_end: end,
+    };
+  }
+
+  const cfg = collectConfig();
+  fetch('/invoice/price-list-generator/calculate-range/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '' },
+    body: JSON.stringify(cfg)
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    const entry = { start: start, end: end };
+    if (data && data.success && Array.isArray(data.results) && data.results.length) {
+      const r0 = data.results[0];
+      entry.profit_value = r0.profit_value;
+      entry.calculated_price = r0.calculated_price;
+      entry.profit_label = r0.profit_label;
+    }
+    meshRanges.push(entry);
+    startInput.value = end + 1;
+    renderMeshRanges();
+  })
+  .catch(function() {
+    meshRanges.push({ start: start, end: end });
+    startInput.value = end + 1;
+    renderMeshRanges();
+  });
 });
 
 function removeMeshRange(idx) {
@@ -594,6 +694,15 @@ function removeMeshRange(idx) {
    Save Configuration
    ======================== */
 document.getElementById('save-config-btn').addEventListener('click', function() {
+  if (profitMode === 'dynamic') {
+    const lbl = (document.getElementById('dyn-profit-label-input') || {}).value || '';
+    const val = (document.getElementById('dyn-profit-value-input') || {}).value || '';
+    if (!lbl.trim() && isNaN(parseFloat(val))) {
+      alert('Please enter a daily profit label and value.');
+      return;
+    }
+    dailyProfits = [{ label: (lbl.trim() || 'Dynamic'), value: parseFloat(val) || 0 }];
+  }
   if (dailyProfits.length === 0) {
     alert('Please add at least one daily profit value.');
     return;
@@ -630,6 +739,19 @@ function loadConfig(pk) {
     document.getElementById('mesh_depth').value = data.mesh_depth || 0;
     dailyProfits = data.daily_profit_values || [];
     meshRanges = data.mesh_size_ranges || [];
+    // detect dynamic mode
+    const isDynamic = Array.isArray(meshRanges) && meshRanges.some(function(r) { return r && r.profit_value !== undefined; });
+    if (isDynamic) {
+      document.getElementById('profit-mode-dynamic').checked = true;
+      applyProfitMode('dynamic');
+      if (dailyProfits.length) {
+        document.getElementById('dyn-profit-label-input').value = dailyProfits[0].label || '';
+        document.getElementById('dyn-profit-value-input').value = dailyProfits[0].value || '';
+      }
+    } else {
+      document.getElementById('profit-mode-static').checked = true;
+      applyProfitMode('static');
+    }
     document.getElementById('edit_price_list_key').value = data.price_list_key;
     editMode = true;
     document.getElementById('cancel-edit-btn').style.display = '';
@@ -692,6 +814,10 @@ document.getElementById('cancel-edit-btn').addEventListener('click', function() 
   document.getElementById('mesh_depth').value = '0';
   dailyProfits = [];
   meshRanges = [];
+  document.getElementById('dyn-profit-label-input').value = '';
+  document.getElementById('dyn-profit-value-input').value = '';
+  document.getElementById('profit-mode-static').checked = true;
+  applyProfitMode('static');
   editMode = false;
   document.getElementById('cancel-edit-btn').style.display = 'none';
   renderDailyProfits();
