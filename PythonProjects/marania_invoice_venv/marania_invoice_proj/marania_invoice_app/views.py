@@ -3624,6 +3624,17 @@ def _build_order_profit_loss_breakdown(order, cache=None):
                 except Exception:
                     pass
 
+        # Cost-rate overrides (processing/colour/packing/transport)
+        if hasattr(order, '_cost_rate_overrides'):
+            fake._cost_rate_overrides = order._cost_rate_overrides
+        else:
+            cov = getattr(order, 'cost_rate_overrides', None)
+            if cov:
+                try:
+                    fake._cost_rate_overrides = json.loads(cov) if isinstance(cov, str) else cov
+                except Exception:
+                    pass
+
         data, error = _build_profit_loss_breakdown(fake, cache)
         if error or not data:
             return None, error
@@ -3673,6 +3684,7 @@ def _build_order_profit_loss_breakdown(order, cache=None):
             'weight_used': 'Qty Wt',
             'unit_price': _d(getattr(order, 'unit_price', 0) or 0),
             'gst_rate': _d(getattr(order, 'gst_rate', 0) or 0),
+            'is_gst_included': bool(getattr(order, 'is_gst_included', False)),
         }
         return data, None
     except Exception as e:
@@ -3800,12 +3812,37 @@ def order_update_twine_prices_api(request):
             continue
     order.twine_price_overrides = json.dumps(clean) if clean else None
     order._price_overrides = clean
+    update_fields = ['twine_price_overrides', 'profit_loss', 'updated_at']
+
+    cost_ov_raw = request.POST.get('cost_rate_overrides', None)
+    if cost_ov_raw is not None:
+        try:
+            cost_overrides = json.loads(cost_ov_raw) if cost_ov_raw else {}
+            if not isinstance(cost_overrides, dict):
+                cost_overrides = {}
+        except (json.JSONDecodeError, TypeError):
+            return JsonResponse({'success': False, 'error': 'Invalid cost rate overrides JSON'})
+        clean_rates = {}
+        for k in ('processing', 'colour', 'packing', 'transport'):
+            if k not in cost_overrides:
+                continue
+            try:
+                dv = Decimal(str(cost_overrides[k]))
+                if dv < 0:
+                    continue
+                clean_rates[k] = str(dv.quantize(Decimal('0.01')))
+            except Exception:
+                continue
+        order.cost_rate_overrides = json.dumps(clean_rates) if clean_rates else None
+        order._cost_rate_overrides = clean_rates
+        update_fields.append('cost_rate_overrides')
+
     data, error = _build_order_profit_loss_breakdown(order)
-    if error:
+    if error or not data:
         return JsonResponse({'success': False, 'error': error})
     from decimal import Decimal as _Dec
     order.profit_loss = _Dec(str(data['summary']['profit_loss']))
-    order.save(update_fields=['twine_price_overrides', 'profit_loss', 'updated_at'])
+    order.save(update_fields=update_fields)
     return JsonResponse({'success': True, **data})
 
 
