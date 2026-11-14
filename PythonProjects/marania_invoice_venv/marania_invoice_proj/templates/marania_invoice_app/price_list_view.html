@@ -156,10 +156,14 @@
         <tbody>
           {% for row in price_list_rows %}
           <tr data-total-expense="{{ row.total_expense }}" data-daily-production="{{ row.daily_production }}" data-profit-label="{{ row.profit_label }}">
-            <td>{{ row.mesh_range }}</td>
+            <td>
+              <input type="text" class="form-control form-control-sm mesh-label-input"
+                data-mesh-key="{{ row.mesh_start }}–{{ row.mesh_end }}" data-profit-label="{{ row.profit_label }}"
+                value="{{ row.mesh_range }}" style="width:110px;">
+            </td>
             <td>
               <input type="number" step="0.01" class="form-control form-control-sm price-edit-input"
-                data-mesh-range="{{ row.mesh_range }}" data-profit-label="{{ row.profit_label }}"
+                data-mesh-range="{{ row.mesh_range }}" data-mesh-key="{{ row.mesh_start }}–{{ row.mesh_end }}" data-profit-label="{{ row.profit_label }}"
                 value="{{ row.calculated_price }}" style="width:90px;">
             </td>
             <td>
@@ -253,19 +257,28 @@
         if (saveBtn) {
           saveBtn.addEventListener('click', function() {
             var overrides = {};
+            var labelOverrides = {};
             document.querySelectorAll('.price-edit-input').forEach(function(inp) {
-              var meshRange = inp.getAttribute('data-mesh-range');
+              var meshKey = inp.getAttribute('data-mesh-key');
               var profitLabel = inp.getAttribute('data-profit-label');
               var price = parseFloat(inp.value);
               if (!isNaN(price)) {
-                overrides[meshRange + '||' + profitLabel] = price.toFixed(2);
+                overrides[meshKey + '||' + profitLabel] = price.toFixed(2);
+              }
+            });
+            document.querySelectorAll('.mesh-label-input').forEach(function(inp) {
+              var meshKey = inp.getAttribute('data-mesh-key');
+              var profitLabel = inp.getAttribute('data-profit-label');
+              var label = inp.value.trim();
+              if (label) {
+                labelOverrides[meshKey + '||' + profitLabel] = label;
               }
             });
             var status = document.getElementById('save-prices-status');
             fetch('/invoice/price-list-generator/save-prices/', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '' },
-              body: JSON.stringify({ price_list_key: configKey, price_overrides: overrides })
+              body: JSON.stringify({ price_list_key: configKey, price_overrides: overrides, mesh_label_overrides: labelOverrides })
             })
             .then(function(r) { return r.json(); })
             .then(function(data) {

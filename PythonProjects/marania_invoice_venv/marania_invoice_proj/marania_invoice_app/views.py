@@ -9129,9 +9129,20 @@ def view_price_list(request, pk):
         if conversion_factor > 0 and mesh_size_calc > 0 and config.mesh_depth > 0 and knot_capacity_per_day > 0:
             daily_production = conversion_factor * mesh_size_calc * config.mesh_depth * knot_capacity_per_day / Decimal("1000")
 
+        # Load mesh label overrides once
+        try:
+            _ml_overrides = json.loads(config.mesh_label_overrides) if getattr(config, 'mesh_label_overrides', None) else {}
+        except Exception:
+            _ml_overrides = {}
+        if not isinstance(_ml_overrides, dict):
+            _ml_overrides = {}
+
         for dp in dp_list:
             profit_label = dp.get("label", "")
             profit_value = Decimal(str(dp.get("value", 0)))
+
+            _row_key = f"{mesh_start}\u2013{mesh_end}||{profit_label}"
+            display_range = _ml_overrides.get(_row_key, range_label)
 
             if daily_production > 0:
                 machine_cost_per_kg = machine_cost_per_day / daily_production
@@ -9183,7 +9194,7 @@ def view_price_list(request, pk):
                     pass
 
             price_list_rows.append({
-                "mesh_range": range_label,
+                "mesh_range": display_range,
                 "mesh_start": mesh_start,
                 "mesh_end": mesh_end,
                 "profit_label": profit_label,
@@ -9461,6 +9472,7 @@ def price_list_save_prices(request):
         data = request.POST
     pk = data.get('price_list_key') if isinstance(data, dict) else request.POST.get('price_list_key')
     overrides = data.get('price_overrides') if isinstance(data, dict) else request.POST.get('price_overrides')
+    label_overrides = data.get('mesh_label_overrides') if isinstance(data, dict) else request.POST.get('mesh_label_overrides')
     if isinstance(overrides, str):
         try:
             overrides = json.loads(overrides)
@@ -9468,6 +9480,13 @@ def price_list_save_prices(request):
             overrides = {}
     if not isinstance(overrides, dict):
         overrides = {}
+    if isinstance(label_overrides, str):
+        try:
+            label_overrides = json.loads(label_overrides)
+        except Exception:
+            label_overrides = {}
+    if not isinstance(label_overrides, dict):
+        label_overrides = {}
     # normalize
     clean = {}
     for k, v in overrides.items():
@@ -9475,10 +9494,15 @@ def price_list_save_prices(request):
             clean[str(k)] = str(Decimal(str(v)).quantize(Decimal('0.01')))
         except Exception:
             continue
+    clean_labels = {}
+    for k, v in label_overrides.items():
+        if str(v).strip():
+            clean_labels[str(k)] = str(v).strip()
     try:
         config = PriceListConfiguration.objects.get(price_list_key=pk)
     except (PriceListConfiguration.DoesNotExist, ValueError, TypeError):
         return JsonResponse({'success': False, 'error': 'config not found'}, status=404)
     config.price_overrides = json.dumps(clean)
-    config.save(update_fields=['price_overrides', 'updated_at'])
-    return JsonResponse({'success': True, 'saved': len(clean)})
+    config.mesh_label_overrides = json.dumps(clean_labels)
+    config.save(update_fields=['price_overrides', 'mesh_label_overrides', 'updated_at'])
+    return JsonResponse({'success': True, 'saved': len(clean), 'labels': len(clean_labels)})
