@@ -35,6 +35,7 @@ path('settings/company/', views.company_settings_view, name='company_settings'),
  path('price-list-generator/get-machine-for-product/', views.get_machine_for_product, name='get_machine_for_product'),
  path('price-list-generator/get-processing-cost-for-product/', views.get_processing_cost_for_product, name='get_processing_cost_for_product'),
  path('price-list-generator/save-prices/', views.price_list_save_prices, name='price_list_save_prices'),
+ path('price-list-generator/update-config/', views.price_list_update_config, name='price_list_update_config'),
  path('price-list-generator/calculate-range/', views.price_list_calculate_range, name='price_list_calculate_range'),
 
 # customer price catalog

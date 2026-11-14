@@ -96,48 +96,52 @@
 
     <!-- Configuration Summary -->
     <div class="card shadow-sm p-2 mb-3">
-      <h6 class="mb-2">Configuration Summary</h6>
+      <h6 class="mb-2">Configuration Summary (editable)</h6>
       <div class="row g-1" style="font-size:0.85rem;">
         <div class="col-md-2">
           <strong>Product:</strong><br>
-          {{ config.product_code|default:"N/A" }}
+          <input type="text" class="form-control form-control-sm cfg-input" data-field="product_code" value="{{ config.product_code|default:'' }}" style="width:100%;">
         </div>
         <div class="col-md-2">
           <strong>Twine Price:</strong><br>
-          {{ config.twine_price }}
+          <input type="number" step="0.01" class="form-control form-control-sm cfg-input" data-field="twine_price" value="{{ config.twine_price }}">
         </div>
         <div class="col-md-2">
           <strong>GST Included:</strong><br>
-          {% if config.gst_included %}Yes{% else %}No{% endif %}
+          <input type="checkbox" class="form-check-input cfg-input" data-field="gst_included" data-type="checkbox" {% if config.gst_included %}checked{% endif %}>
         </div>
         <div class="col-md-2">
           <strong>Colour Price/Kg:</strong><br>
-          {{ config.colour_price_per_kg }}
+          <input type="number" step="0.01" class="form-control form-control-sm cfg-input" data-field="colour_price_per_kg" value="{{ config.colour_price_per_kg }}">
         </div>
         <div class="col-md-2">
           <strong>Additional Cost Starting Depth(MD):</strong><br>
-          {{ config.additional_cost_starting_depth_md }}
+          <input type="number" step="1" class="form-control form-control-sm cfg-input" data-field="additional_cost_starting_depth_md" value="{{ config.additional_cost_starting_depth_md }}">
         </div>
         <div class="col-md-2">
           <strong>Small Mesh Depth Price/Kg:</strong><br>
-          {{ config.small_mesh_depth_price_per_kg }}
+          <input type="number" step="0.01" class="form-control form-control-sm cfg-input" data-field="small_mesh_depth_price_per_kg" value="{{ config.small_mesh_depth_price_per_kg }}">
         </div>
         <div class="col-md-2">
           <strong>Processing Cost/Kg:</strong><br>
-          {{ config.processing_cost_per_kg }}
+          <input type="number" step="0.01" class="form-control form-control-sm cfg-input" data-field="processing_cost_per_kg" value="{{ config.processing_cost_per_kg }}">
         </div>
         <div class="col-md-2">
           <strong>Additional Cost/Kg:</strong><br>
-          {{ config.additional_cost_per_kg }}
+          <input type="number" step="0.01" class="form-control form-control-sm cfg-input" data-field="additional_cost_per_kg" value="{{ config.additional_cost_per_kg }}">
         </div>
         <div class="col-md-2">
           <strong>Machine:</strong><br>
-          {{ config.machine_number|default:"N/A" }}
+          <input type="text" class="form-control form-control-sm cfg-input" data-field="machine_number" value="{{ config.machine_number|default:'' }}">
         </div>
         <div class="col-md-2">
           <strong>Mesh Depth:</strong><br>
-          {{ config.mesh_depth }}
+          <input type="number" step="0.01" class="form-control form-control-sm cfg-input" data-field="mesh_depth" value="{{ config.mesh_depth }}">
         </div>
+      </div>
+      <div class="mt-2 d-flex gap-2 align-items-center">
+        <button type="button" class="btn btn-success btn-sm" id="save-config-btn2">Save Configuration</button>
+        <span id="save-config-status" class="small text-muted"></span>
       </div>
     </div>
 
@@ -147,6 +151,13 @@
       <span class="small mb-0">Filter by Daily Profit Label</span>
       <select id="profit-filter" class="form-select form-select-sm" style="width:auto;">
         <option value="">All</option>
+      </select>
+      <span class="small mb-0 ms-3">Background Colour</span>
+      <select id="bg-colour-filter" class="form-select form-select-sm" style="width:auto;">
+        <option value="">Default</option>
+        {% for c in adhoc_colours %}
+        <option value="{{ c.base_colour }}" data-label="{{ c.label }}">{{ c.base_colour }}{% if c.label %} - {{ c.label }}{% endif %}</option>
+        {% endfor %}
       </select>
     </div>
     <div class="price-table-wrapper">
@@ -222,8 +233,43 @@
     <div class="alert alert-info">No prices could be generated. Please check the configuration values.</div>
     {% endif %}
 
-    <div class="mt-3 d-flex gap-2">
-      <button type="button" class="btn btn-outline-primary btn-sm" onclick="window.print()">Print</button>
+    <script>
+      (function() {
+        var saveCfgBtn = document.getElementById('save-config-btn2');
+        if (saveCfgBtn) {
+          saveCfgBtn.addEventListener('click', function() {
+            var payload = { price_list_key: '{{ config.price_list_key }}' };
+            document.querySelectorAll('.cfg-input').forEach(function(inp) {
+              var field = inp.getAttribute('data-field');
+              var type = inp.getAttribute('data-type');
+              if (type === 'checkbox') {
+                payload[field] = inp.checked;
+              } else {
+                payload[field] = inp.value;
+              }
+            });
+            var status = document.getElementById('save-config-status');
+            fetch('/invoice/price-list-generator/update-config/', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '' },
+              body: JSON.stringify(payload)
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (data && data.success) {
+                if (status) status.textContent = 'Configuration saved. Reloading...';
+                setTimeout(function() { window.location.reload(); }, 800);
+              } else {
+                if (status) status.textContent = 'Save failed: ' + ((data && data.error) || 'unknown');
+              }
+            })
+            .catch(function(err) {
+              if (status) status.textContent = 'Network error: ' + err;
+            });
+          });
+        }
+      })();
+    </script>
       <button type="button" class="btn btn-success btn-sm" id="save-prices-btn">Save Modified Prices</button>
       <span id="save-prices-status" class="small text-muted"></span>
     </div>
@@ -449,6 +495,21 @@ function toggleBreakdown(el) {
     }
   }
 
+  var bgColourSelect = document.getElementById('bg-colour-filter');
+  if (bgColourSelect) {
+    bgColourSelect.addEventListener('change', function() {
+      var colour = this.value;
+      var wrapper = document.querySelector('.price-table-wrapper');
+      var table = document.getElementById('price-table');
+      if (!colour) {
+        if (wrapper) wrapper.style.backgroundColor = '';
+        if (table) table.style.backgroundColor = '';
+        return;
+      }
+      if (wrapper) wrapper.style.backgroundColor = colour;
+      if (table) table.style.backgroundColor = colour;
+    });
+  }
   if (filterSelect) {
     labels.forEach(function(l) {
       var opt = document.createElement('option');
