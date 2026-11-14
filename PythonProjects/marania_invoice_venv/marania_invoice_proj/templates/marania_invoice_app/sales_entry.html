@@ -426,7 +426,8 @@ tr.row-status-on_hold_processing td {
       const productionTrackers = JSON.parse('{{ production_trackers|default:"[]"|escapejs }}');
 
       // Make function globally accessible
-      window.updateProdSpecOptions = function() {
+      window.updateProdSpecOptions = function(autoSelect) {
+        autoSelect = (autoSelect === undefined) ? true : !!autoSelect;
         const twineCodeEl = document.getElementById('twine');
         const specInputEl = document.getElementById('speification');
         const prodSpecSelect = document.getElementById('prod_spec');
@@ -521,8 +522,10 @@ tr.row-status-on_hold_processing td {
           prodSpecSelect.appendChild(opt);
         });
 
-        // Auto-select the closest match (first in sorted list)
-        if (filtered.length > 0) {
+        // Auto-select the closest match (first in sorted list) only when requested
+        // (e.g. when typing a new entry). When editing an existing record we
+        // preserve the saved value (including empty) instead of auto-picking.
+        if (filtered.length > 0 && autoSelect) {
           prodSpecSelect.value = (filtered[0].user_spec || '').trim() || (filtered[0].system_spec || '').trim();
           // Trigger profit/loss calculation after prod_spec is auto-populated
           if (typeof calcProfitLoss === 'function') {
@@ -1165,7 +1168,7 @@ function setFormData(data) {
     }
     // Trigger auto-population of Prod.Spec dropdown options after both fields are set
     if (typeof window.updateProdSpecOptions === 'function') {
-      window.updateProdSpecOptions();
+      window.updateProdSpecOptions(false);
     }
     // Set the saved prod_spec for existing records. The dropdown is filtered by
     // product/mm, so add the saved value as an option if it is not listed.
