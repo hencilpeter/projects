@@ -906,6 +906,25 @@ class PriceListColourConfiguration(models.Model):
         return f"{self.product.code} -> {self.base_colour}"
 
 
+class AdHocColourConfiguration(models.Model):
+    adhoc_key = models.AutoField(primary_key=True)
+    base_colour = models.CharField(
+        max_length=50,
+        help_text="Base colour name, e.g. Green, Blue, Orange"
+    )
+    label = models.CharField(max_length=100, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Ad-hoc Colour Configuration"
+        verbose_name_plural = "Ad-hoc Colour Configurations"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.base_colour} - {self.label}"
+
+
 class TargetProfitConfiguration(models.Model):
     product = models.ForeignKey(
         Product,

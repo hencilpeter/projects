@@ -85,6 +85,7 @@ from .models import (
     SettlementInvoice,
     PriceListConfiguration,
     PriceListColourConfiguration,
+    AdHocColourConfiguration,
     TargetProfitConfiguration,
 
 )
@@ -7777,9 +7778,52 @@ def price_list_colour_config_view(request):
                     ).delete()
             messages.success(request, "Price List Colour Configuration deleted successfully.")
 
+        elif action == "save_adhoc":
+            base_colours = request.POST.getlist("adhoc_base_colour")
+            labels = request.POST.getlist("adhoc_label")
+            for base_colour, label in zip(base_colours, labels):
+                if not base_colour:
+                    continue
+                AdHocColourConfiguration.objects.create(
+                    base_colour=base_colour.strip(),
+                    label=label.strip(),
+                )
+            messages.success(request, "Ad-hoc Colour Configuration saved successfully.")
+
+        elif action == "delete_adhoc":
+            keys = request.POST.getlist("adhoc_key")
+            for k in keys:
+                if k:
+                    try:
+                        AdHocColourConfiguration.objects.filter(adhoc_key=int(k)).delete()
+                    except (ValueError, TypeError):
+                        pass
+            messages.success(request, "Ad-hoc Colour Configuration deleted successfully.")
+
+        elif action == "update_adhoc":
+            key = request.POST.get("adhoc_key")
+            base_colour = request.POST.get("adhoc_base_colour")
+            label = request.POST.get("adhoc_label")
+            if key and base_colour:
+                try:
+                    obj = AdHocColourConfiguration.objects.get(adhoc_key=int(key))
+                    obj.base_colour = base_colour.strip()
+                    obj.label = (label or '').strip()
+                    obj.save(update_fields=['base_colour', 'label', 'updated_at'])
+                    messages.success(request, "Ad-hoc Colour Configuration updated successfully.")
+                except (AdHocColourConfiguration.DoesNotExist, ValueError, TypeError):
+                    messages.error(request, "Ad-hoc Colour Configuration not found.")
+
     context = {
         "configs": PriceListColourConfiguration.objects.select_related("product").all(),
+        "adhoc_configs": AdHocColourConfiguration.objects.all(),
         "products": Product.objects.all().order_by("code"),
+        "base_colours": [
+            "Red", "Crimson", "Maroon", "Orange Red", "Orange", "Amber", "Yellow",
+            "Lime", "Green", "Emerald", "Teal", "Cyan", "Sky Blue", "Blue",
+            "Indigo", "Purple", "Deep Purple", "Pink", "Rose", "Brown",
+            "Slate Grey", "Black",
+        ],
     }
     return render(request, "marania_invoice_app/price_list_colour_config.html", context)
 

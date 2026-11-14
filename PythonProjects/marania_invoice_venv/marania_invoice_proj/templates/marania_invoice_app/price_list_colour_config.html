@@ -101,7 +101,94 @@
 
     <hr>
 
-    <h5>Saved Configuration</h5>
+    <h5>Ad-hoc Colour Configuration</h5>
+    <p class="text-muted small">Configure ad-hoc colours by selecting a base colour and giving it a label. These can be referenced by other modules later.</p>
+
+    <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#adhocForm">
+      Manage Ad-hoc Colour
+    </button>
+
+    <div class="collapse" id="adhocForm">
+      <form method="POST" id="adhoc-form">
+        {% csrf_token %}
+        <div class="card p-4 mb-4 shadow-sm">
+          <div id="adhoc-rows">
+            <div class="row mb-2 adhoc-row align-items-center">
+              <div class="col-md-4">
+                <label class="form-label small mb-0 fw-bold">Base Colour</label>
+                <select name="adhoc_base_colour" class="form-select form-select-sm" required>
+                  <option value="">-- Select Colour --</option>
+                  {% for colour in base_colours %}
+                  <option value="{{ colour }}">{{ colour }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small mb-0 fw-bold">Label</label>
+                <input type="text" name="adhoc_label" class="form-control form-control-sm" placeholder="e.g. Custom Red">
+              </div>
+              <div class="col-md-4 d-flex justify-content-end gap-1">
+                <button type="button" class="btn btn-warning btn-sm clear-adhoc">Clear</button>
+                <button type="button" class="btn btn-danger btn-sm delete-adhoc">Delete</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <button type="button" id="add-adhoc" class="btn btn-secondary">
+              + Add Row
+            </button>
+          </div>
+
+          <div class="text-center">
+            <button type="submit" name="action" value="save_adhoc" class="btn btn-success">Save</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <h5 class="mt-3">Saved Ad-hoc Colour Configuration</h5>
+    {% if adhoc_configs %}
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover table-sm" id="adhoc-config-table">
+        <thead class="table-dark">
+          <tr>
+            <th>Base Colour</th>
+            <th>Label</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in adhoc_configs %}
+          <tr>
+            <td>
+              <span class="colour-swatch saved-swatch" style="background:{{ c.base_colour|lower }};"></span>
+              {{ c.base_colour }}
+            </td>
+            <td>{{ c.label|default:"—" }}</td>
+            <td>
+              <button type="button"
+                      class="btn btn-primary btn-sm load-adhoc"
+                      data-key="{{ c.adhoc_key }}"
+                      data-base-colour="{{ c.base_colour }}"
+                      data-label="{{ c.label }}">
+                Edit
+              </button>
+              <form method="POST" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_adhoc">
+                <input type="hidden" name="adhoc_key" value="{{ c.adhoc_key }}">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">No Ad-hoc Colour Configuration found.</div>
+    {% endif %}
 
     {% if configs %}
     <div class="table-responsive">
@@ -230,7 +317,79 @@ document.addEventListener("click", e => {
   bs.show();
 });
 
-/* ================== TABLE FILTERS ================== */
+/* ================== AD-HOC COLOUR ROWS ================== */
+const adhocContainer = document.getElementById("adhoc-rows");
+
+document.getElementById("add-adhoc").addEventListener("click", () => {
+  const firstRow = adhocContainer.querySelector(".adhoc-row");
+  const newRow = firstRow.cloneNode(true);
+  newRow.querySelectorAll("select, input").forEach(i => i.value = "");
+  adhocContainer.appendChild(newRow);
+});
+
+document.addEventListener("click", e => {
+  if (e.target.classList.contains("clear-adhoc")) {
+    const row = e.target.closest(".adhoc-row");
+    row.querySelectorAll("select, input").forEach(i => i.value = "");
+  }
+  if (e.target.classList.contains("delete-adhoc")) {
+    const rows = document.querySelectorAll(".adhoc-row");
+    if (rows.length <= 1) {
+      alert("At least one row is required.");
+      return;
+    }
+    e.target.closest(".adhoc-row").remove();
+  }
+});
+
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("load-adhoc")) return;
+  const key = e.target.dataset.key;
+  const baseColour = e.target.dataset.baseColour;
+  const label = e.target.dataset.label;
+
+  // populate a single row in the adhoc form for editing via update action
+  const row = adhocContainer.querySelector(".adhoc-row");
+  row.querySelector('[name="adhoc_base_colour"]').value = baseColour;
+  row.querySelector('[name="adhoc_label"]').value = label;
+
+  // change save button to update
+  const form = document.getElementById("adhoc-form");
+  // add hidden key input
+  let keyInput = form.querySelector('input[name="adhoc_key"]');
+  if (!keyInput) {
+    keyInput = document.createElement('input');
+    keyInput.type = 'hidden';
+    keyInput.name = 'adhoc_key';
+    form.appendChild(keyInput);
+  }
+  keyInput.value = key;
+  // change action button
+  const saveBtn = form.querySelector('button[name="action"][value="save_adhoc"]');
+  if (saveBtn) {
+    saveBtn.name = 'action';
+    saveBtn.value = 'update_adhoc';
+    saveBtn.textContent = 'Update';
+  }
+
+  const collapseEl = document.getElementById("adhocForm");
+  const bs = bootstrap.Collapse.getInstance(collapseEl)
+    || new bootstrap.Collapse(collapseEl, { toggle: false });
+  bs.show();
+});
+
+/* Reset adhoc form on collapse hide */
+document.getElementById("adhocForm").addEventListener("hidden.bs.collapse", function() {
+  const form = document.getElementById("adhoc-form");
+  const keyInput = form.querySelector('input[name="adhoc_key"]');
+  if (keyInput) keyInput.remove();
+  const saveBtn = form.querySelector('button[name="action"][value="update_adhoc"]');
+  if (saveBtn) {
+    saveBtn.value = 'save_adhoc';
+    saveBtn.textContent = 'Save';
+  }
+  adhocContainer.querySelectorAll("select, input").forEach(i => { if (i.name !== 'adhoc_base_colour' && i.name !== 'adhoc_label') return; i.value = ''; });
+});
 const table = document.getElementById("config-table");
 const filters = document.querySelectorAll(".text-filter");
 
