@@ -295,7 +295,7 @@
             <colgroup>
             <col style="width:30px">
             <col style="width:60px">
-            <col style="width:80px">
+            <col style="width:70px">
             <col style="width:100px">
             <col style="width:100px">
             <col style="width:100px">
@@ -330,23 +330,19 @@
                 <th><button type="button" class="btn-3d-yellow btn-sm" onclick="clearFilters()" style="font-size:0.75rem;">Clear</button></th>
                 <th>
                   <div class="month-range-container">
-                    <input type="month" class="form-control" id="monthRangeFrom" placeholder="From">
-                    <span class="month-range-sep">-</span>
-                    <input type="month" class="form-control" id="monthRangeTo" placeholder="To">
-                    <input type="text" class="form-control filter-input mt-1" placeholder="Year-Month" style="font-size:0.75rem;">
-                    <div class="dropdown">
-                      <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size:0.65rem;padding:1px 4px;">
-                        <i class="bi bi-calendar3"></i>
-                      </button>
-                      <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="javascript:void(0);" onclick="setMonthRangeQuick('thisyear')">This Year</a></li>
-                        <li><a class="dropdown-item" href="javascript:void(0);" onclick="setMonthRangeQuick('lastyear')">Last Year</a></li>
-                        <li><a class="dropdown-item" href="javascript:void(0);" onclick="setMonthRangeQuick('last6months')">Last 6 Months</a></li>
-                        <li><a class="dropdown-item" href="javascript:void(0);" onclick="setMonthRangeQuick('thismonth')">This Month</a></li>
-                        <li><a class="dropdown-item" href="javascript:void(0);" onclick="setMonthRangeQuick('lastmonth')">Last Month</a></li>
-                        <li><hr class="dropdown-divider" style="margin:2px 0;"></li>
-                        <li><a class="dropdown-item text-danger" href="javascript:void(0);" onclick="clearMonthRange()">Clear</a></li>
-                      </ul>
+                    <select id="monthRangePreset" class="form-select form-select-sm" style="font-size:0.7rem;">
+                      <option value="">All Months</option>
+                      <option value="thismonth">This Month</option>
+                      <option value="lastmonth">Last Month</option>
+                      <option value="last6months">Last 6 Months</option>
+                      <option value="thisyear">This Year</option>
+                      <option value="lastyear">Last Year</option>
+                      <option value="custom">Custom Range...</option>
+                    </select>
+                    <div id="monthRangeCustom" style="display:none;margin-top:2px;">
+                      <input type="month" class="form-control" id="monthRangeFrom" placeholder="From">
+                      <span class="month-range-sep">-</span>
+                      <input type="month" class="form-control" id="monthRangeTo" placeholder="To">
                     </div>
                   </div>
                 </th>
@@ -841,8 +837,47 @@ function updatePLSummary() {
     document.querySelectorAll('#pl-filter-row select.filter-select')
         .forEach(function(el) { el.addEventListener('change', applyFilters); });
 
-    document.getElementById('monthRangeFrom').addEventListener('input', applyFilters);
-    document.getElementById('monthRangeTo').addEventListener('input', applyFilters);
+    var presetSelect = document.getElementById('monthRangePreset');
+    if (presetSelect) {
+        presetSelect.addEventListener('change', function() {
+            var val = this.value;
+            var customDiv = document.getElementById('monthRangeCustom');
+            if (val === 'custom') {
+                if (customDiv) customDiv.style.display = 'block';
+                return; // user will set from/to manually
+            }
+            if (customDiv) customDiv.style.display = 'none';
+            // clear from/to first
+            document.getElementById('monthRangeFrom').value = '';
+            document.getElementById('monthRangeTo').value = '';
+            if (val === '') {
+                monthRangeState = { from: '', to: '' };
+                applyFilters();
+                return;
+            }
+            var now = new Date();
+            var y = now.getFullYear();
+            var m = now.getMonth() + 1;
+            var from = '', to = '';
+            if (val === 'thisyear') { from = y + '-01'; to = y + '-12'; }
+            else if (val === 'lastyear') { from = (y-1) + '-01'; to = (y-1) + '-12'; }
+            else if (val === 'last6months') { var d = new Date(y, m-6, 1); from = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); to = y + '-' + String(m).padStart(2,'0'); }
+            else if (val === 'thismonth') { from = y + '-' + String(m).padStart(2,'0'); to = from; }
+            else if (val === 'lastmonth') { var d2 = new Date(y, m-2, 1); from = d2.getFullYear() + '-' + String(d2.getMonth()+1).padStart(2,'0'); to = from; }
+            document.getElementById('monthRangeFrom').value = from;
+            document.getElementById('monthRangeTo').value = to;
+            monthRangeState = { from: from, to: to };
+            applyFilters();
+        });
+    }
+    var mrFromEl = document.getElementById('monthRangeFrom');
+    var mrToEl = document.getElementById('monthRangeTo');
+    if (mrFromEl) mrFromEl.addEventListener('input', function() {
+        if (presetSelect && presetSelect.value === 'custom') { applyFilters(); }
+    });
+    if (mrToEl) mrToEl.addEventListener('input', function() {
+        if (presetSelect && presetSelect.value === 'custom') { applyFilters(); }
+    });
 
     applyFilters();
     updatePLSummary();
@@ -857,6 +892,10 @@ function clearFilters() {
 }
 
 function clearMonthRange() {
+    var presetSelect = document.getElementById('monthRangePreset');
+    if (presetSelect) presetSelect.value = '';
+    var customDiv = document.getElementById('monthRangeCustom');
+    if (customDiv) customDiv.style.display = 'none';
     document.getElementById('monthRangeFrom').value = '';
     document.getElementById('monthRangeTo').value = '';
     monthRangeState = { from: '', to: '' };
