@@ -180,22 +180,22 @@
       <div class="collapse show" id="plEntryDetail">
       <hr>
 
-      <div class="pl-field-group">
+      <div class="pl-field-group" style="background:#F0F6FC;border:1px solid #DEE2E6;border-radius:5px;padding:10px;margin-bottom:8px;">
         <div class="row">
-          <div class="col-md-3">
-            <div class="pl-field-label">Sales Revenue (Rs)</div>
+          <div class="col-md-4">
+            <div class="pl-field-label" style="color:#495057;">Sales Revenue (Rs)</div>
             <div class="pl-field-value">
               <input type="number" name="sales_revenue" id="pl_sales_revenue" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
             </div>
           </div>
-          <div class="col-md-3">
-            <div class="pl-field-label">Other Income (Rs)</div>
+          <div class="col-md-4">
+            <div class="pl-field-label" style="color:#495057;">Other Income (Rs)</div>
             <div class="pl-field-value">
               <input type="number" name="other_income" id="pl_other_income" step="0.01" class="form-control form-control-sm" value="0.00" oninput="recalcPL()">
             </div>
           </div>
-          <div class="col-md-3">
-            <div class="pl-field-label" style="color:#155724;border-bottom:2px solid #198754;">TOTAL INCOME (Rs)</div>
+          <div class="col-md-4">
+            <div class="pl-field-label" style="color:#0d6efd;font-weight:bold;">TOTAL INCOME (Rs)</div>
             <div class="pl-field-value" style="font-weight:bold;">
               <input type="number" name="total_income" id="pl_total_income" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
             </div>
@@ -203,59 +203,64 @@
         </div>
       </div>
 
-      <div class="pl-field-group">
+      <div class="pl-field-group" style="background:#FFF7ED;border:1px solid #DEE2E6;border-radius:5px;padding:10px;margin-bottom:8px;">
         <div class="row">
           <div class="col-md-3">
-            <div class="pl-field-label">Salary Expense (Rs) <a href="javascript:void(0);" onclick="viewSalaryExpenseBreakdown()" style="color:#0d6efd;font-size:0.8rem;text-decoration:underline;">View Breakdown</a></div>
-            <div class="pl-field-value">
-              <input type="number" name="salary_expense" id="pl_salary_expense" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div class="pl-field-label">Raw Material Expense (Rs) <a href="javascript:void(0);" onclick="viewPurchaseExpenseBreakdown()" style="color:#0d6efd;font-size:0.8rem;text-decoration:underline;">View Breakdown</a></div>
+            <div class="pl-field-label" style="color:#495057;">Raw Material Expense (Rs) <a href="javascript:void(0);" onclick="viewPurchaseExpenseBreakdown()" style="color:#0d6efd;font-size:0.8rem;text-decoration:underline;">View Breakdown</a></div>
             <div class="pl-field-value">
               <input type="number" name="purchase_expense" id="pl_purchase_expense" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
             </div>
           </div>
           <div class="col-md-3">
-            <div class="pl-field-label">Other Expenses (Rs) <a href="javascript:void(0);" onclick="viewOtherExpensesBreakdown()" style="color:#0d6efd;font-size:0.8rem;text-decoration:underline;">View Breakdown</a></div>
+            <div class="pl-field-label" style="color:#495057;">Salary Expense (Rs) <a href="javascript:void(0);" onclick="viewSalaryExpenseBreakdown()" style="color:#0d6efd;font-size:0.8rem;text-decoration:underline;">View Breakdown</a></div>
+            <div class="pl-field-value">
+              <input type="number" name="salary_expense" id="pl_salary_expense" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="pl-field-label" style="color:#495057;">Other Expenses (Rs) <a href="javascript:void(0);" onclick="viewOtherExpensesBreakdown()" style="color:#0d6efd;font-size:0.8rem;text-decoration:underline;">View Breakdown</a></div>
             <div class="pl-field-value">
               <input type="number" name="other_expenses" id="pl_other_expenses" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
             </div>
           </div>
           <div class="col-md-3">
-            <div class="pl-field-label">In-House Material Value (Rs) <a href="javascript:void(0);" onclick="viewMaterialValueBreakdown()" style="color:#0d6efd;font-size:0.8rem;text-decoration:underline;">View Breakdown</a></div>
-            <div class="pl-field-value">
-              <input type="number" name="inhouse_material_value" id="pl_inhouse_material_value" step="0.01" class="form-control form-control-sm" value="0.00">
+            <div class="pl-field-label" style="color:#9a3412;font-weight:bold;">TOTAL EXPENSES (Rs) <a href="javascript:void(0);" onclick="viewTotalExpensesBreakdown()" style="color:#0d6efd;font-size:0.8rem;text-decoration:underline;">View Breakdown</a></div>
+            <div class="pl-field-value" style="font-weight:bold;">
+              <input type="number" name="total_expenses" id="pl_total_expenses" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="pl-field-group pl-total-row">
+      <div class="pl-field-group" style="background:#F0F8F2;border:1px solid #DEE2E6;border-radius:5px;padding:10px;margin-bottom:8px;">
         <div class="row">
-          <div class="col-md-3">
-            <div class="pl-field-label" style="font-weight:bold;">TOTAL EXPENSES (Rs) <a href="javascript:void(0);" onclick="viewTotalExpensesBreakdown()" style="color:#0d6efd;font-size:0.8rem;text-decoration:underline;">View Breakdown</a></div>
-            <div class="pl-field-value" style="font-weight:bold;">
-              <input type="number" name="total_expenses" id="pl_total_expenses" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div class="pl-field-label" style="font-weight:bold;">Net Profit/Loss Amount (Rs) <a href="javascript:void(0);" onclick="viewNetProfitLossBreakdown()" style="color:#0d6efd;font-size:0.8rem;text-decoration:underline;">View Breakdown</a></div>
-            <div class="pl-field-value" style="font-weight:bold;">
+          <div class="col-md-4">
+            <div class="pl-field-label" style="font-weight:bold;font-size:0.9rem;">NET PROFIT / LOSS (Rs) <a href="javascript:void(0);" onclick="viewNetProfitLossBreakdown()" style="color:#0d6efd;font-size:0.8rem;text-decoration:underline;">View Breakdown</a></div>
+            <div class="pl-field-value" style="font-weight:bold;font-size:1.1rem;">
               <input type="number" name="profit_loss_amount" id="pl_profit_loss_amount" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
             </div>
           </div>
-          <div class="col-md-3">
-            <div class="pl-field-label" style="font-weight:bold;">Material Sales Profit (Rs) <a href="javascript:void(0);" onclick="viewMaterialSalesProfitBreakdown()" style="color:#0d6efd;font-size:0.8rem;text-decoration:underline;">View Breakdown</a></div>
+          <div class="col-md-4">
+            <div class="pl-field-label" style="color:#495057;">Material Sales Profit (Rs) <a href="javascript:void(0);" onclick="viewMaterialSalesProfitBreakdown()" style="color:#0d6efd;font-size:0.8rem;text-decoration:underline;">View Breakdown</a></div>
             <div class="pl-field-value">
               <input type="number" name="material_sales_profit" id="pl_material_sales_profit" step="0.01" class="form-control form-control-sm" value="0.00" readonly>
             </div>
           </div>
-          <div class="col-md-3">
-            <div class="pl-field-label" style="font-weight:bold;">Profit / Loss Status</div>
+          <div class="col-md-4">
+            <div class="pl-field-label" style="font-weight:bold;">PROFIT / LOSS STATUS</div>
             <div class="pl-field-value" style="font-weight:bold;">
               <input type="text" id="pl_profit_loss_status" class="form-control form-control-sm" readonly>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pl-field-group" style="background:#F3F4F6;border:1px solid #DEE2E6;border-radius:5px;padding:10px;margin-bottom:8px;">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="pl-field-label" style="color:#495057;">IN-HOUSE MATERIAL VALUE (Rs) <a href="javascript:void(0);" onclick="viewMaterialValueBreakdown()" style="color:#0d6efd;font-size:0.8rem;text-decoration:underline;">View Breakdown</a></div>
+            <div class="pl-field-value">
+              <input type="number" name="inhouse_material_value" id="pl_inhouse_material_value" step="0.01" class="form-control form-control-sm" value="0.00">
             </div>
           </div>
         </div>
