@@ -284,12 +284,20 @@
                 <button type="button" class="btn btn-success btn-sm ms-1" onclick="carryForwardSelected()" id="carry-forward-btn" disabled style="font-size:0.75rem;">Carry Fwd</button>
               </th>
               <th>
-                <select class="filter-select" id="ti-filter-year" title="Year">
-                  <option value="">All Years</option>
-                </select>
-                <select class="filter-select mt-1" id="ti-filter-month" title="Month">
+                <select id="ti-month-preset" class="filter-select" title="Year-Month">
                   <option value="">All Months</option>
+                  <option value="thismonth">This Month</option>
+                  <option value="lastmonth">Last Month</option>
+                  <option value="last6months">Last 6 Months</option>
+                  <option value="thisyear">This Year</option>
+                  <option value="lastyear">Last Year</option>
+                  <option value="custom">Custom Range...</option>
                 </select>
+                <div id="ti-month-custom" style="display:none;margin-top:2px;">
+                  <input type="month" class="form-control filter-input" id="ti-month-from" placeholder="From" style="font-size:0.75rem;">
+                  <span style="font-size:0.7rem;">-</span>
+                  <input type="month" class="form-control filter-input" id="ti-month-to" placeholder="To" style="font-size:0.75rem;">
+                </div>
               </th>
               <th><input class="filter-input" placeholder="Twine"></th>
               <th><input class="filter-input" placeholder="Opening Stock"></th>
@@ -365,6 +373,7 @@ if (entryDetailEl) {
         document.getElementById('entryToggleBtn').setAttribute('aria-expanded', 'false');
     });
 }
+var summaryDetailEl = document.getElementById('inventorySummaryDetail');
 if (summaryDetailEl) {
     summaryDetailEl.addEventListener('shown.bs.collapse', function() {
         document.querySelector('#summaryToggleBtn i').className = 'bi bi-chevron-up';
@@ -896,6 +905,7 @@ function getCookie(name) {
 }
 
 function filterTable() {
+    try {
     var filterThs = document.querySelectorAll('#ti-filter-row th');
     var tbody = document.getElementById('ti-table-body');
     var rows = tbody.getElementsByTagName('tr');
@@ -913,15 +923,41 @@ function filterTable() {
             if (!cell) return;
             var cellText = (cell.textContent || cell.innerText || '').toLowerCase();
 
-            // Year-Month column holds two selects: year matches YYYY part, month matches MM part
-            if (controls.length === 2 && controls[0].id === 'ti-filter-year') {
-                var yv = controls[0].value;
-                var mv = controls[1].value;
+            // Year-Month column: preset select + optional custom range
+            if (controls.length >= 1 && controls[0].id === 'ti-month-preset') {
+                var preset = controls[0].value;
+                var fromVal = '', toVal = '';
+                if (preset === 'custom') {
+                    var fromInp = document.getElementById('ti-month-from');
+                    var toInp = document.getElementById('ti-month-to');
+                    fromVal = fromInp ? (fromInp.value || '') : '';
+                    toVal = toInp ? (toInp.value || '') : '';
+                } else if (preset === 'thismonth') {
+                    var n = new Date();
+                    fromVal = toVal = n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0');
+                } else if (preset === 'lastmonth') {
+                    var d2 = new Date(new Date().getFullYear(), new Date().getMonth()-1, 1);
+                    fromVal = toVal = d2.getFullYear() + '-' + String(d2.getMonth()+1).padStart(2,'0');
+                } else if (preset === 'last6months') {
+                    var now = new Date();
+                    var d3 = new Date(now.getFullYear(), now.getMonth()-5, 1);
+                    fromVal = d3.getFullYear() + '-' + String(d3.getMonth()+1).padStart(2,'0');
+                    toVal = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+                } else if (preset === 'thisyear') {
+                    var y = new Date().getFullYear();
+                    fromVal = y + '-01'; toVal = y + '-12';
+                } else if (preset === 'lastyear') {
+                    var y2 = new Date().getFullYear() - 1;
+                    fromVal = y2 + '-01'; toVal = y2 + '-12';
+                }
+                // if preset is '' (All Months), fromVal/toVal stay empty -> no filter
                 var parts = cellText.trim().split('-');
                 var cy = (parts[0] || '').trim();
                 var cm = (parts[1] || '').trim();
-                if (yv && cy !== yv) { showRow = false; return; }
-                if (mv && parseInt(cm, 10) !== parseInt(mv, 10)) { showRow = false; return; }
+                var cellMonth = cy + (cm ? '-' + cm.padStart(2,'0') : '');
+                if (fromVal && cellMonth < fromVal) { showRow = false; return; }
+                if (toVal && cellMonth > toVal) { showRow = false; return; }
+                if ((fromVal || toVal) && !cellMonth) { showRow = false; return; }
                 return;
             }
 
@@ -936,6 +972,9 @@ function filterTable() {
 
         row.style.display = showRow ? '' : 'none';
     }
+    } catch (e) {
+        console.error('filterTable error:', e);
+    }
 }
 
 // Add event listeners to filter inputs
@@ -945,6 +984,18 @@ document.addEventListener('DOMContentLoaded', function() {
         input.addEventListener('input', filterTable);
         input.addEventListener('change', filterTable);
     });
+    var preset = document.getElementById('ti-month-preset');
+    if (preset) {
+        preset.addEventListener('change', function() {
+            var customDiv = document.getElementById('ti-month-custom');
+            if (customDiv) customDiv.style.display = (this.value === 'custom') ? 'block' : 'none';
+            filterTable();
+        });
+    }
+    var fromInp = document.getElementById('ti-month-from');
+    var toInp = document.getElementById('ti-month-to');
+    if (fromInp) fromInp.addEventListener('change', filterTable);
+    if (toInp) toInp.addEventListener('change', filterTable);
 });
 </script>
 
