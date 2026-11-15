@@ -30,6 +30,7 @@ MODEL_REGISTRY = {
     "AdditionalCost": AdditionalCost,
     "ExtraMeshConfig": ExtraMeshConfig,
     "PriceListColourConfiguration": PriceListColourConfiguration,
+    "AdHocColourConfiguration": AdHocColourConfiguration,
     "TargetProfitConfiguration": TargetProfitConfiguration,
     "Production": Production,
     "ProductionTracker": ProductionTracker,
@@ -113,6 +114,7 @@ IMPORT_ORDER = [
     "PriceCatalog",
     "PriceListConfiguration",
     "PriceListColourConfiguration",
+    "AdHocColourConfiguration",
     "TargetProfitConfiguration",
 
     # Level 5: Depends on PriceCatalog, Parties

@@ -1945,13 +1945,15 @@ def backup_import_all(request):
     if request.method == "POST" and request.FILES.get("backup_zip"):
         backup_file = request.FILES["backup_zip"]
 
+        import uuid as _uuid
+        _uid = _uuid.uuid4().hex
         # Save uploaded ZIP to temporary location
-        temp_zip_path = os.path.join(settings.MEDIA_ROOT, backup_file.name)
+        temp_zip_path = os.path.join(settings.MEDIA_ROOT, f"temp_import_{_uid}.zip")
         with open(temp_zip_path, "wb") as f:
             for chunk in backup_file.chunks():
                 f.write(chunk)
 
-        temp_extract_path = os.path.join(settings.MEDIA_ROOT, f"temp_import_{backup_file.name}")
+        temp_extract_path = os.path.join(settings.MEDIA_ROOT, f"temp_import_{_uid}")
         os.makedirs(temp_extract_path, exist_ok=True)
 
         # Extract ZIP
@@ -2143,12 +2145,21 @@ def backup_import_all(request):
                 errors.append(f"{model_name}: {str(e)}")
 
         # Cleanup
-        os.remove(temp_zip_path)
+        try:
+            os.remove(temp_zip_path)
+        except OSError:
+            pass
         for root, dirs, files in os.walk(temp_extract_path, topdown=False):
             for file in files:
-                os.remove(os.path.join(root, file))
+                try:
+                    os.remove(os.path.join(root, file))
+                except OSError:
+                    pass
             for dir in dirs:
-                os.rmdir(dir)
+                try:
+                    os.rmdir(dir)
+                except OSError:
+                    pass
         try:
             os.rmdir(temp_extract_path)
         except OSError:
