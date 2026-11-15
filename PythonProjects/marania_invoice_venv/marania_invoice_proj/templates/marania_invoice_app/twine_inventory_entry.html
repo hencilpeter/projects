@@ -156,9 +156,12 @@
       </div>
     </div>
 
-    <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#twineForm" aria-expanded="false" aria-controls="twineForm">
-      Twine Inventory Entry
-    </button>
+    <div class="d-flex align-items-center gap-2 mb-2">
+      <h6 class="mb-0">Twine Inventory Entry</h6>
+      <button type="button" id="entryToggleBtn" class="btn btn-sm btn-outline-primary py-0 px-2 ms-auto" data-bs-toggle="collapse" data-bs-target="#twineForm" aria-expanded="false" aria-controls="twineForm" title="Expand / collapse entry form">
+        <span id="entryToggleLabel">More</span> <i class="bi bi-chevron-down"></i>
+      </button>
+    </div>
 
     <div class="collapse" id="twineForm">
       <form method="POST" action="{% url 'twine_inventory_entry' %}" id="twineFormTag">
@@ -345,7 +348,19 @@ populateYearMonthFilters();
 populateTable();
 try { updateSummaryTotals(); } catch(e) {}
 
-var summaryDetailEl = document.getElementById('inventorySummaryDetail');
+var entryDetailEl = document.getElementById('twineForm');
+if (entryDetailEl) {
+    entryDetailEl.addEventListener('shown.bs.collapse', function() {
+        document.querySelector('#entryToggleBtn i').className = 'bi bi-chevron-up';
+        document.getElementById('entryToggleLabel').textContent = 'Less';
+        document.getElementById('entryToggleBtn').setAttribute('aria-expanded', 'true');
+    });
+    entryDetailEl.addEventListener('hidden.bs.collapse', function() {
+        document.querySelector('#entryToggleBtn i').className = 'bi bi-chevron-down';
+        document.getElementById('entryToggleLabel').textContent = 'More';
+        document.getElementById('entryToggleBtn').setAttribute('aria-expanded', 'false');
+    });
+}
 if (summaryDetailEl) {
     summaryDetailEl.addEventListener('shown.bs.collapse', function() {
         document.querySelector('#summaryToggleBtn i').className = 'bi bi-chevron-up';
