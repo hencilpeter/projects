@@ -66,8 +66,8 @@
 }
 
 #expenses-table {
-  width: 100%;
-  min-width: 0;
+  width: 1800px;
+  min-width: 1800px;
   table-layout: fixed;
   font-size: clamp(0.65rem, 0.8vw, 0.8rem);
 }
@@ -240,12 +240,13 @@
               <col style="width:85px">
               <col style="width:120px">
               <col style="width:80px">
-              <col style="width:260px">
+              <col style="width:220px">
               <col style="width:75px">
               <col style="width:75px">
               <col style="width:100px">
               <col style="width:80px">
               <col style="width:200px">
+              <col style="width:250px">
             </colgroup>
             <thead class="table-dark">
               <tr>
@@ -260,6 +261,7 @@
                 <th scope="col">Balance</th>
                 <th scope="col">Status</th>
                 <th scope="col">Bill To</th>
+                <th scope="col">Description</th>
                 <th scope="col">Display Comment</th>
               </tr>
               <tr id="expenses-filter-row">
@@ -323,6 +325,7 @@
                     <option value="Customer">Customer</option>
                   </select>
                 </th>
+                <th><input class="filter-input" placeholder="Description"></th>
                 <th><input class="filter-input" placeholder="Display Comment"></th>
               </tr>
             </thead>
@@ -373,6 +376,7 @@
                     </span>
                   </td>
                   <td>{{ e.bill_to }}</td>
+                  <td>{{ e.description|default:"" }}</td>
                   <td>{{ e.display_comment|default:"" }}</td>
                 </tr>
               {% endfor %}
