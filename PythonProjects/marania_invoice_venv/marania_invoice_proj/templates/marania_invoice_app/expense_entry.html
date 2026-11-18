@@ -13,6 +13,34 @@
     border-radius: 4px;
     padding: 4px;
 }
+.invoice-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    max-height: 820px;
+    overflow-x: auto;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+}
+
+.expenses-list .invoice-table-wrapper::-webkit-scrollbar {
+    height: 24px !important;
+    width: 16px !important;
+}
+.expenses-list .invoice-table-wrapper::-webkit-scrollbar-track {
+    background: #dee2e6 !important;
+}
+.expenses-list .invoice-table-wrapper::-webkit-scrollbar-thumb {
+    background: #868e96 !important;
+    border-radius: 12px !important;
+    border: 2px solid #dee2e6 !important;
+}
+.expenses-list .invoice-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #495057 !important;
+}
+.expenses-list .invoice-table-wrapper {
+    scrollbar-width: auto !important;
+    scrollbar-color: #868e96 #dee2e6 !important;
+}
 .btn-3d-yellow {
   background: linear-gradient(to bottom, #ffeb3b, #f9c60a) !important;
   color: #212529 !important;
@@ -38,7 +66,18 @@
 }
 
 #expenses-table {
+  width: 100%;
+  min-width: 0;
   table-layout: fixed;
+  font-size: clamp(0.65rem, 0.8vw, 0.8rem);
+}
+
+#expenses-table th,
+#expenses-table td {
+  white-space: normal;
+  overflow-wrap: break-word;
+  padding: 4px 5px;
+  vertical-align: middle;
 }
 
 #expenses-table .filter-input,
@@ -201,7 +240,7 @@
               <col style="width:85px">
               <col style="width:120px">
               <col style="width:80px">
-              <col style="width:160px">
+              <col style="width:260px">
               <col style="width:75px">
               <col style="width:75px">
               <col style="width:100px">
