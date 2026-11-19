@@ -402,7 +402,7 @@
                   <td>{{ p.gst_amount|default:"" }}</td>
                   <td>{{ p.total_amount|default:"" }}</td>
                   <td>{{ p.amount_paid|default:"0" }}</td>
-                  <td>{{ p.balance|floatformat:2 }}</td>
+                  <td>{% if p.balance > -0.005 and p.balance < 0.005 %}0.00{% else %}{{ p.balance|floatformat:2 }}{% endif %}</td>
                   <td>
                     <span class="badge {% if p.payment_status == 'PAID' %}bg-paid{% elif p.payment_status == 'PARTIALLY_PAID' %}bg-partial{% elif p.payment_status == 'PENDING' %}bg-pending{% else %}bg-secondary{% endif %}">
                       {{ p.get_payment_status_display }}
