@@ -646,8 +646,8 @@
         <div id="orderPlDetailContent" style="display:none;"></div>
       </div>
       <div class="modal-footer">
-        <span class="text-muted small me-auto" id="orderPlOverrideHint">Edit Price/kg, then Apply to update order &amp; table</span>
-        <button type="button" class="btn btn-sm btn-success" id="orderPlApplyBtn" onclick="applyOrderPLPriceOverrides()" disabled><i class="bi bi-check-lg me-1"></i>Apply Prices</button>
+        <span class="text-muted small me-auto" id="orderPlOverrideHint">Edit Price/kg or rates, then Apply to update order &amp; table</span>
+        <button type="button" class="btn btn-sm btn-success" id="orderPlApplyBtn" onclick="applyOrderPLPriceOverrides()" disabled><i class="bi bi-check-lg me-1"></i>Apply Changes</button>
         <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
@@ -802,6 +802,7 @@ function buildOrderPLHtml(data) {
 var currentPlData = null;
 var currentPlOrderKey = null;
 var originalPlPrices = {};
+var originalPlRates = {};
 
 function getPlPriceOverrides() {
     var ov = {};
@@ -865,7 +866,7 @@ function recalcPlModal() {
     var heroSub = document.querySelector('#orderPlDetailContent .p-2 .small.mt-1');
     var weight = parseFloat(currentPlData.sale.weight) || 1;
     var perKg = newProfit / weight;
-    var reqDays = parseFloat(currentPlData.production_tracker.required_days) || 1;
+    var reqDays = (currentPlData.machine_cost && currentPlData.machine_cost.sale_required_days) ? parseFloat(currentPlData.machine_cost.sale_required_days) : (parseFloat(currentPlData.production_tracker.required_days) || 1);
     var perDay = newProfit / reqDays;
     if (hero) {
         var isProf = newProfit > 0 ? 'PROFIT' : (newProfit < 0 ? 'LOSS' : 'BREAK-EVEN');
@@ -909,8 +910,11 @@ function updatePlApplyState() {
     });
     document.querySelectorAll('#orderPlDetailContent .pl-rate-input').forEach(function(inp) {
         var kind = inp.getAttribute('data-kind');
+        var orig = originalPlRates[kind];
         var cur = parseFloat(inp.value);
-        if (isNaN(cur)) modified = true;
+        if (orig === undefined) { modified = true; return; }
+        if (isNaN(cur)) { modified = true; return; }
+        if (Math.abs(cur - orig) > 0.005) modified = true;
     });
     btn.disabled = !modified;
 }
@@ -924,6 +928,7 @@ function bindPlPriceInputs() {
     });
     document.querySelectorAll('#orderPlDetailContent .pl-rate-input').forEach(function(inp) {
         var kind = inp.getAttribute('data-kind'); var val = parseFloat(inp.value);
+        originalPlRates[kind] = isNaN(val) ? 0 : val;
         inp.addEventListener('input', function() { recalcPlModal(); updatePlApplyState(); });
         inp.addEventListener('change', function() { recalcPlModal(); updatePlApplyState(); });
     });
@@ -933,7 +938,9 @@ function applyOrderPLPriceOverrides() {
     if (!currentPlData) return;
     var ov = getPlPriceOverrides();
     var costOv = (function(){ var o={}; document.querySelectorAll('#orderPlDetailContent .pl-rate-input').forEach(function(inp){ var k=inp.getAttribute('data-kind'); var v=parseFloat(inp.value); if(k&&!isNaN(v)&&v>=0) o[k]=v.toFixed(2); }); return o; })();
+    console.log('applyOrderPLPriceOverrides: ov=', ov, 'costOv=', costOv, 'currentPlOrderKey=', currentPlOrderKey);
     var calc = recalcPlModal();
+    if (!calc) { console.error('recalcPlModal returned undefined'); return; }
     var btn = document.getElementById('orderPlApplyBtn');
     var hint = document.getElementById('orderPlOverrideHint');
     var plEl = document.getElementById('profit_loss');
@@ -947,6 +954,7 @@ function applyOrderPLPriceOverrides() {
         window._pendingOrderPlCostRateOverrides = costOv;
         if (hint) hint.textContent = 'Prices/rates applied to entry form. Save the order to keep them.';
         Object.keys(ov).forEach(function(k) { originalPlPrices[k] = parseFloat(ov[k]); });
+        Object.keys(costOv).forEach(function(k) { originalPlRates[k] = parseFloat(costOv[k]); });
         updatePlApplyState();
         return;
     }
@@ -959,10 +967,11 @@ function applyOrderPLPriceOverrides() {
         method: 'POST', body: formData,
         headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) { console.log('applyOrderPLPriceOverrides: response status', r.status); return r.json(); })
     .then(function(data) {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Apply Prices'; }
-        if (!data.success) { if (hint) hint.textContent = 'Save failed: ' + (data.error || 'unknown error'); return; }
+        console.log('applyOrderPLPriceOverrides: data', data && data.success, data && data.cost_rate_overrides);
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Apply Changes'; }
+        if (!data || !data.success) { if (hint) hint.textContent = 'Save failed: ' + ((data && data.error) || 'unknown error'); return; }
         currentPlData = data;
         document.getElementById('orderPlDetailContent').innerHTML = buildOrderPLHtml(data);
         bindPlPriceInputs();
@@ -989,10 +998,11 @@ function applyOrderPLPriceOverrides() {
                 }
             });
         }
-        if (hint) hint.textContent = 'Saved. Table & entry updated.';
+        if (hint) hint.textContent = 'Saved. Processing rate now ' + (data.processing_cost && data.processing_cost.proc_rate) + '/kg. Table & entry updated.';
     })
     .catch(function(err) {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Apply Prices'; }
+        console.error('applyOrderPLPriceOverrides: catch', err);
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Apply Changes'; }
         if (hint) hint.textContent = 'Network error: ' + err;
     });
 }
@@ -1059,6 +1069,7 @@ function calcOrderProfitLoss() {
     formData.append('mesh_size', meshSize || '');
     formData.append('is_gst_included', isGst ? 'true' : 'false');
     if (window._pendingOrderPlOverrides) formData.append('twine_price_overrides', JSON.stringify(window._pendingOrderPlOverrides));
+    if (window._pendingOrderPlCostRateOverrides) formData.append('cost_rate_overrides', JSON.stringify(window._pendingOrderPlCostRateOverrides));
     fetch('{% url "order_calculate_profit_loss" %}', {
         method: 'POST', body: formData,
         headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
@@ -1102,6 +1113,7 @@ function viewOrderFormPL() {
     formData.append('customer', (document.getElementById('customer') || {}).value || '');
     formData.append('is_gst_included', document.getElementById('is_gst_included') && document.getElementById('is_gst_included').checked ? 'true' : 'false');
     if (window._pendingOrderPlOverrides) formData.append('twine_price_overrides', JSON.stringify(window._pendingOrderPlOverrides));
+    if (window._pendingOrderPlCostRateOverrides) formData.append('cost_rate_overrides', JSON.stringify(window._pendingOrderPlCostRateOverrides));
     fetch('{% url "order_profit_loss_detail_post" %}', {
         method: 'POST', body: formData,
         headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
@@ -1146,6 +1158,8 @@ function viewOrderProfitLoss(orderKey) {
             currentPlData = data;
             content.innerHTML = buildOrderPLHtml(data);
             bindPlPriceInputs();
+            window._pendingOrderPlCostRateOverrides = data.cost_rate_overrides ? (typeof data.cost_rate_overrides === 'string' ? JSON.parse(data.cost_rate_overrides) : data.cost_rate_overrides) : null;
+            window._pendingOrderPlCostRateOverrides = data.cost_rate_overrides ? (typeof data.cost_rate_overrides === 'string' ? JSON.parse(data.cost_rate_overrides) : data.cost_rate_overrides) : null;
         })
         .catch(function(err) {
             document.getElementById('orderPlDetailLoading').style.display = 'none';
@@ -1220,6 +1234,7 @@ function getFormData() {
         gst_rate: document.getElementById('gst_rate') ? document.getElementById('gst_rate').value : '',
         prod_spec: document.getElementById('prod_spec') ? document.getElementById('prod_spec').value.trim() : '',
         twine_price_overrides: window._pendingOrderPlOverrides || null,
+        cost_rate_overrides: window._pendingOrderPlCostRateOverrides || null,
         is_gst_included: document.getElementById('is_gst_included').checked,
         is_new_order: document.getElementById('is_new_order').checked,
         status: document.getElementById('status').value,
@@ -1351,6 +1366,9 @@ function setFormData(data) {
     window._pendingOrderPlOverrides = null;
     var ov = data.twine_price_overrides;
     if (ov) { try { window._pendingOrderPlOverrides = typeof ov === 'string' ? JSON.parse(ov) : ov; } catch(e) {} }
+    window._pendingOrderPlCostRateOverrides = null;
+    var cov = data.cost_rate_overrides;
+    if (cov) { try { window._pendingOrderPlCostRateOverrides = typeof cov === 'string' ? JSON.parse(cov) : cov; } catch(e) {} }
     // Prod.Spec dropdown: rebuild from tracker, then restore saved value
     if (typeof window.updateProdSpecOptions === 'function') { try { window.updateProdSpecOptions(); } catch(e) {} }
     var psSel = document.getElementById('prod_spec');
