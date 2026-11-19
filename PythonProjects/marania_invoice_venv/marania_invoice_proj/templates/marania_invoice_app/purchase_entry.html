@@ -402,7 +402,7 @@
                   <td>{{ p.gst_amount|default:"" }}</td>
                   <td>{{ p.total_amount|default:"" }}</td>
                   <td>{{ p.amount_paid|default:"0" }}</td>
-                  <td>{{ p.balance|default:"" }}</td>
+                  <td>{{ p.balance|floatformat:2 }}</td>
                   <td>
                     <span class="badge {% if p.payment_status == 'PAID' %}bg-paid{% elif p.payment_status == 'PARTIALLY_PAID' %}bg-partial{% elif p.payment_status == 'PENDING' %}bg-pending{% else %}bg-secondary{% endif %}">
                       {{ p.get_payment_status_display }}
@@ -589,12 +589,13 @@ function calcTotals() {
     var gstAmt = subtotal * (gstPct / 100);
     var total = subtotal + gstAmt;
     var balance = total - paid;
+    if (Math.abs(balance) < 0.005) balance = 0;
     document.getElementById('subtotal').value = subtotal.toFixed(2);
     document.getElementById('gst_amount').value = gstAmt.toFixed(2);
     document.getElementById('total_amount').value = total.toFixed(2);
     document.getElementById('balance').value = balance.toFixed(2);
     var statusSelect = document.getElementById('payment_status');
-    if (total > 0 && paid >= total) {
+    if (total > 0 && paid >= total - 0.005) {
         statusSelect.value = 'PAID';
     } else if (paid > 0) {
         statusSelect.value = 'PARTIALLY_PAID';
@@ -821,6 +822,7 @@ function updatePurchaseSummary() {
     document.getElementById('summary-total-gst').textContent = totalGST.toFixed(2);
     document.getElementById('summary-total-amount').textContent = totalAmount.toFixed(2);
     document.getElementById('summary-total-paid').textContent = totalPaid.toFixed(2);
+    if (Math.abs(totalBalance) < 0.005) totalBalance = 0;
     document.getElementById('summary-total-balance').textContent = totalBalance.toFixed(2);
 
     panel.style.display = filteredCount > 0 ? '' : 'none';
