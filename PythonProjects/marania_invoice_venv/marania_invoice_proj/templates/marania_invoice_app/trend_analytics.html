@@ -18,10 +18,14 @@
 
   <!-- Filters -->
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-dark text-white">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Filters</h5>
+      <button type="button" class="btn btn-sm btn-outline-light" id="filterToggleBtn" data-bs-toggle="collapse" data-bs-target="#filterBody" aria-expanded="true" aria-controls="filterBody">
+        <span id="filterToggleLabel">Collapse</span> <i class="bi bi-chevron-up"></i>
+      </button>
     </div>
-    <div class="card-body">
+    <div class="collapse show" id="filterBody">
+      <div class="card-body">
       <div class="row mb-3">
         <div class="col-md-3">
           <label class="form-label">Start Date</label>
@@ -93,6 +97,7 @@
           </div>
         </div>
       </div>
+      </div>
     </div>
   </div>
 
@@ -154,11 +159,54 @@
       <h5 class="mb-0">Monthly Sales Trend</h5>
     </div>
     <div class="card-body">
-      <canvas id="monthlyTrendChart" height="100"></canvas>
+      <canvas id="monthlyTrendChart" height="60"></canvas>
     </div>
   </div>
 
-  <!-- Product Trend Chart -->
+  <!-- Monthly Best-Performing Product Analysis -->
+  {% if monthly_best_products %}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white">
+      <h5 class="mb-0">Monthly Best-Performing Product Analysis</h5>
+    </div>
+    <div class="card-body">
+      {% for month_block in monthly_best_products %}
+      <h6 class="fw-bold mt-2 mb-1">{{ month_block.month }}</h6>
+      <div class="table-responsive mb-3">
+        <table class="table table-bordered table-hover table-sm">
+          <thead class="table-dark">
+            <tr>
+              <th>Product</th>
+              <th class="text-end">Sales</th>
+              <th class="text-end">Weight (KG)</th>
+              <th class="text-end">Orders</th>
+              <th>Top Specifications</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in month_block.products %}
+            <tr {% if p.is_top %}class="table-success"{% endif %}>
+              <td>
+                {% if p.is_top %}<span class="badge bg-success me-1">Best</span>{% endif %}
+                <strong>{{ p.product }}</strong>
+              </td>
+              <td class="text-end">{{ p.sales|floatformat:2 }}</td>
+              <td class="text-end">{{ p.weight|floatformat:2 }}</td>
+              <td class="text-end">{{ p.orders }}</td>
+              <td>
+                {% for spec in p.top_specs %}
+                  <span class="badge bg-secondary me-1">{{ spec.spec }} ({{ spec.sales|floatformat:0 }})</span>
+                {% endfor %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white">
       <h5 class="mb-0">Product Trends (Top 10)</h5>
@@ -465,22 +513,38 @@ function exportReport(format) {
 
 // Initialize Charts
 document.addEventListener('DOMContentLoaded', function() {
+  var filterBody = document.getElementById('filterBody');
+  var filterToggleBtn = document.getElementById('filterToggleBtn');
+  var filterToggleLabel = document.getElementById('filterToggleLabel');
+  if (filterBody && filterToggleBtn) {
+    filterBody.addEventListener('shown.bs.collapse', function() {
+      if (filterToggleLabel) filterToggleLabel.textContent = 'Collapse';
+      var ic = filterToggleBtn.querySelector('i');
+      if (ic) ic.className = 'bi bi-chevron-up';
+      filterToggleBtn.setAttribute('aria-expanded', 'true');
+    });
+    filterBody.addEventListener('hidden.bs.collapse', function() {
+      if (filterToggleLabel) filterToggleLabel.textContent = 'Expand';
+      var ic = filterToggleBtn.querySelector('i');
+      if (ic) ic.className = 'bi bi-chevron-down';
+      filterToggleBtn.setAttribute('aria-expanded', 'false');
+    });
+  }
   // Monthly Trend Chart
   var monthlyCtx = document.getElementById('monthlyTrendChart').getContext('2d');
   var monthlyData = {{ monthly_chart_data_json|safe }};
   
   if (monthlyData.labels.length > 0) {
     new Chart(monthlyCtx, {
-      type: 'line',
+      type: 'bar',
       data: {
         labels: monthlyData.labels,
         datasets: [{
           label: 'Sales Value',
           data: monthlyData.sales,
+          backgroundColor: 'rgba(75, 192, 192, 0.7)',
           borderColor: 'rgb(75, 192, 192)',
-          backgroundColor: 'rgba(75, 192, 192, 0.2)',
-          tension: 0.1,
-          fill: true
+          borderWidth: 1
         }]
       },
       options: {
