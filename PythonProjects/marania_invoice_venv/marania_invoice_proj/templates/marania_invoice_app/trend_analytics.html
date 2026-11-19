@@ -155,31 +155,34 @@
 
 
   <!-- Monthly Best-Performing Product Analysis -->
-  {% if monthly_best_products or projected_best_products %}
+  {% if monthly_best_products %}
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-dark text-white">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Monthly Best-Performing Product Analysis</h5>
+      <button type="button" class="btn btn-sm btn-outline-light" id="bestToggleBtn" data-bs-toggle="collapse" data-bs-target="#bestBody" aria-expanded="true" aria-controls="bestBody">
+        <span id="bestToggleLabel">Collapse</span> <i class="bi bi-chevron-up"></i>
+      </button>
     </div>
-    <div class="card-body">
-      <!-- Year/Month filter -->
+    <div class="collapse show" id="bestBody">
+      <div class="card-body">
+      <!-- Historical range filter -->
       <form method="get" class="row g-2 mb-3 align-items-end">
         <input type="hidden" name="start_date" value="{{ filters.start_date|date:'Y-m-d' }}">
         <input type="hidden" name="end_date" value="{{ filters.end_date|date:'Y-m-d' }}">
         <input type="hidden" name="metric" value="{{ filters.metric }}">
         <div class="col-auto">
-          <label class="form-label small mb-0">Year</label>
-          <select name="best_year" class="form-select form-select-sm">
+          <label class="form-label small mb-0">Start Year</label>
+          <select name="best_start_year" class="form-select form-select-sm">
             {% for y in available_years %}
-            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+            <option value="{{ y }}" {% if y == best_start_year %}selected{% endif %}>{{ y }}</option>
             {% endfor %}
           </select>
         </div>
         <div class="col-auto">
-          <label class="form-label small mb-0">Month</label>
-          <select name="best_month" class="form-select form-select-sm">
-            <option value="">All months</option>
-            {% for m in available_months %}
-            <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>{{ m }}</option>
+          <label class="form-label small mb-0">End Year</label>
+          <select name="best_end_year" class="form-select form-select-sm">
+            {% for y in available_years %}
+            <option value="{{ y }}" {% if y == best_end_year %}selected{% endif %}>{{ y }}</option>
             {% endfor %}
           </select>
         </div>
@@ -216,8 +219,11 @@
               <td class="text-end">{{ p.orders }}</td>
               <td>
                 {% for spec in p.top_specs %}
-                  <span class="badge bg-secondary me-1">{{ spec.spec }} ({{ spec.sales|floatformat:0 }})</span>
+                  <span class="badge bg-secondary me-1">{{ spec.spec }} ({{ spec.sales|floatformat:0 }}){% if spec.top_customer %} - {{ spec.top_customer }}{% endif %}</span>
                 {% endfor %}
+                {% if p.growth is not None %}
+                  <span class="badge {% if p.growth >= 0 %}bg-success{% else %}bg-danger{% endif %} ms-1">{{ p.growth|floatformat:1 }}%</span>
+                {% endif %}
               </td>
             </tr>
             {% endfor %}
@@ -234,7 +240,7 @@
       <p class="text-muted small">Based on the corresponding months' performance from the previous year.</p>
       {% if projected_best_products %}
       {% for block in projected_best_products %}
-      <h6 class="fw-bold mt-2 mb-1">{{ block.month }} {% if not block.has_data %}<span class="text-muted">(no prior-year data)</span>{% endif %}</h6>
+      <h6 class="fw-bold mt-2 mb-1">{{ block.period }} {% if not block.has_data %}<span class="text-muted">(no prior-year data)</span>{% endif %}</h6>
       {% if block.has_data and block.products %}
       <div class="table-responsive mb-3">
         <table class="table table-bordered table-hover table-sm">
@@ -253,13 +259,14 @@
               <td>
                 {% if p.is_top %}<span class="badge bg-warning text-dark me-1">Projected Best</span>{% endif %}
                 <strong>{{ p.product }}</strong>
+                {% if p.confidence %}<span class="badge bg-info text-dark ms-1">{{ p.confidence }}</span>{% endif %}
               </td>
               <td class="text-end">{{ p.sales|floatformat:2 }}</td>
               <td class="text-end">{{ p.weight|floatformat:2 }}</td>
               <td class="text-end">{{ p.orders }}</td>
               <td>
                 {% for spec in p.top_specs %}
-                  <span class="badge bg-secondary me-1">{{ spec.spec }} ({{ spec.sales|floatformat:0 }})</span>
+                  <span class="badge bg-secondary me-1">{{ spec.spec }} ({{ spec.sales|floatformat:0 }}){% if spec.top_customer %} - {{ spec.top_customer }}{% endif %}</span>
                 {% endfor %}
               </td>
             </tr>
@@ -268,15 +275,17 @@
         </table>
       </div>
       {% elif block.has_data %}
-      <div class="alert alert-info">No products for {{ block.month }}.</div>
+      <div class="alert alert-info">No products for {{ block.period }}.</div>
       {% else %}
-      <div class="alert alert-warning">No prior-year data for {{ block.month }} ({{ block.from_year }}).</div>
+      <div class="alert alert-warning">No prior-year data for {{ block.period }} ({{ block.from_year }}).</div>
       {% endif %}
       {% endfor %}
       {% endif %}
     </div>
+    </div>
   </div>
   {% endif %}
+
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white">
       <h5 class="mb-0">Product Trends (Top 10)</h5>
@@ -581,7 +590,6 @@ function exportReport(format) {
   window.location.href = '?' + params.toString();
 }
 
-// Initialize Charts
 document.addEventListener('DOMContentLoaded', function() {
   var filterBody = document.getElementById('filterBody');
   var filterToggleBtn = document.getElementById('filterToggleBtn');
@@ -648,5 +656,27 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
-</script>
+  </script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var bestBody = document.getElementById('bestBody');
+      var bestToggleBtn = document.getElementById('bestToggleBtn');
+      var bestToggleLabel = document.getElementById('bestToggleLabel');
+      if (bestBody && bestToggleBtn) {
+        bestBody.addEventListener('shown.bs.collapse', function() {
+          if (bestToggleLabel) bestToggleLabel.textContent = 'Collapse';
+          var ic = bestToggleBtn.querySelector('i');
+          if (ic) ic.className = 'bi bi-chevron-up';
+          bestToggleBtn.setAttribute('aria-expanded', 'true');
+        });
+        bestBody.addEventListener('hidden.bs.collapse', function() {
+          if (bestToggleLabel) bestToggleLabel.textContent = 'Expand';
+          var ic = bestToggleBtn.querySelector('i');
+          if (ic) ic.className = 'bi bi-chevron-down';
+          bestToggleBtn.setAttribute('aria-expanded', 'false');
+        });
+      }
+    });
+  </script>
 {% endblock %}
