@@ -68,6 +68,28 @@
     max-height: 820px;
     overflow: auto;
     border: 1px solid #ddd;
+    width: 100%;
+    max-width: 100%;
+}
+
+.analysis-table-wrapper::-webkit-scrollbar {
+    height: 24px !important;
+    width: 16px !important;
+}
+.analysis-table-wrapper::-webkit-scrollbar-track {
+    background: #dee2e6 !important;
+}
+.analysis-table-wrapper::-webkit-scrollbar-thumb {
+    background: #868e96 !important;
+    border-radius: 12px !important;
+    border: 2px solid #dee2e6 !important;
+}
+.analysis-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #495057 !important;
+}
+.analysis-table-wrapper {
+    scrollbar-width: auto !important;
+    scrollbar-color: #868e96 #dee2e6 !important;
 }
 
 /* Section 1 twine material list: fixed max height so a long list scrolls
@@ -88,8 +110,18 @@
 }
 
 #analysis-table {
+    width: 100%;
+    min-width: 0;
     table-layout: fixed;
     font-size: 0.8rem;
+}
+
+#analysis-table th,
+#analysis-table td {
+    white-space: normal;
+    overflow-wrap: break-word;
+    padding: 4px 5px;
+    vertical-align: middle;
 }
 
 #analysis-table thead th {
@@ -377,7 +409,7 @@
 }
 </style>
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-  <div class="container my-4">
+  <div class="container-fluid my-4">
     <h3>Profit Analysis</h3>
     <!-- <p class="text-muted small mb-3">
       Enhanced Profit Analytics - start with the twine material price, pick a product tracker entry
