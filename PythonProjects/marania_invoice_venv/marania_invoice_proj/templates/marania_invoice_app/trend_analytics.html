@@ -155,12 +155,42 @@
 
 
   <!-- Monthly Best-Performing Product Analysis -->
-  {% if monthly_best_products %}
+  {% if monthly_best_products or projected_best_products %}
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white">
       <h5 class="mb-0">Monthly Best-Performing Product Analysis</h5>
     </div>
     <div class="card-body">
+      <!-- Year/Month filter -->
+      <form method="get" class="row g-2 mb-3 align-items-end">
+        <input type="hidden" name="start_date" value="{{ filters.start_date|date:'Y-m-d' }}">
+        <input type="hidden" name="end_date" value="{{ filters.end_date|date:'Y-m-d' }}">
+        <input type="hidden" name="metric" value="{{ filters.metric }}">
+        <div class="col-auto">
+          <label class="form-label small mb-0">Year</label>
+          <select name="best_year" class="form-select form-select-sm">
+            {% for y in available_years %}
+            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-auto">
+          <label class="form-label small mb-0">Month</label>
+          <select name="best_month" class="form-select form-select-sm">
+            <option value="">All months</option>
+            {% for m in available_months %}
+            <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+        </div>
+      </form>
+
+      <!-- Historical -->
+      <h6 class="fw-bold text-primary mb-2">Historical Monthly Performance</h6>
+      {% if monthly_best_products %}
       {% for month_block in monthly_best_products %}
       <h6 class="fw-bold mt-2 mb-1">{{ month_block.month }}</h6>
       <div class="table-responsive mb-3">
@@ -195,6 +225,55 @@
         </table>
       </div>
       {% endfor %}
+      {% else %}
+      <div class="alert alert-info">No historical data for the selected period.</div>
+      {% endif %}
+
+      <!-- Projection -->
+      <h6 class="fw-bold text-warning mb-2 mt-3">Projected Best-Selling Specifications (Next 3 Months)</h6>
+      <p class="text-muted small">Based on the corresponding months' performance from the previous year.</p>
+      {% if projected_best_products %}
+      {% for block in projected_best_products %}
+      <h6 class="fw-bold mt-2 mb-1">{{ block.month }} {% if not block.has_data %}<span class="text-muted">(no prior-year data)</span>{% endif %}</h6>
+      {% if block.has_data and block.products %}
+      <div class="table-responsive mb-3">
+        <table class="table table-bordered table-hover table-sm">
+          <thead class="table-dark">
+            <tr>
+              <th>Product</th>
+              <th class="text-end">Sales (prev yr)</th>
+              <th class="text-end">Weight (KG)</th>
+              <th class="text-end">Orders</th>
+              <th>Top Specifications</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in block.products %}
+            <tr {% if p.is_top %}class="table-warning"{% endif %}>
+              <td>
+                {% if p.is_top %}<span class="badge bg-warning text-dark me-1">Projected Best</span>{% endif %}
+                <strong>{{ p.product }}</strong>
+              </td>
+              <td class="text-end">{{ p.sales|floatformat:2 }}</td>
+              <td class="text-end">{{ p.weight|floatformat:2 }}</td>
+              <td class="text-end">{{ p.orders }}</td>
+              <td>
+                {% for spec in p.top_specs %}
+                  <span class="badge bg-secondary me-1">{{ spec.spec }} ({{ spec.sales|floatformat:0 }})</span>
+                {% endfor %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% elif block.has_data %}
+      <div class="alert alert-info">No products for {{ block.month }}.</div>
+      {% else %}
+      <div class="alert alert-warning">No prior-year data for {{ block.month }} ({{ block.from_year }}).</div>
+      {% endif %}
+      {% endfor %}
+      {% endif %}
     </div>
   </div>
   {% endif %}
