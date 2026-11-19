@@ -171,6 +171,13 @@
         <input type="hidden" name="end_date" value="{{ filters.end_date|date:'Y-m-d' }}">
         <input type="hidden" name="metric" value="{{ filters.metric }}">
         <div class="col-auto">
+          <label class="form-label small mb-0">Mode</label>
+          <select name="best_mode" class="form-select form-select-sm">
+            <option value="monthly" {% if best_mode == 'monthly' %}selected{% endif %}>Monthly</option>
+            <option value="quarterly" {% if best_mode == 'quarterly' %}selected{% endif %}>Quarterly</option>
+          </select>
+        </div>
+        <div class="col-auto">
           <label class="form-label small mb-0">Start Year</label>
           <select name="best_start_year" class="form-select form-select-sm">
             {% for y in available_years %}
