@@ -153,15 +153,6 @@
     </div>
   </div>
 
-  <!-- Monthly Trend Chart -->
-  <div class="card shadow-sm mb-4">
-    <div class="card-header bg-dark text-white">
-      <h5 class="mb-0">Monthly Sales Trend</h5>
-    </div>
-    <div class="card-body">
-      <canvas id="monthlyTrendChart" height="60"></canvas>
-    </div>
-  </div>
 
   <!-- Monthly Best-Performing Product Analysis -->
   {% if monthly_best_products %}
@@ -530,54 +521,6 @@ document.addEventListener('DOMContentLoaded', function() {
       filterToggleBtn.setAttribute('aria-expanded', 'false');
     });
   }
-  // Monthly Trend Chart
-  var monthlyCtx = document.getElementById('monthlyTrendChart').getContext('2d');
-  var monthlyData = {{ monthly_chart_data_json|safe }};
-  
-  if (monthlyData.labels.length > 0) {
-    new Chart(monthlyCtx, {
-      type: 'bar',
-      data: {
-        labels: monthlyData.labels,
-        datasets: [{
-          label: 'Sales Value',
-          data: monthlyData.sales,
-          backgroundColor: 'rgba(75, 192, 192, 0.7)',
-          borderColor: 'rgb(75, 192, 192)',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: 'Sales Value'
-            }
-          }
-        },
-        plugins: {
-          legend: {
-            display: true
-          },
-          tooltip: {
-            callbacks: {
-              afterLabel: function(context) {
-                var topCustomer = monthlyData.top_customers[context.dataIndex];
-                if (topCustomer) {
-                  return 'Top Customer: ' + topCustomer;
-                }
-                return '';
-              }
-            }
-          }
-        }
-      }
-    });
-  }
-  
   // Product Trend Chart
   var productCtx = document.getElementById('productTrendChart').getContext('2d');
   var productData = {{ product_chart_data_json|safe }};
