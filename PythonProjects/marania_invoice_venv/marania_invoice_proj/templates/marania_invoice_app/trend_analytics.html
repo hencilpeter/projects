@@ -198,11 +198,35 @@
         </div>
       </form>
 
+      <!-- Display period filter (output selection) -->
+      <form method="get" class="row g-2 mb-3 align-items-end">
+        <input type="hidden" name="start_date" value="{{ filters.start_date|date:'Y-m-d' }}">
+        <input type="hidden" name="end_date" value="{{ filters.end_date|date:'Y-m-d' }}">
+        <input type="hidden" name="metric" value="{{ filters.metric }}">
+        <input type="hidden" name="best_mode" value="{{ best_mode }}">
+        <input type="hidden" name="best_start_year" value="{{ best_start_year }}">
+        <input type="hidden" name="best_end_year" value="{{ best_end_year }}">
+        <div class="col-12">
+          <label class="form-label small mb-1 fw-bold">Display Periods (output selection)</label>
+          <div class="d-flex flex-wrap gap-2">
+            {% for p in available_display_periods %}
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" name="display_periods" value="{{ p }}" id="disp_{{ forloop.counter }}" {% if p in selected_display_periods %}checked{% endif %}>
+              <label class="form-check-label small" for="disp_{{ forloop.counter }}">{{ p }}</label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-outline-primary btn-sm">Apply Display</button>
+        </div>
+      </form>
+
       <!-- Historical -->
       <h6 class="fw-bold text-primary mb-2">Historical Monthly Performance</h6>
       {% if monthly_best_products %}
       {% for month_block in monthly_best_products %}
-      <h6 class="fw-bold mt-2 mb-1">{{ month_block.month }}</h6>
+      <h6 class="fw-bold mt-2 mb-1">{{ month_block.period }}</h6>
       <div class="table-responsive mb-3">
         <table class="table table-bordered table-hover table-sm">
           <thead class="table-dark">
