@@ -26,16 +26,30 @@
     </div>
     <div class="collapse show" id="filterBody">
       <div class="card-body">
-      <div class="row mb-3">
-        <div class="col-md-3">
-          <label class="form-label">Start Date</label>
-          <input type="date" class="form-control" id="start_date" value="{% if filters.start_date %}{{ filters.start_date|date:'Y-m-d' }}{% endif %}">
-          <label class="form-label mt-2">End Date</label>
-          <input type="date" class="form-control" id="end_date" value="{% if filters.end_date %}{{ filters.end_date|date:'Y-m-d' }}{% endif %}">
+      <!-- Quick Date Filters -->
+      <div class="mb-3">
+        <div class="btn-group btn-group-sm flex-wrap" role="group" aria-label="Quick date filters">
+          <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('this_month')">This Month</button>
+          <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('last_month')">Last Month</button>
+          <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('last_3')">Last 3 Months</button>
+          <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('last_6')">Last 6 Months</button>
+          <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('this_year')">This Year</button>
+          <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('last_year')">Last Year</button>
+          <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('last_12')">Last 12 Months</button>
+        </div>
+      </div>
+      <div class="row g-2 mb-2">
+        <div class="col-md-2">
+          <label class="form-label small mb-0">Start Date</label>
+          <input type="date" class="form-control form-control-sm" id="start_date" value="{% if filters.start_date %}{{ filters.start_date|date:'Y-m-d' }}{% endif %}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small mb-0">End Date</label>
+          <input type="date" class="form-control form-control-sm" id="end_date" value="{% if filters.end_date %}{{ filters.end_date|date:'Y-m-d' }}{% endif %}">
         </div>
         <div class="col-md-3">
-          <label class="form-label">Product Codes</label>
-          <select class="form-select" id="product_codes" multiple>
+          <label class="form-label small mb-0">Product Codes</label>
+          <select class="form-select form-select-sm" id="product_codes" multiple size="1">
             <option value="">All Products</option>
             {% for product in all_products %}
               <option value="{{ product }}" {% if product in filters.product_codes %}selected{% endif %}>{{ product }}</option>
@@ -43,65 +57,45 @@
           </select>
         </div>
         <div class="col-md-3">
-          <label class="form-label">MM (Mesh Size)</label>
-          <select class="form-select" id="mm_values" multiple>
-            <option value="">All MM</option>
-            {% for mm in all_mm %}
-              <option value="{{ mm }}" {% if mm in filters.mm_values %}selected{% endif %}>{{ mm }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">MD (Mesh Depth)</label>
-          <select class="form-select" id="md_values" multiple>
-            <option value="">All MD</option>
-            {% for md in all_md %}
-              <option value="{{ md }}" {% if md in filters.md_values %}selected{% endif %}>{{ md }}</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-      <div class="row mb-3">
-        <div class="col-md-3">
-          <label class="form-label">Customers</label>
-          <select class="form-select" id="customers" multiple>
+          <label class="form-label small mb-0">Customers</label>
+          <select class="form-select form-select-sm" id="customers" multiple size="1">
             <option value="">All Customers</option>
             {% for customer in all_customers %}
               <option value="{{ customer }}" {% if customer in filters.customers %}selected{% endif %}>{{ customer }}</option>
             {% endfor %}
           </select>
         </div>
-        <div class="col-md-3">
-          <label class="form-label">Metric</label>
-          <select class="form-select" id="metric">
+        <div class="col-md-2">
+          <label class="form-label small mb-0">Metric</label>
+          <select class="form-select form-select-sm" id="metric">
             <option value="sales" {% if filters.metric == 'sales' %}selected{% endif %}>Sales Value</option>
             <option value="weight" {% if filters.metric == 'weight' %}selected{% endif %}>Weight</option>
             <option value="pieces" {% if filters.metric == 'pieces' %}selected{% endif %}>Pieces</option>
             <option value="orders" {% if filters.metric == 'orders' %}selected{% endif %}>Orders</option>
           </select>
         </div>
-        <div class="col-md-3 d-flex align-items-end">
-          <div class="w-100">
-            <button class="btn btn-primary me-1" onclick="applyFilters()">
-              <i class="bi bi-filter"></i> Apply
-            </button>
-            <button class="btn btn-secondary me-1" onclick="resetFilters()">
-              <i class="bi bi-x-circle"></i> Reset
-            </button>
-            <button class="btn btn-outline-success me-1" onclick="exportReport('csv')">
-              <i class="bi bi-file-earmark-csv"></i> CSV
-            </button>
-            <button class="btn btn-outline-danger" onclick="exportReport('pdf')">
-              <i class="bi bi-file-earmark-pdf"></i> PDF
-            </button>
-          </div>
+      </div>
+      <div class="row g-2">
+        <div class="col-12 d-flex align-items-end">
+          <button class="btn btn-primary btn-sm me-1" onclick="applyFilters()">
+            <i class="bi bi-filter"></i> Apply
+          </button>
+          <button class="btn btn-secondary btn-sm me-1" onclick="resetFilters()">
+            <i class="bi bi-x-circle"></i> Reset
+          </button>
+          <button class="btn btn-outline-success btn-sm me-1" onclick="exportReport('csv')">
+            <i class="bi bi-file-earmark-csv"></i> CSV
+          </button>
+          <button class="btn btn-outline-danger btn-sm" onclick="exportReport('pdf')">
+            <i class="bi bi-file-earmark-pdf"></i> PDF
+          </button>
         </div>
       </div>
       </div>
     </div>
   </div>
 
-  <!-- KPI Cards -->
+<!-- KPI Cards -->
   <div class="row mb-4">
     <div class="col-md-2">
       <div class="card bg-primary text-white">
@@ -153,21 +147,6 @@
     </div>
   </div
 
-
-  <!-- Quick Date Filters -->
-  <div class="row mb-3">
-    <div class="col-12">
-      <div class="btn-group btn-group-sm flex-wrap" role="group" aria-label="Quick date filters">
-        <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('this_month')">This Month</button>
-        <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('last_month')">Last Month</button>
-        <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('last_3')">Last 3 Months</button>
-        <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('last_6')">Last 6 Months</button>
-        <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('this_year')">This Year</button>
-        <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('last_year')">Last Year</button>
-        <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('last_12')">Last 12 Months</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Overall Status -->
   {% if enhanced.overall_status %}
@@ -812,12 +791,6 @@ function applyFilters() {
   // Multi-select values
   var productCodes = Array.from(document.getElementById('product_codes').selectedOptions).map(opt => opt.value);
   productCodes.forEach(val => { if (val) params.append('product_codes', val); });
-  
-  var mmValues = Array.from(document.getElementById('mm_values').selectedOptions).map(opt => opt.value);
-  mmValues.forEach(val => { if (val) params.append('mm_values', val); });
-  
-  var mdValues = Array.from(document.getElementById('md_values').selectedOptions).map(opt => opt.value);
-  mdValues.forEach(val => { if (val) params.append('md_values', val); });
   
   var customers = Array.from(document.getElementById('customers').selectedOptions).map(opt => opt.value);
   customers.forEach(val => { if (val) params.append('customers', val); });
