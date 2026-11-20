@@ -151,8 +151,195 @@
         </div>
       </div>
     </div>
+  </div
+
+
+  <!-- Quick Date Filters -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="btn-group btn-group-sm flex-wrap" role="group" aria-label="Quick date filters">
+        <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('this_month')">This Month</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('last_month')">Last Month</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('last_3')">Last 3 Months</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('last_6')">Last 6 Months</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('this_year')">This Year</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('last_year')">Last Year</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="setQuickRange('last_12')">Last 12 Months</button>
+      </div>
+    </div>
   </div>
 
+  <!-- Overall Status -->
+  {% if enhanced.overall_status %}
+  <div class="alert {% if enhanced.overall_status == 'Positive' %}alert-success{% elif enhanced.overall_status == 'Stable' %}alert-info{% elif enhanced.overall_status == 'Needs Attention' %}alert-warning{% else %}alert-danger{% endif %} mb-4">
+    <strong>Overall Business Status: {{ enhanced.overall_status }}</strong>
+    {% if enhanced.narrative %}<p class="mb-0 mt-1">{{ enhanced.narrative }}</p>{% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Business KPI Overview -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white"><h5 class="mb-0">Business KPI Overview</h5></div>
+    <div class="card-body">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <h6 class="fw-bold text-primary">Sales KPIs</h6>
+          <table class="table table-sm table-bordered">
+            <tbody>
+              <tr><th>Total Sales Revenue</th><td>{{ enhanced.sales_kpis.total_sales|floatformat:2 }}</td></tr>
+              <tr><th>Total Quantity Sold</th><td>{{ enhanced.sales_kpis.total_quantity|floatformat:2 }}</td></tr>
+              <tr><th>Total Invoices</th><td>{{ enhanced.sales_kpis.invoice_count }}</td></tr>
+              <tr><th>Average Invoice Value</th><td>{% if enhanced.sales_kpis.avg_invoice_value is not None %}{{ enhanced.sales_kpis.avg_invoice_value|floatformat:2 }}{% else %}N/A{% endif %}</td></tr>
+              <tr><th>Monthly Average Sales</th><td>{% if enhanced.sales_kpis.monthly_avg_sales is not None %}{{ enhanced.sales_kpis.monthly_avg_sales|floatformat:2 }}{% else %}N/A{% endif %}</td></tr>
+              <tr><th>Sales Growth</th><td>{% if enhanced.sales_kpis.sales_growth is not None %}{{ enhanced.sales_kpis.sales_growth|floatformat:2 }}%{% else %}N/A{% endif %}</td></tr>
+              <tr><th>Active Customers</th><td>{{ enhanced.sales_kpis.active_customers }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col-md-6">
+          <h6 class="fw-bold text-success">Profit KPIs</h6>
+          <table class="table table-sm table-bordered">
+            <tbody>
+              <tr><th>Total Profit</th><td>{{ enhanced.profit_kpis.total_profit|floatformat:2 }}</td></tr>
+              <tr><th>Profit Margin</th><td>{% if enhanced.profit_kpis.profit_margin is not None %}{{ enhanced.profit_kpis.profit_margin|floatformat:2 }}%{% else %}N/A{% endif %}</td></tr>
+              <tr><th>Average Monthly Profit</th><td>{% if enhanced.profit_kpis.avg_monthly_profit is not None %}{{ enhanced.profit_kpis.avg_monthly_profit|floatformat:2 }}{% else %}N/A{% endif %}</td></tr>
+              <tr><th>Highest Profit Month</th><td>{{ enhanced.profit_kpis.highest_profit_month|default:"N/A" }}</td></tr>
+              <tr><th>Lowest Profit Month</th><td>{{ enhanced.profit_kpis.lowest_profit_month|default:"N/A" }}</td></tr>
+              <tr><th>Profit Growth</th><td>{% if enhanced.profit_kpis.profit_growth is not None %}{{ enhanced.profit_kpis.profit_growth|floatformat:2 }}%{% else %}N/A{% endif %}</td></tr>
+              <tr><th>Cost Value</th><td>{{ enhanced.profit_kpis.cost_value|floatformat:2 }}</td></tr>
+              <tr><th>Profit per Unit</th><td>{% if enhanced.profit_kpis.profit_per_unit is not None %}{{ enhanced.profit_kpis.profit_per_unit|floatformat:4 }}{% else %}N/A{% endif %}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Comparison -->
+      {% if enhanced.comparison.previous_sales is not None %}
+      <h6 class="fw-bold">Period Comparison</h6>
+      <table class="table table-sm table-bordered">
+        <thead class="table-light"><tr><th>Metric</th><th>Current</th><th>Previous</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr><td>Sales</td><td>{{ enhanced.comparison.current_sales|floatformat:2 }}</td><td>{{ enhanced.comparison.previous_sales|floatformat:2 }}</td><td>{% if enhanced.comparison.previous_sales %}{{ enhanced.sales_kpis.sales_growth|floatformat:2 }}%{% else %}N/A{% endif %}</td></tr>
+          <tr><td>Profit</td><td>{{ enhanced.comparison.current_profit|floatformat:2 }}</td><td>{{ enhanced.comparison.previous_profit|floatformat:2 }}</td><td>{% if enhanced.profit_kpis.profit_growth is not None %}{{ enhanced.profit_kpis.profit_growth|floatformat:2 }}%{% else %}N/A{% endif %}</td></tr>
+          <tr><td>Quantity</td><td>{{ enhanced.comparison.current_quantity|floatformat:2 }}</td><td>{{ enhanced.comparison.previous_quantity|floatformat:2 }}</td><td>-</td></tr>
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Customer Concentration -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white"><h5 class="mb-0">Customer Concentration & Dependency</h5></div>
+    <div class="card-body">
+      <div class="row mb-2">
+        <div class="col-md-4">Top 1 Customer: <strong>{{ enhanced.customer_concentration.top1_pct|floatformat:2 }}%</strong></div>
+        <div class="col-md-4">Top 3 Customers: <strong>{{ enhanced.customer_concentration.top3_pct|floatformat:2 }}%</strong></div>
+        <div class="col-md-4">Top 5 Customers: <strong>{{ enhanced.customer_concentration.top5_pct|floatformat:2 }}%</strong></div>
+      </div>
+      <table class="table table-sm table-striped">
+        <thead class="table-light"><tr><th>Customer</th><th>Sales</th></tr></thead>
+        <tbody>
+          {% for cust, amt in enhanced.customer_concentration.top_customers %}
+          <tr><td>{{ cust }}</td><td>{{ amt|floatformat:2 }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Precautionary Measures & Predictive Analysis -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white"><h5 class="mb-0">Precautionary Measures & Predictive Analysis</h5></div>
+    <div class="card-body">
+      {% if enhanced.risk_alerts %}
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered">
+          <thead class="table-dark"><tr><th>Severity</th><th>Risk</th><th>Issue</th><th>Supporting Data</th><th>Action</th></tr></thead>
+          <tbody>
+            {% for a in enhanced.risk_alerts %}
+            <tr>
+              <td><span class="badge {% if a.severity == 'CRITICAL' %}bg-danger{% elif a.severity == 'HIGH' %}bg-warning text-dark{% elif a.severity == 'MEDIUM' %}bg-info text-dark{% else %}bg-secondary{% endif %}">{{ a.severity }}</span></td>
+              <td>{{ a.title }}</td>
+              <td>{{ a.issue }}</td>
+              <td>{{ a.supporting }}</td>
+              <td>{{ a.action }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="alert alert-success">No significant risks detected for the selected period.</div>
+      {% endif %}
+      <!-- Monthly profit trend -->
+      {% if enhanced.monthly_profit_trend %}
+      <h6 class="fw-bold mt-3">Monthly Profit Trend</h6>
+      <div class="table-responsive">
+        <table class="table table-sm table-striped">
+          <thead class="table-light"><tr><th>Period</th><th>Profit</th></tr></thead>
+          <tbody>
+            {% for mp in enhanced.monthly_profit_trend %}
+            <tr><td>{{ mp.year }}-{{ mp.month|stringformat:"02d" }}</td><td>{{ mp.profit|floatformat:2 }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Date-Range Performance Summary -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white"><h5 class="mb-0">Date-Range Performance Summary</h5></div>
+    <div class="card-body">
+      <p><strong>Status:</strong> {{ enhanced.date_range_summary.status }}</p>
+      <ul>
+        <li>Total Sales: {{ enhanced.date_range_summary.total_sales|floatformat:2 }}</li>
+        <li>Total Quantity: {{ enhanced.date_range_summary.total_quantity|floatformat:2 }}</li>
+        <li>Total Profit: {{ enhanced.date_range_summary.total_profit|floatformat:2 }} (Margin: {% if enhanced.date_range_summary.profit_margin is not None %}{{ enhanced.date_range_summary.profit_margin|floatformat:2 }}%{% else %}N/A{% endif %})</li>
+        <li>Sales Growth: {% if enhanced.date_range_summary.sales_growth is not None %}{{ enhanced.date_range_summary.sales_growth|floatformat:2 }}%{% else %}N/A{% endif %}</li>
+        <li>Profit Growth: {% if enhanced.date_range_summary.profit_growth is not None %}{{ enhanced.date_range_summary.profit_growth|floatformat:2 }}%{% else %}N/A{% endif %}</li>
+        <li>Best Product: {{ enhanced.date_range_summary.best_product|default:"N/A" }}</li>
+        <li>Best Customer: {{ enhanced.date_range_summary.best_customer|default:"N/A" }}</li>
+      </ul>
+      {% if enhanced.date_range_summary.concerns %}
+      <h6 class="fw-bold text-danger">Key Concerns</h6>
+      <ul>{% for c in enhanced.date_range_summary.concerns %}<li>{{ c.title }}: {{ c.issue }}</li>{% endfor %}</ul>
+      {% endif %}
+      {% if enhanced.data_quality_flags %}
+      <h6 class="fw-bold text-warning">Data Quality Notes</h6>
+      <ul>{% for f in enhanced.data_quality_flags %}<li>{{ f }}</li>{% endfor %}</ul>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Business Action Recommendations -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white"><h5 class="mb-0">Business Action Recommendations</h5></div>
+    <div class="card-body">
+      {% if enhanced.business_recommendations %}
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered">
+          <thead class="table-dark"><tr><th>Priority</th><th>Category</th><th>Recommendation</th><th>Reason</th><th>Action</th></tr></thead>
+          <tbody>
+            {% for r in enhanced.business_recommendations %}
+            <tr>
+              <td><span class="badge {% if r.priority == 'High' %}bg-danger{% elif r.priority == 'Medium' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ r.priority }}</span></td>
+              <td>{{ r.category }}</td>
+              <td>{{ r.title }}</td>
+              <td>{{ r.reason }}</td>
+              <td>{{ r.action }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="alert alert-info">No recommendations generated.</div>
+      {% endif %}
+    </div>
+  </div>
+PY
 
   <!-- Monthly Best-Performing Product Analysis -->
   {% if monthly_best_products %}
@@ -584,6 +771,33 @@
 </main>
 
 <script>
+function setQuickRange(range) {
+  var today = new Date();
+  var start, end;
+  end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  if (range === 'this_month') {
+    start = new Date(today.getFullYear(), today.getMonth(), 1);
+  } else if (range === 'last_month') {
+    start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    end = new Date(today.getFullYear(), today.getMonth(), 0);
+  } else if (range === 'last_3') {
+    start = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+  } else if (range === 'last_6') {
+    start = new Date(today.getFullYear(), today.getMonth() - 5, 1);
+  } else if (range === 'this_year') {
+    start = new Date(today.getFullYear(), 0, 1);
+  } else if (range === 'last_year') {
+    start = new Date(today.getFullYear() - 1, 0, 1);
+    end = new Date(today.getFullYear() - 1, 11, 31);
+  } else if (range === 'last_12') {
+    start = new Date(today.getFullYear() - 1, today.getMonth() + 1, 1);
+  }
+  function fmt(d) { return d.toISOString().slice(0,10); }
+  document.getElementById('start_date').value = fmt(start);
+  document.getElementById('end_date').value = fmt(end);
+  applyFilters();
+}
+
 function applyFilters() {
   var params = new URLSearchParams();
   

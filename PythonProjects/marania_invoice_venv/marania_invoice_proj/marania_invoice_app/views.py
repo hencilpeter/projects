@@ -2500,6 +2500,18 @@ def order_entry(request):
                         pass
                 else:
                     obj.twine_price_overrides = None
+                cost_ov = entry.get("cost_rate_overrides")
+                if isinstance(cost_ov, dict) and cost_ov:
+                    obj.cost_rate_overrides = json.dumps(cost_ov)
+                    obj._cost_rate_overrides = cost_ov
+                elif isinstance(cost_ov, str) and cost_ov.strip():
+                    obj.cost_rate_overrides = cost_ov
+                    try:
+                        obj._cost_rate_overrides = json.loads(cost_ov)
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                else:
+                    obj.cost_rate_overrides = None
                 obj.status = entry.get("status") or "Ordered"
                 raw_lsd = entry.get("last_status_date")
                 if raw_lsd and str(raw_lsd).strip():
@@ -2646,7 +2658,7 @@ def order_entry(request):
         'order_key', 'order_sequence', 'order_number', 'order_date', 'customer',
         'twine', 'quantity', 'quantity_unit', 'unit_price', 'is_gst_included',
         'status', 'last_status_date', 'order_instructions', 'comments',
-        'prod_spec', 'gst_rate', 'profit_loss', 'twine_price_overrides',
+        'prod_spec', 'gst_rate', 'profit_loss', 'twine_price_overrides', 'cost_rate_overrides',
     ))
     
     # Ensure order_number is included in the context for templates
@@ -3738,6 +3750,12 @@ def order_calculate_profit_loss_api(request):
                 temp._price_overrides = json.loads(ov_raw)
             except (json.JSONDecodeError, TypeError):
                 pass
+        cost_ov_raw = request.POST.get('cost_rate_overrides', '')
+        if cost_ov_raw:
+            try:
+                temp._cost_rate_overrides = json.loads(cost_ov_raw)
+            except (json.JSONDecodeError, TypeError):
+                pass
         pl = calculate_order_profit_loss(temp)
         ppk = ppd = None
         if pl is not None:
@@ -3781,6 +3799,12 @@ def order_profit_loss_detail_api(request, order_key=None):
         if ov_raw:
             try:
                 order._price_overrides = json.loads(ov_raw)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        cost_ov_raw = request.POST.get('cost_rate_overrides', '')
+        if cost_ov_raw:
+            try:
+                order._cost_rate_overrides = json.loads(cost_ov_raw)
             except (json.JSONDecodeError, TypeError):
                 pass
     else:
@@ -4474,9 +4498,9 @@ def purchase_entry(request):
                 except (ValueError, TypeError):
                     subtotal = gst_amount = total_amount = amount_paid = 0
 
-                balance = total_amount - amount_paid
+                balance = round(total_amount - amount_paid, 2)
                 payment_status = entry.get("payment_status") or "PENDING"
-                if total_amount > 0 and amount_paid >= total_amount:
+                if total_amount > 0 and round(amount_paid, 2) >= round(total_amount, 2):
                     payment_status = "PAID"
                 elif amount_paid > 0:
                     payment_status = "PARTIALLY_PAID"
@@ -7033,10 +7057,10 @@ def trend_analytics(request):
     page = request.GET.get('page', 1)
     page_size = request.GET.get('page_size', 25)
     
-    # Set default dates if not provided (last 6 months)
+    # Set default dates if not provided (last 5 years)
     if not start_date_str:
         end_date_default = date.today()
-        start_date_default = end_date_default - timedelta(days=180)
+        start_date_default = end_date_default - timedelta(days=365*5)
         start_date_str = start_date_default.isoformat()
         end_date_str = end_date_default.isoformat()
     
@@ -7075,6 +7099,31 @@ def trend_analytics(request):
     
     # Normalize sales data
     normalized_sales = trend_service.normalize_sales(filtered_queryset)
+
+    # Previous equivalent period for comparison
+    previous_normalized_sales = []
+    prev_profit_map = {}
+    if start_date and end_date:
+        try:
+            duration_days = (end_date - start_date).days
+            prev_end = start_date - timedelta(days=1)
+            prev_start = prev_end - timedelta(days=duration_days)
+            prev_filters = TrendFilters(
+                start_date=prev_start,
+                end_date=prev_end,
+                product_codes=product_codes,
+                mm_values=[Decimal(mm) if mm else None for mm in mm_values],
+                md_values=[Decimal(md) if md else None for md in md_values],
+                customers=customers,
+                statuses=[],
+                metric=metric,
+            )
+            prev_qs = trend_service.apply_filters(Sales.objects.all(), prev_filters)
+            previous_normalized_sales = trend_service.normalize_sales(prev_qs)
+            prev_profit_map = {s.sales_key: (s.profit_loss or Decimal('0')) for s in prev_qs}
+        except Exception:
+            previous_normalized_sales = []
+            prev_profit_map = {}
     
     # Apply MM/MD filters (post-normalization since we need parsed values)
     if filters.mm_values:
@@ -7090,7 +7139,360 @@ def trend_analytics(request):
     product_spec_matrix = trend_service.get_product_specification_matrix(normalized_sales)
     data_quality = trend_service.get_data_quality(normalized_sales)
     
-    # Calculate top 10 customers
+            # Best-Performing Product Analysis with period selection + forecasting
+    from datetime import date as _date
+
+    _best_mode = request.GET.get('best_mode', 'monthly')
+    if _best_mode not in ('monthly', 'quarterly'):
+        _best_mode = 'monthly'
+
+    # Available periods
+    _available_years = sorted(set(s.sales_entry_date.year for s in normalized_sales))
+    if _best_mode == 'quarterly':
+        _available_periods = []
+        for y in _available_years:
+            for q in (1,2,3,4):
+                _available_periods.append(f"{y}-Q{q}")
+        # add next 2 quarters
+        _today = _date.today()
+        for i in range(0, 3):
+            m = _today.month + i*3
+            y = _today.year
+            while m > 12:
+                m -= 12; y += 1
+            q = (m-1)//3 + 1
+            label = f"{y}-Q{q}"
+            if label not in _available_periods:
+                _available_periods.append(label)
+    else:
+        _available_periods = []
+        for y in _available_years:
+            for m in range(1, 13):
+                _available_periods.append(f"{y}-{m:02d}")
+        # add next 6 months
+        _today = _date.today()
+        for i in range(1, 7):
+            m = _today.month + i
+            y = _today.year
+            while m > 12:
+                m -= 12; y += 1
+            label = f"{y}-{m:02d}"
+            if label not in _available_periods:
+                _available_periods.append(label)
+
+    # Selected periods: from request GET (best_periods) or default current+next month
+    _selected = request.GET.getlist('best_periods')
+    if not _selected:
+        _today = _date.today()
+        if _best_mode == 'quarterly':
+            q = (_today.month-1)//3 + 1
+            _selected = [f"{_today.year}-Q{q}", f"{_today.year}-Q{q if q<4 else 1}"] if False else [f"{_today.year}-Q{q}"]
+            # add next quarter
+            nq = q+1 if q<4 else 1
+            ny = _today.year if q<4 else _today.year+1
+            _selected.append(f"{ny}-Q{nq}")
+        else:
+            _selected = [f"{_today.year}-{_today.month:02d}"]
+            # next month
+            nm = _today.month + 1
+            ny = _today.year
+            if nm > 12:
+                nm -= 12; ny += 1
+            _selected.append(f"{ny}-{nm:02d}")
+
+    # Helper to parse period to (year, month_start, month_end)
+    def _parse_period(p):
+        p = p.strip()
+        if '-Q' in p:
+            y, q = p.split('-Q')
+            y = int(y); q = int(q)
+            ms = (q-1)*3 + 1
+            me = q*3
+            return ('quarterly', y, ms, me, q)
+        parts = p.split('-')
+        y = int(parts[0]); m = int(parts[1])
+        return ('monthly', y, m, m, None)
+
+                    # Monthly/Quarterly Best-Performing Product Analysis
+    _best_mode = request.GET.get('best_mode', 'monthly')
+    if _best_mode not in ('monthly', 'quarterly'):
+        _best_mode = 'monthly'
+
+    _all_years = sorted(set(s.sales_entry_date.year for s in normalized_sales))
+
+    # Historical range filter (default: last 5 years)
+    _best_start_year_str = request.GET.get('best_start_year', '')
+    _best_end_year_str = request.GET.get('best_end_year', '')
+    if _best_start_year_str:
+        try:
+            _best_start_year = int(_best_start_year_str)
+        except (ValueError, TypeError):
+            _best_start_year = (_all_years[-1] - 4) if _all_years else None
+    else:
+        _best_start_year = (_all_years[-1] - 4) if _all_years else None
+    if _best_end_year_str:
+        try:
+            _best_end_year = int(_best_end_year_str)
+        except (ValueError, TypeError):
+            _best_end_year = _all_years[-1] if _all_years else None
+    else:
+        _best_end_year = _all_years[-1] if _all_years else None
+    if _best_start_year is not None and _best_end_year is not None and _best_start_year > _best_end_year:
+        _best_start_year, _best_end_year = _best_end_year, _best_start_year
+
+    def _period_key(sale):
+        if _best_mode == 'quarterly':
+            q = (sale.sales_entry_date.month - 1) // 3 + 1
+            return (sale.sales_entry_date.year, q)
+        return (sale.sales_entry_date.year, sale.sales_entry_date.month)
+
+    def _period_label(pk):
+        if _best_mode == 'quarterly':
+            return f"{pk[0]}-Q{pk[1]}"
+        return f"{pk[0]}-{pk[1]:02d}"
+
+    def _period_months(pk):
+        if _best_mode == 'quarterly':
+            q = pk[1]
+            return list(range((q-1)*3+1, q*3+1))
+        return [pk[1]]
+
+    # Build profit lookup
+    _profit_map = {s.sales_key: (s.profit_loss or Decimal('0')) for s in filtered_queryset}
+
+    # Aggregate
+    monthly_groups = {}
+    for sale in normalized_sales:
+        if _best_start_year is not None and sale.sales_entry_date.year < _best_start_year:
+            continue
+        if _best_end_year is not None and sale.sales_entry_date.year > _best_end_year:
+            continue
+        pk = _period_key(sale)
+        prod = sale.product_code or 'Unknown'
+        spec = sale.normalized_specification or sale.specification or 'Unknown'
+        weight = sale.processed_weight if sale.processed_weight > 0 else sale.initial_weight
+        profit = _profit_map.get(sale.sales_key, Decimal('0')) or Decimal('0')
+        cust = sale.customer or ''
+        if pk not in monthly_groups:
+            monthly_groups[pk] = {}
+        if prod not in monthly_groups[pk]:
+            monthly_groups[pk][prod] = {'product': prod, 'sales': Decimal('0'), 'weight': Decimal('0'), 'orders': 0, 'profit': Decimal('0'), 'specs': {}, 'customers': {}}
+        monthly_groups[pk][prod]['sales'] += sale.total_amount
+        monthly_groups[pk][prod]['weight'] += weight
+        monthly_groups[pk][prod]['orders'] += 1
+        monthly_groups[pk][prod]['profit'] += profit
+        if cust:
+            monthly_groups[pk][prod]['customers'][cust] = monthly_groups[pk][prod]['customers'].get(cust, Decimal('0')) + sale.total_amount
+        if spec not in monthly_groups[pk][prod]['specs']:
+            monthly_groups[pk][prod]['specs'][spec] = {'spec': spec, 'sales': Decimal('0'), 'weight': Decimal('0'), 'orders': 0, 'profit': Decimal('0'), 'customers': {}}
+        monthly_groups[pk][prod]['specs'][spec]['sales'] += sale.total_amount
+        monthly_groups[pk][prod]['specs'][spec]['weight'] += weight
+        monthly_groups[pk][prod]['specs'][spec]['orders'] += 1
+        monthly_groups[pk][prod]['specs'][spec]['profit'] += profit
+        if cust:
+            monthly_groups[pk][prod]['specs'][spec]['customers'][cust] = monthly_groups[pk][prod]['specs'][spec]['customers'].get(cust, Decimal('0')) + sale.total_amount
+
+    # Top customer helper
+    def _top_customer(cust_dict):
+        if not cust_dict:
+            return ''
+        return max(cust_dict.items(), key=lambda kv: kv[1])[0]
+
+    # Build historical results
+    monthly_best_products = []
+    for pk in sorted(monthly_groups.keys()):
+        products = sorted(monthly_groups[pk].values(), key=lambda p: (p['sales'], p['profit']), reverse=True)
+        if not products:
+            continue
+        top_product = products[0]['product']
+        for p in products:
+            for sp in p['specs'].values():
+                sp['top_customer'] = _top_customer(sp['customers'])
+            p['top_specs'] = sorted(p['specs'].values(), key=lambda s: (s['sales'], s['profit']), reverse=True)[:3]
+            p['is_top'] = (p['product'] == top_product)
+        monthly_best_products.append({
+            'period': _period_label(pk),
+            'year': pk[0],
+            'month_num': pk[1],
+            'mode': _best_mode,
+            'products': products,
+        })
+
+    # Forecast: next 2 months (or next 1 quarter) based on prior year same period + recent momentum
+    _today = date.today()
+    _forecast_periods = []
+    if _best_mode == 'quarterly':
+        q = (_today.month - 1) // 3 + 1
+        # next quarter
+        nq = q + 1 if q < 4 else 1
+        ny = _today.year if q < 4 else _today.year + 1
+        _forecast_periods.append((ny, nq))
+    else:
+        for i in range(1, 3):
+            m = _today.month + i
+            y = _today.year
+            while m > 12:
+                m -= 12; y += 1
+            _forecast_periods.append((y, m))
+
+    # Recent momentum: average monthly sales per product over last 3 months
+    _recent_cutoff = _today.replace(day=1)
+    # compute per-product recent sales (last 3 months)
+    _recent_products = {}
+    for sale in normalized_sales:
+        # last 3 months relative to today
+        months_back = (_today.year - sale.sales_entry_date.year) * 12 + (_today.month - sale.sales_entry_date.month)
+        if 1 <= months_back <= 3:
+            prod = sale.product_code or 'Unknown'
+            _recent_products[prod] = _recent_products.get(prod, Decimal('0')) + sale.total_amount
+
+    # prior 3-month average (months 4-6 back)
+    _prior_products = {}
+    for sale in normalized_sales:
+        months_back = (_today.year - sale.sales_entry_date.year) * 12 + (_today.month - sale.sales_entry_date.month)
+        if 4 <= months_back <= 6:
+            prod = sale.product_code or 'Unknown'
+            _prior_products[prod] = _prior_products.get(prod, Decimal('0')) + sale.total_amount
+
+    projected_best_products = []
+    for (fy, fm) in _forecast_periods:
+        # prior year same period
+        if _best_mode == 'quarterly':
+            q = fm
+            ms = (q-1)*3 + 1; me = q*3
+            prior_year = fy - 1
+            prior_key = (prior_year, q)
+        else:
+            ms = me = fm
+            prior_year = fy - 1
+            prior_key = (prior_year, fm)
+
+        # Use prior year actual data if available
+        if prior_key in monthly_groups:
+            products = [dict(p) for p in monthly_groups[prior_key].values()]
+            # apply momentum
+            for p in products:
+                prod = p['product']
+                recent = _recent_products.get(prod, Decimal('0'))
+                prior = _prior_products.get(prod, Decimal('0'))
+                if prior > 0:
+                    momentum = (recent - prior) / prior
+                elif recent > 0:
+                    momentum = Decimal('0.1')
+                else:
+                    momentum = Decimal('0')
+                # forecast = prior_year_sales * (1 + momentum), capped
+                p['sales'] = p['sales'] * (Decimal('1') + momentum)
+                p['profit'] = p['profit'] * (Decimal('1') + momentum)
+                p['weight'] = p['weight'] * (Decimal('1') + momentum)
+                p['orders'] = int(p['orders'] * (1 + float(momentum)))
+                # top specs with momentum
+                for sp in p['specs'].values() if isinstance(p['specs'], dict) else []:
+                    pass
+                p['top_specs'] = sorted(p['specs'].values(), key=lambda s: (s['sales'], s['profit']), reverse=True)[:3] if isinstance(p['specs'], dict) else []
+                for sp in p['top_specs']:
+                    sp['top_customer'] = _top_customer(sp.get('customers', {}))
+                # confidence
+                years_with = len(set(s.sales_entry_date.year for s in normalized_sales if (s.product_code or 'Unknown')==prod and ms <= s.sales_entry_date.month <= me))
+                if years_with >= 2:
+                    p['confidence'] = 'High'
+                elif years_with == 1:
+                    p['confidence'] = 'Medium'
+                else:
+                    p['confidence'] = 'Low'
+            products = sorted(products, key=lambda p: (p['sales'], p['profit']), reverse=True)
+            if products:
+                top_product = products[0]['product']
+                for p in products:
+                    p['is_top'] = (p['product'] == top_product)
+            has_data = True
+        else:
+            products = []
+            has_data = False
+
+        if _best_mode == 'quarterly':
+            label = f"{fy}-Q{fm}"
+        else:
+            label = f"{fy}-{fm:02d}"
+        projected_best_products.append({
+            'period': label,
+            'year': fy,
+            'month_num': fm,
+            'products': products,
+            'has_data': has_data,
+            'from_year': fy - 1,
+        })
+
+    # Growth indicator for historical: compare to prior year
+    for block in monthly_best_products:
+        ym = block['period']
+        if '-Q' in ym:
+            y, q = ym.split('-Q')
+            y = int(y); q = int(q)
+            m = (q-1)*3 + 1
+        else:
+            y, m = int(ym.split('-')[0]), int(ym.split('-')[1])
+        prior_key = (y-1, m)
+        # find prior block products
+        prior_block = None
+        if '-Q' in ym:
+            prior_label = f"{y-1}-Q{q}"
+        else:
+            prior_label = f"{y-1}-{m:02d}"
+        for b in monthly_best_products:
+            if b['period'] == prior_label:
+                prior_block = b
+        for p in block['products']:
+            if prior_block:
+                prior_p = next((pp for pp in prior_block['products'] if pp['product']==p['product']), None)
+                if prior_p and prior_p['sales'] > 0:
+                    p['growth'] = (p['sales'] - prior_p['sales']) / prior_p['sales'] * 100
+                else:
+                    p['growth'] = None
+            else:
+                p['growth'] = None
+
+    # Display period filter (optional second filter section)
+    _display_periods = request.GET.getlist('display_periods')
+    # available display periods = historical periods in range + next 6 months (forecast)
+    _avail_display_labels = [b['period'] for b in monthly_best_products]
+    _today = date.today()
+    for _i in range(1, 7):
+        _m = _today.month + _i
+        _y = _today.year
+        while _m > 12:
+            _m -= 12; _y += 1
+        if _best_mode == 'quarterly':
+            _q = (_m - 1) // 3 + 1
+            _lbl = f"{_y}-Q{_q}"
+        else:
+            _lbl = f"{_y}-{_m:02d}"
+        if _lbl not in _avail_display_labels:
+            _avail_display_labels.append(_lbl)
+    available_display_periods = _avail_display_labels
+    if _display_periods:
+        _disp_set = set(_display_periods)
+        monthly_best_products = [b for b in monthly_best_products if b['period'] in _disp_set]
+    selected_display_periods = _display_periods
+
+    # Enhanced dashboard metrics (decision-support)
+    try:
+        from marania_invoice_app.analytics.services.dashboard_metrics import compute_enhanced
+        enhanced = compute_enhanced(
+            normalized_sales=normalized_sales,
+            previous_normalized_sales=previous_normalized_sales,
+            profit_map=_profit_map,
+            prev_profit_map=prev_profit_map,
+            filters=filters,
+            monthly_trend=monthly_trend,
+            top_customers=top_customers,
+            product_trends=product_trends,
+            product_spec_matrix=product_spec_matrix,
+        )
+    except Exception as _e:
+        enhanced = {}
+
+# Calculate top 10 customers
     customer_data = {}
     for sale in normalized_sales:
         if sale.customer:
@@ -7101,30 +7503,26 @@ def trend_analytics(request):
                     'specifications': {}
                 }
             customer_data[sale.customer]['sales'] += sale.total_amount
-            # Combine product code with normalized specification
             full_spec = f"{sale.product_code}-{sale.normalized_specification}" if sale.product_code and sale.normalized_specification and sale.normalized_specification != "Unknown" else (sale.product_code or sale.normalized_specification or "Unknown")
-            # Track weight per specification (use processed_weight if available, otherwise initial_weight)
             weight = sale.processed_weight if sale.processed_weight > 0 else sale.initial_weight
             if full_spec not in customer_data[sale.customer]['specifications']:
                 customer_data[sale.customer]['specifications'][full_spec] = Decimal('0')
             customer_data[sale.customer]['specifications'][full_spec] += weight
-    
-    # Set orders = unique specification count, then sort
+
     for customer in customer_data.values():
         customer['orders'] = len(customer['specifications'])
-    
+
     top_customers = sorted(
         customer_data.values(),
         key=lambda x: x['orders'],
         reverse=True
     )[:10]
-    
-    # Convert specifications dict to comma-separated strings with weight in kg
+
     for customer in top_customers:
         spec_strings = [f"{spec}({weight:.2f} kg)" for spec, weight in sorted(customer['specifications'].items(), key=lambda x: x[1], reverse=True)]
         customer['specifications'] = ', '.join(spec_strings)
-    
-    # Generate recommendations (without season comparison for now)
+
+# Generate recommendations (without season comparison for now)
     recommendations = []
     executive_summary = ""
     
@@ -7372,6 +7770,12 @@ def trend_analytics(request):
         'executive_summary': executive_summary,
         'data_quality': data_quality,
         'top_customers': top_customers,
+        'monthly_best_products': monthly_best_products,
+        'available_display_periods': available_display_periods,
+        'selected_display_periods': selected_display_periods,
+        'best_start_year': _best_start_year,
+        'best_end_year': _best_end_year,
+        'available_years': _all_years,
         'all_products': all_products,
         'all_customers': all_customers,
         'all_mm': all_mm,
@@ -7382,6 +7786,7 @@ def trend_analytics(request):
         'today': date.today(),
         'monthly_chart_data_json': json.dumps(monthly_chart_data),
         'product_chart_data_json': json.dumps(product_chart_data),
+        'enhanced': enhanced,
     })
 
 
