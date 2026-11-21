@@ -16,6 +16,59 @@
   </div>
   {% endif %}
 
+<!-- KPI Cards -->
+  <div class="row mb-2">
+    <div class="col-md-2">
+      <div class="card bg-primary text-white">
+        <div class="card-body text-center">
+          <h6 class="card-title">Total Orders</h6>
+          <h4 class="card-text">{{ summary.orders }}</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card bg-success text-white">
+        <div class="card-body text-center">
+          <h6 class="card-title">Total Sales</h6>
+          <h4 class="card-text">{{ summary.sales }}</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card bg-info text-white">
+        <div class="card-body text-center">
+          <h6 class="card-title">Total Weight (KG)</h6>
+          <h4 class="card-text">{{ summary.weight }}</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card bg-warning text-dark">
+        <div class="card-body text-center">
+          <h6 class="card-title">Total Pieces</h6>
+          <h4 class="card-text">{{ summary.pieces }}</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card bg-secondary text-white">
+        <div class="card-body text-center">
+          <h6 class="card-title">Active Products</h6>
+          <h4 class="card-text">{{ summary.products }}</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card bg-dark text-white">
+        <div class="card-body text-center">
+          <h6 class="card-title">Active Specs</h6>
+          <h4 class="card-text">{{ summary.specifications }}</h4>
+        </div>
+      </div>
+    </div>
+  </div
+
+  
   <!-- Filters -->
   <div class="card shadow-sm mb-2">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
@@ -107,59 +160,7 @@
     </div>
   </div>
 
-<!-- KPI Cards -->
-  <div class="row mb-2">
-    <div class="col-md-2">
-      <div class="card bg-primary text-white">
-        <div class="card-body text-center">
-          <h6 class="card-title">Total Orders</h6>
-          <h4 class="card-text">{{ summary.orders }}</h4>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-2">
-      <div class="card bg-success text-white">
-        <div class="card-body text-center">
-          <h6 class="card-title">Total Sales</h6>
-          <h4 class="card-text">{{ summary.sales }}</h4>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-2">
-      <div class="card bg-info text-white">
-        <div class="card-body text-center">
-          <h6 class="card-title">Total Weight (KG)</h6>
-          <h4 class="card-text">{{ summary.weight }}</h4>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-2">
-      <div class="card bg-warning text-dark">
-        <div class="card-body text-center">
-          <h6 class="card-title">Total Pieces</h6>
-          <h4 class="card-text">{{ summary.pieces }}</h4>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-2">
-      <div class="card bg-secondary text-white">
-        <div class="card-body text-center">
-          <h6 class="card-title">Active Products</h6>
-          <h4 class="card-text">{{ summary.products }}</h4>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-2">
-      <div class="card bg-dark text-white">
-        <div class="card-body text-center">
-          <h6 class="card-title">Active Specs</h6>
-          <h4 class="card-text">{{ summary.specifications }}</h4>
-        </div>
-      </div>
-    </div>
-  </div
-
-  <!-- Overall Status -->
+<!-- Overall Status -->
   {% if enhanced.overall_status %}
   <div class="alert {% if enhanced.overall_status == 'Positive' %}alert-success{% elif enhanced.overall_status == 'Stable' %}alert-info{% elif enhanced.overall_status == 'Needs Attention' %}alert-warning{% else %}alert-danger{% endif %} mb-4">
     <strong>Overall Business Status: {{ enhanced.overall_status }}</strong>
