@@ -76,7 +76,7 @@
   
 <!-- Filters -->
   <div class="card shadow-sm mb-2">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Filters{% if filters.start_date and filters.end_date %} ({{ filters.start_date|date:'Y-m-d' }} to {{ filters.end_date|date:'Y-m-d' }}){% endif %}</h5>
       <button type="button" class="btn btn-sm btn-outline-light ta-toggle" id="filterToggleBtn" data-bs-toggle="collapse" data-bs-target="#filterBody" aria-expanded="{% if filters_applied %}true{% else %}false{% endif %}" aria-controls="filterBody">
         <span id="filterToggleLabel">{% if filters_applied %}Collapse{% else %}Expand{% endif %}</span> <i class="bi {% if filters_applied %}bi-chevron-up{% else %}bi-chevron-down{% endif %}"></i>
@@ -167,7 +167,7 @@
 
 <!-- Business KPI Overview -->
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Business KPI Overview</h5>
       <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#bkpiBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
@@ -227,7 +227,7 @@
   <!-- Monthly Best-Performing Product Analysis -->
   {% if monthly_best_products %}
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-info text-dark d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Monthly Best-Performing Product Analysis</h5>
       <button type="button" class="btn btn-sm btn-outline-light ta-toggle" id="bestToggleBtn" data-bs-toggle="collapse" data-bs-target="#bestBody" aria-expanded="false" aria-controls="bestBody">
         <span id="bestToggleLabel">Expand</span> <i class="bi bi-chevron-down"></i>
@@ -400,7 +400,7 @@
   {% endif %}
 
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Product Trends</h5>
       <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#prodtrendsBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
@@ -490,7 +490,7 @@
 
 <!-- Customer Concentration -->
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Customer Concentration & Dependency</h5>
       <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#custconcBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
@@ -513,7 +513,7 @@
 
   <!-- Precautionary Measures & Predictive Analysis -->
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Precautionary Measures & Predictive Analysis</h5>
       <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#precautBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
@@ -557,7 +557,7 @@
 
   <!-- Business Action Recommendations -->
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Business Action Recommendations</h5>
       <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#bizrecBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
@@ -587,7 +587,7 @@
 
   <!-- Product × Specification Matrix -->
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Product × Specification Matrix</h5>
       <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#prodmatBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
@@ -619,9 +619,9 @@
     </div>
   </div>
 
-  <!-- Top 10 Customers -->
+  <!-- Customer Performance -->
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Customer Performance {% if filters.start_date and filters.end_date %}({{ filters.start_date|date:'d-M-Y' }} to {{ filters.end_date|date:'d-M-Y' }}){% endif %}</h5>
       <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#topcustBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
@@ -664,7 +664,7 @@
   <!-- Recommendations -->
   {% if recommendations %}
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Recommendations</h5>
       <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#oldrecBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
@@ -728,50 +728,6 @@
     </div>
   </div>
   {% endif %}
-
-  <!-- Data Quality -->
-  <div class="card shadow-sm mb-4">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-      <h5 class="mb-0">Data Quality</h5>
-      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#dataqBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
-    </div>
-    <div class="card-body collapse ta-collapse" id="dataqBody">
-      <div class="row">
-        <div class="col-md-3">
-          <div class="card bg-light">
-            <div class="card-body text-center py-2">
-              <h6 class="card-title mb-0">Total Records</h6>
-              <h4 class="card-text mb-0">{{ data_quality.total_records }}</h4>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="card bg-light">
-            <div class="card-body text-center py-2">
-              <h6 class="card-title mb-0">With Product Code</h6>
-              <h4 class="card-text mb-0">{{ data_quality.records_with_product }}</h4>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="card bg-light">
-            <div class="card-body text-center py-2">
-              <h6 class="card-title mb-0">Valid MM/MD</h6>
-              <h4 class="card-text mb-0">{{ data_quality.records_with_valid_spec }}</h4>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="card bg-light">
-            <div class="card-body text-center py-2">
-              <h6 class="card-title mb-0">Invalid Spec</h6>
-              <h4 class="card-text mb-0">{{ data_quality.records_with_invalid_spec }}</h4>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- Detailed Orders Table -->
   <div class="card shadow-sm">
@@ -851,6 +807,52 @@
       {% endif %}
     </div>
   </div>
+<!-- Data Quality -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Data Quality</h5>
+      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#dataqBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+    </div>
+    <div class="card-body collapse ta-collapse" id="dataqBody">
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card bg-light">
+            <div class="card-body text-center py-2">
+              <h6 class="card-title mb-0">Total Records</h6>
+              <h4 class="card-text mb-0">{{ data_quality.total_records }}</h4>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-light">
+            <div class="card-body text-center py-2">
+              <h6 class="card-title mb-0">With Product Code</h6>
+              <h4 class="card-text mb-0">{{ data_quality.records_with_product }}</h4>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-light">
+            <div class="card-body text-center py-2">
+              <h6 class="card-title mb-0">Valid MM/MD</h6>
+              <h4 class="card-text mb-0">{{ data_quality.records_with_valid_spec }}</h4>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-light">
+            <div class="card-body text-center py-2">
+              <h6 class="card-title mb-0">Invalid Spec</h6>
+              <h4 class="card-text mb-0">{{ data_quality.records_with_invalid_spec }}</h4>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+
 </main>
 
 <script>
