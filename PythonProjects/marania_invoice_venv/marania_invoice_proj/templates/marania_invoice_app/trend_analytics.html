@@ -82,7 +82,7 @@
   <div class="card shadow-sm mb-2">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Filters{% if filters.start_date and filters.end_date %} ({{ filters.start_date|date:'Y-m-d' }} to {{ filters.end_date|date:'Y-m-d' }}){% endif %}</h5>
-      <button type="button" class="btn btn-sm btn-outline-light" id="filterToggleBtn" data-bs-toggle="collapse" data-bs-target="#filterBody" aria-expanded="false" aria-controls="filterBody">
+      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" id="filterToggleBtn" data-bs-toggle="collapse" data-bs-target="#filterBody" aria-expanded="false" aria-controls="filterBody">
         <span id="filterToggleLabel">Expand</span> <i class="bi bi-chevron-down"></i>
       </button>
     </div>
@@ -173,7 +173,7 @@
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Business KPI Overview</h5>
-      <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="collapse" data-bs-target="#bkpiBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#bkpiBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse show" id="bkpiBody">
       <div class="row mb-3">
@@ -226,7 +226,7 @@
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Customer Concentration & Dependency</h5>
-      <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="collapse" data-bs-target="#custconcBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#custconcBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse show" id="custconcBody">
       <div class="row mb-2">
@@ -249,7 +249,7 @@
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Precautionary Measures & Predictive Analysis</h5>
-      <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="collapse" data-bs-target="#precautBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#precautBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse show" id="precautBody">
       {% if enhanced.risk_alerts %}
@@ -293,7 +293,7 @@
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Date-Range Performance Summary</h5>
-      <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="collapse" data-bs-target="#drsummaryBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#drsummaryBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse show" id="drsummaryBody">
       <p><strong>Status:</strong> {{ enhanced.date_range_summary.status }}</p>
@@ -321,7 +321,7 @@
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Business Action Recommendations</h5>
-      <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="collapse" data-bs-target="#bizrecBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#bizrecBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse show" id="bizrecBody">
       {% if enhanced.business_recommendations %}
@@ -352,7 +352,7 @@
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Monthly Best-Performing Product Analysis</h5>
-      <button type="button" class="btn btn-sm btn-outline-light" id="bestToggleBtn" data-bs-toggle="collapse" data-bs-target="#bestBody" aria-expanded="true" aria-controls="bestBody">
+      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" id="bestToggleBtn" data-bs-toggle="collapse" data-bs-target="#bestBody" aria-expanded="true" aria-controls="bestBody">
         <span id="bestToggleLabel">Collapse</span> <i class="bi bi-chevron-up"></i>
       </button>
     </div>
@@ -513,7 +513,7 @@
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Product Trends (Top 10)</h5>
-      <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="collapse" data-bs-target="#prodtrendsBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#prodtrendsBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse show" id="prodtrendsBody">
       <canvas id="productTrendChart" height="100"></canvas>
@@ -524,7 +524,7 @@
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Product × Specification Matrix</h5>
-      <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="collapse" data-bs-target="#prodmatBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#prodmatBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse show" id="prodmatBody">
       <div class="table-responsive">
@@ -558,7 +558,7 @@
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Top 10 Customers {% if filters.start_date and filters.end_date %}({{ filters.start_date|date:'d-M-Y' }} to {{ filters.end_date|date:'d-M-Y' }}){% endif %}</h5>
-      <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="collapse" data-bs-target="#topcustBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#topcustBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse show" id="topcustBody">
       <div class="table-responsive">
@@ -595,7 +595,7 @@
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Recommendations</h5>
-      <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="collapse" data-bs-target="#oldrecBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#oldrecBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse show" id="oldrecBody">
       <div class="table-responsive">
@@ -662,7 +662,7 @@
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Data Quality</h5>
-      <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="collapse" data-bs-target="#dataqBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#dataqBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse show" id="dataqBody">
       <div class="row">
@@ -706,7 +706,7 @@
   <div class="card shadow-sm">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Detailed Sales Orders</h5>
-      <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="collapse" data-bs-target="#detailsalesBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#detailsalesBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse show" id="detailsalesBody">
       <div class="table-responsive">
@@ -842,7 +842,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Generic collapse toggle label/icon updater
 document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(function(btn) {
+  document.querySelectorAll('.ta-toggle').forEach(function(btn) {
     var targetSel = btn.getAttribute('data-bs-target');
     if (!targetSel) return;
     var el = document.querySelector(targetSel);
