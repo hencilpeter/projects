@@ -216,6 +216,11 @@
         </tbody>
       </table>
       {% endif %}
+      <div class="row mt-2">
+        <div class="col-md-4"><strong>Best Product:</strong> {{ enhanced.date_range_summary.best_product|default:"N/A" }}</div>
+        <div class="col-md-4"><strong>Best Customer:</strong> {{ enhanced.date_range_summary.best_customer|default:"N/A" }}</div>
+        <div class="col-md-4"><strong>Key Concerns:</strong> {{ enhanced.date_range_summary.concerns|length }}</div>
+      </div>
     </div>
   </div>
 
@@ -546,34 +551,6 @@
           </tbody>
         </table>
       </div>
-      {% endif %}
-    </div>
-  </div>
-
-  <!-- Date-Range Performance Summary -->
-  <div class="card shadow-sm mb-4">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-      <h5 class="mb-0">Date-Range Performance Summary</h5>
-      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#drsummaryBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
-    </div>
-    <div class="card-body collapse ta-collapse" id="drsummaryBody">
-      <p><strong>Status:</strong> {{ enhanced.date_range_summary.status }}</p>
-      <ul>
-        <li>Total Sales: {{ enhanced.date_range_summary.total_sales|inr }}</li>
-        <li>Total Quantity: {{ enhanced.date_range_summary.total_quantity|floatformat:2 }}</li>
-        <li>Total Profit: {{ enhanced.date_range_summary.total_profit|inr }} (Margin: {% if enhanced.date_range_summary.profit_margin is not None %}{{ enhanced.date_range_summary.profit_margin|floatformat:2 }}%{% else %}N/A{% endif %})</li>
-        <li>Sales Growth: {% if enhanced.date_range_summary.sales_growth is not None %}{{ enhanced.date_range_summary.sales_growth|floatformat:2 }}%{% else %}N/A{% endif %}</li>
-        <li>Profit Growth: {% if enhanced.date_range_summary.profit_growth is not None %}{{ enhanced.date_range_summary.profit_growth|floatformat:2 }}%{% else %}N/A{% endif %}</li>
-        <li>Best Product: {{ enhanced.date_range_summary.best_product|default:"N/A" }}</li>
-        <li>Best Customer: {{ enhanced.date_range_summary.best_customer|default:"N/A" }}</li>
-      </ul>
-      {% if enhanced.date_range_summary.concerns %}
-      <h6 class="fw-bold text-danger">Key Concerns</h6>
-      <ul>{% for c in enhanced.date_range_summary.concerns %}<li>{{ c.title }}: {{ c.issue }}</li>{% endfor %}</ul>
-      {% endif %}
-      {% if enhanced.data_quality_flags %}
-      <h6 class="fw-bold text-warning">Data Quality Notes</h6>
-      <ul>{% for f in enhanced.data_quality_flags %}<li>{{ f }}</li>{% endfor %}</ul>
       {% endif %}
     </div>
   </div>
