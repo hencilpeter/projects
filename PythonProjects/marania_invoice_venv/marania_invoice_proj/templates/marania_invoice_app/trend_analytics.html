@@ -425,6 +425,7 @@
         <div class="col-md-4">
           <label class="form-label small mb-0">Selected Product (Monthly Trend)</label>
           <select class="form-select form-select-sm" id="selected_product" onchange="applyFilters()">
+            <option value="ALL" {% if product_selected == 'ALL' %}selected{% endif %}>All Products</option>
             {% for p in product_top10 %}
             <option value="{{ p.product }}" {% if product_selected == p.product %}selected{% endif %}>{{ p.product }}</option>
             {% endfor %}
@@ -465,7 +466,7 @@
         </table>
       </div>
 
-      <h6 class="fw-bold mt-3">Monthly Product Performance Trend - {{ product_selected }}</h6>
+      <h6 class="fw-bold mt-3">Monthly Product Performance Trend - {% if product_selected == "ALL" %}All Products{% else %}{{ product_selected }}{% endif %}</h6>
       <canvas id="productMonthlyTrendChart" height="100"></canvas>
 
       {% if product_insights %}

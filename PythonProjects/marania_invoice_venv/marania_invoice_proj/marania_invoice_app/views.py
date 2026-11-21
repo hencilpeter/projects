@@ -7879,13 +7879,13 @@ def trend_analytics(request):
 
     # Selected product for monthly trend (default rank 1)
     _selected_prod = request.GET.get('selected_product', '')
-    if not _selected_prod and _top10:
-        _selected_prod = _top10[0]['product']
+    if not _selected_prod:
+        _selected_prod = 'ALL' 
 
-    # Monthly trend for selected product
+    # Monthly trend for selected product (ALL = aggregate across all products)
     _prod_monthly = {}
     for _s in normalized_sales:
-        if (_s.product_code or 'Unknown') != _selected_prod:
+        if _selected_prod != 'ALL' and (_s.product_code or 'Unknown') != _selected_prod:
             continue
         _key = (_s.sales_entry_date.year, _s.sales_entry_date.month)
         if _key not in _prod_monthly:
