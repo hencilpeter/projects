@@ -400,7 +400,83 @@
       <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#prodtrendsBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse ta-collapse" id="prodtrendsBody">
-      <canvas id="productTrendChart" height="100"></canvas>
+            <!-- Ranking selector -->
+      <div class="row g-2 mb-3">
+        <div class="col-md-4">
+          <label class="form-label small mb-0">Ranking Criteria</label>
+          <select class="form-select form-select-sm" id="rank_by" onchange="applyFilters()">
+            <option value="quantity" {% if product_rank_by == 'quantity' %}selected{% endif %}>Top 10 by Sales Quantity</option>
+            <option value="revenue" {% if product_rank_by == 'revenue' %}selected{% endif %}>Top 10 by Revenue</option>
+            <option value="profit" {% if product_rank_by == 'profit' %}selected{% endif %}>Top 10 by Total Profit</option>
+            <option value="margin" {% if product_rank_by == 'margin' %}selected{% endif %}>Top 10 by Profit Margin (%)</option>
+            <option value="growth" {% if product_rank_by == 'growth' %}selected{% endif %}>Top 10 by Sales Growth (%)</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small mb-0">Graph Metric</label>
+          <select class="form-select form-select-sm" id="graph_metric" onchange="applyFilters()">
+            <option value="quantity" {% if product_graph_metric == 'quantity' %}selected{% endif %}>Sales Quantity</option>
+            <option value="revenue" {% if product_graph_metric == 'revenue' %}selected{% endif %}>Revenue</option>
+            <option value="profit" {% if product_graph_metric == 'profit' %}selected{% endif %}>Total Profit</option>
+            <option value="margin" {% if product_graph_metric == 'margin' %}selected{% endif %}>Profit Margin (%)</option>
+            <option value="growth" {% if product_graph_metric == 'growth' %}selected{% endif %}>Sales Growth (%)</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small mb-0">Selected Product (Monthly Trend)</label>
+          <select class="form-select form-select-sm" id="selected_product" onchange="applyFilters()">
+            {% for p in product_top10 %}
+            <option value="{{ p.product }}" {% if product_selected == p.product %}selected{% endif %}>{{ p.product }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-2"><div class="card bg-primary text-white"><div class="card-body text-center py-2"><h6 class="card-title mb-0">Total Qty</h6><h5 class="card-text mb-0">{{ product_summary_cards.total_quantity|inr }}</h5></div></div></div>
+        <div class="col-md-2"><div class="card bg-success text-white"><div class="card-body text-center py-2"><h6 class="card-title mb-0">Total Revenue</h6><h5 class="card-text mb-0">{{ product_summary_cards.total_revenue|inr }}</h5></div></div></div>
+        <div class="col-md-2"><div class="card bg-info text-white"><div class="card-body text-center py-2"><h6 class="card-title mb-0">Total Profit</h6><h5 class="card-text mb-0">{{ product_summary_cards.total_profit|inr }}</h5></div></div></div>
+        <div class="col-md-2"><div class="card bg-warning text-dark"><div class="card-body text-center py-2"><h6 class="card-title mb-0">Avg Margin</h6><h5 class="card-text mb-0">{% if product_summary_cards.avg_margin is not None %}{{ product_summary_cards.avg_margin|floatformat:2 }}%{% else %}N/A{% endif %}</h5></div></div></div>
+        <div class="col-md-2"><div class="card bg-secondary text-white"><div class="card-body text-center py-2"><h6 class="card-title mb-0">Growing</h6><h5 class="card-text mb-0">{{ product_summary_cards.growing }}</h5></div></div></div>
+        <div class="col-md-2"><div class="card bg-danger text-white"><div class="card-body text-center py-2"><h6 class="card-title mb-0">Declining</h6><h5 class="card-text mb-0">{{ product_summary_cards.declining }}</h5></div></div></div>
+      </div>
+
+      <h6 class="fw-bold">Top 10 Product Performance Comparison</h6>
+      <canvas id="productTrendChart" height="120"></canvas>
+
+      <h6 class="fw-bold mt-3">Top 10 Product Ranking</h6>
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered table-hover">
+          <thead class="table-dark"><tr><th>Rank</th><th>Product</th><th>Qty</th><th>Revenue</th><th>Profit</th><th>Margin %</th><th>Growth %</th><th>Trend</th></tr></thead>
+          <tbody>
+            {% for p in product_top10 %}
+            <tr {% if product_selected == p.product %}class="table-active"{% endif %}>
+              <td>{{ forloop.counter }}</td>
+              <td>{{ p.product }}</td>
+              <td>{{ p.quantity|inr }}</td>
+              <td>{{ p.revenue|inr }}</td>
+              <td>{{ p.profit|inr }}</td>
+              <td>{% if p.margin is not None %}{{ p.margin|floatformat:2 }}%{% else %}N/A{% endif %}</td>
+              <td>{% if p.new_demand %}New Demand{% elif p.growth is not None %}{{ p.growth|floatformat:2 }}%{% else %}N/A{% endif %}</td>
+              <td>{{ p.trend }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <h6 class="fw-bold mt-3">Monthly Product Performance Trend - {{ product_selected }}</h6>
+      <canvas id="productMonthlyTrendChart" height="100"></canvas>
+
+      {% if product_insights %}
+      <h6 class="fw-bold mt-3">Business Insights</h6>
+      <ul class="small">
+        {% for ins in product_insights %}
+        <li>{{ ins }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
     </div>
   </div>
 
@@ -941,6 +1017,13 @@ function applyFilters() {
   var endDate = document.getElementById('end_date').value;
   var metric = document.getElementById('metric').value;
   
+  var rankBy = document.getElementById('rank_by');
+  if (rankBy) params.append('rank_by', rankBy.value);
+  var graphMetric = document.getElementById('graph_metric');
+  if (graphMetric) params.append('graph_metric', graphMetric.value);
+  var selProd = document.getElementById('selected_product');
+  if (selProd) params.append('selected_product', selProd.value);
+  
   if (startDate) params.append('start_date', startDate);
   if (endDate) params.append('end_date', endDate);
   if (metric) params.append('metric', metric);
@@ -989,51 +1072,61 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   // Product Trend Chart
-  var productCtx = document.getElementById('productTrendChart').getContext('2d');
-  var productData = {{ product_chart_data_json|safe }};
-  
-  if (productData.labels.length > 0) {
-    new Chart(productCtx, {
-      type: 'bar',
-      data: {
-        labels: productData.labels,
-        datasets: [{
-          label: 'Sales Value',
-          data: productData.sales,
-          backgroundColor: 'rgba(54, 162, 235, 0.8)',
-          borderColor: 'rgba(54, 162, 235, 1)',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: 'Sales Value'
-            }
-          }
+  // Horizontal bar chart for Top 10
+  var productCtx = document.getElementById('productTrendChart');
+  if (productCtx) {
+    productCtx = productCtx.getContext('2d');
+    var pLabels = {{ product_graph_labels|safe }};
+    var pValues = {{ product_graph_values|safe }};
+    if (pLabels.length > 0) {
+      new Chart(productCtx, {
+        type: 'bar',
+        data: {
+          labels: pLabels,
+          datasets: [{
+            label: '{{ product_graph_metric }}',
+            data: pValues,
+            backgroundColor: 'rgba(54, 162, 235, 0.8)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          }]
         },
-        plugins: {
-          legend: {
-            display: true
-          },
-          tooltip: {
-            callbacks: {
-              afterLabel: function(context) {
-                var topCustomer = productData.top_customers[context.dataIndex];
-                if (topCustomer) {
-                  return 'Top Customer: ' + topCustomer;
-                }
-                return '';
-              }
-            }
-          }
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          scales: { x: { beginAtZero: true } },
+          plugins: { legend: { display: false } }
         }
-      }
-    });
+      });
+    }
+  }
+  // Monthly trend line chart for selected product
+  var monthlyCtx = document.getElementById('productMonthlyTrendChart');
+  if (monthlyCtx) {
+    monthlyCtx = monthlyCtx.getContext('2d');
+    var mLabels = {{ product_monthly_trend_labels|safe }};
+    var mValues = {{ product_monthly_trend_values|safe }};
+    if (mLabels.length > 0) {
+      new Chart(monthlyCtx, {
+        type: 'line',
+        data: {
+          labels: mLabels,
+          datasets: [{
+            label: '{{ product_graph_metric }}',
+            data: mValues,
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.2,
+            fill: false
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } },
+          plugins: { legend: { display: true } }
+        }
+      });
+    }
   }
 });
   </script>

@@ -7781,6 +7781,173 @@ def trend_analytics(request):
     # Reorder product_spec_matrix by Product, orders, specification
     product_spec_matrix_sorted = sorted(product_spec_matrix, key=lambda x: (x['product'], -x['orders'], x['specification']))
     
+    # Product Trends (Top 10) enhancement
+    _rank_by = request.GET.get('rank_by', 'quantity')
+    if _rank_by not in ('quantity', 'revenue', 'profit', 'margin', 'growth'):
+        _rank_by = 'quantity'
+    _graph_metric = request.GET.get('graph_metric', 'quantity')
+    if _graph_metric not in ('quantity', 'revenue', 'profit', 'margin', 'growth'):
+        _graph_metric = 'quantity'
+
+    # Previous period for growth
+    _prev_prod_sales = {}
+    for _s in (previous_normalized_sales or []):
+        _p = _s.product_code or 'Unknown'
+        _w = _s.processed_weight if _s.processed_weight and _s.processed_weight > 0 else _s.initial_weight or Decimal('0')
+        _prev_prod_sales[_p] = _prev_prod_sales.get(_p, Decimal('0')) + _w
+    _prev_prod_rev = {}
+    _prev_prod_profit = {}
+    for _s in (previous_normalized_sales or []):
+        _p = _s.product_code or 'Unknown'
+        _prev_prod_rev[_p] = _prev_prod_rev.get(_p, Decimal('0')) + (_s.total_amount or Decimal('0'))
+        _prev_prod_profit[_p] = _prev_prod_profit.get(_p, Decimal('0')) + (prev_profit_map.get(_s.sales_key, Decimal('0')) or Decimal('0'))
+
+    # Aggregate current period by product
+    _prod_agg = {}
+    for _s in normalized_sales:
+        _p = _s.product_code or 'Unknown'
+        _w = _s.processed_weight if _s.processed_weight and _s.processed_weight > 0 else _s.initial_weight or Decimal('0')
+        if _p not in _prod_agg:
+            _prod_agg[_p] = {'product': _p, 'quantity': Decimal('0'), 'revenue': Decimal('0'), 'profit': Decimal('0'), 'orders': 0}
+        _prod_agg[_p]['quantity'] += _w
+        _prod_agg[_p]['revenue'] += _s.total_amount or Decimal('0')
+        _prod_agg[_p]['profit'] += (_profit_map.get(_s.sales_key, Decimal('0')) or Decimal('0'))
+        _prod_agg[_p]['orders'] += 1
+
+    # Compute margin and growth
+    _prod_list = []
+    for _p, _d in _prod_agg.items():
+        _rev = _d['revenue']
+        _profit = _d['profit']
+        _margin = (_profit / _rev * 100) if _rev else None
+        _prev_q = _prev_prod_sales.get(_p, Decimal('0'))
+        _growth = None
+        if _prev_q and _prev_q > 0:
+            _growth = (_d['quantity'] - _prev_q) / _prev_q * 100
+        elif _d['quantity'] > 0:
+            _growth = None  # New Demand
+        # trend
+        if _prev_q == 0 and _d['quantity'] > 0:
+            _trend = 'New Demand'
+        elif _growth is None:
+            _trend = 'Stable'
+        elif _growth > 5:
+            _trend = 'Rising'
+        elif _growth < -5:
+            _trend = 'Declining'
+        else:
+            _trend = 'Stable'
+        _new_demand = (_prev_q == 0 and _d['quantity'] > 0)
+        _prod_list.append({
+            'product': _p,
+            'quantity': _d['quantity'],
+            'revenue': _rev,
+            'profit': _profit,
+            'margin': _margin,
+            'growth': _growth,
+            'new_demand': _new_demand,
+            'trend': _trend,
+            'orders': _d['orders'],
+        })
+
+    # Ranking
+    def _rank_key(x):
+        if _rank_by == 'quantity':
+            return x['quantity']
+        if _rank_by == 'revenue':
+            return x['revenue']
+        if _rank_by == 'profit':
+            return x['profit']
+        if _rank_by == 'margin':
+            return x['margin'] if x['margin'] is not None else Decimal('-999999')
+        if _rank_by == 'growth':
+            return x['growth'] if x['growth'] is not None else Decimal('-999999')
+        return x['quantity']
+    _prod_list_sorted = sorted(_prod_list, key=_rank_key, reverse=True)
+    # minimum eligibility for margin/growth: exclude zero revenue
+    if _rank_by in ('margin', 'growth'):
+        _prod_list_sorted = [x for x in _prod_list_sorted if x['revenue'] and x['revenue'] > 0]
+    _top10 = _prod_list_sorted[:10]
+
+    # Summary cards (from top 10)
+    _tot_q = sum((x['quantity'] for x in _top10), Decimal('0'))
+    _tot_r = sum((x['revenue'] for x in _top10), Decimal('0'))
+    _tot_p = sum((x['profit'] for x in _top10), Decimal('0'))
+    _avg_margin = (_tot_p / _tot_r * 100) if _tot_r else None
+    _growing = sum(1 for x in _top10 if x['trend'] == 'Rising' or x['new_demand'])
+    _declining = sum(1 for x in _top10 if x['trend'] == 'Declining')
+
+    # Selected product for monthly trend (default rank 1)
+    _selected_prod = request.GET.get('selected_product', '')
+    if not _selected_prod and _top10:
+        _selected_prod = _top10[0]['product']
+
+    # Monthly trend for selected product
+    _prod_monthly = {}
+    for _s in normalized_sales:
+        if (_s.product_code or 'Unknown') != _selected_prod:
+            continue
+        _key = (_s.sales_entry_date.year, _s.sales_entry_date.month)
+        if _key not in _prod_monthly:
+            _prod_monthly[_key] = {'year': _key[0], 'month': _key[1], 'quantity': Decimal('0'), 'revenue': Decimal('0'), 'profit': Decimal('0')}
+        _w = _s.processed_weight if _s.processed_weight and _s.processed_weight > 0 else _s.initial_weight or Decimal('0')
+        _prod_monthly[_key]['quantity'] += _w
+        _prod_monthly[_key]['revenue'] += _s.total_amount or Decimal('0')
+        _prod_monthly[_key]['profit'] += (_profit_map.get(_s.sales_key, Decimal('0')) or Decimal('0'))
+    _prod_monthly_list = sorted(_prod_monthly.values(), key=lambda x: (x['year'], x['month']))
+
+    # Business insights
+    _insights = []
+    for _x in _top10:
+        if _x['quantity'] and _x['quantity'] > 0 and _x['profit'] and _x['profit'] > 0 and _x['margin'] and _x['margin'] >= 20:
+            _insights.append(f"High Sales + High Profit: {_x['product']} - potential production priority.")
+        if _x['quantity'] and _x['quantity'] > 0 and _x['margin'] is not None and _x['margin'] < 10:
+            _insights.append(f"High Sales + Low Profit: {_x['product']} - review selling price, material cost, and production efficiency.")
+        if _x['quantity'] and _x['quantity'] <= (_tot_q / 10 if _tot_q else Decimal('0')) and _x['margin'] and _x['margin'] >= 20:
+            _insights.append(f"Low Sales + High Profit Margin: {_x['product']} - potential niche product.")
+        if _x['new_demand']:
+            _insights.append(f"New Demand: {_x['product']} - monitor whether demand is sustained.")
+        if _x['trend'] == 'Declining':
+            _insights.append(f"Declining Demand: {_x['product']} - review demand and avoid overproduction.")
+        if _x['trend'] == 'Rising':
+            _insights.append(f"Increasing Demand: {_x['product']} - monitor stock and production planning.")
+    # Profit decline (sales stable/up but profit down) - approximate via previous profit
+    _prev_prod_profit_map = _prev_prod_profit
+    for _x in _top10:
+        _pp = _prev_prod_profit_map.get(_x['product'], Decimal('0'))
+        if _pp and _pp > 0 and _x['profit'] < _pp and (_x['trend'] in ('Rising', 'Stable')):
+            _insights.append(f"Profit Decline: {_x['product']} - investigate material costs, selling prices, or margins.")
+
+    # Graph data for horizontal bar chart
+    _graph_labels = [x['product'] for x in _top10]
+    def _graph_val(x):
+        if _graph_metric == 'quantity':
+            return float(x['quantity'])
+        if _graph_metric == 'revenue':
+            return float(x['revenue'])
+        if _graph_metric == 'profit':
+            return float(x['profit'])
+        if _graph_metric == 'margin':
+            return float(x['margin']) if x['margin'] is not None else 0.0
+        if _graph_metric == 'growth':
+            return float(x['growth']) if x['growth'] is not None else 0.0
+        return float(x['quantity'])
+    _graph_values = [_graph_val(x) for x in _top10]
+
+    # Monthly trend chart data for selected product
+    _monthly_trend_labels = [f"{d['year']}-{d['month']:02d}" for d in _prod_monthly_list]
+    def _monthly_val(d):
+        if _graph_metric == 'quantity':
+            return float(d['quantity'])
+        if _graph_metric == 'revenue':
+            return float(d['revenue'])
+        if _graph_metric == 'profit':
+            return float(d['profit'])
+        if _graph_metric == 'margin':
+            return float(d['profit'] / d['revenue'] * 100) if d['revenue'] else 0.0
+        return float(d['quantity'])
+    _monthly_trend_values = [_monthly_val(d) for d in _prod_monthly_list]
+
     # Render HTML page
     return render(request, 'marania_invoice_app/trend_analytics.html', {
         'summary': summary,
@@ -7812,6 +7979,23 @@ def trend_analytics(request):
         'prev_start': prev_start,
         'prev_end': prev_end,
         'proj_months': _proj_months,
+        'product_rank_by': _rank_by,
+        'product_graph_metric': _graph_metric,
+        'product_top10': _top10,
+        'product_summary_cards': {
+            'total_quantity': _tot_q,
+            'total_revenue': _tot_r,
+            'total_profit': _tot_p,
+            'avg_margin': _avg_margin,
+            'growing': _growing,
+            'declining': _declining,
+        },
+        'product_selected': _selected_prod,
+        'product_monthly_trend_labels': _monthly_trend_labels,
+        'product_monthly_trend_values': _monthly_trend_values,
+        'product_insights': _insights,
+        'product_graph_labels': _graph_labels,
+        'product_graph_values': _graph_values,
         'monthly_chart_data_json': json.dumps(monthly_chart_data),
         'product_chart_data_json': json.dumps(product_chart_data),
         'enhanced': enhanced,
