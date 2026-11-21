@@ -7,6 +7,10 @@
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
   <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Trend Analytics</h1>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-sm btn-outline-primary" onclick="expandAllSections()">Expand All</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="collapseAllSections()">Collapse All</button>
+    </div>
   </div>
 
   <!-- Executive Summary -->
@@ -896,6 +900,38 @@ function setProjMonthsCustom() {
   var v = document.getElementById('proj_months_custom').value;
   if (!v) return;
   setProjMonths(v);
+}
+
+function expandAllSections() {
+  document.querySelectorAll('.ta-collapse').forEach(function(el) {
+    if (window.bootstrap && bootstrap.Collapse) {
+      var inst = bootstrap.Collapse.getOrCreateInstance(el, {toggle: false});
+      inst.show();
+    } else {
+      el.classList.add('show');
+    }
+  });
+  // update toggle labels
+  document.querySelectorAll('.ta-toggle').forEach(function(btn) {
+    var lbl = btn.querySelector('span'); var ic = btn.querySelector('i');
+    if (lbl) lbl.textContent = 'Collapse';
+    if (ic) ic.className = 'bi bi-chevron-up';
+  });
+}
+function collapseAllSections() {
+  document.querySelectorAll('.ta-collapse').forEach(function(el) {
+    if (window.bootstrap && bootstrap.Collapse) {
+      var inst = bootstrap.Collapse.getOrCreateInstance(el, {toggle: false});
+      inst.hide();
+    } else {
+      el.classList.remove('show');
+    }
+  });
+  document.querySelectorAll('.ta-toggle').forEach(function(btn) {
+    var lbl = btn.querySelector('span'); var ic = btn.querySelector('i');
+    if (lbl) lbl.textContent = 'Expand';
+    if (ic) ic.className = 'bi bi-chevron-down';
+  });
 }
 
 function applyFilters() {
