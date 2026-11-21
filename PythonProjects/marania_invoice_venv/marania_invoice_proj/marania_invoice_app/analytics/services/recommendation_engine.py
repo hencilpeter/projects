@@ -345,7 +345,7 @@ class RecommendationEngine:
         # Top product/spec
         summary_parts.append(
             f"{top_trend.product} / {top_trend.specification} is the strongest "
-            f"performer by sales volume ({top_trend.total_sales:,.0f})."
+            f"performer by sales volume (<strong>{top_trend.total_sales:,.0f}</strong>)"
         )
         
         # Growth leader
@@ -354,23 +354,24 @@ class RecommendationEngine:
             growth_leader = max(growth_leaders, key=lambda x: x.yoy_growth or 0)
             summary_parts.append(
                 f"{growth_leader.product} / {growth_leader.specification} "
-                f"shows the highest growth ({growth_leader.yoy_growth:+.1f}%)."
+                f"shows the highest growth (<strong>{growth_leader.yoy_growth:+.1f}%</strong>)"
             )
         
         # Declining products
         declining = [t for t in product_spec_trends if t.yoy_growth and t.yoy_growth < -10]
         if declining:
             summary_parts.append(
-                f"{len(declining)} product/specification combinations show declining trends "
-                f"and may require attention."
+                f"<strong>{len(declining)}</strong> product/specification combinations show declining trends "
+                f"and may require attention"
             )
         
         # Overall trend
         if trend_counts.get("Strong Growth", 0) > trend_counts.get("Strong Decline", 0):
-            summary_parts.append("Overall market trend is positive with more products showing growth.")
+            summary_parts.append("Overall market trend is positive with more products showing growth")
         elif trend_counts.get("Strong Decline", 0) > trend_counts.get("Strong Growth", 0):
-            summary_parts.append("Overall market trend shows declining demand across multiple products.")
+            summary_parts.append("Overall market trend shows declining demand across multiple products")
         else:
-            summary_parts.append("Market trends are mixed with both growth and decline across products.")
+            summary_parts.append("Market trends are mixed with both growth and decline across products")
         
-        return " ".join(summary_parts)
+        _star = '<span style="color:#FFD700;font-size:1.5em;font-weight:bold;vertical-align:middle;">*</span>'
+        return f" {_star} ".join(summary_parts)
