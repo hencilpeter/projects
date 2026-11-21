@@ -443,7 +443,7 @@
       </div>
 
       <h6 class="fw-bold">Product Performance Comparison</h6>
-      <canvas id="productTrendChart" height="120"></canvas>
+      <canvas id="productTrendChart" height="100"></canvas>
 
       <h6 class="fw-bold mt-3">Product Ranking</h6>
       <div class="table-responsive">
@@ -467,7 +467,7 @@
       </div>
 
       <h6 class="fw-bold mt-3">Monthly Product Performance Trend - {% if product_selected == "ALL" %}All Products{% else %}{{ product_selected }}{% endif %}</h6>
-      <canvas id="productMonthlyTrendChart" height="100"></canvas>
+      <canvas id="productMonthlyTrendChart" height="80"></canvas>
 
       {% if product_insights %}
       <h6 class="fw-bold mt-3">Business Insights</h6>
@@ -1074,29 +1074,44 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   // Product Trend Chart
   // Horizontal bar chart for Top 10
-  var productCtx = document.getElementById('productTrendChart');
-  if (productCtx) {
-    productCtx = productCtx.getContext('2d');
-    var pLabels = {{ product_graph_labels|safe }};
+  var productCanvas = document.getElementById('productTrendChart');
+  if (productCanvas) {
+    var pLabelsTmp = {{ product_graph_labels|safe }};
+    productCanvas.height = Math.max(150, pLabelsTmp.length * 16 + 24);
+    productCtx = productCanvas.getContext('2d');
+    var pLabels = pLabelsTmp;
     var pValues = {{ product_graph_values|safe }};
     if (pLabels.length > 0) {
+      var palette = ['#4e79a7','#f28e2b','#e15759','#76b7b2','#59a14f','#edc948','#b07aa1','#ff9da7','#9c755f','#bab0ac'];
+      var bgColors = pLabels.map(function(_, i) { return palette[i % palette.length]; });
       new Chart(productCtx, {
-        type: 'bar',
+        type: 'horizontalBar',
         data: {
           labels: pLabels,
           datasets: [{
             label: '{{ product_graph_metric }}',
             data: pValues,
-            backgroundColor: 'rgba(54, 162, 235, 0.8)',
-            borderColor: 'rgba(54, 162, 235, 1)',
+            backgroundColor: bgColors,
+            borderColor: bgColors,
             borderWidth: 1
           }]
         },
         options: {
-          indexAxis: 'y',
           responsive: true,
-          scales: { x: { beginAtZero: true } },
-          plugins: { legend: { display: false } }
+          maintainAspectRatio: true,
+          scales: {
+            xAxes: [{ ticks: { beginAtZero: true } }],
+            yAxes: [{ ticks: { fontSize: 11 } }]
+          },
+          legend: { display: false },
+          tooltips: {
+            callbacks: {
+              label: function(tooltipItem, data) {
+                return data.datasets[0].label + ': ' + tooltipItem.xLabel.toLocaleString();
+              }
+            }
+          },
+          animation: { duration: 600 }
         }
       });
     }
@@ -1123,8 +1138,10 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         options: {
           responsive: true,
-          scales: { y: { beginAtZero: true } },
-          plugins: { legend: { display: true } }
+          scales: {
+            yAxes: [{ ticks: { beginAtZero: true } }]
+          },
+          legend: { display: true }
         }
       });
     }
