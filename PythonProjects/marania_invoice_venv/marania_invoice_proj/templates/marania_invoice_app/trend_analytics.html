@@ -1,4 +1,5 @@
 {% extends "partials/base.html" %}
+{% load dict_extras %}
 
 {% block title %}Trend Analytics{% endblock %}
 
@@ -30,7 +31,7 @@
       <div class="card bg-success text-white">
         <div class="card-body text-center py-2">
           <h6 class="card-title mb-0">Total Sales</h6>
-          <h4 class="card-text mb-0">{{ summary.sales }}</h4>
+          <h4 class="card-text mb-0">{{ summary.sales|inr }}</h4>
         </div>
       </div>
     </div>
@@ -172,11 +173,11 @@
           <h6 class="fw-bold text-primary">Sales KPIs</h6>
           <table class="table table-sm table-bordered">
             <tbody>
-              <tr><th>Total Sales Revenue</th><td>{{ enhanced.sales_kpis.total_sales|floatformat:2 }}</td></tr>
+              <tr><th>Total Sales Revenue</th><td>{{ enhanced.sales_kpis.total_sales|inr }}</td></tr>
               <tr><th>Total Quantity Sold</th><td>{{ enhanced.sales_kpis.total_quantity|floatformat:2 }}</td></tr>
               <tr><th>Total Invoices</th><td>{{ enhanced.sales_kpis.invoice_count }}</td></tr>
-              <tr><th>Average Invoice Value</th><td>{% if enhanced.sales_kpis.avg_invoice_value is not None %}{{ enhanced.sales_kpis.avg_invoice_value|floatformat:2 }}{% else %}N/A{% endif %}</td></tr>
-              <tr><th>Monthly Average Sales</th><td>{% if enhanced.sales_kpis.monthly_avg_sales is not None %}{{ enhanced.sales_kpis.monthly_avg_sales|floatformat:2 }}{% else %}N/A{% endif %}</td></tr>
+              <tr><th>Average Invoice Value</th><td>{% if enhanced.sales_kpis.avg_invoice_value is not None %}{{ enhanced.sales_kpis.avg_invoice_value|inr }}{% else %}N/A{% endif %}</td></tr>
+              <tr><th>Monthly Average Sales</th><td>{% if enhanced.sales_kpis.monthly_avg_sales is not None %}{{ enhanced.sales_kpis.monthly_avg_sales|inr }}{% else %}N/A{% endif %}</td></tr>
               <tr><th>Sales Growth</th><td>{% if enhanced.sales_kpis.sales_growth is not None %}{{ enhanced.sales_kpis.sales_growth|floatformat:2 }}%{% else %}N/A{% endif %}</td></tr>
               <tr><th>Active Customers</th><td>{{ enhanced.sales_kpis.active_customers }}</td></tr>
             </tbody>
@@ -186,14 +187,14 @@
           <h6 class="fw-bold text-success">Profit KPIs</h6>
           <table class="table table-sm table-bordered">
             <tbody>
-              <tr><th>Total Profit</th><td>{{ enhanced.profit_kpis.total_profit|floatformat:2 }}</td></tr>
+              <tr><th>Total Profit</th><td>{{ enhanced.profit_kpis.total_profit|inr }}</td></tr>
               <tr><th>Profit Margin</th><td>{% if enhanced.profit_kpis.profit_margin is not None %}{{ enhanced.profit_kpis.profit_margin|floatformat:2 }}%{% else %}N/A{% endif %}</td></tr>
-              <tr><th>Average Monthly Profit</th><td>{% if enhanced.profit_kpis.avg_monthly_profit is not None %}{{ enhanced.profit_kpis.avg_monthly_profit|floatformat:2 }}{% else %}N/A{% endif %}</td></tr>
+              <tr><th>Average Monthly Profit</th><td>{% if enhanced.profit_kpis.avg_monthly_profit is not None %}{{ enhanced.profit_kpis.avg_monthly_profit|inr }}{% else %}N/A{% endif %}</td></tr>
               <tr><th>Highest Profit Month</th><td>{{ enhanced.profit_kpis.highest_profit_month|default:"N/A" }}</td></tr>
               <tr><th>Lowest Profit Month</th><td>{{ enhanced.profit_kpis.lowest_profit_month|default:"N/A" }}</td></tr>
               <tr><th>Profit Growth</th><td>{% if enhanced.profit_kpis.profit_growth is not None %}{{ enhanced.profit_kpis.profit_growth|floatformat:2 }}%{% else %}N/A{% endif %}</td></tr>
-              <tr><th>Cost Value</th><td>{{ enhanced.profit_kpis.cost_value|floatformat:2 }}</td></tr>
-              <tr><th>Profit per Unit</th><td>{% if enhanced.profit_kpis.profit_per_unit is not None %}{{ enhanced.profit_kpis.profit_per_unit|floatformat:4 }}{% else %}N/A{% endif %}</td></tr>
+              <tr><th>Cost Value</th><td>{{ enhanced.profit_kpis.cost_value|inr }}</td></tr>
+              <tr><th>Profit per Unit</th><td>{% if enhanced.profit_kpis.profit_per_unit is not None %}{{ enhanced.profit_kpis.profit_per_unit|inr }}{% else %}N/A{% endif %}</td></tr>
             </tbody>
           </table>
         </div>
@@ -204,8 +205,8 @@
       <table class="table table-sm table-bordered">
         <thead class="table-light"><tr><th>Metric</th><th>Current</th><th>Previous</th><th>Change</th></tr></thead>
         <tbody>
-          <tr><td>Sales</td><td>{{ enhanced.comparison.current_sales|floatformat:2 }}</td><td>{{ enhanced.comparison.previous_sales|floatformat:2 }}</td><td>{% if enhanced.comparison.previous_sales %}{{ enhanced.sales_kpis.sales_growth|floatformat:2 }}%{% else %}N/A{% endif %}</td></tr>
-          <tr><td>Profit</td><td>{{ enhanced.comparison.current_profit|floatformat:2 }}</td><td>{{ enhanced.comparison.previous_profit|floatformat:2 }}</td><td>{% if enhanced.profit_kpis.profit_growth is not None %}{{ enhanced.profit_kpis.profit_growth|floatformat:2 }}%{% else %}N/A{% endif %}</td></tr>
+          <tr><td>Sales</td><td>{{ enhanced.comparison.current_sales|inr }}</td><td>{{ enhanced.comparison.previous_sales|inr }}</td><td>{% if enhanced.comparison.previous_sales %}{{ enhanced.sales_kpis.sales_growth|floatformat:2 }}%{% else %}N/A{% endif %}</td></tr>
+          <tr><td>Profit</td><td>{{ enhanced.comparison.current_profit|inr }}</td><td>{{ enhanced.comparison.previous_profit|inr }}</td><td>{% if enhanced.profit_kpis.profit_growth is not None %}{{ enhanced.profit_kpis.profit_growth|floatformat:2 }}%{% else %}N/A{% endif %}</td></tr>
           <tr><td>Quantity</td><td>{{ enhanced.comparison.current_quantity|floatformat:2 }}</td><td>{{ enhanced.comparison.previous_quantity|floatformat:2 }}</td><td>-</td></tr>
         </tbody>
       </table>
@@ -229,7 +230,7 @@
         <thead class="table-light"><tr><th>Customer</th><th>Sales</th></tr></thead>
         <tbody>
           {% for cust, amt in enhanced.customer_concentration.top_customers %}
-          <tr><td>{{ cust }}</td><td>{{ amt|floatformat:2 }}</td></tr>
+          <tr><td>{{ cust }}</td><td>{{ amt|inr }}</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -271,7 +272,7 @@
           <thead class="table-light"><tr><th>Period</th><th>Profit</th></tr></thead>
           <tbody>
             {% for mp in enhanced.monthly_profit_trend %}
-            <tr><td>{{ mp.year }}-{{ mp.month|stringformat:"02d" }}</td><td>{{ mp.profit|floatformat:2 }}</td></tr>
+            <tr><td>{{ mp.year }}-{{ mp.month|stringformat:"02d" }}</td><td>{{ mp.profit|inr }}</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -289,9 +290,9 @@
     <div class="card-body collapse show" id="drsummaryBody">
       <p><strong>Status:</strong> {{ enhanced.date_range_summary.status }}</p>
       <ul>
-        <li>Total Sales: {{ enhanced.date_range_summary.total_sales|floatformat:2 }}</li>
+        <li>Total Sales: {{ enhanced.date_range_summary.total_sales|inr }}</li>
         <li>Total Quantity: {{ enhanced.date_range_summary.total_quantity|floatformat:2 }}</li>
-        <li>Total Profit: {{ enhanced.date_range_summary.total_profit|floatformat:2 }} (Margin: {% if enhanced.date_range_summary.profit_margin is not None %}{{ enhanced.date_range_summary.profit_margin|floatformat:2 }}%{% else %}N/A{% endif %})</li>
+        <li>Total Profit: {{ enhanced.date_range_summary.total_profit|inr }} (Margin: {% if enhanced.date_range_summary.profit_margin is not None %}{{ enhanced.date_range_summary.profit_margin|floatformat:2 }}%{% else %}N/A{% endif %})</li>
         <li>Sales Growth: {% if enhanced.date_range_summary.sales_growth is not None %}{{ enhanced.date_range_summary.sales_growth|floatformat:2 }}%{% else %}N/A{% endif %}</li>
         <li>Profit Growth: {% if enhanced.date_range_summary.profit_growth is not None %}{{ enhanced.date_range_summary.profit_growth|floatformat:2 }}%{% else %}N/A{% endif %}</li>
         <li>Best Product: {{ enhanced.date_range_summary.best_product|default:"N/A" }}</li>

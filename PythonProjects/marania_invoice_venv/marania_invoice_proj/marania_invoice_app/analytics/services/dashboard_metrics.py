@@ -4,6 +4,11 @@ Enhanced dashboard metrics for Trend Analytics decision-support.
 from datetime import date, timedelta
 from decimal import Decimal
 from typing import List, Dict, Any
+try:
+    from marania_invoice_app.templatetags.dict_extras import indian_grouping as _indian_grouping
+except Exception:
+    def _indian_grouping(v):
+        return v
 
 
 def _safe_div(a, b):
@@ -291,11 +296,11 @@ def compute_enhanced(normalized_sales, previous_normalized_sales, profit_map, pr
     # narrative
     narrative_parts = []
     _growth_str = (f"{sales_growth:+.1f}%" if sales_growth is not None else "N/A")
-    narrative_parts.append(f"Total sales: <strong>{total_sales:,.0f}</strong> ({_growth_str} vs previous period)")
+    narrative_parts.append(f"Total sales: <strong>{_indian_grouping(total_sales)}</strong> ({_growth_str} vs previous period)")
     if profit_margin is not None:
-        narrative_parts.append(f"Total profit: <strong>{total_profit:,.0f}</strong> with a margin of <strong>{profit_margin:.1f}%</strong>")
+        narrative_parts.append(f"Total profit: <strong>{_indian_grouping(total_profit)}</strong> with a margin of <strong>{profit_margin:.1f}%</strong>")
     else:
-        narrative_parts.append(f"Total profit: <strong>{total_profit:,.0f}</strong>")
+        narrative_parts.append(f"Total profit: <strong>{_indian_grouping(total_profit)}</strong>")
     if product_trends:
         top_p = product_trends[0]['product']
         narrative_parts.append(f"Best-performing product by sales: <strong>{top_p}</strong>")

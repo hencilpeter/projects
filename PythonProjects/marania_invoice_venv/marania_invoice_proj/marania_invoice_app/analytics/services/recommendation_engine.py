@@ -3,6 +3,11 @@ Recommendation engine for trend analytics.
 """
 from decimal import Decimal
 from typing import List, Dict, Optional, Tuple
+try:
+    from marania_invoice_app.templatetags.dict_extras import indian_grouping as _indian_grouping
+except Exception:
+    def _indian_grouping(v):
+        return v
 from enum import Enum
 
 from marania_invoice_app.analytics.services.models import (
@@ -345,7 +350,7 @@ class RecommendationEngine:
         # Top product/spec
         summary_parts.append(
             f"{top_trend.product} / {top_trend.specification} is the strongest "
-            f"performer by sales volume (<strong>{top_trend.total_sales:,.0f}</strong>)"
+            f"performer by sales volume (<strong>{_indian_grouping(top_trend.total_sales)}</strong>)"
         )
         
         # Growth leader
