@@ -10,8 +10,8 @@
 
   <!-- Executive Summary -->
   {% if executive_summary %}
-  <div class="alert alert-info mb-4">
-    <h5 class="alert-heading"><i class="bi bi-lightbulb"></i> Executive Summary</h5>
+  <div class="alert alert-info mb-2 py-2">
+    <h5 class="alert-heading mb-1"><i class="bi bi-lightbulb"></i> Executive Summary</h5>
     <p class="mb-0">{{ executive_summary }}</p>
   </div>
   {% endif %}
@@ -71,7 +71,7 @@
   
 <!-- Overall Status -->
   {% if enhanced.overall_status %}
-  <div class="alert {% if enhanced.overall_status == 'Positive' %}alert-success{% elif enhanced.overall_status == 'Stable' %}alert-info{% elif enhanced.overall_status == 'Needs Attention' %}alert-warning{% else %}alert-danger{% endif %} mb-4">
+  <div class="alert {% if enhanced.overall_status == 'Positive' %}alert-success{% elif enhanced.overall_status == 'Stable' %}alert-info{% elif enhanced.overall_status == 'Needs Attention' %}alert-warning{% else %}alert-danger{% endif %} mb-2 py-2">
     <strong>Overall Business Status: {{ enhanced.overall_status }}</strong>
     {% if enhanced.narrative %}<p class="mb-0 mt-1">{{ enhanced.narrative }}</p>{% endif %}
   </div>
