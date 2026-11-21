@@ -7811,7 +7811,7 @@ def trend_analytics(request):
             product_chart_data['top_customers'].append('')
     
     # Reorder product_spec_matrix by Product, orders, specification
-    product_spec_matrix_sorted = sorted(product_spec_matrix, key=lambda x: (x['product'], -x['orders'], x['specification']))
+    product_spec_matrix_sorted = sorted(product_spec_matrix, key=lambda x: (-x['orders'], x['product'], x['specification']))
     
     # Product Trends (Top 10) enhancement
     _rank_by = request.GET.get('rank_by', 'quantity')

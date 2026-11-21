@@ -508,8 +508,18 @@
               <th class="text-end">Growth %</th>
               <th>Trend</th>
             </tr>
+            <tr id="custperf-filter">
+              <th><input class="filter-input form-control form-control-sm" placeholder="Rank"></th>
+              <th><input class="filter-input form-control form-control-sm" placeholder="Customer"></th>
+              <th><input class="filter-input form-control form-control-sm" placeholder="Sales"></th>
+              <th><input class="filter-input form-control form-control-sm" placeholder="Qty"></th>
+              <th><input class="filter-input form-control form-control-sm" placeholder="Profit"></th>
+              <th><input class="filter-input form-control form-control-sm" placeholder="Margin"></th>
+              <th><input class="filter-input form-control form-control-sm" placeholder="Growth"></th>
+              <th><input class="filter-input form-control form-control-sm" placeholder="Trend"></th>
+            </tr>
           </thead>
-          <tbody>
+          <tbody id="custperf-body">
             {% for customer in top_customers %}
             <tr>
               <td><strong>{{ forloop.counter }}</strong></td>
@@ -553,8 +563,18 @@
               <th>Confidence</th>
               <th>Seasonality</th>
             </tr>
+            <tr id="recs-filter">
+              <th><input class="filter-input form-control form-control-sm" placeholder="Rank"></th>
+              <th><input class="filter-input form-control form-control-sm" placeholder="Product"></th>
+              <th><input class="filter-input form-control form-control-sm" placeholder="Spec"></th>
+              <th><input class="filter-input form-control form-control-sm" placeholder="Sales"></th>
+              <th><input class="filter-input form-control form-control-sm" placeholder="Growth"></th>
+              <th><input class="filter-input form-control form-control-sm" placeholder="Trend"></th>
+              <th><input class="filter-input form-control form-control-sm" placeholder="Conf"></th>
+              <th><input class="filter-input form-control form-control-sm" placeholder="Season"></th>
+            </tr>
           </thead>
-          <tbody>
+          <tbody id="recs-body">
             {% for rec in recommendations|slice:":10" %}
             <tr>
               <td><strong>{{ forloop.counter }}</strong></td>
@@ -716,9 +736,16 @@
               <th class="text-end">Weight (KG)</th>
               <th class="text-end">Sales</th>
             </tr>
+            <tr id="matrix-filter">
+              <th><input class="filter-input form-control form-control-sm" placeholder="Product"></th>
+              <th><input class="filter-input form-control form-control-sm" placeholder="Spec"></th>
+              <th><input class="filter-input form-control form-control-sm" placeholder="Orders"></th>
+              <th><input class="filter-input form-control form-control-sm" placeholder="Weight"></th>
+              <th><input class="filter-input form-control form-control-sm" placeholder="Sales"></th>
+            </tr>
           </thead>
-          <tbody>
-            {% for item in product_spec_matrix|slice:":20" %}
+          <tbody id="matrix-body">
+            {% for item in product_spec_matrix %}
             <tr>
               <td>{{ item.product }}</td>
               <td>{{ item.specification }}</td>
@@ -1248,6 +1275,33 @@ function filterTable() {
 
 </script>
 <script>
+function filterTableGeneric(filterRowId, tbodyId) {
+  var filterThs = document.querySelectorAll('#' + filterRowId + ' th');
+  var tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  var rows = tbody.getElementsByTagName('tr');
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    var showRow = true;
+    filterThs.forEach(function(th, index) {
+      if (!showRow) return;
+      var controls = th.querySelectorAll('input.filter-input, select.filter-select');
+      if (!controls.length) return;
+      var cells = row.getElementsByTagName('td');
+      var cell = cells[index];
+      if (!cell) return;
+      var cellText = (cell.textContent || cell.innerText || '').toLowerCase();
+      controls.forEach(function(ctrl) {
+        if (!showRow) return;
+        var filterValue = (ctrl.value || '').toLowerCase();
+        if (filterValue && cellText.indexOf(filterValue) === -1) {
+          showRow = false;
+        }
+      });
+    });
+    row.style.display = showRow ? '' : 'none';
+  }
+}
 document.addEventListener('DOMContentLoaded', function() {
   var row = document.getElementById('ti-filter-row');
   if (row) {
@@ -1256,6 +1310,15 @@ document.addEventListener('DOMContentLoaded', function() {
       ctrl.addEventListener('change', filterTable);
     });
   }
+  [['custperf-filter','custperf-body'],['recs-filter','recs-body'],['matrix-filter','matrix-body']].forEach(function(pair) {
+    var r = document.getElementById(pair[0]);
+    if (r) {
+      r.querySelectorAll('input, select').forEach(function(ctrl) {
+        ctrl.addEventListener('input', function() { filterTableGeneric(pair[0], pair[1]); });
+        ctrl.addEventListener('change', function() { filterTableGeneric(pair[0], pair[1]); });
+      });
+    }
+  });
 });
 </script>
 {% endblock %}
