@@ -7321,17 +7321,30 @@ def trend_analytics(request):
             'products': products,
         })
 
-    # Forecast: next 2 months (or next 1 quarter) based on prior year same period + recent momentum
+    # Projection length (months) - configurable: 3, 6, 9, 12 or custom
+    try:
+        _proj_months = int(request.GET.get('proj_months', 3))
+    except (ValueError, TypeError):
+        _proj_months = 3
+    if _proj_months < 1:
+        _proj_months = 1
+    if _proj_months > 36:
+        _proj_months = 36
+
+    # Forecast: next N months (or corresponding quarters) based on prior year same period + recent momentum
     _today = date.today()
     _forecast_periods = []
     if _best_mode == 'quarterly':
+        _n_quarters = max(1, (_proj_months + 2) // 3)
         q = (_today.month - 1) // 3 + 1
-        # next quarter
-        nq = q + 1 if q < 4 else 1
-        ny = _today.year if q < 4 else _today.year + 1
-        _forecast_periods.append((ny, nq))
+        for i in range(1, _n_quarters + 1):
+            nq = q + i
+            ny = _today.year
+            while nq > 4:
+                nq -= 4; ny += 1
+            _forecast_periods.append((ny, nq))
     else:
-        for i in range(1, 3):
+        for i in range(1, _proj_months + 1):
             m = _today.month + i
             y = _today.year
             while m > 12:
@@ -7801,6 +7814,7 @@ def trend_analytics(request):
         'filters_applied': bool(request.GET),
         'prev_start': prev_start,
         'prev_end': prev_end,
+        'proj_months': _proj_months,
         'monthly_chart_data_json': json.dumps(monthly_chart_data),
         'product_chart_data_json': json.dumps(product_chart_data),
         'enhanced': enhanced,

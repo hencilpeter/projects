@@ -328,7 +328,19 @@
       {% endif %}
 
       <!-- Projection -->
-      <h6 class="fw-bold text-warning mb-2 mt-3">Projected Best-Selling Specifications (Next 3 Months)</h6>
+      <h6 class="fw-bold text-warning mb-2 mt-3">Projected Best-Selling Specifications (Next {{ proj_months }} Months)</h6>
+      <div class="mb-2 d-flex flex-wrap align-items-center gap-2">
+        <span class="small text-muted">Project ahead:</span>
+        <div class="btn-group btn-group-sm" role="group">
+          <button type="button" class="btn btn-outline-secondary" onclick="setProjMonths(3)">3</button>
+          <button type="button" class="btn btn-outline-secondary" onclick="setProjMonths(6)">6</button>
+          <button type="button" class="btn btn-outline-secondary" onclick="setProjMonths(9)">9</button>
+          <button type="button" class="btn btn-outline-secondary" onclick="setProjMonths(12)">12</button>
+        </div>
+        <label class="form-label small mb-0">Custom:</label>
+        <input type="number" class="form-control form-control-sm" id="proj_months_custom" style="width:80px;" min="1" max="36" value="{{ proj_months }}">
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="setProjMonthsCustom()">Apply</button>
+      </div>
       <p class="text-muted small">Based on the corresponding months' performance from the previous year.</p>
       {% if projected_best_products %}
       {% for block in projected_best_products %}
@@ -868,6 +880,17 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
+function setProjMonths(n) {
+  var params = new URLSearchParams(window.location.search);
+  params.set('proj_months', n);
+  window.location.href = '?' + params.toString();
+}
+function setProjMonthsCustom() {
+  var v = document.getElementById('proj_months_custom').value;
+  if (!v) return;
+  setProjMonths(v);
+}
+
 function applyFilters() {
   var params = new URLSearchParams();
   
@@ -878,6 +901,8 @@ function applyFilters() {
   if (startDate) params.append('start_date', startDate);
   if (endDate) params.append('end_date', endDate);
   if (metric) params.append('metric', metric);
+  var projInput = document.getElementById('proj_months_custom');
+  if (projInput && projInput.value) params.append('proj_months', projInput.value);
   
   // Multi-select values
   var productCodes = Array.from(document.getElementById('product_codes').selectedOptions).map(opt => opt.value);
