@@ -7266,10 +7266,6 @@ def trend_analytics(request):
     # Aggregate
     monthly_groups = {}
     for sale in normalized_sales:
-        if _best_start_year is not None and sale.sales_entry_date.year < _best_start_year:
-            continue
-        if _best_end_year is not None and sale.sales_entry_date.year > _best_end_year:
-            continue
         pk = _period_key(sale)
         prod = sale.product_code or 'Unknown'
         spec = sale.normalized_specification or sale.specification or 'Unknown'
@@ -7304,6 +7300,10 @@ def trend_analytics(request):
     # Build historical results
     monthly_best_products = []
     for pk in sorted(monthly_groups.keys()):
+        if _best_start_year is not None and pk[0] < _best_start_year:
+            continue
+        if _best_end_year is not None and pk[0] > _best_end_year:
+            continue
         products = sorted(monthly_groups[pk].values(), key=lambda p: (p['sales'], p['profit']), reverse=True)
         if not products:
             continue
@@ -7451,13 +7451,10 @@ def trend_analytics(request):
         prior_key = (y-1, m)
         # find prior block products
         prior_block = None
-        if '-Q' in ym:
-            prior_label = f"{y-1}-Q{q}"
-        else:
-            prior_label = f"{y-1}-{m:02d}"
-        for b in monthly_best_products:
-            if b['period'] == prior_label:
-                prior_block = b
+        # Look up prior year in the full (unfiltered) monthly_groups
+        if prior_key in monthly_groups:
+            prior_products = sorted(monthly_groups[prior_key].values(), key=lambda p: (p['sales'], p['profit']), reverse=True)
+            prior_block = {'products': prior_products}
         for p in block['products']:
             if prior_block:
                 prior_p = next((pp for pp in prior_block['products'] if pp['product']==p['product']), None)
