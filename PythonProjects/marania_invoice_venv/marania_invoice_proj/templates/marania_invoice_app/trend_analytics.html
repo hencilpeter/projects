@@ -17,7 +17,7 @@
   {% endif %}
 
   <!-- Filters -->
-  <div class="card shadow-sm mb-4">
+  <div class="card shadow-sm mb-2">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Filters{% if filters.start_date and filters.end_date %} ({{ filters.start_date|date:'Y-m-d' }} to {{ filters.end_date|date:'Y-m-d' }}){% endif %}</h5>
       <button type="button" class="btn btn-sm btn-outline-light" id="filterToggleBtn" data-bs-toggle="collapse" data-bs-target="#filterBody" aria-expanded="false" aria-controls="filterBody">
