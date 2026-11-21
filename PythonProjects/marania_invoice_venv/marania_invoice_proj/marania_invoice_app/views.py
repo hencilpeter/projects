@@ -7225,20 +7225,21 @@ def trend_analytics(request):
     # Historical range filter (default: last 5 years)
     _best_start_year_str = request.GET.get('best_start_year', '')
     _best_end_year_str = request.GET.get('best_end_year', '')
+    _cur_year = date.today().year
     if _best_start_year_str:
         try:
             _best_start_year = int(_best_start_year_str)
         except (ValueError, TypeError):
-            _best_start_year = (_all_years[-1] - 4) if _all_years else None
+            _best_start_year = _cur_year if _cur_year in _all_years else ((_all_years[-1] if _all_years else None))
     else:
-        _best_start_year = (_all_years[-1] - 4) if _all_years else None
+        _best_start_year = _cur_year if (_all_years and _cur_year in _all_years) else ((_all_years[-1] if _all_years else None))
     if _best_end_year_str:
         try:
             _best_end_year = int(_best_end_year_str)
         except (ValueError, TypeError):
-            _best_end_year = _all_years[-1] if _all_years else None
+            _best_end_year = _cur_year if _all_years else None
     else:
-        _best_end_year = _all_years[-1] if _all_years else None
+        _best_end_year = _cur_year if (_all_years and _cur_year in _all_years) else ((_all_years[-1] if _all_years else None))
     if _best_start_year is not None and _best_end_year is not None and _best_start_year > _best_end_year:
         _best_start_year, _best_end_year = _best_end_year, _best_start_year
 
@@ -7456,6 +7457,13 @@ def trend_analytics(request):
 
     # Display period filter (optional second filter section)
     _display_periods = request.GET.getlist('display_periods')
+    if not _display_periods:
+        # default: show only the last 2 available historical periods
+        _default_periods = [b['period'] for b in monthly_best_products]
+        if len(_default_periods) > 2:
+            _display_periods = _default_periods[-2:]
+        else:
+            _display_periods = _default_periods
     # available display periods = historical periods in range + next 6 months (forecast)
     _avail_display_labels = [b['period'] for b in monthly_best_products]
     _today = date.today()
