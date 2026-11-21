@@ -62,7 +62,7 @@
         <div class="col-md-3">
           <label class="form-label small mb-0">Product Codes</label>
           <select class="form-select form-select-sm" id="product_codes" multiple size="1">
-            <option value="">All Products</option>
+            <option value="" {% if not filters.product_codes %}selected{% endif %}>All Products</option>
             {% for product in all_products %}
               <option value="{{ product }}" {% if product in filters.product_codes %}selected{% endif %}>{{ product }}</option>
             {% endfor %}
@@ -71,7 +71,7 @@
         <div class="col-md-3">
           <label class="form-label small mb-0">Customers</label>
           <select class="form-select form-select-sm" id="customers" multiple size="1">
-            <option value="">All Customers</option>
+            <option value="" {% if not filters.customers %}selected{% endif %}>All Customers</option>
             {% for customer in all_customers %}
               <option value="{{ customer }}" {% if customer in filters.customers %}selected{% endif %}>{{ customer }}</option>
             {% endfor %}
