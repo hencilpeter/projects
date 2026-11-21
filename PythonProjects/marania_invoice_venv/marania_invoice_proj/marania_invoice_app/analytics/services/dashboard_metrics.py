@@ -30,7 +30,16 @@ def compute_period(normalized_sales):
         }
     total_sales = sum((s.total_amount or Decimal('0')) for s in normalized_sales)
     total_quantity = sum((s.processed_weight if s.processed_weight and s.processed_weight > 0 else s.initial_weight or Decimal('0')) for s in normalized_sales)
-    invoice_count = len(normalized_sales)
+    # Count distinct invoices by invoice_no; empty/NA treated as one invoice per row
+    distinct_inv = set()
+    per_row = 0
+    for s in normalized_sales:
+        inv = (getattr(s, 'invoice_no', None) or '').strip()
+        if inv and inv.upper() not in ('', 'NA', 'N/A'):
+            distinct_inv.add(inv)
+        else:
+            per_row += 1
+    invoice_count = len(distinct_inv) + per_row
     active_customers = len(set(s.customer for s in normalized_sales if s.customer))
     total_profit = sum((s.profit_loss if hasattr(s, 'profit_loss') else Decimal('0')) or Decimal('0') for s in [])  # placeholder
     # profit comes from external map; recompute below
@@ -54,7 +63,7 @@ def compute_period(normalized_sales):
     }
 
 
-def compute_enhanced(normalized_sales, previous_normalized_sales, profit_map, prev_profit_map, filters, monthly_trend, top_customers, product_trends, product_spec_matrix):
+def compute_enhanced(normalized_sales, previous_normalized_sales, profit_map, prev_profit_map, filters, monthly_trend, top_customers, product_trends, product_spec_matrix, start_date=None, end_date=None):
     result = {}
     # period aggregates
     cur = compute_period(normalized_sales)
@@ -71,7 +80,15 @@ def compute_enhanced(normalized_sales, previous_normalized_sales, profit_map, pr
     # sales kpis
     total_sales = cur['total_sales']
     total_quantity = cur['total_quantity']
-    invoice_count = cur['invoice_count']
+    # Invoice count from Invoice model (source of truth) when dates available
+    if start_date and end_date:
+        try:
+            from marania_invoice_app.models import Invoice
+            invoice_count = Invoice.objects.filter(invoice_date__gte=start_date, invoice_date__lte=end_date).count()
+        except Exception:
+            invoice_count = cur['invoice_count']
+    else:
+        invoice_count = cur['invoice_count']
     active_customers = cur['active_customers']
     avg_invoice_value = (total_sales / invoice_count) if invoice_count else None
     # number of months in range

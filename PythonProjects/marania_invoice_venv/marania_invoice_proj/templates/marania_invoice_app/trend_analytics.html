@@ -202,6 +202,7 @@
       <!-- Comparison -->
       {% if enhanced.comparison.previous_sales is not None %}
       <h6 class="fw-bold">Period Comparison</h6>
+      <p class="small mb-1">Current: {{ filters.start_date|date:'Y-m-d' }} to {{ filters.end_date|date:'Y-m-d' }} | Previous: {% if prev_start %}{{ prev_start|date:'Y-m-d' }} to {{ prev_end|date:'Y-m-d' }}{% else %}N/A{% endif %}</p>
       <table class="table table-sm table-bordered">
         <thead class="table-light"><tr><th>Metric</th><th>Current</th><th>Previous</th><th>Change</th></tr></thead>
         <tbody>

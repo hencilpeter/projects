@@ -48,6 +48,7 @@ class TrendAnalyticsService:
             # Create normalized sale record
             normalized_sale = NormalizedSale(
                 sales_key=sale.sales_key,
+                invoice_no=sale.invoice_no or '',
                 order_no=sale.order_no,
                 sales_entry_date=sale.sales_entry_date,
                 product_code=product_code,

@@ -7103,6 +7103,8 @@ def trend_analytics(request):
     # Previous equivalent period for comparison
     previous_normalized_sales = []
     prev_profit_map = {}
+    prev_start = None
+    prev_end = None
     if start_date and end_date:
         try:
             duration_days = (end_date - start_date).days
@@ -7518,6 +7520,8 @@ def trend_analytics(request):
             top_customers=top_customers,
             product_trends=product_trends,
             product_spec_matrix=product_spec_matrix,
+            start_date=start_date,
+            end_date=end_date,
         )
     except Exception as _e:
         enhanced = {}
@@ -7785,6 +7789,8 @@ def trend_analytics(request):
         'filters': filters,
         'today': date.today(),
         'filters_applied': bool(request.GET),
+        'prev_start': prev_start,
+        'prev_end': prev_end,
         'monthly_chart_data_json': json.dumps(monthly_chart_data),
         'product_chart_data_json': json.dumps(product_chart_data),
         'enhanced': enhanced,

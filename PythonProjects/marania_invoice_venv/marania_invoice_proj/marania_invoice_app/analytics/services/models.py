@@ -11,6 +11,7 @@ from typing import Optional
 class NormalizedSale:
     """Normalized sale record for analytics."""
     sales_key: int
+    invoice_no: str
     order_no: str
     sales_entry_date: date
     product_code: str
