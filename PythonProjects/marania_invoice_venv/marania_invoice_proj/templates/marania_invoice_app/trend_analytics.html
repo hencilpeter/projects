@@ -108,12 +108,12 @@
   </div>
 
 <!-- KPI Cards -->
-  <div class="row mb-4">
+  <div class="row mb-2">
     <div class="col-md-2">
       <div class="card bg-primary text-white">
         <div class="card-body text-center">
           <h6 class="card-title">Total Orders</h6>
-          <h3 class="card-text">{{ summary.orders }}</h3>
+          <h4 class="card-text">{{ summary.orders }}</h4>
         </div>
       </div>
     </div>
@@ -121,7 +121,7 @@
       <div class="card bg-success text-white">
         <div class="card-body text-center">
           <h6 class="card-title">Total Sales</h6>
-          <h3 class="card-text">{{ summary.sales }}</h3>
+          <h4 class="card-text">{{ summary.sales }}</h4>
         </div>
       </div>
     </div>
@@ -129,7 +129,7 @@
       <div class="card bg-info text-white">
         <div class="card-body text-center">
           <h6 class="card-title">Total Weight (KG)</h6>
-          <h3 class="card-text">{{ summary.weight }}</h3>
+          <h4 class="card-text">{{ summary.weight }}</h4>
         </div>
       </div>
     </div>
@@ -137,7 +137,7 @@
       <div class="card bg-warning text-dark">
         <div class="card-body text-center">
           <h6 class="card-title">Total Pieces</h6>
-          <h3 class="card-text">{{ summary.pieces }}</h3>
+          <h4 class="card-text">{{ summary.pieces }}</h4>
         </div>
       </div>
     </div>
@@ -145,7 +145,7 @@
       <div class="card bg-secondary text-white">
         <div class="card-body text-center">
           <h6 class="card-title">Active Products</h6>
-          <h3 class="card-text">{{ summary.products }}</h3>
+          <h4 class="card-text">{{ summary.products }}</h4>
         </div>
       </div>
     </div>
@@ -153,12 +153,11 @@
       <div class="card bg-dark text-white">
         <div class="card-body text-center">
           <h6 class="card-title">Active Specs</h6>
-          <h3 class="card-text">{{ summary.specifications }}</h3>
+          <h4 class="card-text">{{ summary.specifications }}</h4>
         </div>
       </div>
     </div>
   </div
-
 
   <!-- Overall Status -->
   {% if enhanced.overall_status %}
