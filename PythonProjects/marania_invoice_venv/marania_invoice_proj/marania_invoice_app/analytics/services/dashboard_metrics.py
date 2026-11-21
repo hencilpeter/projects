@@ -290,17 +290,20 @@ def compute_enhanced(normalized_sales, previous_normalized_sales, profit_map, pr
 
     # narrative
     narrative_parts = []
-    narrative_parts.append(f"Marania's overall business status for the selected period is {status}.")
-    narrative_parts.append(f"Total sales: {total_sales:,.0f} ({('+' if (sales_growth or 0) >= 0 else '') + (f'{sales_growth:.1f}%' if sales_growth is not None else 'N/A')} vs previous period).")
-    narrative_parts.append(f"Total profit: {total_profit:,.0f} with a margin of {profit_margin:.1f}%." if profit_margin is not None else f"Total profit: {total_profit:,.0f}.")
+    _growth_str = (f"{sales_growth:+.1f}%" if sales_growth is not None else "N/A")
+    narrative_parts.append(f"Total sales: <strong>{total_sales:,.0f}</strong> ({_growth_str} vs previous period)")
+    if profit_margin is not None:
+        narrative_parts.append(f"Total profit: <strong>{total_profit:,.0f}</strong> with a margin of <strong>{profit_margin:.1f}%</strong>")
+    else:
+        narrative_parts.append(f"Total profit: <strong>{total_profit:,.0f}</strong>")
     if product_trends:
         top_p = product_trends[0]['product']
-        narrative_parts.append(f"Best-performing product by sales: {top_p}.")
+        narrative_parts.append(f"Best-performing product by sales: <strong>{top_p}</strong>")
     if alerts:
-        narrative_parts.append(f"{len(alerts)} risk alert(s) detected requiring attention.")
+        narrative_parts.append(f"<strong>{len(alerts)}</strong> risk alert(s) detected requiring attention")
     if recs:
-        narrative_parts.append(f"{len(recs)} business recommendation(s) generated.")
-    result['narrative'] = ' '.join(narrative_parts)
+        narrative_parts.append(f"<strong>{len(recs)}</strong> business recommendation(s) generated")
+    result['narrative'] = ' <span style="color:#FFD700;font-size:1.5em;font-weight:bold;vertical-align:middle;">*</span> '.join(narrative_parts)
 
     # date range summary
     result['date_range_summary'] = {
