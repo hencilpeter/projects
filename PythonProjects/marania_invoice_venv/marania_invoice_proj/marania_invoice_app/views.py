@@ -7784,6 +7784,7 @@ def trend_analytics(request):
         'paginated_orders': paginated_orders,
         'filters': filters,
         'today': date.today(),
+        'filters_applied': bool(request.GET),
         'monthly_chart_data_json': json.dumps(monthly_chart_data),
         'product_chart_data_json': json.dumps(product_chart_data),
         'enhanced': enhanced,
