@@ -7867,7 +7867,7 @@ def trend_analytics(request):
     # minimum eligibility for margin/growth: exclude zero revenue
     if _rank_by in ('margin', 'growth'):
         _prod_list_sorted = [x for x in _prod_list_sorted if x['revenue'] and x['revenue'] > 0]
-    _top10 = _prod_list_sorted[:10]
+    _top10 = _prod_list_sorted
 
     # Summary cards (from top 10)
     _tot_q = sum((x['quantity'] for x in _top10), Decimal('0'))

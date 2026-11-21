@@ -396,7 +396,7 @@
 
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-      <h5 class="mb-0">Product Trends (Top 10)</h5>
+      <h5 class="mb-0">Product Trends</h5>
       <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#prodtrendsBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse ta-collapse" id="prodtrendsBody">
@@ -405,11 +405,11 @@
         <div class="col-md-4">
           <label class="form-label small mb-0">Ranking Criteria</label>
           <select class="form-select form-select-sm" id="rank_by" onchange="applyFilters()">
-            <option value="quantity" {% if product_rank_by == 'quantity' %}selected{% endif %}>Top 10 by Sales Quantity</option>
-            <option value="revenue" {% if product_rank_by == 'revenue' %}selected{% endif %}>Top 10 by Revenue</option>
-            <option value="profit" {% if product_rank_by == 'profit' %}selected{% endif %}>Top 10 by Total Profit</option>
-            <option value="margin" {% if product_rank_by == 'margin' %}selected{% endif %}>Top 10 by Profit Margin (%)</option>
-            <option value="growth" {% if product_rank_by == 'growth' %}selected{% endif %}>Top 10 by Sales Growth (%)</option>
+            <option value="quantity" {% if product_rank_by == 'quantity' %}selected{% endif %}>By Sales Quantity</option>
+            <option value="revenue" {% if product_rank_by == 'revenue' %}selected{% endif %}>By Revenue</option>
+            <option value="profit" {% if product_rank_by == 'profit' %}selected{% endif %}>By Total Profit</option>
+            <option value="margin" {% if product_rank_by == 'margin' %}selected{% endif %}>By Profit Margin (%)</option>
+            <option value="growth" {% if product_rank_by == 'growth' %}selected{% endif %}>By Sales Growth (%)</option>
           </select>
         </div>
         <div class="col-md-4">
@@ -441,10 +441,10 @@
         <div class="col-md-2"><div class="card bg-danger text-white"><div class="card-body text-center py-2"><h6 class="card-title mb-0">Declining</h6><h5 class="card-text mb-0">{{ product_summary_cards.declining }}</h5></div></div></div>
       </div>
 
-      <h6 class="fw-bold">Top 10 Product Performance Comparison</h6>
+      <h6 class="fw-bold">Product Performance Comparison</h6>
       <canvas id="productTrendChart" height="120"></canvas>
 
-      <h6 class="fw-bold mt-3">Top 10 Product Ranking</h6>
+      <h6 class="fw-bold mt-3">Product Ranking</h6>
       <div class="table-responsive">
         <table class="table table-sm table-bordered table-hover">
           <thead class="table-dark"><tr><th>Rank</th><th>Product</th><th>Qty</th><th>Revenue</th><th>Profit</th><th>Margin %</th><th>Growth %</th><th>Trend</th></tr></thead>
