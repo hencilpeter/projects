@@ -69,6 +69,15 @@
   </div
 
   
+<!-- Overall Status -->
+  {% if enhanced.overall_status %}
+  <div class="alert {% if enhanced.overall_status == 'Positive' %}alert-success{% elif enhanced.overall_status == 'Stable' %}alert-info{% elif enhanced.overall_status == 'Needs Attention' %}alert-warning{% else %}alert-danger{% endif %} mb-4">
+    <strong>Overall Business Status: {{ enhanced.overall_status }}</strong>
+    {% if enhanced.narrative %}<p class="mb-0 mt-1">{{ enhanced.narrative }}</p>{% endif %}
+  </div>
+  {% endif %}
+
+  
   <!-- Filters -->
   <div class="card shadow-sm mb-2">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
@@ -160,15 +169,7 @@
     </div>
   </div>
 
-<!-- Overall Status -->
-  {% if enhanced.overall_status %}
-  <div class="alert {% if enhanced.overall_status == 'Positive' %}alert-success{% elif enhanced.overall_status == 'Stable' %}alert-info{% elif enhanced.overall_status == 'Needs Attention' %}alert-warning{% else %}alert-danger{% endif %} mb-4">
-    <strong>Overall Business Status: {{ enhanced.overall_status }}</strong>
-    {% if enhanced.narrative %}<p class="mb-0 mt-1">{{ enhanced.narrative }}</p>{% endif %}
-  </div>
-  {% endif %}
-
-  <!-- Business KPI Overview -->
+<!-- Business KPI Overview -->
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white"><h5 class="mb-0">Business KPI Overview</h5></div>
     <div class="card-body">
