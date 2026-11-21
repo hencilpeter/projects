@@ -334,4 +334,3 @@ def compute_enhanced(normalized_sales, previous_normalized_sales, profit_map, pr
     result['data_quality_flags'] = dq_flags
 
     return result
-PY

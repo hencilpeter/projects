@@ -7475,23 +7475,6 @@ def trend_analytics(request):
         monthly_best_products = [b for b in monthly_best_products if b['period'] in _disp_set]
     selected_display_periods = _display_periods
 
-    # Enhanced dashboard metrics (decision-support)
-    try:
-        from marania_invoice_app.analytics.services.dashboard_metrics import compute_enhanced
-        enhanced = compute_enhanced(
-            normalized_sales=normalized_sales,
-            previous_normalized_sales=previous_normalized_sales,
-            profit_map=_profit_map,
-            prev_profit_map=prev_profit_map,
-            filters=filters,
-            monthly_trend=monthly_trend,
-            top_customers=top_customers,
-            product_trends=product_trends,
-            product_spec_matrix=product_spec_matrix,
-        )
-    except Exception as _e:
-        enhanced = {}
-
 # Calculate top 10 customers
     customer_data = {}
     for sale in normalized_sales:
@@ -7521,6 +7504,23 @@ def trend_analytics(request):
     for customer in top_customers:
         spec_strings = [f"{spec}({weight:.2f} kg)" for spec, weight in sorted(customer['specifications'].items(), key=lambda x: x[1], reverse=True)]
         customer['specifications'] = ', '.join(spec_strings)
+
+    # Enhanced dashboard metrics (decision-support)
+    try:
+        from marania_invoice_app.analytics.services.dashboard_metrics import compute_enhanced
+        enhanced = compute_enhanced(
+            normalized_sales=normalized_sales,
+            previous_normalized_sales=previous_normalized_sales,
+            profit_map=_profit_map,
+            prev_profit_map=prev_profit_map,
+            filters=filters,
+            monthly_trend=monthly_trend,
+            top_customers=top_customers,
+            product_trends=product_trends,
+            product_spec_matrix=product_spec_matrix,
+        )
+    except Exception as _e:
+        enhanced = {}
 
 # Generate recommendations (without season comparison for now)
     recommendations = []
