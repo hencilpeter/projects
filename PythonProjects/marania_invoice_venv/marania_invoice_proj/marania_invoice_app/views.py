@@ -7496,6 +7496,14 @@ def trend_analytics(request):
     selected_display_periods = _display_periods
 
 # Calculate top 10 customers
+    # Previous period sales/profit by customer
+    _prev_cust_sales = {}
+    _prev_cust_profit = {}
+    for _s in (previous_normalized_sales or []):
+        if _s.customer:
+            _prev_cust_sales[_s.customer] = _prev_cust_sales.get(_s.customer, Decimal('0')) + (_s.total_amount or Decimal('0'))
+            _prev_cust_profit[_s.customer] = _prev_cust_profit.get(_s.customer, Decimal('0')) + (prev_profit_map.get(_s.sales_key, Decimal('0')) or Decimal('0'))
+
     customer_data = {}
     for sale in normalized_sales:
         if sale.customer:
@@ -7503,23 +7511,47 @@ def trend_analytics(request):
                 customer_data[sale.customer] = {
                     'customer': sale.customer,
                     'sales': Decimal('0'),
+                    'quantity': Decimal('0'),
+                    'profit': Decimal('0'),
+                    'orders': 0,
                     'specifications': {}
                 }
-            customer_data[sale.customer]['sales'] += sale.total_amount
+            customer_data[sale.customer]['sales'] += sale.total_amount or Decimal('0')
+            _w = sale.processed_weight if sale.processed_weight and sale.processed_weight > 0 else sale.initial_weight or Decimal('0')
+            customer_data[sale.customer]['quantity'] += _w
+            customer_data[sale.customer]['profit'] += (_profit_map.get(sale.sales_key, Decimal('0')) or Decimal('0'))
+            customer_data[sale.customer]['orders'] += 1
             full_spec = f"{sale.product_code}-{sale.normalized_specification}" if sale.product_code and sale.normalized_specification and sale.normalized_specification != "Unknown" else (sale.product_code or sale.normalized_specification or "Unknown")
-            weight = sale.processed_weight if sale.processed_weight > 0 else sale.initial_weight
+            weight = sale.processed_weight if sale.processed_weight and sale.processed_weight > 0 else sale.initial_weight or Decimal('0')
             if full_spec not in customer_data[sale.customer]['specifications']:
                 customer_data[sale.customer]['specifications'][full_spec] = Decimal('0')
             customer_data[sale.customer]['specifications'][full_spec] += weight
 
     for customer in customer_data.values():
-        customer['orders'] = len(customer['specifications'])
+        _cs = customer['sales']
+        _ps = _prev_cust_sales.get(customer['customer'], Decimal('0'))
+        if _ps and _ps > 0:
+            customer['growth'] = (customer['sales'] - _ps) / _ps * 100
+        else:
+            customer['growth'] = None
+        customer['margin'] = (customer['profit'] / customer['sales'] * 100) if customer['sales'] else None
+        # trend
+        if _ps == 0 and customer['sales'] > 0:
+            customer['trend'] = 'New Demand'
+        elif customer['growth'] is None:
+            customer['trend'] = 'Stable'
+        elif customer['growth'] > 5:
+            customer['trend'] = 'Rising'
+        elif customer['growth'] < -5:
+            customer['trend'] = 'Declining'
+        else:
+            customer['trend'] = 'Stable'
 
     top_customers = sorted(
         customer_data.values(),
-        key=lambda x: x['orders'],
+        key=lambda x: x['sales'],
         reverse=True
-    )[:10]
+    )
 
     for customer in top_customers:
         spec_strings = [f"{spec}({weight:.2f} kg)" for spec, weight in sorted(customer['specifications'].items(), key=lambda x: x[1], reverse=True)]

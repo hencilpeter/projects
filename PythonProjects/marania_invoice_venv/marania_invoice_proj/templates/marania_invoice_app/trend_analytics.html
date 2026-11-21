@@ -622,7 +622,7 @@
   <!-- Top 10 Customers -->
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-      <h5 class="mb-0">Top 10 Customers {% if filters.start_date and filters.end_date %}({{ filters.start_date|date:'d-M-Y' }} to {{ filters.end_date|date:'d-M-Y' }}){% endif %}</h5>
+      <h5 class="mb-0">Customer Performance {% if filters.start_date and filters.end_date %}({{ filters.start_date|date:'d-M-Y' }} to {{ filters.end_date|date:'d-M-Y' }}){% endif %}</h5>
       <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#topcustBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse ta-collapse" id="topcustBody">
@@ -632,9 +632,12 @@
             <tr>
               <th>Rank</th>
               <th>Customer</th>
-              <th class="text-end">Spec Count</th>
               <th class="text-end">Sales</th>
-              <th>Specifications</th>
+              <th class="text-end">Quantity (kg)</th>
+              <th class="text-end">Profit</th>
+              <th class="text-end">Margin %</th>
+              <th class="text-end">Growth %</th>
+              <th>Trend</th>
             </tr>
           </thead>
           <tbody>
@@ -642,12 +645,15 @@
             <tr>
               <td><strong>{{ forloop.counter }}</strong></td>
               <td>{{ customer.customer }}</td>
-              <td class="text-end">{{ customer.orders }}</td>
-              <td class="text-end">{{ customer.sales }}</td>
-              <td>{{ customer.specifications }}</td>
+              <td class="text-end">{{ customer.sales|inr }}</td>
+              <td class="text-end">{{ customer.quantity|floatformat:2 }}</td>
+              <td class="text-end">{{ customer.profit|inr }}</td>
+              <td class="text-end">{% if customer.margin is not None %}{{ customer.margin|floatformat:2 }}%{% else %}N/A{% endif %}</td>
+              <td class="text-end">{% if customer.growth is not None %}{{ customer.growth|floatformat:2 }}%{% else %}N/A{% endif %}</td>
+              <td>{{ customer.trend }}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="5" class="text-center">No customer data available.</td></tr>
+            <tr><td colspan="8" class="text-center">No customer data available.</td></tr>
             {% endfor %}
           </tbody>
         </table>
