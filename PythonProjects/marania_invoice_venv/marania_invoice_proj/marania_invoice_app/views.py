@@ -7775,6 +7775,8 @@ def trend_analytics(request):
         'data_quality': data_quality,
         'top_customers': top_customers,
         'monthly_best_products': monthly_best_products,
+        'projected_best_products': projected_best_products,
+        'best_mode': _best_mode,
         'available_display_periods': available_display_periods,
         'selected_display_periods': selected_display_periods,
         'best_start_year': _best_start_year,
