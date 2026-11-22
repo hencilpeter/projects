@@ -24,7 +24,7 @@
 <!-- KPI Cards -->
   <div class="row mb-2">
     <div class="col-md-2">
-      <div class="card bg-primary text-white">
+      <div class="card bg-white text-dark border-start border-4 border-primary">
         <div class="card-body text-center py-2">
           <h6 class="card-title mb-0">Total Orders</h6>
           <h4 class="card-text mb-0">{{ summary.orders }}</h4>
@@ -32,7 +32,7 @@
       </div>
     </div>
     <div class="col-md-2">
-      <div class="card bg-success text-white">
+      <div class="card bg-white text-dark border-start border-4 border-success">
         <div class="card-body text-center py-2">
           <h6 class="card-title mb-0">Total Sales</h6>
           <h4 class="card-text mb-0">{{ summary.sales|inr }}</h4>
@@ -48,7 +48,7 @@
       </div>
     </div>
     <div class="col-md-2">
-      <div class="card bg-warning text-dark">
+      <div class="card bg-white text-dark border-start border-4 border-warning">
         <div class="card-body text-center py-2">
           <h6 class="card-title mb-0">Total Pieces</h6>
           <h4 class="card-text mb-0">{{ summary.pieces }}</h4>
@@ -56,7 +56,7 @@
       </div>
     </div>
     <div class="col-md-2">
-      <div class="card bg-secondary text-white">
+      <div class="card bg-white text-dark border-start border-4 border-secondary">
         <div class="card-body text-center py-2">
           <h6 class="card-title mb-0">Active Products</h6>
           <h4 class="card-text mb-0">{{ summary.products }}</h4>
@@ -64,7 +64,7 @@
       </div>
     </div>
     <div class="col-md-2">
-      <div class="card bg-dark text-white">
+      <div class="card bg-white text-dark border-start border-4 border-dark">
         <div class="card-body text-center py-2">
           <h6 class="card-title mb-0">Active Specs</h6>
           <h4 class="card-text mb-0">{{ summary.specifications }}</h4>
@@ -76,9 +76,9 @@
   
 <!-- Filters -->
   <div class="card shadow-sm mb-2">
-    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-white text-dark border-start border-4 border-secondary d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Filters{% if filters.start_date and filters.end_date %} ({{ filters.start_date|date:'Y-m-d' }} to {{ filters.end_date|date:'Y-m-d' }}){% endif %}</h5>
-      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" id="filterToggleBtn" data-bs-toggle="collapse" data-bs-target="#filterBody" aria-expanded="{% if filters_applied %}true{% else %}false{% endif %}" aria-controls="filterBody">
+      <button type="button" class="btn btn-sm btn-outline-secondary ta-toggle" id="filterToggleBtn" data-bs-toggle="collapse" data-bs-target="#filterBody" aria-expanded="{% if filters_applied %}true{% else %}false{% endif %}" aria-controls="filterBody">
         <span id="filterToggleLabel">{% if filters_applied %}Collapse{% else %}Expand{% endif %}</span> <i class="bi {% if filters_applied %}bi-chevron-up{% else %}bi-chevron-down{% endif %}"></i>
       </button>
     </div>
@@ -167,9 +167,9 @@
 
 <!-- Business KPI Overview -->
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-white text-dark border-start border-4 border-primary d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Business KPI Overview</h5>
-      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#bkpiBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-secondary ta-toggle" data-bs-toggle="collapse" data-bs-target="#bkpiBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse ta-collapse" id="bkpiBody">
       <div class="row mb-3">
@@ -227,9 +227,9 @@
   <!-- Monthly Best-Performing Product Analysis -->
   {% if monthly_best_products %}
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-info text-dark d-flex justify-content-between align-items-center">
+    <div class="card-header bg-white text-dark border-start border-4 border-info d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Monthly Best-Performing Product Analysis</h5>
-      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" id="bestToggleBtn" data-bs-toggle="collapse" data-bs-target="#bestBody" aria-expanded="false" aria-controls="bestBody">
+      <button type="button" class="btn btn-sm btn-outline-secondary ta-toggle" id="bestToggleBtn" data-bs-toggle="collapse" data-bs-target="#bestBody" aria-expanded="false" aria-controls="bestBody">
         <span id="bestToggleLabel">Expand</span> <i class="bi bi-chevron-down"></i>
       </button>
     </div>
@@ -370,9 +370,9 @@
             {% for p in block.products %}
             <tr {% if p.is_top %}class="table-warning"{% endif %}>
               <td>
-                {% if p.is_top %}<span class="badge bg-warning text-dark me-1">Projected Best</span>{% endif %}
+                {% if p.is_top %}<span class="badge bg-white text-dark border-start border-4 border-warning me-1">Projected Best</span>{% endif %}
                 <strong>{{ p.product }}</strong>
-                {% if p.confidence %}<span class="badge bg-info text-dark ms-1">{{ p.confidence }}</span>{% endif %}
+                {% if p.confidence %}<span class="badge bg-white text-dark border-start border-4 border-info ms-1">{{ p.confidence }}</span>{% endif %}
               </td>
               <td class="text-end">{{ p.sales|floatformat:2 }}</td>
               <td class="text-end">{{ p.weight|floatformat:2 }}</td>
@@ -400,9 +400,9 @@
   {% endif %}
 
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+    <div class="card-header bg-white text-dark border-start border-4 border-warning d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Customer Performance {% if filters.start_date and filters.end_date %}({{ filters.start_date|date:'d-M-Y' }} to {{ filters.end_date|date:'d-M-Y' }}){% endif %}</h5>
-      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#topcustBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-secondary ta-toggle" data-bs-toggle="collapse" data-bs-target="#topcustBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse ta-collapse" id="topcustBody">
       <div class="table-responsive">
@@ -455,9 +455,9 @@
 <!-- Product Recommendations -->
   {% if recommendations %}
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-white text-dark border-start border-4 border-success d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Product Recommendations</h5>
-      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#oldrecBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-secondary ta-toggle" data-bs-toggle="collapse" data-bs-target="#oldrecBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse ta-collapse" id="oldrecBody">
       <div class="table-responsive">
@@ -534,9 +534,9 @@
 
 <!-- Business Action Recommendations -->
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-white text-dark border-start border-4 border-success d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Business Action Recommendations</h5>
-      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#bizrecBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-secondary ta-toggle" data-bs-toggle="collapse" data-bs-target="#bizrecBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse ta-collapse" id="bizrecBody">
       {% if enhanced.business_recommendations %}
@@ -546,7 +546,7 @@
           <tbody>
             {% for r in enhanced.business_recommendations %}
             <tr>
-              <td><span class="badge {% if r.priority == 'High' %}bg-danger{% elif r.priority == 'Medium' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ r.priority }}</span></td>
+              <td><span class="badge {% if r.priority == 'High' %}bg-danger{% elif r.priority == 'Medium' %}bg-white text-dark border-start border-4 border-warning{% else %}bg-secondary{% endif %}">{{ r.priority }}</span></td>
               <td>{{ r.category }}</td>
               <td>{{ r.title }}</td>
               <td>{{ r.reason }}</td>
@@ -566,9 +566,9 @@
 
 <!-- Customer Concentration -->
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+    <div class="card-header bg-white text-dark border-start border-4 border-warning d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Customer Concentration & Dependency</h5>
-      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#custconcBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-secondary ta-toggle" data-bs-toggle="collapse" data-bs-target="#custconcBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse ta-collapse" id="custconcBody">
       <div class="row mb-2">
@@ -588,9 +588,9 @@
   </div>
 
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-white text-dark border-start border-4 border-primary d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Product Trends</h5>
-      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#prodtrendsBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-secondary ta-toggle" data-bs-toggle="collapse" data-bs-target="#prodtrendsBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse ta-collapse" id="prodtrendsBody">
             <!-- Ranking selector -->
@@ -627,12 +627,12 @@
       </div>
 
       <div class="row mb-3">
-        <div class="col-md-2"><div class="card bg-primary text-white"><div class="card-body text-center py-2"><h6 class="card-title mb-0">Total Qty</h6><h5 class="card-text mb-0">{{ product_summary_cards.total_quantity|inr }}</h5></div></div></div>
-        <div class="col-md-2"><div class="card bg-success text-white"><div class="card-body text-center py-2"><h6 class="card-title mb-0">Total Revenue</h6><h5 class="card-text mb-0">{{ product_summary_cards.total_revenue|inr }}</h5></div></div></div>
+        <div class="col-md-2"><div class="card bg-white text-dark border-start border-4 border-primary"><div class="card-body text-center py-2"><h6 class="card-title mb-0">Total Qty</h6><h5 class="card-text mb-0">{{ product_summary_cards.total_quantity|inr }}</h5></div></div></div>
+        <div class="col-md-2"><div class="card bg-white text-dark border-start border-4 border-success"><div class="card-body text-center py-2"><h6 class="card-title mb-0">Total Revenue</h6><h5 class="card-text mb-0">{{ product_summary_cards.total_revenue|inr }}</h5></div></div></div>
         <div class="col-md-2"><div class="card bg-info text-white"><div class="card-body text-center py-2"><h6 class="card-title mb-0">Total Profit</h6><h5 class="card-text mb-0">{{ product_summary_cards.total_profit|inr }}</h5></div></div></div>
-        <div class="col-md-2"><div class="card bg-warning text-dark"><div class="card-body text-center py-2"><h6 class="card-title mb-0">Avg Margin</h6><h5 class="card-text mb-0">{% if product_summary_cards.avg_margin is not None %}{{ product_summary_cards.avg_margin|floatformat:2 }}%{% else %}N/A{% endif %}</h5></div></div></div>
-        <div class="col-md-2"><div class="card bg-secondary text-white"><div class="card-body text-center py-2"><h6 class="card-title mb-0">Growing</h6><h5 class="card-text mb-0">{{ product_summary_cards.growing }}</h5></div></div></div>
-        <div class="col-md-2"><div class="card bg-danger text-white"><div class="card-body text-center py-2"><h6 class="card-title mb-0">Declining</h6><h5 class="card-text mb-0">{{ product_summary_cards.declining }}</h5></div></div></div>
+        <div class="col-md-2"><div class="card bg-white text-dark border-start border-4 border-warning"><div class="card-body text-center py-2"><h6 class="card-title mb-0">Avg Margin</h6><h5 class="card-text mb-0">{% if product_summary_cards.avg_margin is not None %}{{ product_summary_cards.avg_margin|floatformat:2 }}%{% else %}N/A{% endif %}</h5></div></div></div>
+        <div class="col-md-2"><div class="card bg-white text-dark border-start border-4 border-secondary"><div class="card-body text-center py-2"><h6 class="card-title mb-0">Growing</h6><h5 class="card-text mb-0">{{ product_summary_cards.growing }}</h5></div></div></div>
+        <div class="col-md-2"><div class="card bg-white text-dark border-start border-4 border-danger"><div class="card-body text-center py-2"><h6 class="card-title mb-0">Declining</h6><h5 class="card-text mb-0">{{ product_summary_cards.declining }}</h5></div></div></div>
       </div>
 
       <h6 class="fw-bold">Product Performance Comparison</h6>
@@ -681,9 +681,9 @@
 
 <!-- Precautionary Measures & Predictive Analysis -->
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-white text-dark border-start border-4 border-danger d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Precautionary Measures & Predictive Analysis</h5>
-      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#precautBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-secondary ta-toggle" data-bs-toggle="collapse" data-bs-target="#precautBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse ta-collapse" id="precautBody">
       {% if enhanced.risk_alerts %}
@@ -693,7 +693,7 @@
           <tbody>
             {% for a in enhanced.risk_alerts %}
             <tr>
-              <td><span class="badge {% if a.severity == 'CRITICAL' %}bg-danger{% elif a.severity == 'HIGH' %}bg-warning text-dark{% elif a.severity == 'MEDIUM' %}bg-info text-dark{% else %}bg-secondary{% endif %}">{{ a.severity }}</span></td>
+              <td><span class="badge {% if a.severity == 'CRITICAL' %}bg-danger{% elif a.severity == 'HIGH' %}bg-white text-dark border-start border-4 border-warning{% elif a.severity == 'MEDIUM' %}bg-white text-dark border-start border-4 border-info{% else %}bg-secondary{% endif %}">{{ a.severity }}</span></td>
               <td>{{ a.title }}</td>
               <td>{{ a.issue }}</td>
               <td>{{ a.supporting }}</td>
@@ -725,9 +725,9 @@
 
   <!-- Product × Specification Matrix -->
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-white text-dark border-start border-4 border-secondary d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Product × Specification Matrix</h5>
-      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#prodmatBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-secondary ta-toggle" data-bs-toggle="collapse" data-bs-target="#prodmatBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse ta-collapse" id="prodmatBody">
       <div class="table-responsive">
@@ -766,9 +766,9 @@
 
   <!-- Detailed Orders Table -->
   <div class="card shadow-sm">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-white text-dark border-start border-4 border-dark d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Detailed Sales Orders</h5>
-      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#detailsalesBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-secondary ta-toggle" data-bs-toggle="collapse" data-bs-target="#detailsalesBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse ta-collapse" id="detailsalesBody">
       <div class="table-responsive">
@@ -858,9 +858,9 @@
   </div>
 <!-- Data Quality -->
   <div class="card shadow-sm mb-4">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-white text-dark border-start border-4 border-dark d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Data Quality</h5>
-      <button type="button" class="btn btn-sm btn-outline-light ta-toggle" data-bs-toggle="collapse" data-bs-target="#dataqBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-secondary ta-toggle" data-bs-toggle="collapse" data-bs-target="#dataqBody" aria-expanded="true"><span>Collapse</span> <i class="bi bi-chevron-up"></i></button>
     </div>
     <div class="card-body collapse ta-collapse" id="dataqBody">
       <div class="row">
